@@ -37,16 +37,12 @@ function TicketContent() {
     try {
       const u = await getMe();
       setUser(u);
-      if (Number(u?.wallet?.balance || 0) > 0) {
-        alert("Wallet Synced! You now have 1000 ETB for testing.");
-      } else {
-        alert("Wallet is still 0. Try tapping again or Refreshing.");
-      }
     } catch (err) {
-      console.error('Balance sync failed', err);
-      alert("Failed to sync wallet. Please check your connection.");
+      console.error('Balance sync failed silently', err);
+      // Silent fail - no alert popup
     }
   };
+
 
   useEffect(() => {
     loadUser();
@@ -54,19 +50,15 @@ function TicketContent() {
 
   const handleToggleCard = (num: number) => {
     setSelectedCards(prev => {
-      let next;
       if (prev.includes(num)) {
-        next = prev.filter(id => id !== num);
+        return prev.filter(id => id !== num);
       } else if (prev.length < 3) {
-        next = [...prev, num];
-      } else {
-        return prev;
+        return [...prev, num];
       }
-      // Silently refresh balance to keep UI in sync
-      refreshBalance();
-      return next;
+      return prev;
     });
   };
+
 
   const handleJoin = async (retryCount = 0) => {
     if (selectedCards.length === 0 || joining) return;
