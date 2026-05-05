@@ -37,8 +37,14 @@ function TicketContent() {
     try {
       const u = await getMe();
       setUser(u);
+      if (Number(u?.wallet?.balance || 0) > 0) {
+        alert("Wallet Synced! You now have 1000 ETB for testing.");
+      } else {
+        alert("Wallet is still 0. Try tapping again or Refreshing.");
+      }
     } catch (err) {
       console.error('Balance sync failed', err);
+      alert("Failed to sync wallet. Please check your connection.");
     }
   };
 
