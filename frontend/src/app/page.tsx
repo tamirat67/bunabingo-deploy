@@ -66,7 +66,8 @@ export default function LobbyPage() {
 
   const roomConfig = [
     { type: 'CASUAL', price: 10, label: 'Casual' },
-    { type: 'STANDARD', price: 25, label: 'Standard' },
+    { type: 'STANDARD', price: 20, label: 'Standard' },
+    { type: 'PRO', price: 50, label: 'Pro' },
     { type: 'JACKPOT', price: 100, label: 'Jackpot' },
   ];
 
