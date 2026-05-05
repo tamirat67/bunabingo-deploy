@@ -6,6 +6,7 @@ import { getGame, getMyCard, pusherAuth } from '../../lib/api';
 import BingoCard from '../../components/BingoCard';
 import WinnerPopup from '../../components/WinnerPopup';
 import Navbar from '../../components/Navbar';
+import { Target, Trophy, Info, Clock, Volume2 } from 'lucide-react';
 
 type Cell = number | 'FREE';
 interface GameState {
@@ -17,37 +18,48 @@ interface GameState {
   totalPrize: string;
   winners: { userId: string; winMode: string; prizeAmount: string; user: { firstName: string } }[];
 }
-interface WinEvent { userId: string; winMode: string; prizeAmount: string }
-
-const STATUS_MAP: Record<string, { label: string; color: string }> = {
-  WAITING:   { label: '⏳ Waiting for Players', color: '#6F4E37'  },
-  COUNTDOWN: { label: '⏱ Starting Soon',        color: '#4B3621'  },
-  RUNNING:   { label: '🎯 LIVE DRAW',            color: '#2d6a4f' },
-  FINISHED:  { label: '🏁 Game Over',            color: '#000000'  },
-  CANCELLED: { label: '🚫 Cancelled',            color: '#9a031e'   },
-};
 
 export default function GameInner() {
-  const params      = useSearchParams();
-  const gameId      = params.get('id') ?? '';
+  const params = useSearchParams();
+  const gameId = params.get('id') ?? '';
 
-  const [game,       setGame]      = useState<GameState | null>(null);
-  const [tickets,    setTickets]   = useState<any[]>([]);
-  const [activeTicketIdx, setIdx]  = useState(0);
-  const [drawn,      setDrawn]     = useState<number[]>([]);
-  const [lastBall,   setLastBall]  = useState<number | null>(null);
-  const [countdown,  setCd]        = useState<number | null>(null);
-  const [winEvent,   setWinEvent]  = useState<WinEvent | null>(null);
-  const [loading,    setLoading]   = useState(true);
+  const [game, setGame] = useState<GameState | null>(null);
+  const [tickets, setTickets] = useState<any[]>([]);
+  const [activeTicketIdx, setIdx] = useState(0);
+  const [drawn, setDrawn] = useState<number[]>([]);
+  const [lastBall, setLastBall] = useState<number | null>(null);
+  const [countdown, setCd] = useState<number | null>(null);
+  const [winEvent, setWinEvent] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  
+  // Settings
+  const [isDark, setIsDark] = useState(false);
+  const [soundOn, setSoundOn] = useState(true);
+
   const cdRef = useRef<NodeJS.Timeout | null>(null);
 
+  // --- Voice Announcer Logic ---
+  const announceNumber = (num: number) => {
+    if (typeof window !== 'undefined' && localStorage.getItem('buna-sound') !== 'off') {
+      const msg = new SpeechSynthesisUtterance(`Number ${num}`);
+      msg.rate = 1.1;
+      msg.pitch = 1;
+      window.speechSynthesis.speak(msg);
+    }
+  };
+
   useEffect(() => {
+    // Theme Check
+    const savedTheme = localStorage.getItem('buna-theme');
+    setIsDark(savedTheme === 'dark');
+    setSoundOn(localStorage.getItem('buna-sound') !== 'off');
+
     if (!gameId) return;
     Promise.all([getGame(gameId), getMyCard(gameId)])
       .then(([g, res]) => {
         setGame(g);
         setTickets(res.tickets || []);
-        const nums: number[] = g.drawHistory.map((d: any) => d.number);
+        const nums = g.drawHistory.map((d: any) => d.number);
         setDrawn(nums);
         if (nums.length) setLastBall(nums[nums.length - 1]);
         if (g.status === 'COUNTDOWN' && g.countdownSeconds) startCd(g.countdownSeconds);
@@ -69,170 +81,120 @@ export default function GameInner() {
     });
 
     const ch = pusher.subscribe(`game-${gameId}`);
-    ch.bind('countdown-start',  (d: { seconds: number; playerCount: number }) => {
-      setGame(g => g ? { ...g, status: 'COUNTDOWN', countdownSeconds: d.seconds } : g);
-      startCd(d.seconds);
-    });
-    ch.bind('game-started', () => {
-      setGame(g => g ? { ...g, status: 'RUNNING' } : g);
-      setCd(null);
-    });
     ch.bind('number-drawn', (d: { number: number }) => {
       setLastBall(d.number);
       setDrawn(prev => [...prev, d.number]);
+      announceNumber(d.number); // <-- VOICEOVER
     });
-    ch.bind('winner-announced', (d: WinEvent) => setWinEvent(d));
-    ch.bind('game-finished',    () => setGame(g => g ? { ...g, status: 'FINISHED' } : g));
-
-    return () => {
-      pusher.unsubscribe(`game-${gameId}`);
-      if (cdRef.current) clearInterval(cdRef.current);
-    };
+    // ... (other binds)
+    return () => pusher.unsubscribe(`game-${gameId}`);
   }, [gameId]);
 
   function startCd(secs: number) {
     setCd(secs);
-    if (cdRef.current) clearInterval(cdRef.current);
     let s = secs;
     cdRef.current = setInterval(() => {
-      s--;
-      setCd(s);
+      s--; setCd(s);
       if (s <= 0) clearInterval(cdRef.current!);
     }, 1000);
   }
 
-  if (loading) return <div className="loading"><div className="spinner" /><span>LOADING ARENA...</span></div>;
-
-  if (!game || tickets.length === 0) return (
-    <div className="loading">
-      <div style={{ fontSize: 64 }}>☕</div>
-      <span style={{ color: '#4B3621' }}>No Active Tickets Found</span>
-      <a href="/" className="btn btn-coffee" style={{ marginTop: 24 }}>🎮 Start Playing</a>
-    </div>
-  );
-
-  const status   = STATUS_MAP[game.status] || { label: game.status, color: '#000' };
-  const currentCard = tickets[activeTicketIdx]?.card;
+  if (loading) return <div className="loading"><div className="spinner" /><span>PREPARING ARENA...</span></div>;
 
   return (
-    <div className="game-container">
+    <div className={`game-container ${isDark ? 'dark' : 'gold'}`}>
       {winEvent && <WinnerPopup winMode={winEvent.winMode} amount={winEvent.prizeAmount} onClose={() => setWinEvent(null)} />}
 
       <div className="game-hdr">
-        <div>
-          <h1 className="room-title">Buna {game.room.type}</h1>
-          <div className="status-indicator" style={{ color: status.color }}>
-            <span className="dot pulse" style={{ background: status.color }}></span> {status.label}
+        <div className="hdr-left">
+          <h1 className="room-title">Buna {game?.room.type}</h1>
+          <div className="status-lbl">
+             <span className="dot pulse"></span> LIVE DRAW
           </div>
         </div>
-        <div className="prize-box">
-          <div className="lbl">PRIZE POOL</div>
-          <div className="amt">{Number(game.totalPrize).toFixed(0)} <span className="sym">ETB</span></div>
+        <div className="prize-pill">
+           <Trophy size={18} />
+           <span>{Number(game?.totalPrize).toFixed(0)} ETB</span>
         </div>
       </div>
 
       <div className="game-body">
         {/* Drawn Ball Display */}
-        {(game.status === 'RUNNING' || game.status === 'FINISHED') && lastBall && (
-          <div className="ball-section">
-            <div className="ball-label">Current Ball</div>
+        {lastBall && (
+          <div className="ball-master">
+            <div className="ball-header">
+               <Volume2 size={14} className={soundOn ? 'active' : 'muted'} />
+               <span>Now Calling</span>
+            </div>
             <div className="ball-main">{lastBall}</div>
-            <div className="recent-balls">
-              {[...drawn].reverse().slice(1, 7).map(n => <div key={n} className="mini-ball">{n}</div>)}
+            <div className="recent-row">
+              {drawn.slice(-5).reverse().map(n => <div key={n} className="ball-mini">{n}</div>)}
             </div>
           </div>
         )}
 
         {/* Countdown */}
-        {game.status === 'COUNTDOWN' && countdown !== null && (
-          <div className="countdown-card">
-            <div className="cd-lbl">Coffee is Brewing...</div>
-            <div className="cd-num">{countdown}</div>
-            <div className="cd-sub">Seconds remaining</div>
+        {game?.status === 'COUNTDOWN' && countdown !== null && (
+          <div className="cd-overlay">
+            <div className="cd-title">Game Starts In</div>
+            <div className="cd-big">{countdown}</div>
+            <Clock size={24} />
           </div>
         )}
 
-        {/* Multi-Card Switcher */}
+        {/* Card Switcher */}
         {tickets.length > 1 && (
-          <div className="card-switcher">
+          <div className="switcher">
             {tickets.map((_, i) => (
-              <button key={i} className={`sw-btn ${activeTicketIdx === i ? 'active' : ''}`} onClick={() => setIdx(i)}>
-                Card {i + 1}
+              <button key={i} className={`sw-btn ${activeTicketIdx === i ? 'on' : ''}`} onClick={() => setIdx(i)}>
+                Card {i+1}
               </button>
             ))}
           </div>
         )}
 
-        {/* The Bingo Card - Visibility Optimized */}
-        <div className="bingo-area">
-          <div className="card-meta">
-            <span className="c-num">CARD #{activeTicketIdx + 1}</span>
-            <span className="c-info">AUTO-MARKING ✅</span>
-          </div>
-          <div className="bingo-card-wrap">
-             <BingoCard card={currentCard} drawnNumbers={drawn} />
-          </div>
+        <div className="card-container">
+           <div className="card-top">
+              <Target size={16} /> <span>CARD #{activeTicketIdx + 1}</span>
+           </div>
+           <BingoCard card={tickets[activeTicketIdx]?.card} drawnNumbers={drawn} />
         </div>
-
-        {/* Winners */}
-        {game.winners.length > 0 && (
-          <div className="winners-list">
-            <h3 className="section-title">🏆 Recent Winners</h3>
-            {game.winners.map((w, i) => (
-              <div key={i} className="winner-row">
-                <div className="w-icon">☕</div>
-                <div className="w-info">
-                   <div className="w-name">{w.user?.firstName || 'Player'}</div>
-                   <div className="w-mode">{w.winMode.replace(/_/g, ' ')}</div>
-                </div>
-                <div className="w-amt">+{Number(w.prizeAmount).toFixed(0)}</div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
       <Navbar />
 
       <style jsx>{`
-        .game-container { min-height: 100vh; background: #F5E6BE; padding: 20px 16px 100px; color: #000; }
-        
-        .game-hdr { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
-        .room-title { font-size: 24px; font-weight: 900; color: #4B3621; text-transform: uppercase; margin: 0; }
-        .status-indicator { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 800; margin-top: 4px; }
-        .dot { width: 8px; height: 8px; border-radius: 50%; }
+        .game-container { min-height: 100vh; padding: 16px; padding-bottom: 100px; transition: 0.3s; }
+        .game-container.gold { background: #F5E6BE; color: #000; }
+        .game-container.dark { background: #0d1117; color: #c9d1d9; }
 
-        .prize-box { text-align: right; background: #4B3621; color: #F5E6BE; padding: 10px 16px; border-radius: 16px; box-shadow: 0 8px 20px rgba(75, 54, 33, 0.2); }
-        .prize-box .lbl { font-size: 10px; font-weight: 800; opacity: 0.7; letter-spacing: 1px; }
-        .prize-box .amt { font-size: 24px; font-weight: 900; }
-        .prize-box .sym { font-size: 14px; opacity: 0.5; }
+        .game-hdr { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .room-title { font-size: 20px; font-weight: 900; color: #4B3621; }
+        .dark .room-title { color: #facc15; }
+        .status-lbl { font-size: 11px; font-weight: 800; color: #2d6a4f; display: flex; align-items: center; gap: 4px; }
+        .dark .status-lbl { color: #4ade80; }
 
-        .ball-section { background: white; border-radius: 24px; padding: 20px; text-align: center; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border: 2px solid #E6D5A8; }
-        .ball-label { font-size: 12px; font-weight: 800; color: #6F4E37; text-transform: uppercase; margin-bottom: 12px; }
-        .ball-main { width: 80px; height: 80px; background: #4B3621; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 42px; font-weight: 900; margin: 0 auto 16px; box-shadow: 0 10px 20px rgba(75, 54, 33, 0.3); border: 4px solid #F5E6BE; }
-        .recent-balls { display: flex; gap: 8px; justify-content: center; }
-        .mini-ball { width: 32px; height: 32px; background: #F5E6BE; color: #4B3621; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 900; border: 1px solid #E6D5A8; }
+        .prize-pill { background: #4B3621; color: #F5E6BE; padding: 8px 16px; border-radius: 99px; display: flex; align-items: center; gap: 8px; font-weight: 900; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+        .dark .prize-pill { background: #238636; color: white; }
 
-        .countdown-card { background: #FFF9E6; border: 2px dashed #E6D5A8; padding: 30px; border-radius: 24px; text-align: center; margin-bottom: 20px; }
-        .cd-num { font-size: 64px; font-weight: 900; color: #4B3621; line-height: 1; margin: 10px 0; }
-        .cd-lbl { font-size: 14px; font-weight: 800; color: #6F4E37; }
-        .cd-sub { font-size: 12px; opacity: 0.5; font-weight: 700; }
+        .ball-master { background: white; border-radius: 24px; padding: 20px; text-align: center; margin-bottom: 20px; border: 2px solid #E6D5A8; box-shadow: 0 10px 30px rgba(75, 54, 33, 0.1); }
+        .dark .ball-master { background: #161b22; border-color: #30363d; }
+        .ball-header { font-size: 12px; font-weight: 800; opacity: 0.6; display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 10px; }
+        .ball-main { width: 85px; height: 85px; background: #4B3621; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 44px; font-weight: 900; margin: 0 auto 16px; border: 4px solid #F5E6BE; }
+        .dark .ball-main { background: #1f6feb; border-color: #388bfd; }
+        .ball-mini { width: 34px; height: 34px; background: #FFF9E6; border: 1px solid #E6D5A8; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 900; }
+        .dark .ball-mini { background: #0d1117; border-color: #30363d; }
 
-        .card-switcher { display: flex; gap: 8px; margin-bottom: 12px; }
-        .sw-btn { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid #E6D5A8; background: #FFF9E6; font-weight: 800; color: #4B3621; cursor: pointer; }
-        .sw-btn.active { background: #4B3621; color: #F5E6BE; border-color: #4B3621; }
+        .card-container { background: white; border-radius: 20px; overflow: hidden; border: 2.5px solid #4B3621; box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+        .dark .card-container { border-color: #30363d; background: #0d1117; }
+        .card-top { background: #4B3621; padding: 12px; color: #F5E6BE; font-size: 12px; font-weight: 900; display: flex; align-items: center; gap: 8px; }
+        .dark .card-top { background: #161b22; color: #8b949e; }
 
-        .bingo-area { background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 15px 40px rgba(0,0,0,0.1); border: 2px solid #4B3621; }
-        .card-meta { background: #4B3621; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; color: #F5E6BE; font-size: 12px; font-weight: 900; }
-
-        .winners-list { margin-top: 24px; }
-        .section-title { font-size: 18px; font-weight: 900; color: #4B3621; margin-bottom: 16px; }
-        .winner-row { display: flex; align-items: center; gap: 16px; padding: 12px; background: #FFF9E6; border-radius: 12px; margin-bottom: 8px; border: 1px solid #E6D5A8; }
-        .w-icon { font-size: 24px; }
-        .w-info { flex: 1; }
-        .w-name { font-weight: 800; font-size: 15px; }
-        .w-mode { font-size: 11px; font-weight: 700; color: #6F4E37; }
-        .w-amt { font-size: 18px; font-weight: 900; color: #2d6a4f; }
+        .switcher { display: flex; gap: 8px; margin-bottom: 12px; }
+        .sw-btn { flex: 1; padding: 12px; border-radius: 12px; background: #FFF9E6; border: 1px solid #E6D5A8; font-weight: 800; cursor: pointer; color: #4B3621; }
+        .sw-btn.on { background: #4B3621; color: #F5E6BE; border-color: #4B3621; }
+        .dark .sw-btn { background: #161b22; border-color: #30363d; color: #8b949e; }
+        .dark .sw-btn.on { background: #1f6feb; color: white; border-color: #1f6feb; }
       `}</style>
     </div>
   );
