@@ -11,7 +11,7 @@ export default function InvitePage() {
   const [loading, setLoading] = useState(true);
   const { show } = useToast();
   
-  const botUsername = 'BunaBingoBot'; // Configurable
+  const botUsername = 'buna_bingobot'; // Configurable
   const userId = wallet?.user?.id || '';
   const refLink = `https://t.me/${botUsername}?start=${userId}`;
 

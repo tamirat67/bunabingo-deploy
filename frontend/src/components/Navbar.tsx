@@ -7,11 +7,11 @@ export default function Navbar() {
   const pathname = usePathname();
 
   const navItems = [
-    { label: 'Game', href: '/', icon: <Dices size={30} strokeWidth={3} /> },
-    { label: 'Scores', href: '/history', icon: <Trophy size={30} strokeWidth={3} /> },
-    { label: 'History', href: '/mytickets', icon: <History size={30} strokeWidth={3} /> },
-    { label: 'Wallet', href: '/wallet', icon: <Wallet size={30} strokeWidth={3} /> },
-    { label: 'Profile', href: '/profile', icon: <UserCircle size={30} strokeWidth={3} /> },
+    { label: 'Game', href: '/', icon: <Dices size={26} strokeWidth={2} /> },
+    { label: 'Scores', href: '/history', icon: <Trophy size={26} strokeWidth={2} /> },
+    { label: 'History', href: '/mytickets', icon: <History size={26} strokeWidth={2} /> },
+    { label: 'Wallet', href: '/wallet', icon: <Wallet size={26} strokeWidth={2} /> },
+    { label: 'Profile', href: '/profile', icon: <UserCircle size={26} strokeWidth={2} /> },
   ];
 
   return (

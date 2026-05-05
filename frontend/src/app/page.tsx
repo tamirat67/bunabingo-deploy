@@ -7,6 +7,8 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '../components/Toast';
 import { Target, Trophy, Play, Dices, Gift, Wallet, Zap, Sparkles } from 'lucide-react';
 
+import Splash from '../components/Splash';
+
 interface Room {
   id: string;
   type: 'CASUAL' | 'STANDARD' | 'JACKPOT' | 'VIP';
@@ -18,6 +20,7 @@ export default function LobbyPage() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [wallet, setWallet] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [showSplash, setShowSplash] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const router = useRouter();
   const { show } = useToast();
@@ -50,10 +53,10 @@ export default function LobbyPage() {
     router.push(`/tickets/select?type=${type}&price=${price}`);
   };
 
-  if (loading) return <div className="loading"><div className="spinner" /><span>BUNA BINGO...</span></div>;
-
   return (
     <div className="lobby-container">
+      {showSplash && <Splash isLoading={loading} onFinish={() => setShowSplash(false)} />}
+      
       {showOnboarding && <Onboarding onSuccess={loadData} />}
 
       <div className="lobby-nav-top">
