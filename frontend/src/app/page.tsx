@@ -38,7 +38,7 @@ export default function LobbyPage() {
     setTimeout(() => router.push('/tickets/select?type=CASUAL&price=0&demo=true'), 1000);
   };
 
-  if (loading) return <div className="loading"><div className="spinner" /></div>;
+  if (loading) return <div className="loading"><div className="spinner" /><span>BUNA BINGO...</span></div>;
 
   return (
     <div className="lobby-container">
@@ -48,16 +48,11 @@ export default function LobbyPage() {
           <span className="live-dot pulse"></span>
           <span className="live-lbl">Live</span>
         </div>
+        <div className="nav-title">BUNA BINGO</div>
         <div className="nav-right">
           <div className="nav-stat">
             <span className="icon yellow">🎗️</span>
-            <span className="lbl">Bonus:</span>
-            <span className="val yellow">0.00</span>
-          </div>
-          <div className="nav-stat">
-            <span className="icon green">👛</span>
-            <span className="lbl">Balance:</span>
-            <span className="val">{Number(wallet?.balance || 0).toFixed(2)}</span>
+            <span className="val">{Number(wallet?.balance || 0).toFixed(0)}</span>
           </div>
         </div>
       </div>
@@ -89,7 +84,7 @@ export default function LobbyPage() {
                   <div className="win-main">
                     <span className="trophy">🏆</span>
                     <div className="win-stack">
-                      <div className="win-val yellow">{win}</div>
+                      <div className="win-val">{win}</div>
                       <div className="win-count">{players} players</div>
                     </div>
                   </div>
@@ -98,8 +93,7 @@ export default function LobbyPage() {
                   <div className="badge active">ACTIVE {price === 50 ? 1 : 0}</div>
                   <div className="ready-box">READY</div>
                   <div className="join-wrap">
-                    {(price === 10 || price === 100) && <div className="bonus-tag">🎗️ BONUS</div>}
-                    <button className="btn-join green" onClick={() => handleJoin(type, price.toString())}>JOIN</button>
+                    <button className="btn-join coffee" onClick={() => handleJoin(type, price.toString())}>JOIN</button>
                   </div>
                 </div>
               </div>
@@ -147,7 +141,7 @@ export default function LobbyPage() {
                 <div className="win-main">
                   <span className="trophy">🏆</span>
                   <div className="win-stack">
-                    <div className="win-val yellow">0</div>
+                    <div className="win-val">0</div>
                     <div className="win-count">0 players</div>
                   </div>
                 </div>
@@ -155,10 +149,7 @@ export default function LobbyPage() {
               <div className="col-status">
                 <div className="badge active">ACTIVE 0</div>
                 <div className="ready-box">READY</div>
-                <div className="join-wrap">
-                  {price === 10 && <div className="bonus-tag">🎗️ BONUS</div>}
-                  <button className="btn-join purple" onClick={() => show(`Spin ${price} ETB coming soon! 🎰`, 'info')}>JOIN</button>
-                </div>
+                <button className="btn-join coffee outline" onClick={() => show(`Spin coming soon! 🎰`, 'info')}>JOIN</button>
               </div>
             </div>
             <div className="jackpot-divider">JACKPOT 0 / 1000</div>
@@ -169,46 +160,48 @@ export default function LobbyPage() {
       <Navbar />
 
       <style jsx>{`
-        .lobby-container { min-height: 100vh; background: #a68cc5; padding-bottom: 90px; color: white; }
-        .lobby-nav { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: rgba(0,0,0,0.1); }
+        .lobby-container { min-height: 100vh; background: #F5E6BE; padding-bottom: 90px; color: #000; }
+        
+        .lobby-nav { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: #4B3621; color: #F5E6BE; }
         .nav-left { display: flex; align-items: center; gap: 6px; }
         .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #4ade80; }
         .pulse { animation: pulse 2s infinite; }
         @keyframes pulse { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
-        .live-lbl { font-size: 13px; font-weight: 600; opacity: 0.8; }
-        .nav-stat { display: flex; align-items: center; gap: 4px; font-size: 14px; font-weight: 700; }
-        .yellow { color: #facc15; }
-        .green { color: #4ade80; }
-        .section-title { padding: 20px 16px 12px; font-size: 16px; font-weight: 900; letter-spacing: 0.5px; opacity: 0.9; }
-        .sp-mt { margin-top: 10px; }
-        .emoji { margin-right: 8px; }
-        .column-headers { display: grid; grid-template-columns: 80px 1fr 100px; padding: 0 16px 8px; font-size: 11px; font-weight: 800; opacity: 0.5; }
-        .room-row { display: grid; grid-template-columns: 80px 1fr 100px; background: rgba(255,255,255,0.15); padding: 14px 16px; align-items: center; position: relative; }
-        .room-row.demo { background: rgba(255,255,255,0.08); }
-        .col-bet { text-align: center; border-right: 1px solid rgba(255,255,255,0.1); }
+        .nav-title { font-weight: 900; letter-spacing: 1px; font-size: 14px; }
+
+        .nav-right { display: flex; gap: 14px; }
+        .nav-stat { display: flex; align-items: center; gap: 4px; font-size: 14px; font-weight: 800; }
+
+        .section-title { padding: 20px 16px 12px; font-size: 16px; font-weight: 900; color: #4B3621; }
+        .column-headers { display: grid; grid-template-columns: 80px 1fr 100px; padding: 0 16px 8px; font-size: 11px; font-weight: 800; opacity: 0.5; color: #000; }
+
+        .room-row { display: grid; grid-template-columns: 80px 1fr 100px; background: #FFF9E6; padding: 14px 16px; align-items: center; border-bottom: 1px solid #E6D5A8; }
+        .room-row.demo { background: #f0ead6; }
+
+        .col-bet { text-align: center; border-right: 1px solid #E6D5A8; color: #4B3621; }
         .col-bet .v { font-size: 24px; font-weight: 900; line-height: 1; }
-        .col-bet .l { font-size: 10px; opacity: 0.6; font-weight: 700; margin-top: 4px; }
+        .col-bet .l { font-size: 10px; opacity: 0.7; font-weight: 800; }
+
         .col-win { padding: 0 16px; }
         .win-main { display: flex; align-items: center; gap: 12px; }
-        .trophy { font-size: 26px; opacity: 0.8; }
-        .play-icon { font-size: 20px; opacity: 0.6; }
+        .trophy { font-size: 26px; }
         .win-stack { display: flex; flex-direction: column; }
-        .win-val { font-size: 20px; font-weight: 900; }
-        .win-count { font-size: 11px; opacity: 0.5; font-weight: 600; }
-        .demo-title { font-size: 16px; font-weight: 800; }
+        .win-val { font-size: 20px; font-weight: 900; color: #000; }
+        .win-count { font-size: 11px; opacity: 0.6; font-weight: 700; }
+
         .col-status { display: flex; flex-direction: column; align-items: center; gap: 5px; }
-        .badge.active { background: #3b82f6; font-size: 9px; font-weight: 900; padding: 2px 8px; border-radius: 99px; }
-        .ready-box { background: rgba(0,0,0,0.2); color: #4ade80; font-size: 11px; font-weight: 900; padding: 4px 10px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.05); }
-        .open-lbl { font-size: 11px; font-weight: 900; opacity: 0.6; }
-        .join-wrap { display: flex; flex-direction: column; align-items: center; width: 100%; }
-        .bonus-tag { background: #facc15; color: #000; font-size: 9px; font-weight: 900; padding: 1px 6px; border-radius: 4px; margin-bottom: -4px; z-index: 2; border: 1px solid rgba(0,0,0,0.1); }
-        .btn-join { width: 100%; border: none; color: white; padding: 8px; border-radius: 8px; font-weight: 900; font-size: 14px; box-shadow: 0 4px 0 rgba(0,0,0,0.2); cursor: pointer; }
-        .btn-join.green { background: #22c55e; box-shadow: 0 4px 0 #15803d; }
-        .btn-join.purple { background: #a855f7; box-shadow: 0 4px 0 #7e22ce; }
+        .badge.active { background: #6F4E37; color: white; font-size: 9px; font-weight: 900; padding: 2px 8px; border-radius: 99px; }
+        .ready-box { background: rgba(0,0,0,0.05); color: #2d6a4f; font-size: 11px; font-weight: 900; padding: 4px 10px; border-radius: 4px; border: 1px solid #E6D5A8; }
+        
+        .btn-join { width: 100%; border: none; padding: 8px; border-radius: 8px; font-weight: 900; font-size: 14px; cursor: pointer; }
+        .btn-join.coffee { background: #4B3621; color: #F5E6BE; box-shadow: 0 4px 0 #2a1e12; }
+        .btn-join.coffee.outline { background: transparent; color: #4B3621; border: 2px solid #4B3621; box-shadow: none; }
         .btn-join:active { transform: translateY(2px); box-shadow: none; }
-        .btn-try { background: #64748b; border: none; color: white; padding: 8px 24px; border-radius: 8px; font-weight: 900; font-size: 14px; box-shadow: 0 4px 0 #334155; cursor: pointer; }
-        .jackpot-divider { font-size: 9px; font-weight: 900; text-align: center; color: rgba(255,255,255,0.7); display: flex; align-items: center; gap: 10px; padding: 0 16px; margin: 6px 0; }
-        .jackpot-divider::before, .jackpot-divider::after { content: ""; flex: 1; height: 1px; background: rgba(255,255,255,0.2); }
+
+        .btn-try { background: #6F4E37; border: none; color: white; padding: 8px 24px; border-radius: 8px; font-weight: 900; font-size: 14px; }
+
+        .jackpot-divider { font-size: 9px; font-weight: 900; text-align: center; color: #6F4E37; display: flex; align-items: center; gap: 10px; padding: 0 16px; margin: 6px 0; }
+        .jackpot-divider::before, .jackpot-divider::after { content: ""; flex: 1; height: 1px; background: #E6D5A8; }
       `}</style>
     </div>
   );
