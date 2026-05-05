@@ -10,7 +10,6 @@ interface Room {
   type: 'CASUAL' | 'STANDARD' | 'JACKPOT';
   ticketPrice: string;
   currentPlayers: number;
-  games: any[];
 }
 
 export default function LobbyPage() {
@@ -18,6 +17,7 @@ export default function LobbyPage() {
   const [wallet, setWallet] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const { show } = useToast();
 
   useEffect(() => {
     Promise.all([getRooms(), getWallet()])
@@ -33,109 +33,190 @@ export default function LobbyPage() {
     router.push(`/tickets/select?type=${type}&price=${price}`);
   };
 
+  const handleTry = () => {
+    show('Starting Practice Mode... 🎮', 'info');
+    setTimeout(() => router.push('/tickets/select?type=CASUAL&price=0&demo=true'), 1000);
+  };
+
   if (loading) return <div className="loading"><div className="spinner" /></div>;
 
   return (
     <div className="lobby-container">
-      {/* ─── Top Bar ────────────────────────────────────────── */}
-      <div className="lobby-header">
-        <div className="status-live">
-          <span className="dot pulse"></span> Live
+      {/* ─── Top Navigation ──────────────────────────────────── */}
+      <div className="lobby-nav">
+        <div className="nav-left">
+          <span className="live-dot pulse"></span>
+          <span className="live-lbl">Live</span>
         </div>
-        <div className="header-stats">
-          <div className="header-stat">
-            <span className="stat-icon">🎗️</span>
-            <span className="stat-label">Bonus: </span>
-            <span className="stat-val yellow">0.00</span>
+        <div className="nav-right">
+          <div className="nav-stat">
+            <span className="icon yellow">🎗️</span>
+            <span className="lbl">Bonus:</span>
+            <span className="val yellow">0.00</span>
           </div>
-          <div className="header-stat">
-            <span className="stat-icon">👛</span>
-            <span className="stat-label">Balance: </span>
-            <span className="stat-val yellow">{Number(wallet?.balance || 0).toFixed(2)}</span>
+          <div className="nav-stat">
+            <span className="icon green">👛</span>
+            <span className="lbl">Balance:</span>
+            <span className="val">{Number(wallet?.balance || 0).toFixed(2)}</span>
           </div>
         </div>
       </div>
 
       {/* ─── Bingo Games Section ───────────────────────────── */}
-      <div className="lobby-section">
-        <div className="section-header">
-          <span className="icon">🎯</span> BINGO GAMES
+      <div className="section-title">
+        <span className="emoji">🎯</span> BINGO GAMES
+      </div>
+
+      <div className="column-headers">
+        <span>BET</span>
+        <span>WIN/PLAYER</span>
+        <span>STATUS & JOIN</span>
+      </div>
+
+      <div className="game-list">
+        {/* Row 1: 10 ETB */}
+        <div className="room-row">
+          <div className="col-bet">
+            <div className="v">10</div>
+            <div className="l">ETB</div>
+          </div>
+          <div className="col-win">
+            <div className="win-main">
+              <span className="trophy">🏆</span>
+              <div className="win-stack">
+                <div className="win-val yellow">592</div>
+                <div className="win-count">74 players</div>
+              </div>
+            </div>
+          </div>
+          <div className="col-status">
+            <div className="badge active">ACTIVE 0</div>
+            <div className="ready-box">READY</div>
+            <div className="join-wrap">
+              <div className="bonus-tag">🎗️ BONUS</div>
+              <button className="btn-join green" onClick={() => handleJoin('CASUAL', '10')}>JOIN</button>
+            </div>
+          </div>
         </div>
+        <div className="jackpot-divider">JACKPOT 508 / 1000</div>
 
-        <div className="game-list">
-          {rooms.map((room, idx) => {
-            const players = room.currentPlayers || 0;
-            const price = Number(room.ticketPrice).toFixed(0);
-            const potentialWin = Number(price) * 10; // Estimated for UI
-
-            return (
-              <div key={room.id}>
-                <div className="room-row">
-                  <div className="col-bet">
-                    <div className="val">{price}</div>
-                    <div className="lbl">ETB</div>
-                  </div>
-                  
-                  <div className="col-win">
-                    <div className="win-wrap">
-                      <span className="win-icon">🏆</span>
-                      <div className="win-info">
-                        <div className="win-val yellow">{potentialWin}</div>
-                        <div className="win-players">{players} players</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="col-action">
-                    <div className="badge-active">ACTIVE {Math.floor(players/5)}</div>
-                    <div className="status-ready">READY</div>
-                    <button onClick={() => handleJoin(room.type, price)} className="btn-join">
-                      JOIN
-                    </button>
-                  </div>
-                </div>
-                
-                {/* Jackpot Progress Bar between items */}
-                <div className="jackpot-bar-wrap">
-                  <div className="jackpot-label">JACKPOT {idx * 250}/1000</div>
-                  <div className="jackpot-progress">
-                    <div className="progress-fill" style={{ width: `${idx * 25}%` }}></div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-
-          {/* Practice Mode */}
-          <div className="room-row practice">
-            <div className="col-bet">
-              <div className="val">FREE</div>
-              <div className="lbl">DEMO</div>
-            </div>
-            <div className="col-win">
-              <div className="win-info">
-                <div className="win-label">Practice Mode</div>
-                <div className="win-desc">No real money</div>
+        {/* Row 2: 20 ETB */}
+        <div className="room-row">
+          <div className="col-bet">
+            <div className="v">20</div>
+            <div className="l">ETB</div>
+          </div>
+          <div className="col-win">
+            <div className="win-main">
+              <span className="trophy">🏆</span>
+              <div className="win-stack">
+                <div className="win-val yellow">0</div>
+                <div className="win-count">0 players</div>
               </div>
             </div>
-            <div className="col-action">
-              <div className="status-open">OPEN</div>
-              <button className="btn-try">TRY</button>
+          </div>
+          <div className="col-status">
+            <div className="badge active">ACTIVE 0</div>
+            <div className="ready-box">READY</div>
+            <button className="btn-join green" onClick={() => handleJoin('STANDARD', '20')}>JOIN</button>
+          </div>
+        </div>
+        <div className="jackpot-divider">JACKPOT 0 / 1000</div>
+
+        {/* Row 3: 50 ETB */}
+        <div className="room-row">
+          <div className="col-bet">
+            <div className="v">50</div>
+            <div className="l">ETB</div>
+          </div>
+          <div className="col-win">
+            <div className="win-main">
+              <span className="trophy">🏆</span>
+              <div className="win-stack">
+                <div className="win-val yellow">0</div>
+                <div className="win-count">0 players</div>
+              </div>
             </div>
+          </div>
+          <div className="col-status">
+            <div className="badge active">ACTIVE 1</div>
+            <div className="ready-box">READY</div>
+            <button className="btn-join green" onClick={() => handleJoin('JACKPOT', '50')}>JOIN</button>
+          </div>
+        </div>
+        <div className="jackpot-divider">JACKPOT 0 / 1000</div>
+
+        {/* Free Demo */}
+        <div className="room-row demo">
+          <div className="col-bet">
+            <div className="v">FREE</div>
+            <div className="l">DEMO</div>
+          </div>
+          <div className="col-win">
+            <div className="win-main">
+              <span className="play-icon">▶️</span>
+              <div className="win-stack">
+                <div className="demo-title">Practice Mode</div>
+                <div className="win-count">No real money</div>
+              </div>
+            </div>
+          </div>
+          <div className="col-status">
+            <div className="open-lbl">OPEN</div>
+            <button className="btn-try" onClick={handleTry}>TRY</button>
           </div>
         </div>
       </div>
 
       {/* ─── Spin Games Section ────────────────────────────── */}
-      <div className="lobby-section">
-        <div className="section-header">
-          <span className="icon">🎰</span> SPIN GAMES
+      <div className="section-title sp-mt">
+        <span className="emoji">🎰</span> SPIN GAMES
+      </div>
+
+      <div className="game-list">
+        <div className="room-row">
+          <div className="col-bet">
+            <div className="v">10</div>
+            <div className="l">ETB</div>
+          </div>
+          <div className="col-win">
+            <div className="win-main">
+              <span className="trophy">🏆</span>
+              <div className="win-stack">
+                <div className="win-val yellow">0</div>
+                <div className="win-count">0 players</div>
+              </div>
+            </div>
+          </div>
+          <div className="col-status">
+            <div className="badge active">ACTIVE 0</div>
+            <div className="ready-box">READY</div>
+            <div className="join-wrap">
+              <div className="bonus-tag">🎗️ BONUS</div>
+              <button className="btn-join purple" onClick={() => show('Spin Games coming soon! 🎰', 'info')}>JOIN</button>
+            </div>
+          </div>
         </div>
-        <div className="game-list muted">
-          <div className="room-row disabled">
-            <div className="col-bet"><div className="val">10</div><div className="lbl">ETB</div></div>
-            <div className="col-win"><div className="win-info">Coming Soon...</div></div>
-            <div className="col-action"><button className="btn-join disabled">LOCK</button></div>
+        <div className="jackpot-divider">JACKPOT 0 / 1000</div>
+        
+        <div className="room-row">
+          <div className="col-bet">
+            <div className="v">20</div>
+            <div className="l">ETB</div>
+          </div>
+          <div className="col-win">
+            <div className="win-main">
+              <span className="trophy">🏆</span>
+              <div className="win-stack">
+                <div className="win-val yellow">0</div>
+                <div className="win-count">0 players</div>
+              </div>
+            </div>
+          </div>
+          <div className="col-status">
+            <div className="badge active">ACTIVE 0</div>
+            <div className="ready-box">READY</div>
+            <button className="btn-join purple" onClick={() => show('Spin Games coming soon! 🎰', 'info')}>JOIN</button>
           </div>
         </div>
       </div>
@@ -143,37 +224,62 @@ export default function LobbyPage() {
       <Navbar />
 
       <style jsx>{`
-        .lobby-container { min-height: 100vh; background: #8e74b8; color: white; padding-bottom: 80px; }
-        .lobby-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: rgba(0,0,0,0.1); border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .status-live { display: flex; align-items: center; gap: 6px; font-size: 12px; opacity: 0.8; }
-        .dot { width: 8px; height: 8px; background: #4ade80; border-radius: 50%; }
+        .lobby-container { min-height: 100vh; background: #a68cc5; padding-bottom: 90px; color: white; }
+        
+        .lobby-nav { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: rgba(0,0,0,0.1); }
+        .nav-left { display: flex; align-items: center; gap: 6px; }
+        .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #4ade80; }
         .pulse { animation: pulse 2s infinite; }
         @keyframes pulse { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
-        .header-stats { display: flex; gap: 12px; }
-        .header-stat { display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; }
+        .live-lbl { font-size: 13px; font-weight: 600; opacity: 0.8; }
+
+        .nav-right { display: flex; gap: 14px; }
+        .nav-stat { display: flex; align-items: center; gap: 4px; font-size: 14px; font-weight: 700; }
         .yellow { color: #facc15; }
-        .lobby-section { padding: 16px 0; }
-        .section-header { padding: 0 16px 12px; font-weight: 800; font-size: 14px; display: flex; align-items: center; gap: 8px; letter-spacing: 1px; }
-        .room-row { display: grid; grid-template-columns: 80px 1fr 100px; background: rgba(255,255,255,0.1); padding: 12px 16px; align-items: center; position: relative; }
-        .room-row.practice { background: rgba(255,255,255,0.05); }
-        .room-row.disabled { opacity: 0.5; }
+        .green { color: #4ade80; }
+
+        .section-title { padding: 20px 16px 12px; font-size: 16px; font-weight: 900; letter-spacing: 0.5px; opacity: 0.9; }
+        .sp-mt { margin-top: 10px; }
+        .emoji { margin-right: 8px; }
+
+        .column-headers { display: grid; grid-template-columns: 80px 1fr 100px; padding: 0 16px 8px; font-size: 11px; font-weight: 800; opacity: 0.5; }
+
+        .room-row { display: grid; grid-template-columns: 80px 1fr 100px; background: rgba(255,255,255,0.15); padding: 14px 16px; align-items: center; position: relative; }
+        .room-row.demo { background: rgba(255,255,255,0.08); }
+
         .col-bet { text-align: center; border-right: 1px solid rgba(255,255,255,0.1); }
-        .col-bet .val { font-size: 20px; font-weight: 900; line-height: 1; }
-        .col-bet .lbl { font-size: 10px; opacity: 0.7; font-weight: 700; margin-top: 4px; }
+        .col-bet .v { font-size: 24px; font-weight: 900; line-height: 1; }
+        .col-bet .l { font-size: 10px; opacity: 0.6; font-weight: 700; margin-top: 4px; }
+
         .col-win { padding: 0 16px; }
-        .win-wrap { display: flex; align-items: center; gap: 10px; }
-        .win-icon { font-size: 24px; }
-        .win-val { font-size: 18px; font-weight: 800; }
-        .win-players { font-size: 11px; opacity: 0.7; font-weight: 500; }
-        .col-action { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-        .badge-active { background: #3b82f6; font-size: 9px; padding: 2px 6px; border-radius: 99px; font-weight: 800; }
-        .status-ready { color: #4ade80; font-size: 11px; font-weight: 800; }
-        .btn-join { background: #22c55e; border: none; color: white; padding: 6px 18px; border-radius: 8px; font-weight: 800; font-size: 13px; box-shadow: 0 4px 0 #15803d; }
-        .btn-join:active { transform: translateY(2px); box-shadow: 0 2px 0 #15803d; }
-        .jackpot-bar-wrap { position: relative; height: 16px; margin: -8px 0; z-index: 2; display: flex; align-items: center; justify-content: center; }
-        .jackpot-label { position: absolute; font-size: 9px; font-weight: 900; text-transform: uppercase; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
-        .jackpot-progress { width: 100%; height: 4px; background: rgba(0,0,0,0.3); }
-        .progress-fill { height: 100%; background: #facc15; box-shadow: 0 0 8px #facc15; }
+        .win-main { display: flex; align-items: center; gap: 12px; }
+        .trophy { font-size: 26px; opacity: 0.8; }
+        .play-icon { font-size: 20px; opacity: 0.6; }
+        .win-stack { display: flex; flex-direction: column; }
+        .win-val { font-size: 20px; font-weight: 900; }
+        .win-count { font-size: 11px; opacity: 0.5; font-weight: 600; }
+        .demo-title { font-size: 16px; font-weight: 800; }
+
+        .col-status { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+        .badge.active { background: #3b82f6; font-size: 9px; font-weight: 900; padding: 2px 8px; border-radius: 99px; }
+        .ready-box { background: rgba(0,0,0,0.2); color: #4ade80; font-size: 11px; font-weight: 900; padding: 4px 10px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.05); }
+        .open-lbl { font-size: 11px; font-weight: 900; opacity: 0.6; }
+        
+        .join-wrap { display: flex; flex-direction: column; align-items: center; width: 100%; }
+        .bonus-tag { background: #facc15; color: #000; font-size: 9px; font-weight: 900; padding: 1px 6px; border-radius: 4px; margin-bottom: -4px; z-index: 2; border: 1px solid rgba(0,0,0,0.1); }
+
+        .btn-join { width: 100%; border: none; color: white; padding: 8px; border-radius: 8px; font-weight: 900; font-size: 14px; box-shadow: 0 4px 0 rgba(0,0,0,0.2); cursor: pointer; }
+        .btn-join.green { background: #22c55e; box-shadow: 0 4px 0 #15803d; }
+        .btn-join.purple { background: #a855f7; box-shadow: 0 4px 0 #7e22ce; }
+        .btn-join:active { transform: translateY(2px); box-shadow: none; }
+
+        .btn-try { background: #64748b; border: none; color: white; padding: 8px 24px; border-radius: 8px; font-weight: 900; font-size: 14px; box-shadow: 0 4px 0 #334155; cursor: pointer; }
+
+        .jackpot-divider { height: 2px; background: rgba(0,0,0,0.1); position: relative; display: flex; align-items: center; justify-content: center; margin: 4px 0; }
+        .jackpot-divider::after { content: attr(data-label); position: absolute; font-size: 9px; font-weight: 900; color: #fff; text-transform: uppercase; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+        /* Alternative for pseudo content with dynamic label */
+        .jackpot-divider { font-size: 9px; font-weight: 900; text-align: center; color: rgba(255,255,255,0.7); display: flex; align-items: center; gap: 10px; padding: 0 16px; margin: 6px 0; }
+        .jackpot-divider::before, .jackpot-divider::after { content: ""; flex: 1; height: 1px; background: rgba(255,255,255,0.2); }
       `}</style>
     </div>
   );
