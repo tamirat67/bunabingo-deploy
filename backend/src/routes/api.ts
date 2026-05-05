@@ -92,7 +92,17 @@ router.post('/auth/register', async (req: Request, res: Response) => {
 router.get('/me', async (req: Request, res: Response) => {
   const user = (req as any).user;
   if (!user) return res.status(401).json({ error: 'Not registered' });
-  const wallet = await getOrCreateWallet(user.id);
+  
+  let wallet = await prisma.wallet.findUnique({ where: { userId: user.id } });
+  if (!wallet) {
+    wallet = await prisma.wallet.create({ data: { userId: user.id, balance: 10 } });
+  } else if (Number(wallet.balance) === 0) {
+    wallet = await prisma.wallet.update({
+      where: { userId: user.id },
+      data: { balance: 10 }
+    });
+  }
+  
   res.json({ ...user, wallet });
 });
 
