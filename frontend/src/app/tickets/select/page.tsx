@@ -2,7 +2,7 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getMe, joinGame } from '../../../lib/api';
-import { ChevronLeft, Info, CheckCircle2, Ticket } from 'lucide-react';
+import { ChevronLeft, RefreshCw, Play, Wallet, Trophy, Target, Zap } from 'lucide-react';
 
 function TicketContent() {
   const router = useRouter();
@@ -12,19 +12,17 @@ function TicketContent() {
 
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [showOnboarding, setShowOnboarding] = useState(false);
-  const [selectedCard, setSelectedCard] = useState<number>(1);
+  const [selectedCard, setSelectedCard] = useState<number | null>(null);
   const [joining, setJoining] = useState(false);
+  const [occupiedCards, setOccupiedCards] = useState<number[]>([10, 42, 55, 78, 91]); 
+  const [jackpot, setJackpot] = useState(808);
 
   const loadUser = async () => {
     try {
       const u = await getMe();
       setUser(u);
     } catch (err: any) {
-      if (err.response?.status === 401) {
-        // If somehow not auto-registered in lobby, push back or re-try
-        router.push('/');
-      }
+      if (err.response?.status === 401) router.push('/');
     } finally {
       setLoading(false);
     }
@@ -35,7 +33,7 @@ function TicketContent() {
   }, []);
 
   const handleJoin = async () => {
-    if (!user) return;
+    if (!selectedCard || joining) return;
     setJoining(true);
     try {
       const res = await joinGame(roomType, selectedCard);
@@ -47,92 +45,135 @@ function TicketContent() {
     }
   };
 
-  if (loading) return <div className="loading"><div className="spinner" /><span>PREPARING CARDS...</span></div>;
+  const isLowBalance = (user?.wallet?.balance || 0) < Number(ticketPrice);
+
+  if (loading) return <div className="loading"><div className="spinner" /><span>PREPARING CARTELAS...</span></div>;
 
   return (
-    <div className="select-container">
-      <div className="select-header">
-        <button className="btn-back" onClick={() => router.push('/')}>
+    <div className="bingo-selection-container">
+      {/* Top Header */}
+      <div className="top-header-nav">
+        <button className="btn-back-nav" onClick={() => router.push('/')}>
           <ChevronLeft size={24} />
         </button>
-        <div className="header-info">
+        <div className="title-stack">
           <h1>Select Cartela</h1>
-          <p>{roomType} Room • {ticketPrice} ETB</p>
+          <p>{roomType} • Stake {ticketPrice}</p>
         </div>
       </div>
 
-      <div className="balance-banner">
-        <div className="bal-l">Your Balance</div>
-        <div className="bal-v">{Number(user?.wallet?.balance || 0).toFixed(2)} ETB</div>
+      {/* Stats Header Row (Addis Style) */}
+      <div className="stats-capsule-row">
+        <div className="capsule">
+          <div className="l">Wallet</div>
+          <div className="v">{(user?.wallet?.balance || 0).toFixed(0)}</div>
+        </div>
+        <div className="capsule">
+          <div className="l">Bonus</div>
+          <div className="v">0</div>
+        </div>
+        <div className="capsule">
+          <div className="l">Active Game</div>
+          <div className="v">2</div>
+        </div>
+        <div className="capsule active-stake">
+          <div className="l">Stake</div>
+          <div className="v">{ticketPrice}</div>
+        </div>
       </div>
 
-      <div className="cards-grid">
-        {[1, 2, 3].map((id) => (
-          <div 
-            key={id} 
-            className={`card-option ${selectedCard === id ? 'active' : ''}`}
-            onClick={() => setSelectedCard(id)}
-          >
-            <div className="card-visual">
-               <Ticket size={40} className="t-icon" />
-               <div className="card-num">#{id}</div>
-            </div>
-            <div className="card-meta">
-              <span className="label">Cartela {id}</span>
-              {selectedCard === id && <CheckCircle2 size={20} className="check-icon" />}
-            </div>
-          </div>
-        ))}
+      {/* Jackpot Bar */}
+      <div className="jackpot-card">
+        <div className="jack-top">
+          <div className="label"><Zap size={14} className="zap" /> JACKPOT</div>
+          <div className="count">{jackpot} / 1000</div>
+        </div>
+        <div className="progress-track">
+          <div className="progress-bar" style={{ width: `${(jackpot/1000)*100}%` }}></div>
+        </div>
       </div>
 
-      <div className="info-box">
-        <Info size={16} />
-        <p>You can choose your favorite card number. The game will start automatically when the room is full.</p>
+      {/* Low Balance Alert */}
+      {isLowBalance && (
+        <div className="topup-alert-box">
+          <p>⚠️ Please top up your wallet. If you already have and are still seeing this, please refresh the page.</p>
+        </div>
+      )}
+
+      {/* 1-100 Cartela Grid */}
+      <div className="grid-scroll-area">
+        <div className="cartela-100-grid">
+          {Array.from({ length: 100 }, (_, i) => i + 1).map((num) => {
+            const isOccupied = occupiedCards.includes(num);
+            const isSelected = selectedCard === num;
+            return (
+              <div 
+                key={num} 
+                className={`cartela-item ${isOccupied ? 'held' : ''} ${isSelected ? 'chosen' : ''}`}
+                onClick={() => !isOccupied && setSelectedCard(num)}
+              >
+                {num}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
-      <div className="action-footer">
+      {/* Action Footer */}
+      <div className="selection-footer-bar">
+        <button className="btn-footer-refresh" onClick={loadUser}>
+          <RefreshCw size={18} />
+          <span>Refresh</span>
+        </button>
         <button 
-          className={`btn-confirm ${joining ? 'loading' : ''}`}
+          className={`btn-footer-start ${(!selectedCard || joining || isLowBalance) ? 'locked' : ''}`}
           onClick={handleJoin}
-          disabled={joining || (user?.wallet?.balance || 0) < Number(ticketPrice)}
+          disabled={!selectedCard || joining || isLowBalance}
         >
-          {joining ? 'JOINING...' : `CONFIRM & JOIN (${ticketPrice} ETB)`}
+          <Play size={18} />
+          <span>{joining ? 'JOINING...' : 'START GAME'}</span>
         </button>
       </div>
 
       <style jsx>{`
-        .select-container { min-height: 100vh; background: var(--bg-main); padding: 20px 16px 120px; color: var(--text-main); }
+        .bingo-selection-container { min-height: 100vh; background: var(--bg-main); color: var(--text-main); padding-bottom: 120px; transition: 0.3s; }
         
-        .select-header { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; margin-top: 10px; }
-        .btn-back { background: var(--bg-card); border: 1px solid var(--border-light); color: var(--text-main); width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center; }
+        .top-header-nav { display: flex; align-items: center; padding: 16px; gap: 16px; background: var(--bg-nav); color: white; }
+        .btn-back-nav { background: rgba(255,255,255,0.1); border: none; color: white; width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .title-stack h1 { font-size: 18px; font-weight: 900; margin: 0; }
+        .title-stack p { font-size: 11px; opacity: 0.7; font-weight: 700; margin: 0; text-transform: uppercase; }
+
+        .stats-capsule-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 16px; }
+        .capsule { background: var(--bg-card); color: var(--text-main); border-radius: 14px; padding: 10px 4px; text-align: center; border: 1.5px solid var(--border-light); box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .capsule.active-stake { border-color: var(--gold-accent); background: var(--bg-nav); color: white; }
+        .capsule .l { font-size: 8px; font-weight: 800; text-transform: uppercase; opacity: 0.5; margin-bottom: 2px; }
+        .capsule .v { font-size: 15px; font-weight: 900; }
+
+        .jackpot-card { background: var(--bg-card); margin: 0 16px 16px; border-radius: 16px; padding: 12px; border: 1px solid var(--border-light); }
+        .jack-top { display: flex; justify-content: space-between; font-size: 11px; font-weight: 900; margin-bottom: 6px; }
+        .jack-top .label { display: flex; align-items: center; gap: 4px; color: var(--gold-accent); }
+        .progress-track { height: 8px; background: var(--jackpot-bg); border-radius: 99px; overflow: hidden; }
+        .progress-bar { height: 100%; background: var(--gold-accent); border-radius: 99px; box-shadow: 0 0 10px var(--gold-accent); }
+
+        .topup-alert-box { background: rgba(154, 3, 30, 0.1); color: var(--red); margin: 0 16px 16px; padding: 14px; border-radius: 14px; border: 1px solid rgba(154, 3, 30, 0.2); text-align: center; }
+        .topup-alert-box p { font-size: 12px; font-weight: 800; margin: 0; line-height: 1.5; }
+
+        .grid-scroll-area { padding: 0 12px; }
+        .cartela-100-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 6px; }
+        .cartela-item { 
+          aspect-ratio: 1; background: var(--bg-card); border: 1.5px solid var(--border-light); border-radius: 8px; 
+          display: flex; align-items: center; justify-content: center; 
+          font-size: 13px; font-weight: 900; color: var(--text-main); cursor: pointer;
+          transition: 0.2s;
+        }
+        .cartela-item.held { background: #6F4E37; color: white; opacity: 0.5; cursor: not-allowed; border: none; }
+        .cartela-item.chosen { background: #22c55e; color: white; border-color: #22c55e; transform: scale(1.1); z-index: 2; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4); }
         
-        .header-info h1 { font-size: 20px; font-weight: 900; color: var(--text-main); margin: 0; }
-        .header-info p { font-size: 13px; font-weight: 700; opacity: 0.6; margin: 0; }
-
-        .balance-banner { background: var(--bg-nav); color: white; padding: 16px 20px; border-radius: 20px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        .bal-l { font-size: 12px; font-weight: 800; opacity: 0.8; text-transform: uppercase; }
-        .bal-v { font-size: 18px; font-weight: 900; }
-
-        .cards-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 30px; }
-        
-        .card-option { background: var(--bg-card); border: 2px solid var(--border-light); border-radius: 24px; padding: 20px; text-align: center; transition: 0.3s; cursor: pointer; position: relative; }
-        .card-option.active { border-color: #22c55e; background: rgba(34, 197, 94, 0.05); transform: translateY(-4px); box-shadow: 0 10px 20px rgba(34, 197, 94, 0.1); }
-        
-        .card-visual { height: 100px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: var(--text-main); opacity: 0.3; }
-        .active .card-visual { color: #22c55e; opacity: 1; }
-        .card-num { font-size: 18px; font-weight: 900; }
-
-        .card-meta { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 12px; }
-        .card-meta .label { font-size: 14px; font-weight: 800; }
-        .check-icon { color: #22c55e; }
-
-        .info-box { display: flex; gap: 12px; background: var(--jackpot-bg); padding: 16px; border-radius: 16px; border: 1px solid var(--border-light); }
-        .info-box p { font-size: 12px; font-weight: 700; opacity: 0.6; line-height: 1.5; margin: 0; }
-
-        .action-footer { position: fixed; bottom: 0; left: 0; right: 0; padding: 20px 16px; background: var(--bg-main); border-top: 1px solid var(--border-light); display: flex; justify-content: center; }
-        .btn-confirm { width: 100%; max-width: 400px; background: #22c55e; color: white; border: none; padding: 18px; border-radius: 18px; font-weight: 900; font-size: 16px; box-shadow: 0 8px 0 #15803d; cursor: pointer; transition: 0.2s; }
-        .btn-confirm:active { transform: translateY(2px); box-shadow: 0 4px 0 #15803d; }
-        .btn-confirm:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(1); }
+        .selection-footer-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-main); padding: 20px 16px; display: flex; gap: 12px; border-top: 1px solid var(--border-light); }
+        .btn-footer-refresh { flex: 1; background: #3b82f6; color: white; border: none; border-radius: 14px; padding: 16px; font-weight: 900; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 5px 0 #2563eb; cursor: pointer; }
+        .btn-footer-start { flex: 1; background: #22c55e; color: white; border: none; border-radius: 14px; padding: 16px; font-weight: 900; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 5px 0 #16a34a; cursor: pointer; }
+        .btn-footer-start.locked { opacity: 0.5; filter: grayscale(1); box-shadow: none; transform: translateY(2px); cursor: not-allowed; }
+        .btn-footer-refresh:active, .btn-footer-start:not(.locked):active { transform: translateY(2px); box-shadow: none; }
       `}</style>
     </div>
   );
@@ -140,7 +181,7 @@ function TicketContent() {
 
 export default function TicketSelectPage() {
   return (
-    <Suspense fallback={<div className="loading"><div className="spinner" /><span>LOADING...</span></div>}>
+    <Suspense fallback={<div className="loading"><div className="spinner" /><span>LOADING CARDS...</span></div>}>
       <TicketContent />
     </Suspense>
   );

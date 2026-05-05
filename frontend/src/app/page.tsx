@@ -59,6 +59,11 @@ export default function LobbyPage() {
   }, []);
 
   const handleJoin = (type: string, price: string) => {
+    const currentBalance = wallet?.balance || 0;
+    if (currentBalance < Number(price) && type !== 'CASUAL') {
+      show(`Insufficient Balance. Please top up to join the ${price} ETB room.`, 'error');
+      // Still redirect so they can see the top-up alert on the selection page
+    }
     router.push(`/tickets/select?type=${type}&price=${price}`);
   };
 
