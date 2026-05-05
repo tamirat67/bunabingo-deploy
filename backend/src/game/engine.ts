@@ -418,7 +418,7 @@ export async function joinGame(
       where: { userId },
       data: {
         balance: newBalance,
-        totalSpent: { increment: totalPrice },
+        totalSpent: new Decimal(wallet.totalSpent).add(totalPrice),
       },
     });
 
@@ -447,9 +447,9 @@ export async function joinGame(
     await tx.game.update({
       where: { id: gameId },
       data: {
-        totalPrize: { increment: totalPrizeContribution },
-        houseEdge: { increment: totalHouseEdge },
-        currentPlayers: { increment: 1 }, // Note: We count unique users for the 'minPlayers' start logic usually
+        totalPrize: new Decimal(game.totalPrize).add(totalPrizeContribution),
+        houseEdge: new Decimal(game.houseEdge).add(totalHouseEdge),
+        currentPlayers: { increment: 1 },
       },
     });
 
