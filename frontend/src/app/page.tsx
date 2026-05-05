@@ -5,7 +5,7 @@ import Navbar from '../components/Navbar';
 import Onboarding from '../components/Onboarding';
 import { useRouter } from 'next/navigation';
 import { useToast } from '../components/Toast';
-import { Target, Trophy, Play, Dices, Gift, Wallet, Zap } from 'lucide-react';
+import { Target, Trophy, Play, Dices, Gift, Wallet, Zap, Sparkles } from 'lucide-react';
 
 interface Room {
   id: string;
@@ -86,28 +86,6 @@ export default function LobbyPage() {
       </div>
 
       <div className="game-list">
-        {/* FREE DEMO ROOM */}
-        <div className="room-row demo-row">
-          <div className="col-bet">
-            <div className="v demo">FREE</div>
-            <div className="l">DEMO</div>
-          </div>
-          <div className="col-win">
-            <div className="win-main">
-              <Zap size={28} className="demo-icon" />
-              <div className="win-stack">
-                <div className="win-val">PRACTICE</div>
-                <div className="win-count">Learn to play</div>
-              </div>
-            </div>
-          </div>
-          <div className="col-status">
-            <div className="badge active">ACTIVE 0</div>
-            <button className="btn-join demo" onClick={() => handleJoin('CASUAL', '0')}>JOIN</button>
-          </div>
-        </div>
-
-        {/* PAID ROOMS */}
         {[10, 20, 50, 100].map((price) => (
           <div key={`bingo-${price}`}>
             <div className="room-row">
@@ -131,6 +109,24 @@ export default function LobbyPage() {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* INDEPENDENT CENTERED DEMO SECTION */}
+      <div className="demo-center-section">
+        <div className="demo-card">
+          <div className="demo-card-inner">
+            <div className="demo-header">
+              <Sparkles size={18} className="sparkle" />
+              <span>FREE PRACTICE MODE</span>
+              <Sparkles size={18} className="sparkle" />
+            </div>
+            <h2 className="demo-title">Master the Game</h2>
+            <p className="demo-desc">Play a full bingo match for free and learn the winning patterns.</p>
+            <button className="btn-join-demo" onClick={() => handleJoin('CASUAL', '0')}>
+              <Zap size={18} /> START FREE DEMO
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="section-header sp-mt">
@@ -187,18 +183,15 @@ export default function LobbyPage() {
         .column-headers { display: grid; grid-template-columns: 80px 1fr 100px; padding: 0 16px 8px; font-size: 11px; font-weight: 800; opacity: 0.5; color: #000; }
 
         .room-row { display: grid; grid-template-columns: 80px 1fr 100px; background: #FFF9E6; padding: 14px 16px; align-items: center; border-bottom: 1px solid #E6D5A8; }
-        .demo-row { background: #f0fdf4; border-bottom: 2px solid #bbf7d0; }
         
         .col-bet { text-align: center; border-right: 1px solid #E6D5A8; color: #4B3621; }
         .col-bet .v { font-size: 26px; font-weight: 900; line-height: 1; }
-        .col-bet .v.demo { font-size: 16px; color: #16a34a; }
         .col-bet .l { font-size: 10px; opacity: 0.8; font-weight: 800; margin-top: 2px; }
 
         .col-win { padding: 0 16px; }
         .win-main { display: flex; align-items: center; gap: 12px; }
         .trophy-gold { color: #D4AF37; }
         .trophy-muted { color: #ccc; }
-        .demo-icon { color: #16a34a; }
         .win-stack { display: flex; flex-direction: column; }
         .win-val { font-size: 22px; font-weight: 900; color: #000; line-height: 1.1; }
         .win-count { font-size: 11px; opacity: 0.6; font-weight: 700; }
@@ -207,9 +200,19 @@ export default function LobbyPage() {
         .badge.active { background: #22c55e; color: white; font-size: 9px; font-weight: 900; padding: 2px 8px; border-radius: 99px; }
         
         .btn-join { width: 100%; border: none; padding: 9px; border-radius: 8px; font-weight: 900; font-size: 14px; cursor: pointer; transition: all 0.2s; background: #22c55e; color: white; box-shadow: 0 4px 0 #16a34a; }
-        .btn-join.demo { background: #16a34a; box-shadow: 0 4px 0 #15803d; }
         .btn-join.outline { background: transparent; color: #22c55e; border: 2.5px solid #22c55e; box-shadow: none; padding: 6.5px; }
         .btn-join:active { transform: translateY(2px); box-shadow: none; }
+
+        /* DEMO CENTERED STYLES */
+        .demo-center-section { padding: 24px 16px; }
+        .demo-card { background: #6F4E37; border-radius: 28px; padding: 24px; box-shadow: 0 15px 35px rgba(111, 78, 55, 0.25); border: 2px solid #E6D5A8; }
+        .demo-card-inner { text-align: center; color: #F5E6BE; }
+        .demo-header { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 11px; font-weight: 900; letter-spacing: 2px; opacity: 0.6; margin-bottom: 12px; }
+        .sparkle { color: #facc15; }
+        .demo-title { font-size: 24px; font-weight: 900; margin-bottom: 8px; }
+        .demo-desc { font-size: 13px; font-weight: 700; opacity: 0.7; margin-bottom: 24px; max-width: 250px; margin-left: auto; margin-right: auto; line-height: 1.4; }
+        .btn-join-demo { width: 100%; background: #22c55e; color: white; border: none; padding: 16px; border-radius: 16px; font-weight: 900; font-size: 16px; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 6px 0 #16a34a; cursor: pointer; }
+        .btn-join-demo:active { transform: translateY(2px); box-shadow: none; }
       `}</style>
     </div>
   );
