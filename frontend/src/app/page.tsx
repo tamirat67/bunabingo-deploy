@@ -111,7 +111,12 @@ export default function LobbyPage() {
         ))}
       </div>
 
-      {/* INDEPENDENT CENTERED DEMO SECTION */}
+      <div className="section-header sp-mt">
+        <Dices size={20} className="coffee-icon" />
+        <span className="title">SPIN GAMES</span>
+      </div>
+
+      {/* INDEPENDENT CENTERED DEMO SECTION - NOW ABOVE SPIN LIST */}
       <div className="demo-center-section">
         <div className="demo-card">
           <div className="demo-card-inner">
@@ -127,11 +132,6 @@ export default function LobbyPage() {
             </button>
           </div>
         </div>
-      </div>
-
-      <div className="section-header sp-mt">
-        <Dices size={20} className="coffee-icon" />
-        <span className="title">SPIN GAMES</span>
       </div>
 
       <div className="game-list">
@@ -204,7 +204,7 @@ export default function LobbyPage() {
         .btn-join:active { transform: translateY(2px); box-shadow: none; }
 
         /* DEMO CENTERED STYLES */
-        .demo-center-section { padding: 24px 16px; }
+        .demo-center-section { padding: 12px 16px 24px; }
         .demo-card { background: #6F4E37; border-radius: 28px; padding: 24px; box-shadow: 0 15px 35px rgba(111, 78, 55, 0.25); border: 2px solid #E6D5A8; }
         .demo-card-inner { text-align: center; color: #F5E6BE; }
         .demo-header { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 11px; font-weight: 900; letter-spacing: 2px; opacity: 0.6; margin-bottom: 12px; }
