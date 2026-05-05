@@ -4,6 +4,7 @@ import { initTelegram, getTgUser } from '../lib/telegram';
 import { getTransactions, getWalletAudit } from '../lib/api';
 import Navbar from '../components/Navbar';
 import Link from 'next/link';
+import { ShieldCheck, RefreshCw, ArrowDownToLine, ArrowUpFromLine, Coins, Gift, History } from 'lucide-react';
 
 export default function WalletPage() {
   const [data, setData] = useState<any>(null);
@@ -39,11 +40,11 @@ export default function WalletPage() {
         <div>
           <h1 className="title">Buna Vault</h1>
           <div className="audit-badge">
-            <span className="dot pulse"></span> Secured & Audited
+            <ShieldCheck size={12} /> Verified & Audited
           </div>
         </div>
         <button className={`refresh-btn ${refreshing ? 'spinning' : ''}`} onClick={() => loadData(true)}>
-          {refreshing ? '⏳' : '🔄'}
+          <RefreshCw size={20} />
         </button>
       </div>
 
@@ -55,29 +56,42 @@ export default function WalletPage() {
         <div className="id-row">VAULT-ID: {data?.walletId?.slice(-8).toUpperCase() || 'BUNA-100'}</div>
         
         <div className="action-row">
-          <button className="btn-vault" onClick={() => window.location.href='/deposit'}>📥 Deposit</button>
-          <button className="btn-vault outline" onClick={() => window.location.href='/withdraw'}>📤 Withdraw</button>
+          <button className="btn-vault" onClick={() => window.location.href='/deposit'}>
+            <ArrowDownToLine size={18} /> Deposit
+          </button>
+          <button className="btn-vault outline" onClick={() => window.location.href='/withdraw'}>
+            <ArrowUpFromLine size={18} /> Withdraw
+          </button>
         </div>
       </div>
 
       <div className="audit-grid">
         <div className="audit-item">
           <div className="albl">Total Won</div>
-          <div className="aval green">+{Number(data?.coins || 0).toFixed(0)}</div>
+          <div className="val-row">
+            <Coins size={18} className="green-icon" />
+            <div className="aval green">+{Number(data?.coins || 0).toFixed(0)}</div>
+          </div>
         </div>
         <div className="audit-item">
           <div className="albl">Bonus Credits</div>
-          <div className="aval coffee">{Number(data?.bonusBalance || 0).toFixed(0)}</div>
+          <div className="val-row">
+            <Gift size={18} className="coffee-icon" />
+            <div className="aval coffee">{Number(data?.bonusBalance || 0).toFixed(0)}</div>
+          </div>
         </div>
         <div className="audit-item full">
           <div className="albl">Financial Integrity</div>
-          <div className="aval coffee">100% Normalized ✅</div>
+          <div className="aval coffee">100% Normalized Ledger ✅</div>
         </div>
       </div>
 
       <div className="ledger-section">
         <div className="ledger-hdr">
-          <h3 className="section-title">Verified Ledger</h3>
+          <div className="hdr-left">
+            <History size={20} className="coffee-icon" />
+            <h3 className="section-title">Verified Ledger</h3>
+          </div>
           <Link href="/history" className="view-all">View All</Link>
         </div>
         
@@ -88,8 +102,8 @@ export default function WalletPage() {
             {txns.map((t) => (
               <div key={t.id} className="txn-row">
                 <div className="txn-left">
-                  <div className={`icon-box ${t.type === 'DEPOSIT' || t.type === 'WINNING' ? 'in' : 'out'}`}>
-                    {t.type === 'DEPOSIT' ? '📥' : t.type === 'WINNING' ? '🏆' : t.type === 'WITHDRAWAL' ? '📤' : '🎟'}
+                  <div className="icon-box">
+                    {t.type === 'DEPOSIT' ? <ArrowDownToLine size={18} /> : t.type === 'WINNING' ? <Coins size={18} /> : <ArrowUpFromLine size={18} />}
                   </div>
                   <div className="txn-info">
                     <div className="type">{t.type.replace(/_/g, ' ')}</div>
@@ -111,43 +125,45 @@ export default function WalletPage() {
         .wallet-container { min-height: 100vh; background: #F5E6BE; padding: 24px 16px 100px; color: #000; }
         .vault-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
         .title { font-size: 26px; font-weight: 900; color: #4B3621; margin: 0; }
-        .audit-badge { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 800; color: #2d6a4f; margin-top: 4px; text-transform: uppercase; background: rgba(45, 106, 79, 0.1); padding: 4px 10px; border-radius: 99px; }
-        .dot { width: 6px; height: 6px; border-radius: 50%; background: #2d6a4f; }
-        .pulse { animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
-        .refresh-btn { background: #4B3621; border: none; font-size: 18px; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #F5E6BE; }
+        .audit-badge { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 800; color: #2d6a4f; margin-top: 4px; text-transform: uppercase; background: rgba(45, 106, 79, 0.1); padding: 4px 12px; border-radius: 99px; }
+        
+        .refresh-btn { background: #4B3621; border: none; width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #F5E6BE; box-shadow: 0 4px 12px rgba(75, 54, 33, 0.2); }
         .spinning { animation: spin 1s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-        .main-balance-card { background: #4B3621; color: #F5E6BE; border-radius: 24px; padding: 24px; margin-bottom: 20px; box-shadow: 0 15px 35px rgba(75, 54, 33, 0.3); }
-        .main-balance-card .label { font-size: 12px; font-weight: 700; opacity: 0.7; text-transform: uppercase; margin-bottom: 8px; }
-        .main-balance-card .value { font-size: 42px; font-weight: 900; letter-spacing: -1px; }
-        .main-balance-card .symbol { font-size: 18px; opacity: 0.5; margin-right: 4px; }
-        .id-row { font-size: 9px; font-family: monospace; opacity: 0.5; margin-top: 8px; margin-bottom: 24px; }
+        .main-balance-card { background: #4B3621; color: #F5E6BE; border-radius: 28px; padding: 28px; margin-bottom: 24px; box-shadow: 0 20px 40px rgba(75, 54, 33, 0.25); }
+        .main-balance-card .label { font-size: 12px; font-weight: 800; opacity: 0.7; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px; }
+        .main-balance-card .value { font-size: 46px; font-weight: 900; letter-spacing: -1.5px; }
+        .main-balance-card .symbol { font-size: 20px; opacity: 0.4; margin-right: 4px; }
+        .id-row { font-size: 9px; font-family: monospace; opacity: 0.4; margin-top: 8px; margin-bottom: 28px; }
 
         .action-row { display: flex; gap: 12px; }
-        .btn-vault { flex: 1; background: #F5E6BE; color: #4B3621; border: none; padding: 12px; border-radius: 12px; font-weight: 900; font-size: 14px; cursor: pointer; }
+        .btn-vault { flex: 1; background: #F5E6BE; color: #4B3621; border: none; padding: 14px; border-radius: 14px; font-weight: 900; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
         .btn-vault.outline { background: transparent; color: #F5E6BE; border: 1px solid rgba(245, 230, 190, 0.4); }
 
-        .audit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 30px; }
-        .audit-item { background: #FFF9E6; border-radius: 16px; padding: 16px; border: 1px solid #E6D5A8; }
+        .audit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 35px; }
+        .audit-item { background: #FFF9E6; border-radius: 20px; padding: 18px; border: 1px solid #E6D5A8; }
         .audit-item.full { grid-column: span 2; display: flex; justify-content: space-between; align-items: center; }
-        .albl { font-size: 10px; font-weight: 800; opacity: 0.6; text-transform: uppercase; margin-bottom: 4px; color: #6F4E37; }
-        .aval { font-size: 18px; font-weight: 900; }
+        .albl { font-size: 10px; font-weight: 800; opacity: 0.6; text-transform: uppercase; margin-bottom: 8px; color: #6F4E37; }
+        .val-row { display: flex; align-items: center; gap: 8px; }
+        .aval { font-size: 20px; font-weight: 900; }
+        .green-icon { color: #2d6a4f; }
+        .coffee-icon { color: #4B3621; }
         .aval.green { color: #2d6a4f; }
         .aval.coffee { color: #4B3621; }
 
-        .ledger-hdr { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-        .section-title { font-size: 18px; font-weight: 900; margin: 0; color: #4B3621; }
+        .ledger-hdr { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .hdr-left { display: flex; align-items: center; gap: 10px; }
+        .section-title { font-size: 19px; font-weight: 900; margin: 0; color: #4B3621; }
         .view-all { font-size: 13px; font-weight: 800; color: #6F4E37; text-decoration: none; }
 
-        .txn-list { display: flex; flex-direction: column; gap: 1px; background: #E6D5A8; border-radius: 16px; overflow: hidden; border: 1px solid #E6D5A8; }
-        .txn-row { display: flex; justify-content: space-between; align-items: center; padding: 16px; background: #FFF9E6; }
+        .txn-list { display: flex; flex-direction: column; gap: 1px; background: #E6D5A8; border-radius: 20px; overflow: hidden; border: 1px solid #E6D5A8; box-shadow: 0 10px 30px rgba(0,0,0,0.03); }
+        .txn-row { display: flex; justify-content: space-between; align-items: center; padding: 18px; background: #FFF9E6; }
         .txn-left { display: flex; align-items: center; gap: 16px; }
-        .icon-box { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; background: #F5E6BE; }
-        .txn-info .type { font-size: 14px; font-weight: 800; color: #4B3621; }
+        .icon-box { width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center; background: #F5E6BE; color: #4B3621; }
+        .txn-info .type { font-size: 15px; font-weight: 800; color: #4B3621; }
         .txn-info .date { font-size: 11px; opacity: 0.5; margin-top: 2px; }
-        .amt { font-size: 16px; font-weight: 900; }
+        .amt { font-size: 17px; font-weight: 900; }
         .amt.pos { color: #2d6a4f; }
         .amt.neg { color: #9a031e; opacity: 0.8; }
       `}</style>
