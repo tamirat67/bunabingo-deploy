@@ -449,7 +449,6 @@ export async function joinGame(
       data: {
         totalPrize: new Decimal(game.totalPrize).add(totalPrizeContribution),
         houseEdge: new Decimal(game.houseEdge).add(totalHouseEdge),
-        currentPlayers: { increment: 1 },
       },
     });
 
