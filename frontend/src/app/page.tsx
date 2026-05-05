@@ -14,11 +14,14 @@ interface Room {
   currentPlayers: number;
 }
 
+// Global flag to ensure splash only shows once per session
+let hasShownSplash = false;
+
 export default function LobbyPage() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [wallet, setWallet] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [showSplash, setShowSplash] = useState(true);
+  const [showSplash, setShowSplash] = useState(!hasShownSplash);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const router = useRouter();
   const { show } = useToast();
@@ -61,7 +64,10 @@ export default function LobbyPage() {
 
   return (
     <div className="lobby-container">
-      {showSplash && <Splash isLoading={loading} onFinish={() => setShowSplash(false)} />}
+      {showSplash && <Splash isLoading={loading} onFinish={() => {
+        setShowSplash(false);
+        hasShownSplash = true;
+      }} />}
 
       <div className="lobby-nav-top">
         <div className="top-left">
