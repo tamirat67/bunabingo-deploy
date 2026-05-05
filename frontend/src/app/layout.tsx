@@ -1,7 +1,7 @@
 'use client';
 import { useEffect } from 'react';
 import { ToastProvider } from '../components/Toast';
-import '../globals.css';
+import './globals.css';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
