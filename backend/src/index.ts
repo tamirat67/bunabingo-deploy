@@ -13,6 +13,11 @@ import prisma from './lib/prisma';
 import { startJobs } from './jobs';
 
 async function main() {
+  // Global BigInt JSON serialization fix
+  (BigInt.prototype as any).toJSON = function() {
+    return this.toString();
+  };
+
   // ─── Express Server ──────────────────────────────────────
   const app = express();
 
