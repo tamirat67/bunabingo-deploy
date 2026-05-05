@@ -3,7 +3,7 @@ import { useEffect, useState, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { getGame, getMyCard, pusherAuth } from '../../lib/api';
 import Pusher from 'pusher-js';
-import { Trophy, ChevronLeft, Volume2, VolumeX, MessageSquare, Star } from 'lucide-react';
+import { Trophy, ChevronLeft, Volume2, VolumeX, Star, Zap, Users, Wallet, PlayCircle, RefreshCw, LogOut } from 'lucide-react';
 
 function GameContent() {
   const searchParams = useSearchParams();
@@ -12,227 +12,287 @@ function GameContent() {
   
   const [game, setGame] = useState<any>(null);
   const [tickets, setTickets] = useState<any[]>([]);
-  const [activeTicketIdx, setActiveTicketIdx] = useState(0);
   const [lastDrawn, setLastDrawn] = useState<number | null>(null);
   const [drawnHistory, setDrawnHistory] = useState<number[]>([]);
   const [winners, setWinners] = useState<any[]>([]);
   const [soundOn, setSoundOn] = useState(true);
   const [isGameFinished, setIsGameFinished] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
 
   const pusherRef = useRef<Pusher | null>(null);
+  const countdownInterval = useRef<NodeJS.Timeout | null>(null);
+
+  const loadData = async () => {
+    if (!gameId) return;
+    try {
+      const [gData, tData] = await Promise.all([
+        getGame(gameId),
+        getMyCard(gameId)
+      ]);
+      setGame(gData);
+      setTickets(tData.tickets || []);
+      const history = gData.drawHistory.map((d: any) => d.number);
+      setDrawnHistory(history);
+      setLastDrawn(history.slice(-1)[0] || null);
+      setWinners(gData.winners || []);
+      if (gData.status === 'FINISHED') setIsGameFinished(true);
+      if (gData.status === 'COUNTDOWN') setCountdown(gData.countdownSeconds);
+    } catch (err) {
+      console.error('Failed to load game data:', err);
+    }
+  };
 
   useEffect(() => {
-    if (!gameId) return;
+    loadData();
 
-    // Load initial game state
-    const loadGame = async () => {
-      try {
-        const [gData, tData] = await Promise.all([
-          getGame(gameId),
-          getMyCard(gameId)
-        ]);
-        setGame(gData);
-        setTickets(tData.tickets || []);
-        setDrawnHistory(gData.drawHistory.map((d: any) => d.number));
-        setLastDrawn(gData.drawHistory.slice(-1)[0]?.number || null);
-        setWinners(gData.winners || []);
-        if (gData.status === 'FINISHED') setIsGameFinished(true);
+    // Initialize Pusher
+    const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY!, {
+      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
+      authorizer: (channel) => ({
+        authorize: (socketId, callback) => {
+          pusherAuth(socketId, channel.name)
+            .then(data => callback(null, data))
+            .catch(err => callback(err, null));
+        }
+      })
+    });
 
-        // Load sound setting
-        const savedSound = localStorage.getItem('buna-sound') !== 'off';
-        setSoundOn(savedSound);
+    const channel = pusher.subscribe(`private-game-${gameId}`);
+    
+    channel.bind('countdown-start', (data: { seconds: number }) => {
+      setCountdown(data.seconds);
+      setGame((prev: any) => ({ ...prev, status: 'COUNTDOWN' }));
+    });
 
-        // Initialize Pusher
-        const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY!, {
-          cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
-          authorizer: (channel) => ({
-            authorize: (socketId, callback) => {
-              pusherAuth(socketId, channel.name)
-                .then(data => callback(null, data))
-                .catch(err => callback(err, null));
-            }
-          })
-        });
+    channel.bind('number-drawn', (data: { number: number }) => {
+      setLastDrawn(data.number);
+      setDrawnHistory(prev => [...prev, data.number]);
+      setGame((prev: any) => ({ ...prev, status: 'RUNNING' }));
+      setCountdown(null);
+      if (soundOn) playAnnouncer(data.number);
+    });
 
-        const channel = pusher.subscribe(`private-game-${gameId}`);
-        
-        channel.bind('number-drawn', (data: { number: number }) => {
-          setLastDrawn(data.number);
-          setDrawnHistory(prev => [...prev, data.number]);
-          if (soundOn) playAnnouncer(data.number);
-        });
+    channel.bind('game-finished', (data: { winners: any[] }) => {
+      setWinners(data.winners);
+      setIsGameFinished(true);
+    });
 
-        channel.bind('game-won', (data: { winners: any[] }) => {
-          setWinners(data.winners);
-          setIsGameFinished(true);
-        });
-
-        pusherRef.current = pusher;
-      } catch (err) {
-        console.error('Failed to load game:', err);
-      }
-    };
-
-    loadGame();
+    pusherRef.current = pusher;
 
     return () => {
       if (pusherRef.current) {
         pusherRef.current.unsubscribe(`private-game-${gameId}`);
       }
     };
-  }, [gameId, soundOn]);
+  }, [gameId]);
+
+  // Countdown timer logic
+  useEffect(() => {
+    if (countdown !== null && countdown > 0) {
+      countdownInterval.current = setInterval(() => {
+        setCountdown(prev => (prev !== null && prev > 0) ? prev - 1 : 0);
+      }, 1000);
+    } else if (countdown === 0) {
+      if (countdownInterval.current) clearInterval(countdownInterval.current);
+    }
+    return () => {
+      if (countdownInterval.current) clearInterval(countdownInterval.current);
+    };
+  }, [countdown]);
 
   const playAnnouncer = (num: number) => {
-    // Basic browser speech for now
     const msg = new SpeechSynthesisUtterance(num.toString());
-    msg.rate = 1.1;
+    msg.rate = 1.2;
     window.speechSynthesis.speak(msg);
   };
 
   const isMarked = (num: number) => drawnHistory.includes(num);
 
-  const activeTicket = tickets[activeTicketIdx];
+  const masterBoardNumbers = Array.from({ length: 75 }, (_, i) => i + 1);
+  const columns = [
+    { label: 'B', color: '#f97316', range: [1, 15] },
+    { label: 'I', color: '#22c55e', range: [16, 30] },
+    { label: 'N', color: '#3b82f6', range: [31, 45] },
+    { label: 'G', color: '#ef4444', range: [46, 60] },
+    { label: 'O', color: '#a855f7', range: [61, 75] },
+  ];
 
   return (
-    <div className="game-container">
-      <div className="game-header">
-        <button className="btn-back" onClick={() => router.push('/')}>
-          <ChevronLeft size={24} />
-        </button>
-        <div className="game-info">
-           <div className="game-id">GAME ID: {gameId?.slice(-6).toUpperCase()}</div>
-           <div className="room-name">{game?.room?.type} Room</div>
-        </div>
-        <button className="btn-sound" onClick={() => setSoundOn(!soundOn)}>
-          {soundOn ? <Volume2 size={22} /> : <VolumeX size={22} />}
-        </button>
+    <div className="pro-game-board">
+      {/* Top Stats Bar */}
+      <div className="pro-top-bar">
+         <div className="stat-pill">
+            <span className="l">Room</span>
+            <span className="v">{gameId?.slice(-6).toUpperCase()}</span>
+         </div>
+         <div className="stat-pill">
+            <span className="l">Pool</span>
+            <span className="v">{(game?.totalPrize || 0).toFixed(0)}</span>
+         </div>
+         <div className="stat-pill">
+            <span className="l">Players</span>
+            <span className="v">{game?.currentPlayers || 0}</span>
+         </div>
+         <div className="stat-pill">
+            <span className="l">Bet</span>
+            <span className="v">{game?.room?.ticketPrice || 0}</span>
+         </div>
+         <div className="stat-pill">
+            <span className="l">Call</span>
+            <span className="v">{drawnHistory.length}</span>
+         </div>
       </div>
 
-      <div className="announcer-panel">
-        <div className="drawn-circle">
-          <div className="num-main">{lastDrawn || '--'}</div>
-          <div className="pulse-ring"></div>
-        </div>
-        <div className="drawn-history">
-          {drawnHistory.slice(-5, -1).reverse().map((num, i) => (
-            <div key={i} className="hist-num">{num}</div>
-          ))}
-        </div>
+      <div className="main-board-layout">
+         {/* LEFT: MASTER BOARD */}
+         <div className="master-board-column">
+            <div className="master-header-row">
+               {columns.map(c => <div key={c.label} className="h-cell" style={{ color: c.color }}>{c.label}</div>)}
+            </div>
+            <div className="master-numbers-grid">
+               {columns.map(col => (
+                 <div key={col.label} className="master-col">
+                    {Array.from({ length: 15 }, (_, i) => col.range[0] + i).map(num => (
+                      <div key={num} className={`m-cell ${isMarked(num) ? 'active' : ''}`}>
+                         {num}
+                      </div>
+                    ))}
+                 </div>
+               ))}
+            </div>
+         </div>
+
+         {/* RIGHT: ACTION ZONE */}
+         <div className="action-column">
+            <div className="action-top-row">
+               <div className="countdown-box">
+                  <div className="l">COUNT DOWN</div>
+                  <div className="v">{countdown !== null ? countdown : (game?.status === 'WAITING' ? 'WAITING' : 'LIVE')}</div>
+               </div>
+               <div className="current-call-circle">
+                  <div className="l">CURRENT CALL</div>
+                  <div className="call-num">
+                    {lastDrawn || '-'}
+                    <div className="pulse-ring"></div>
+                  </div>
+               </div>
+            </div>
+
+            {/* USER CARDS STACK */}
+            <div className="user-cards-scroll">
+               {tickets.map((ticket, tIdx) => (
+                 <div key={ticket.id} className="mini-card-wrapper">
+                    <div className="mini-card-header">
+                       {['B','I','N','G','O'].map((l, i) => (
+                         <span key={l} style={{ color: columns[i].color }}>{l}</span>
+                       ))}
+                    </div>
+                    <div className="mini-card-grid">
+                       {ticket.card.rows.map((row: any[], ri: number) => (
+                         row.map((num: any, ci: number) => (
+                           <div key={`${ri}-${ci}`} className={`mini-cell ${num === 'FREE' ? 'free' : (isMarked(num) ? 'marked' : '')}`}>
+                              {num === 'FREE' ? <Star size={10} fill="#D4AF37" color="#D4AF37" /> : num}
+                           </div>
+                         ))
+                       ))}
+                    </div>
+                    <div className="mini-card-footer">BOARD NUMBER {tIdx + 1}</div>
+                 </div>
+               ))}
+            </div>
+         </div>
       </div>
 
-      {/* TICKET SELECTOR (FOR MULTI-CARD) */}
-      {tickets.length > 1 && (
-        <div className="ticket-tabs">
-          {tickets.map((_, i) => (
-            <button 
-              key={i} 
-              className={`tab-btn ${activeTicketIdx === i ? 'active' : ''}`}
-              onClick={() => setActiveTicketIdx(i)}
-            >
-              CARD {i + 1}
-            </button>
-          ))}
-        </div>
-      )}
-
-      <div className="card-outer">
-        <div className="card-inner">
-          <div className="bingo-header">
-            {['B','I','N','G','O'].map(l => <span key={l}>{l}</span>)}
-          </div>
-          <div className="bingo-grid">
-            {activeTicket?.numbers.map((row: any[], i: number) => (
-              row.map((num: number, j: number) => (
-                <div 
-                  key={`${i}-${j}`} 
-                  className={`bingo-cell ${num === 0 ? 'empty' : ''} ${isMarked(num) ? 'marked' : ''}`}
-                >
-                  {num === 0 ? <Star size={16} fill="#D4AF37" color="#D4AF37" /> : num}
-                </div>
-              ))
-            ))}
-          </div>
-        </div>
+      {/* BOTTOM ACTIONS */}
+      <div className="pro-bottom-actions">
+         <button className="btn-bingo-main">BINGO!</button>
+         <div className="aux-actions">
+            <button className="btn-aux refresh" onClick={loadData}><RefreshCw size={20} /> Refresh</button>
+            <button className="btn-aux leave" onClick={() => router.push('/')}><LogOut size={20} /> Leave</button>
+         </div>
       </div>
 
-      <div className="game-footer">
-        <div className="stat-box">
-          <div className="l">Active Players</div>
-          <div className="v">{game?.tickets?.length || 0}</div>
-        </div>
-        <div className="stat-box">
-          <div className="l">Prize Pool</div>
-          <div className="v yellow">{(game?.room?.ticketPrice * 8 || 0)} ETB</div>
-        </div>
-      </div>
-
+      {/* WINNER OVERLAY */}
       {isGameFinished && (
-        <div className="overlay-winner">
-          <div className="win-content">
-             <Trophy size={80} className="win-trophy" />
+        <div className="pro-overlay-winner">
+          <div className="win-card">
+             <Trophy size={60} className="trophy-gold" />
              <h2>GAME FINISHED</h2>
-             <div className="winners-list">
+             <div className="winner-stack">
                 {winners.map((w, i) => (
-                  <div key={i} className="win-row">
-                    <span className="w-name">{w.user?.firstName || 'Winner'}</span>
-                    <span className="w-amt">Win! 🏆</span>
+                  <div key={i} className="winner-item">
+                     <span className="n">{w.user?.firstName || 'Winner'}</span>
+                     <span className="a">🏆 WINNER</span>
                   </div>
                 ))}
              </div>
-             <button className="btn-back-lobby" onClick={() => router.push('/')}>BACK TO LOBBY</button>
+             <button className="btn-back-home" onClick={() => router.push('/')}>BACK TO LOBBY</button>
           </div>
         </div>
       )}
 
       <style jsx>{`
-        .game-container { min-height: 100vh; background: var(--bg-main); color: var(--text-main); padding-bottom: 40px; transition: all 0.3s; }
+        .pro-game-board { min-height: 100vh; background: #2D1B14; color: #E5E7EB; display: flex; flex-direction: column; }
         
-        .game-header { display: flex; align-items: center; justify-content: space-between; padding: 16px; background: var(--bg-nav); color: white; }
-        .btn-back, .btn-sound { background: rgba(255,255,255,0.1); border: none; color: white; width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
-        .game-info { text-align: center; }
-        .game-id { font-size: 10px; opacity: 0.7; font-weight: 800; letter-spacing: 1px; }
-        .room-name { font-size: 16px; font-weight: 900; }
+        .pro-top-bar { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; padding: 12px; background: rgba(0,0,0,0.3); }
+        .stat-pill { background: #3E271F; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 6px 2px; text-align: center; }
+        .stat-pill .l { display: block; font-size: 8px; font-weight: 800; opacity: 0.6; text-transform: uppercase; margin-bottom: 2px; }
+        .stat-pill .v { font-size: 11px; font-weight: 900; color: #D4AF37; }
 
-        .announcer-panel { padding: 30px 20px; display: flex; flex-direction: column; align-items: center; gap: 20px; }
-        .drawn-circle { width: 120px; height: 120px; background: #6F4E37; border-radius: 50%; border: 6px solid var(--gold-accent); display: flex; align-items: center; justify-content: center; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
-        .num-main { font-size: 56px; font-weight: 900; color: white; z-index: 2; }
-        .pulse-ring { position: absolute; width: 100%; height: 100%; border-radius: 50%; border: 4px solid var(--gold-accent); animation: ringPulse 2s infinite; }
-        @keyframes ringPulse { 0% { transform: scale(1); opacity: 0.5; } 100% { transform: scale(1.5); opacity: 0; } }
+        .main-board-layout { flex: 1; display: grid; grid-template-columns: 40% 60%; padding: 10px; gap: 10px; overflow: hidden; }
 
-        .drawn-history { display: flex; gap: 10px; min-height: 40px; }
-        .hist-num { width: 34px; height: 34px; background: var(--bg-card); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; opacity: 0.5; border: 1px solid var(--border-light); }
+        /* MASTER BOARD */
+        .master-board-column { background: #1C110D; border-radius: 12px; padding: 8px; border: 1px solid rgba(255,255,255,0.05); }
+        .master-header-row { display: grid; grid-template-columns: repeat(5, 1fr); text-align: center; font-size: 18px; font-weight: 900; margin-bottom: 8px; }
+        .master-numbers-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+        .master-col { display: flex; flex-direction: column; gap: 2px; }
+        .m-cell { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; color: rgba(255,255,255,0.4); background: rgba(255,255,255,0.02); border-radius: 4px; }
+        .m-cell.active { background: white; color: black; box-shadow: 0 0 10px rgba(255,255,255,0.8); }
 
-        .ticket-tabs { display: flex; justify-content: center; gap: 8px; margin-bottom: 20px; }
-        .tab-btn { background: var(--bg-card); border: 2px solid var(--border-light); color: var(--text-main); padding: 8px 16px; border-radius: 12px; font-weight: 800; font-size: 12px; }
-        .tab-btn.active { background: var(--gold-accent); border-color: var(--gold-accent); color: black; box-shadow: 0 5px 15px rgba(212, 175, 55, 0.3); }
-
-        .card-outer { padding: 0 16px; }
-        .card-inner { background: #FFF9E6; border-radius: 20px; padding: 12px; border: 4px solid #D4AF37; box-shadow: 0 15px 40px rgba(0,0,0,0.1); }
-        .theme-dark .card-inner { background: #1f2937; border-color: #4b5563; }
+        /* ACTION ZONE */
+        .action-column { display: flex; flex-direction: column; gap: 12px; }
+        .action-top-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         
-        .bingo-header { display: grid; grid-template-columns: repeat(5, 1fr); text-align: center; font-size: 24px; font-weight: 900; color: #6F4E37; margin-bottom: 10px; }
-        .theme-dark .bingo-header { color: #facc15; }
+        .countdown-box { background: #1C110D; border-radius: 16px; padding: 15px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
+        .countdown-box .l { font-size: 11px; font-weight: 800; opacity: 0.6; margin-bottom: 5px; }
+        .countdown-box .v { font-size: 28px; font-weight: 900; color: white; }
+
+        .current-call-circle { background: #1C110D; border-radius: 16px; padding: 15px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
+        .current-call-circle .l { font-size: 9px; font-weight: 800; opacity: 0.6; margin-bottom: 2px; }
+        .call-num { width: 60px; height: 60px; background: #FF5722; border-radius: 50%; margin: 0 auto; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 900; color: white; position: relative; }
+        .pulse-ring { position: absolute; width: 100%; height: 100%; border-radius: 50%; border: 3px solid #FF5722; animation: proPulse 2s infinite; }
+        @keyframes proPulse { 0% { transform: scale(1); opacity: 0.8; } 100% { transform: scale(1.6); opacity: 0; } }
+
+        /* USER CARDS */
+        .user-cards-scroll { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-bottom: 20px; }
+        .user-cards-scroll::-webkit-scrollbar { display: none; }
         
-        .bingo-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
-        .bingo-cell { aspect-ratio: 1; background: white; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 900; color: #4B3621; transition: 0.3s; border: 1px solid rgba(0,0,0,0.05); }
-        .theme-dark .bingo-cell { background: #374151; color: #f3f4f6; border-color: #4b5563; }
-        .bingo-cell.marked { background: #22c55e; color: white; border-color: #15803d; transform: scale(0.95); box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
-        .bingo-cell.empty { background: rgba(0,0,0,0.02); }
+        .mini-card-wrapper { background: #3E271F; border-radius: 16px; padding: 10px; border: 1px solid rgba(212, 175, 55, 0.3); }
+        .mini-card-header { display: grid; grid-template-columns: repeat(5, 1fr); text-align: center; font-size: 14px; font-weight: 900; margin-bottom: 6px; }
+        .mini-card-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; }
+        .mini-cell { aspect-ratio: 1; background: rgba(0,0,0,0.2); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 900; border: 1px solid rgba(255,255,255,0.05); }
+        .mini-cell.marked { background: #22c55e; color: white; border-color: #16a34a; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
+        .mini-card-footer { font-size: 9px; font-weight: 800; text-align: center; margin-top: 8px; opacity: 0.5; letter-spacing: 1px; }
 
-        .game-footer { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 24px 16px; }
-        .stat-box { background: var(--bg-card); padding: 16px; border-radius: 16px; text-align: center; border: 1px solid var(--border-light); }
-        .stat-box .l { font-size: 10px; font-weight: 800; opacity: 0.5; text-transform: uppercase; margin-bottom: 4px; }
-        .stat-box .v { font-size: 20px; font-weight: 900; }
-        .yellow { color: #facc15; }
+        /* BOTTOM ACTIONS */
+        .pro-bottom-actions { padding: 12px; background: rgba(0,0,0,0.3); display: flex; flex-direction: column; gap: 10px; }
+        .btn-bingo-main { width: 100%; background: #6B7280; color: white; border: none; padding: 16px; border-radius: 14px; font-size: 18px; font-weight: 900; letter-spacing: 2px; box-shadow: 0 5px 0 #4B5563; }
+        .aux-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .btn-aux { border: none; border-radius: 12px; padding: 12px; color: white; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; cursor: pointer; }
+        .btn-aux.refresh { background: #F97316; box-shadow: 0 4px 0 #EA580C; }
+        .btn-aux.leave { background: #EF4444; box-shadow: 0 4px 0 #DC2626; }
 
-        .overlay-winner { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 10000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(8px); }
-        .win-content { text-align: center; color: white; padding: 40px; width: 100%; max-width: 400px; animation: popUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        @keyframes popUp { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-        .win-trophy { color: #facc15; margin-bottom: 20px; filter: drop-shadow(0 0 20px rgba(250, 204, 21, 0.5)); }
-        .win-content h2 { font-size: 28px; font-weight: 900; margin-bottom: 20px; letter-spacing: 2px; }
-        .winners-list { margin-bottom: 30px; display: flex; flex-direction: column; gap: 10px; }
-        .win-row { background: rgba(255,255,255,0.1); padding: 12px 20px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; }
-        .btn-back-lobby { width: 100%; background: #22c55e; color: white; border: none; padding: 18px; border-radius: 18px; font-weight: 900; font-size: 16px; cursor: pointer; box-shadow: 0 6px 0 #15803d; }
+        /* OVERLAY */
+        .pro-overlay-winner { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 2000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
+        .win-card { background: #3E271F; width: 85%; max-width: 350px; border-radius: 30px; padding: 40px 20px; text-align: center; border: 2px solid #D4AF37; animation: proPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes proPop { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .trophy-gold { color: #D4AF37; margin-bottom: 20px; filter: drop-shadow(0 0 15px #D4AF37); }
+        .win-card h2 { font-size: 24px; font-weight: 900; color: white; margin-bottom: 20px; }
+        .winner-stack { display: flex; flex-direction: column; gap: 8px; margin-bottom: 30px; }
+        .winner-item { background: rgba(255,255,255,0.05); padding: 12px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; }
+        .winner-item .n { font-weight: 900; }
+        .winner-item .a { font-size: 11px; font-weight: 800; color: #D4AF37; }
+        .btn-back-home { width: 100%; background: #22c55e; color: white; border: none; padding: 16px; border-radius: 14px; font-weight: 900; box-shadow: 0 5px 0 #16a34a; }
       `}</style>
     </div>
   );
