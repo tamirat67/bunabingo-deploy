@@ -6,10 +6,10 @@ export default function Navbar() {
   const pathname = usePathname();
 
   const navItems = [
-    { label: 'Game', href: '/tickets', icon: '🎮' },
+    { label: 'Game', href: '/', icon: '🎮' },
     { label: 'Scores', href: '/history', icon: '🏆' },
     { label: 'History', href: '/history', icon: '⏳' },
-    { label: 'Wallet', href: '/', icon: '👛' },
+    { label: 'Wallet', href: '/wallet', icon: '👛' },
     { label: 'Profile', href: '/profile', icon: '👤' },
   ];
 

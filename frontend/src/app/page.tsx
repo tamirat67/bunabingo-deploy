@@ -1,173 +1,214 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { initTelegram, getTgUser } from '../lib/telegram';
-import { getTransactions, getWalletAudit } from '../lib/api';
+import { getRooms, getWallet } from '../lib/api';
 import Navbar from '../components/Navbar';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useToast } from '../components/Toast';
 
-export default function WalletPage() {
-  const [data, setData] = useState<any>(null);
-  const [txns, setTxns] = useState<any[]>([]);
+interface Room {
+  id: string;
+  type: 'CASUAL' | 'STANDARD' | 'JACKPOT' | 'VIP';
+  ticketPrice: string;
+  currentPlayers: number;
+}
+
+export default function LobbyPage() {
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [wallet, setWallet] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const user = getTgUser();
-
-  const loadData = async (isAudit = false) => {
-    if (isAudit) setRefreshing(true);
-    try {
-      const [audit, t] = await Promise.all([getWalletAudit(), getTransactions()]);
-      setData(audit);
-      setTxns(t.slice(0, 10));
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
+  const router = useRouter();
+  const { show } = useToast();
 
   useEffect(() => {
-    initTelegram();
-    loadData();
+    Promise.all([getRooms(), getWallet()])
+      .then(([r, w]) => {
+        setRooms(r);
+        setWallet(w);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="loading"><div className="spinner" /><span>Auditing Ledger…</span></div>;
+  const handleJoin = (type: string, price: string) => {
+    router.push(`/tickets/select?type=${type}&price=${price}`);
+  };
+
+  const handleTry = () => {
+    show('Starting Practice Mode... 🎮', 'info');
+    setTimeout(() => router.push('/tickets/select?type=CASUAL&price=0&demo=true'), 1000);
+  };
+
+  if (loading) return <div className="loading"><div className="spinner" /></div>;
 
   return (
-    <div className="wallet-container">
-      {/* ─── Vault Header ─────────────────────────────────────── */}
-      <div className="vault-header">
-        <div>
-          <h1 className="title">Personal Vault</h1>
-          <div className="audit-badge">
-            <span className="dot pulse"></span> Verified & Normalized
+    <div className="lobby-container">
+      {/* ─── Top Navigation ──────────────────────────────────── */}
+      <div className="lobby-nav">
+        <div className="nav-left">
+          <span className="live-dot pulse"></span>
+          <span className="live-lbl">Live</span>
+        </div>
+        <div className="nav-right">
+          <div className="nav-stat">
+            <span className="icon yellow">🎗️</span>
+            <span className="lbl">Bonus:</span>
+            <span className="val yellow">0.00</span>
+          </div>
+          <div className="nav-stat">
+            <span className="icon green">👛</span>
+            <span className="lbl">Balance:</span>
+            <span className="val">{Number(wallet?.balance || 0).toFixed(2)}</span>
           </div>
         </div>
-        <button className={`refresh-btn ${refreshing ? 'spinning' : ''}`} onClick={() => loadData(true)}>
-          {refreshing ? '⏳' : '🔄'}
-        </button>
       </div>
 
-      {/* ─── Main Balance Card ────────────────────────────────── */}
-      <div className="main-balance-card">
-        <div className="label">Total Liquid Balance</div>
-        <div className="value">
-          <span className="symbol">ETB</span> {Number(data?.mainBalance || 0).toLocaleString()}
-        </div>
-        <div className="id-row">Vault ID: {data?.walletId?.slice(-8).toUpperCase() || 'BUNA-100'}</div>
-        
-        <div className="action-row">
-          <button className="btn-vault" onClick={() => window.location.href='/deposit'}>📥 Deposit</button>
-          <button className="btn-vault outline" onClick={() => window.location.href='/withdraw'}>📤 Withdraw</button>
-        </div>
+      {/* ─── Bingo Games Section ───────────────────────────── */}
+      <div className="section-title">
+        <span className="emoji">🎯</span> BINGO GAMES
       </div>
 
-      {/* ─── Audit Grid (Consistency Check) ────────────────────── */}
-      <div className="audit-grid">
-        <div className="audit-item">
-          <div className="albl">Total Earned</div>
-          <div className="aval green">+{Number(data?.coins || 0).toFixed(0)}</div>
-        </div>
-        <div className="audit-item">
-          <div className="albl">Bonus Credits</div>
-          <div className="aval blue">{Number(data?.bonusBalance || 0).toFixed(0)}</div>
-        </div>
-        <div className="audit-item full">
-          <div className="albl">Consistency Check</div>
-          <div className="aval">100% Normalized Ledger ✅</div>
-        </div>
+      <div className="column-headers">
+        <span>BET</span>
+        <span>WIN/PLAYER</span>
+        <span>STATUS & JOIN</span>
       </div>
 
-      {/* ─── Transaction Ledger ─────────────────────────────── */}
-      <div className="ledger-section">
-        <div className="ledger-hdr">
-          <h3 className="section-title">Verified Transactions</h3>
-          <Link href="/history" className="view-all">View All</Link>
-        </div>
-        
-        {txns.length === 0 ? (
-          <div className="no-txns">No records found in ledger</div>
-        ) : (
-          <div className="txn-list">
-            {txns.map((t) => (
-              <div key={t.id} className="txn-row">
-                <div className="txn-left">
-                  <div className={`icon-box ${t.type === 'DEPOSIT' || t.type === 'WINNING' ? 'in' : 'out'}`}>
-                    {t.type === 'DEPOSIT' ? '📥' : t.type === 'WINNING' ? '🏆' : t.type === 'WITHDRAWAL' ? '📤' : '🎟'}
-                  </div>
-                  <div className="txn-info">
-                    <div className="type">{t.type.replace(/_/g, ' ')}</div>
-                    <div className="date">{new Date(t.createdAt).toLocaleDateString()}</div>
+      <div className="game-list">
+        {[10, 20, 50, 100].map((price, idx) => {
+          const type = price === 10 ? 'CASUAL' : price === 20 ? 'STANDARD' : price === 50 ? 'JACKPOT' : 'VIP';
+          const players = price === 10 ? 74 : 0;
+          const win = price === 10 ? 592 : 0;
+          return (
+            <div key={`bingo-${price}`}>
+              <div className="room-row">
+                <div className="col-bet">
+                  <div className="v">{price}</div>
+                  <div className="l">ETB</div>
+                </div>
+                <div className="col-win">
+                  <div className="win-main">
+                    <span className="trophy">🏆</span>
+                    <div className="win-stack">
+                      <div className="win-val yellow">{win}</div>
+                      <div className="win-count">{players} players</div>
+                    </div>
                   </div>
                 </div>
-                <div className={`amt ${t.type === 'DEPOSIT' || t.type === 'WINNING' ? 'pos' : 'neg'}`}>
-                  {t.type === 'DEPOSIT' || t.type === 'WINNING' ? '+' : '-'}{Number(t.amount).toFixed(0)}
+                <div className="col-status">
+                  <div className="badge active">ACTIVE {price === 50 ? 1 : 0}</div>
+                  <div className="ready-box">READY</div>
+                  <div className="join-wrap">
+                    {(price === 10 || price === 100) && <div className="bonus-tag">🎗️ BONUS</div>}
+                    <button className="btn-join green" onClick={() => handleJoin(type, price.toString())}>JOIN</button>
+                  </div>
                 </div>
               </div>
-            ))}
+              <div className="jackpot-divider">JACKPOT {price === 10 ? 508 : 0} / 1000</div>
+            </div>
+          );
+        })}
+
+        {/* Free Demo */}
+        <div className="room-row demo">
+          <div className="col-bet">
+            <div className="v">FREE</div>
+            <div className="l">DEMO</div>
           </div>
-        )}
+          <div className="col-win">
+            <div className="win-main">
+              <span className="play-icon">▶️</span>
+              <div className="win-stack">
+                <div className="demo-title">Practice Mode</div>
+                <div className="win-count">No real money</div>
+              </div>
+            </div>
+          </div>
+          <div className="col-status">
+            <div className="open-lbl">OPEN</div>
+            <button className="btn-try" onClick={handleTry}>TRY</button>
+          </div>
+        </div>
       </div>
 
-      <div className="trust-footer">
-        🔒 All transactions are audited and stored on a secured ledger.
+      {/* ─── Spin Games Section ────────────────────────────── */}
+      <div className="section-title sp-mt">
+        <span className="emoji">🎰</span> SPIN GAMES
+      </div>
+
+      <div className="game-list">
+        {[10, 20, 50, 100].map((price) => (
+          <div key={`spin-${price}`}>
+            <div className="room-row">
+              <div className="col-bet">
+                <div className="v">{price}</div>
+                <div className="l">ETB</div>
+              </div>
+              <div className="col-win">
+                <div className="win-main">
+                  <span className="trophy">🏆</span>
+                  <div className="win-stack">
+                    <div className="win-val yellow">0</div>
+                    <div className="win-count">0 players</div>
+                  </div>
+                </div>
+              </div>
+              <div className="col-status">
+                <div className="badge active">ACTIVE 0</div>
+                <div className="ready-box">READY</div>
+                <div className="join-wrap">
+                  {price === 10 && <div className="bonus-tag">🎗️ BONUS</div>}
+                  <button className="btn-join purple" onClick={() => show(`Spin ${price} ETB coming soon! 🎰`, 'info')}>JOIN</button>
+                </div>
+              </div>
+            </div>
+            <div className="jackpot-divider">JACKPOT 0 / 1000</div>
+          </div>
+        ))}
       </div>
 
       <Navbar />
 
       <style jsx>{`
-        .wallet-container { min-height: 100vh; background: #2d1b4d; padding: 24px 16px 100px; color: white; }
-        
-        .vault-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
-        .title { font-size: 26px; font-weight: 900; letter-spacing: -0.5px; margin: 0; }
-        .audit-badge { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 800; color: #4ade80; margin-top: 4px; text-transform: uppercase; background: rgba(74, 222, 128, 0.1); padding: 4px 8px; border-radius: 99px; }
-        .dot { width: 6px; height: 6px; border-radius: 50%; background: #4ade80; }
+        .lobby-container { min-height: 100vh; background: #a68cc5; padding-bottom: 90px; color: white; }
+        .lobby-nav { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: rgba(0,0,0,0.1); }
+        .nav-left { display: flex; align-items: center; gap: 6px; }
+        .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #4ade80; }
         .pulse { animation: pulse 2s infinite; }
         @keyframes pulse { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
-
-        .refresh-btn { background: rgba(255,255,255,0.1); border: none; font-size: 18px; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-        .spinning { animation: spin 1s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-
-        .main-balance-card { 
-          background: linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%); 
-          border-radius: 24px; padding: 24px; margin-bottom: 20px;
-          box-shadow: 0 20px 40px rgba(0,0,0,0.3), inset 0 1px 1px rgba(255,255,255,0.2);
-        }
-        .main-balance-card .label { font-size: 13px; font-weight: 700; opacity: 0.7; text-transform: uppercase; margin-bottom: 8px; }
-        .main-balance-card .value { font-size: 42px; font-weight: 900; letter-spacing: -1px; margin-bottom: 4px; }
-        .main-balance-card .symbol { font-size: 20px; opacity: 0.5; margin-right: 4px; }
-        .id-row { font-size: 10px; font-family: monospace; opacity: 0.5; margin-bottom: 24px; }
-
-        .action-row { display: flex; gap: 12px; }
-        .btn-vault { flex: 1; background: white; color: #4c1d95; border: none; padding: 12px; border-radius: 12px; font-weight: 800; font-size: 14px; cursor: pointer; }
-        .btn-vault.outline { background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3); }
-
-        .audit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 30px; }
-        .audit-item { background: rgba(255,255,255,0.05); border-radius: 16px; padding: 16px; border: 1px solid rgba(255,255,255,0.1); }
-        .audit-item.full { grid-column: span 2; display: flex; justify-content: space-between; align-items: center; }
-        .albl { font-size: 11px; font-weight: 700; opacity: 0.5; text-transform: uppercase; margin-bottom: 4px; }
-        .aval { font-size: 18px; font-weight: 900; }
-        .aval.green { color: #4ade80; }
-        .aval.blue { color: #60a5fa; }
-
-        .ledger-hdr { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-        .section-title { font-size: 18px; font-weight: 800; margin: 0; }
-        .view-all { font-size: 13px; font-weight: 700; color: #a78bfa; text-decoration: none; }
-
-        .txn-list { display: flex; flex-direction: column; gap: 1px; background: rgba(255,255,255,0.05); border-radius: 16px; overflow: hidden; }
-        .txn-row { display: flex; justify-content: space-between; align-items: center; padding: 16px; background: rgba(255,255,255,0.03); }
-        .txn-left { display: flex; align-items: center; gap: 16px; }
-        .icon-box { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
-        .icon-box.in { background: rgba(74, 222, 128, 0.1); }
-        .icon-box.out { background: rgba(255, 255, 255, 0.05); }
-        .txn-info .type { font-size: 14px; font-weight: 700; }
-        .txn-info .date { font-size: 11px; opacity: 0.4; margin-top: 2px; }
-        .amt { font-size: 16px; font-weight: 800; }
-        .amt.pos { color: #4ade80; }
-        .amt.neg { opacity: 0.6; }
-
-        .trust-footer { text-align: center; font-size: 11px; opacity: 0.3; margin-top: 30px; line-height: 1.4; }
+        .live-lbl { font-size: 13px; font-weight: 600; opacity: 0.8; }
+        .nav-stat { display: flex; align-items: center; gap: 4px; font-size: 14px; font-weight: 700; }
+        .yellow { color: #facc15; }
+        .green { color: #4ade80; }
+        .section-title { padding: 20px 16px 12px; font-size: 16px; font-weight: 900; letter-spacing: 0.5px; opacity: 0.9; }
+        .sp-mt { margin-top: 10px; }
+        .emoji { margin-right: 8px; }
+        .column-headers { display: grid; grid-template-columns: 80px 1fr 100px; padding: 0 16px 8px; font-size: 11px; font-weight: 800; opacity: 0.5; }
+        .room-row { display: grid; grid-template-columns: 80px 1fr 100px; background: rgba(255,255,255,0.15); padding: 14px 16px; align-items: center; position: relative; }
+        .room-row.demo { background: rgba(255,255,255,0.08); }
+        .col-bet { text-align: center; border-right: 1px solid rgba(255,255,255,0.1); }
+        .col-bet .v { font-size: 24px; font-weight: 900; line-height: 1; }
+        .col-bet .l { font-size: 10px; opacity: 0.6; font-weight: 700; margin-top: 4px; }
+        .col-win { padding: 0 16px; }
+        .win-main { display: flex; align-items: center; gap: 12px; }
+        .trophy { font-size: 26px; opacity: 0.8; }
+        .play-icon { font-size: 20px; opacity: 0.6; }
+        .win-stack { display: flex; flex-direction: column; }
+        .win-val { font-size: 20px; font-weight: 900; }
+        .win-count { font-size: 11px; opacity: 0.5; font-weight: 600; }
+        .demo-title { font-size: 16px; font-weight: 800; }
+        .col-status { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+        .badge.active { background: #3b82f6; font-size: 9px; font-weight: 900; padding: 2px 8px; border-radius: 99px; }
+        .ready-box { background: rgba(0,0,0,0.2); color: #4ade80; font-size: 11px; font-weight: 900; padding: 4px 10px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.05); }
+        .open-lbl { font-size: 11px; font-weight: 900; opacity: 0.6; }
+        .join-wrap { display: flex; flex-direction: column; align-items: center; width: 100%; }
+        .bonus-tag { background: #facc15; color: #000; font-size: 9px; font-weight: 900; padding: 1px 6px; border-radius: 4px; margin-bottom: -4px; z-index: 2; border: 1px solid rgba(0,0,0,0.1); }
+        .btn-join { width: 100%; border: none; color: white; padding: 8px; border-radius: 8px; font-weight: 900; font-size: 14px; box-shadow: 0 4px 0 rgba(0,0,0,0.2); cursor: pointer; }
+        .btn-join.green { background: #22c55e; box-shadow: 0 4px 0 #15803d; }
+        .btn-join.purple { background: #a855f7; box-shadow: 0 4px 0 #7e22ce; }
+        .btn-join:active { transform: translateY(2px); box-shadow: none; }
+        .btn-try { background: #64748b; border: none; color: white; padding: 8px 24px; border-radius: 8px; font-weight: 900; font-size: 14px; box-shadow: 0 4px 0 #334155; cursor: pointer; }
+        .jackpot-divider { font-size: 9px; font-weight: 900; text-align: center; color: rgba(255,255,255,0.7); display: flex; align-items: center; gap: 10px; padding: 0 16px; margin: 6px 0; }
+        .jackpot-divider::before, .jackpot-divider::after { content: ""; flex: 1; height: 1px; background: rgba(255,255,255,0.2); }
       `}</style>
     </div>
   );
