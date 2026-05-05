@@ -150,7 +150,7 @@ export default function LobbyPage() {
       </div>
 
       <div className="rooms-stack">
-        {[10, 20, 50].map((price, idx) => (
+        {[10, 20, 50, 100].map((price, idx) => (
           <div key={`spin-${price}`} className="room-item-wrapper">
              {idx > 0 && <div className="jackpot-divider">JACKPOT 0 / 1000</div>}
              <div className="room-row-simple">
