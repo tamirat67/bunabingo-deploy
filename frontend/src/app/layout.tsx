@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { ToastProvider } from '../components/Toast';
 
 export const metadata: Metadata = {
   title: 'BunaBingo — Play & Win',
@@ -10,12 +11,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-        <meta name="theme-color" content="#0a0a0f" />
-        <script src="https://telegram.org/js/telegram-web-app.js" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+        <meta name="theme-color" content="#2d1b4d" />
+        <script src="https://telegram.org/js/telegram-web-app.js" async />
       </head>
       <body>
-        <div className="app">{children}</div>
+        <ToastProvider>
+          <div className="app">{children}</div>
+        </ToastProvider>
       </body>
     </html>
   );
