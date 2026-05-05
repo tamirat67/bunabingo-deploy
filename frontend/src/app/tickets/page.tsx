@@ -157,7 +157,7 @@ export default function LobbyPage() {
                 <div className="ready-box">READY</div>
                 <div className="join-wrap">
                   {price === 10 && <div className="bonus-tag">🎗️ BONUS</div>}
-                  <button className="btn-join purple" onClick={() => show(`Spin ${price} ETB coming soon! 🎰`, 'info')}>JOIN</button>
+                  <button className="btn-join outline" onClick={() => show(`Spin ${price} ETB coming soon! 🎰`, 'info')}>JOIN</button>
                 </div>
               </div>
             </div>
@@ -205,7 +205,7 @@ export default function LobbyPage() {
         .bonus-tag { background: #facc15; color: #000; font-size: 9px; font-weight: 900; padding: 1px 6px; border-radius: 4px; margin-bottom: -4px; z-index: 2; border: 1px solid rgba(0,0,0,0.1); }
         .btn-join { width: 100%; border: none; color: white; padding: 8px; border-radius: 8px; font-weight: 900; font-size: 14px; box-shadow: 0 4px 0 rgba(0,0,0,0.2); cursor: pointer; }
         .btn-join.green { background: #22c55e; box-shadow: 0 4px 0 #15803d; }
-        .btn-join.purple { background: #a855f7; box-shadow: 0 4px 0 #7e22ce; }
+        .btn-join.outline { background: transparent; color: #6F4E37; border: 2.5px solid #6F4E37; box-shadow: none; }
         .btn-join:active { transform: translateY(2px); box-shadow: none; }
         .btn-try { background: #64748b; border: none; color: white; padding: 8px 24px; border-radius: 8px; font-weight: 900; font-size: 14px; box-shadow: 0 4px 0 #334155; cursor: pointer; }
         .jackpot-divider { font-size: 9px; font-weight: 900; text-align: center; color: rgba(255,255,255,0.7); display: flex; align-items: center; gap: 10px; padding: 0 16px; margin: 6px 0; }
