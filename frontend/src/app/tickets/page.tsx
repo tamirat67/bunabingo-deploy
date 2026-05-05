@@ -30,13 +30,8 @@ export default function LobbyPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const handleJoin = async (type: string) => {
-    try {
-      const { game } = await joinGame(type);
-      router.push(`/game?id=${game.id}`);
-    } catch (err: any) {
-      setToast({ msg: err.response?.data?.error || 'Failed to join', type: 'error' });
-    }
+  const handleJoin = (type: string, price: string) => {
+    router.push(`/tickets/select?type=${type}&price=${price}`);
   };
 
   if (loading) return <div className="loading"><div className="spinner" /></div>;
@@ -95,7 +90,7 @@ export default function LobbyPage() {
                   <div className="col-action">
                     <div className="badge-active">ACTIVE {Math.floor(players/5)}</div>
                     <div className="status-ready">READY</div>
-                    <button onClick={() => handleJoin(room.type)} className="btn-join">
+                    <button onClick={() => handleJoin(room.type, price)} className="btn-join">
                       JOIN
                     </button>
                   </div>
