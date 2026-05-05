@@ -20,6 +20,8 @@ function TicketContent() {
   const [dismissAlert, setDismissAlert] = useState(false);
 
   const loadUser = async () => {
+    setLoading(true);
+    setSelectedCards([]); // Clear all selections on refresh
     try {
       const u = await getMe();
       setUser(u);
