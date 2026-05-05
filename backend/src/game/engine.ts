@@ -382,10 +382,11 @@ export async function joinGame(
     rows: cardPattern.map(row => row.map(cell => cell === 0 ? 'FREE' : cell)) as any
   };
 
-  const existingTicket = await prisma.ticket.findUnique({
-    where: { userId_gameId: { userId, gameId } },
+  // Enforce Hard Limit of 3 cards
+  const existingTicketsCount = await prisma.ticket.count({
+    where: { userId, gameId }
   });
-  if (existingTicket) throw new Error('You already joined this game');
+  if (existingTicketsCount >= 3) throw new Error('Maximum of 3 cards allowed per player');
 
   // Check wallet balance
   const wallet = await prisma.wallet.findUnique({ where: { userId } });

@@ -213,7 +213,7 @@ model Ticket {
   game      Game      @relation(fields: [gameId], references: [id])
   winners   Winner[]
 
-  @@unique([userId, gameId]) // one ticket per player per game
+  @@index([userId, gameId]) // allow multiple tickets per user per game
   @@index([gameId])
   @@index([userId])
   @@map("tickets")

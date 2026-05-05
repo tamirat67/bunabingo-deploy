@@ -32,7 +32,8 @@ export default function GameInner() {
   const gameId      = params.get('id') ?? '';
 
   const [game,       setGame]      = useState<GameState | null>(null);
-  const [myCard,     setMyCard]    = useState<Cell[][] | null>(null);
+  const [tickets,    setTickets]   = useState<any[]>([]);
+  const [activeTicketIdx, setIdx]  = useState(0);
   const [drawn,      setDrawn]     = useState<number[]>([]);
   const [lastBall,   setLastBall]  = useState<number | null>(null);
   const [countdown,  setCd]        = useState<number | null>(null);
@@ -44,9 +45,9 @@ export default function GameInner() {
   useEffect(() => {
     if (!gameId) return;
     Promise.all([getGame(gameId), getMyCard(gameId)])
-      .then(([g, t]) => {
+      .then(([g, res]) => {
         setGame(g);
-        setMyCard(t.card);
+        setTickets(res.tickets || []);
         const nums: number[] = g.drawHistory.map((d: any) => d.number);
         setDrawn(nums);
         if (nums.length) setLastBall(nums[nums.length - 1]);
@@ -110,10 +111,9 @@ export default function GameInner() {
     }, 1000);
   }
 
-  /* ── render ─────────────────────────────────────────────── */
   if (loading) return <div className="loading"><div className="spinner" /><span>Loading game…</span></div>;
 
-  if (!game || !myCard) return (
+  if (!game || tickets.length === 0) return (
     <div className="loading">
       <div style={{ fontSize: 52 }}>😕</div>
       <span style={{ color: 'var(--txt2)' }}>You haven't joined this game</span>
@@ -125,6 +125,8 @@ export default function GameInner() {
   const minPl    = game.room.type === 'CASUAL' ? 2 : game.room.type === 'STANDARD' ? 5 : 20;
   const CIRC     = 2 * Math.PI * 42;
   const maxCd    = game.countdownSeconds ?? 30;
+
+  const currentCard = tickets[activeTicketIdx]?.card;
 
   return (
     <>
@@ -151,7 +153,6 @@ export default function GameInner() {
       </div>
 
       <div className="section" style={{ gap: 10 }}>
-        {/* Badges */}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <span className="badge badge-muted">👥 {game.tickets.length} players</span>
           <span className="badge badge-muted">🎟 {Number(game.room.ticketPrice).toFixed(0)} ETB</span>
@@ -172,21 +173,6 @@ export default function GameInner() {
               </svg>
               <div className="cd-num">{countdown}</div>
             </div>
-            <div style={{ fontSize: 12, color: 'var(--txt2)', marginTop: 10 }}>
-              Need {minPl}+ players to start · {game.tickets.length} joined
-            </div>
-          </div>
-        )}
-
-        {/* ── Waiting ────────────────────────────────────────── */}
-        {game.status === 'WAITING' && (
-          <div className="card" style={{ textAlign: 'center', padding: 28 }}>
-            <div style={{ fontSize: 52, marginBottom: 10 }}>⏳</div>
-            <div style={{ fontWeight: 700, color: 'var(--gold)', marginBottom: 6 }}>Waiting for players</div>
-            <div style={{ fontSize: 13, color: 'var(--txt2)' }}>
-              Game auto-starts when {minPl}+ players join<br />
-              Currently: <strong style={{ color: 'var(--txt)' }}>{game.tickets.length}</strong> / {minPl}
-            </div>
           </div>
         )}
 
@@ -197,8 +183,6 @@ export default function GameInner() {
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
               <div className="draw-ball">{lastBall}</div>
             </div>
-            <div style={{ fontSize: 12, color: 'var(--txt2)', marginBottom: 12 }}>#{drawn.length} of 75</div>
-            {/* Recent balls mini row */}
             <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', justifyContent: 'center' }}>
               {[...drawn].reverse().slice(1, 13).map(n => (
                 <div key={n} className="mini-ball">{n}</div>
@@ -207,13 +191,28 @@ export default function GameInner() {
           </div>
         )}
 
+        {/* ── Multi-Card Switcher ───────────────────────────── */}
+        {tickets.length > 1 && (
+          <div className="card-switcher">
+            {tickets.map((_, i) => (
+              <button 
+                key={i} 
+                className={`switch-btn ${activeTicketIdx === i ? 'active' : ''}`}
+                onClick={() => setIdx(i)}
+              >
+                Card {i + 1}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* ── Bingo Card ────────────────────────────────────── */}
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '12px 16px 0', fontWeight: 700, fontSize: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span>🃏 Your Card</span>
-            {drawn.length > 0 && <span style={{ fontSize: 12, color: 'var(--txt2)' }}>Auto-marking ✅</span>}
+          <div style={{ padding: '12px 16px 8px', fontWeight: 700, fontSize: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>🃏 Card {activeTicketIdx + 1} of {tickets.length}</span>
+            {drawn.length > 0 && <span style={{ fontSize: 11, color: '#22c55e' }}>Auto-marking Active ✅</span>}
           </div>
-          <BingoCard card={myCard} drawnNumbers={drawn} />
+          <BingoCard card={currentCard} drawnNumbers={drawn} />
         </div>
 
         {/* ── Winners ───────────────────────────────────────── */}
@@ -233,22 +232,18 @@ export default function GameInner() {
           </div>
         )}
 
-        {/* ── Cancelled ─────────────────────────────────────── */}
-        {game.status === 'CANCELLED' && (
-          <div className="card" style={{ textAlign: 'center', padding: 24 }}>
-            <div style={{ fontSize: 48, marginBottom: 8 }}>🚫</div>
-            <div style={{ fontWeight: 700, color: 'var(--red)', marginBottom: 6 }}>Game Cancelled</div>
-            <div style={{ fontSize: 13, color: 'var(--txt2)', marginBottom: 16 }}>Your ticket cost has been refunded to your wallet.</div>
-            <a href="/tickets" className="btn btn-gold btn-full">🎮 Join Another Game</a>
-          </div>
-        )}
-
         {game.status === 'FINISHED' && (
           <a href="/tickets" className="btn btn-gold btn-full btn-lg">🎮 Play Again</a>
         )}
       </div>
 
       <Navbar />
+
+      <style jsx>{`
+        .card-switcher { display: flex; gap: 8px; justify-content: center; margin-bottom: 4px; }
+        .switch-btn { flex: 1; padding: 8px; border-radius: 8px; border: 2px solid #ddd; background: white; font-weight: 800; font-size: 13px; color: #666; cursor: pointer; }
+        .switch-btn.active { border-color: #f97316; color: #f97316; background: #fff7ed; box-shadow: 0 4px 12px rgba(249,115,22,0.2); }
+      `}</style>
     </>
   );
 }

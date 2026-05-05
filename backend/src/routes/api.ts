@@ -202,12 +202,13 @@ router.get('/games/:gameId', async (req: Request, res: Response) => {
 
 router.get('/games/:gameId/mycard', async (req: Request, res: Response) => {
   const user = (req as any).user;
-  const ticket = await prisma.ticket.findUnique({
-    where: { userId_gameId: { userId: user.id, gameId: req.params.gameId } },
+  const tickets = await prisma.ticket.findMany({
+    where: { userId: user.id, gameId: req.params.gameId },
     include: { winners: true },
+    orderBy: { purchasedAt: 'asc' }
   });
-  if (!ticket) return res.status(404).json({ error: 'Ticket not found' });
-  res.json(ticket);
+  if (!tickets.length) return res.status(404).json({ error: 'No tickets found' });
+  res.json({ tickets }); // Now returns an array of tickets
 });
 
 router.get('/mytickets', async (req: Request, res: Response) => {

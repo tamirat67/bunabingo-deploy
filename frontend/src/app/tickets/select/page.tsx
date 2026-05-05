@@ -10,10 +10,10 @@ function SelectCardInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const roomType = searchParams.get('type') || 'CASUAL';
-  const stake = searchParams.get('price') || '10';
+  const pricePerCard = Number(searchParams.get('price') || '10');
 
   const [wallet, setWallet] = useState<any>(null);
-  const [selectedCard, setSelectedCard] = useState<number | null>(null);
+  const [selectedCards, setSelectedCards] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
 
@@ -21,20 +21,38 @@ function SelectCardInner() {
     getWallet().then(setWallet).catch(() => {});
   }, []);
 
-  const hasBalance = Number(wallet?.balance || 0) >= Number(stake);
+  const totalStake = selectedCards.length * pricePerCard;
+  const hasBalance = Number(wallet?.balance || 0) >= totalStake;
   
-  // Pull from Predefined Truth
-  const previewCard = selectedCard ? PREDEFINED_CARDS[selectedCard] : null;
+  // Show preview for the last selected card
+  const lastSelected = selectedCards[selectedCards.length - 1];
+  const previewCard = lastSelected ? PREDEFINED_CARDS[lastSelected] : null;
+
+  const toggleCard = (num: number) => {
+    if (selectedCards.includes(num)) {
+      setSelectedCards(selectedCards.filter(n => n !== num));
+    } else {
+      if (selectedCards.length >= 3) {
+        setToast({ msg: 'Max 3 cards allowed!', type: 'error' });
+        return;
+      }
+      setSelectedCards([...selectedCards, num]);
+    }
+  };
 
   const handleStart = async () => {
-    if (!selectedCard) return setToast({ msg: 'Please select a card number!', type: 'error' });
-    if (!hasBalance) return setToast({ msg: 'Insufficient balance!', type: 'error' });
+    if (selectedCards.length === 0) return setToast({ msg: 'Please select at least one card!', type: 'error' });
+    if (!hasBalance) return setToast({ msg: 'Insufficient balance for all cards!', type: 'error' });
 
     setLoading(true);
     try {
-      // Pass the selectedCard ID to the backend so it assigns the EXACT same numbers
-      const { game } = await joinGame(roomType, selectedCard); 
-      router.push(`/game?id=${game.id}`);
+      // Join for each selected card
+      for (const cardId of selectedCards) {
+        await joinGame(roomType, cardId);
+      }
+      // Redirect to game with the last one (live game will handle all)
+      router.push(`/history`); // For now redirecting to history to see tickets
+      setToast({ msg: `Successfully joined with ${selectedCards.length} cards!`, type: 'success' });
     } catch (err: any) {
       setToast({ msg: err.response?.data?.error || 'Failed to join game', type: 'error' });
     } finally {
@@ -51,19 +69,19 @@ function SelectCardInner() {
 
       <div className="stats-row">
         <div className="stat-capsule">
-          <div className="lbl orange">Active Game</div>
-          <div className="val">1</div>
+          <div className="lbl orange">Cards</div>
+          <div className="val">{selectedCards.length} / 3</div>
         </div>
         <div className="stat-capsule">
-          <div className="lbl orange">Stake</div>
-          <div className="val">{stake}</div>
+          <div className="lbl orange">Total Stake</div>
+          <div className="val">{totalStake}</div>
         </div>
         <div className="stat-capsule">
           <div className="lbl orange">Wallet</div>
           <div className="val">{Number(wallet?.balance || 0).toFixed(0)}</div>
         </div>
         <div className="stat-capsule">
-          <div className="lbl orange">Bonus Wallet</div>
+          <div className="lbl orange">Bonus</div>
           <div className="val">0</div>
         </div>
       </div>
@@ -71,7 +89,7 @@ function SelectCardInner() {
       {/* ─── Balance Warning ──────────────────────────────── */}
       {!hasBalance && (
         <div className="balance-warning">
-          <p>Please top up your wallet. If you already have and are still seeing this, please refresh the page.</p>
+          <p>Insufficient balance for {selectedCards.length} cards ({totalStake} ETB).</p>
           <button className="btn-deposit-now" onClick={() => router.push('/deposit')}>
             📥 Deposit Now
           </button>
@@ -83,8 +101,8 @@ function SelectCardInner() {
         {Array.from({ length: 100 }, (_, i) => i + 1).map((num) => (
           <div
             key={num}
-            className={`grid-item ${selectedCard === num ? 'selected' : ''}`}
-            onClick={() => setSelectedCard(num)}
+            className={`grid-item ${selectedCards.includes(num) ? 'selected' : ''}`}
+            onClick={() => toggleCard(num)}
           >
             {num}
           </div>
@@ -108,20 +126,21 @@ function SelectCardInner() {
                   ))}
                 </div>
               ))}
+              <div className="hint-card-num">Card #{lastSelected} Preview</div>
             </div>
           ) : (
-            <div className="preview-placeholder">Select a number to see card pattern</div>
+            <div className="preview-placeholder">Tap up to 3 cards to select</div>
           )}
         </div>
 
         <div className="action-btns">
-          <button className="btn-refresh" onClick={() => window.location.reload()}>Refresh</button>
+          <button className="btn-refresh" onClick={() => setSelectedCards([])}>Clear</button>
           <button 
-            className={`btn-start ${!selectedCard || !hasBalance || loading ? 'disabled' : ''}`}
+            className={`btn-start ${selectedCards.length === 0 || !hasBalance || loading ? 'disabled' : ''}`}
             onClick={handleStart}
             disabled={loading}
           >
-            {loading ? 'Joining...' : 'Start Game'}
+            {loading ? 'Processing...' : `Start Game (${selectedCards.length})`}
           </button>
         </div>
       </div>
@@ -137,29 +156,27 @@ function SelectCardInner() {
 
         .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 16px; }
         .stat-capsule { background: white; border-radius: 8px; padding: 6px 2px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .stat-capsule .lbl { font-size: 9px; color: #f97316; font-weight: 800; margin-bottom: 4px; text-transform: uppercase; }
-        .stat-capsule .val { font-size: 14px; color: #333; font-weight: 800; }
+        .stat-capsule .lbl { font-size: 8px; color: #f97316; font-weight: 800; margin-bottom: 4px; text-transform: uppercase; }
+        .stat-capsule .val { font-size: 12px; color: #333; font-weight: 800; }
 
-        .balance-warning { background: #fecaca; color: #dc2626; padding: 12px; border-radius: 12px; font-size: 13px; font-weight: 600; text-align: center; line-height: 1.4; margin-bottom: 16px; border: 1px solid #f87171; }
-        .btn-deposit-now { margin-top: 8px; background: #dc2626; color: white; border: none; padding: 6px 20px; border-radius: 99px; font-weight: 800; font-size: 13px; box-shadow: 0 4px 0 #991b1b; cursor: pointer; }
+        .balance-warning { background: #fecaca; color: #dc2626; padding: 12px; border-radius: 12px; font-size: 12px; font-weight: 600; text-align: center; margin-bottom: 16px; border: 1px solid #f87171; }
+        .btn-deposit-now { margin-top: 6px; background: #dc2626; color: white; border: none; padding: 4px 16px; border-radius: 99px; font-weight: 800; font-size: 11px; cursor: pointer; }
 
         .card-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; background: rgba(255,255,255,0.3); padding: 6px; border-radius: 12px; margin-bottom: 20px; }
-        .grid-item { aspect-ratio: 1; background: #e0d4f0; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: #4b3b63; cursor: pointer; }
-        .grid-item.selected { background: #22c55e; color: white; border: 2px solid #fff; }
+        .grid-item { aspect-ratio: 1; background: #e0d4f0; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; color: #4b3b63; cursor: pointer; transition: all 0.2s; }
+        .grid-item.selected { background: #22c55e; color: white; transform: scale(1.05); box-shadow: 0 0 10px rgba(34,197,94,0.5); border: 2px solid white; }
 
         .bottom-area { display: flex; align-items: flex-end; gap: 12px; margin-top: 10px; }
         .preview-wrap { flex: 0 0 130px; min-height: 120px; }
-        .preview-placeholder { font-size: 9px; opacity: 0.5; color: white; text-align: center; padding-top: 40px; line-height: 1.2; font-weight: 700; }
+        .preview-placeholder { font-size: 9px; opacity: 0.5; color: white; text-align: center; padding-top: 40px; font-weight: 700; }
 
-        .cartela-hint { background: white; padding: 8px; border-radius: 12px; display: flex; flex-direction: column; gap: 2px; box-shadow: 0 8px 30px rgba(0,0,0,0.2); animation: slideIn 0.3s ease-out; }
-        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
+        .cartela-hint { background: white; padding: 8px; border-radius: 12px; display: flex; flex-direction: column; gap: 2px; box-shadow: 0 8px 30px rgba(0,0,0,0.2); }
         .hint-header { display: flex; gap: 2px; justify-content: center; margin-bottom: 4px; border-bottom: 1px solid #eee; padding-bottom: 2px; }
         .hint-header span { width: 20px; font-size: 10px; font-weight: 900; color: #f97316; text-align: center; }
-
         .hint-row { display: flex; gap: 2px; justify-content: center; }
         .hint-cell { width: 20px; height: 18px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 800; color: #333; }
         .hint-cell.star { font-size: 10px; }
+        .hint-card-num { font-size: 8px; color: #999; text-align: center; margin-top: 4px; font-weight: 700; }
 
         .action-btns { flex: 1; display: flex; flex-direction: column; gap: 10px; }
         .btn-refresh { background: #3b82f6; border: none; color: white; padding: 12px; border-radius: 12px; font-weight: 900; font-size: 18px; box-shadow: 0 4px 0 #2563eb; }
