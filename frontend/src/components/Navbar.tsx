@@ -10,7 +10,7 @@ export default function Navbar() {
     { label: 'Scores', href: '/history', icon: '🏆' },
     { label: 'History', href: '/history', icon: '🕒' },
     { label: 'Wallet', href: '/', icon: '👛' },
-    { label: 'Profile', href: '/withdraw', icon: '👤' },
+    { label: 'Profile', href: '/profile', icon: '👤' },
   ];
 
   return (

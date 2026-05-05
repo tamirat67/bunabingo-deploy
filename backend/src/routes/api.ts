@@ -34,6 +34,43 @@ router.get('/me', async (req: Request, res: Response) => {
   res.json({ ...user, wallet });
 });
 
+router.get('/me/profile', async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  try {
+    const fullUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      include: { 
+        wallet: true,
+        _count: {
+          select: { winners: true }
+        }
+      }
+    });
+
+    if (!fullUser) return res.status(404).json({ error: 'User not found' });
+
+    // Audit: Calculate total coins earned from transaction history
+    const totalEarnings = await prisma.transaction.aggregate({
+      where: { 
+        walletId: fullUser.wallet?.id,
+        type: 'WINNING',
+        status: 'COMPLETED'
+      },
+      _sum: { amount: true }
+    });
+
+    res.json({
+      username: fullUser.telegramUsername || fullUser.firstName || 'User',
+      balance: fullUser.wallet?.balance || 0,
+      bonusBalance: fullUser.wallet?.bonusBalance || 0,
+      gamesWon: fullUser._count.winners,
+      totalCoins: totalEarnings._sum.amount || 0
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch profile' });
+  }
+});
+
 router.get('/wallet', async (req: Request, res: Response) => {
   const user = (req as any).user;
   const wallet = await getOrCreateWallet(user.id);

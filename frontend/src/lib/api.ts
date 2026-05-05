@@ -13,6 +13,7 @@ api.interceptors.request.use(cfg => {
 
 // Auth
 export const getMe = () => api.get('/me').then(r => r.data);
+export const getProfile = () => api.get('/me/profile').then(r => r.data);
 export const getWallet = () => api.get('/wallet').then(r => r.data);
 export const getTransactions = (page = 1) => api.get(`/transactions?page=${page}`).then(r => r.data);
 
