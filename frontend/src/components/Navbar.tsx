@@ -8,8 +8,8 @@ export default function Navbar() {
 
   const navItems = [
     { label: 'Game', href: '/', icon: <Dices size={26} strokeWidth={2} /> },
-    { label: 'Scores', href: '/history', icon: <Trophy size={26} strokeWidth={2} /> },
-    { label: 'History', href: '/mytickets', icon: <History size={26} strokeWidth={2} /> },
+    { label: 'Scores', href: '/scores', icon: <Trophy size={26} strokeWidth={2} /> },
+    { label: 'History', href: '/history', icon: <History size={26} strokeWidth={2} /> },
     { label: 'Wallet', href: '/wallet', icon: <Wallet size={26} strokeWidth={2} /> },
     { label: 'Profile', href: '/profile', icon: <UserCircle size={26} strokeWidth={2} /> },
   ];
