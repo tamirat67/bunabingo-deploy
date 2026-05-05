@@ -175,7 +175,7 @@ function SelectCardInner() {
 
         .card-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; background: rgba(75, 54, 33, 0.05); padding: 8px; border-radius: 12px; margin-bottom: 20px; }
         .grid-item { aspect-ratio: 1; background: #FFF9E6; border: 1px solid #E6D5A8; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: #4B3621; cursor: pointer; transition: all 0.2s; }
-        .grid-item.selected { background: #4B3621; color: #F5E6BE; transform: scale(1.05); box-shadow: 0 4px 12px rgba(75, 54, 33, 0.3); border: 2px solid #F5E6BE; }
+        .grid-item.selected { background: #22c55e; color: #ffffff; transform: scale(1.05); box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3); border: 2px solid #ffffff; }
 
         .previews-container { margin-bottom: 20px; min-height: 140px; }
         .previews-scroll { display: flex; gap: 12px; overflow-x: auto; padding: 4px; padding-bottom: 12px; }
