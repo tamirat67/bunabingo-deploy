@@ -219,11 +219,11 @@ router.post('/games/join', joinGameLimiter, async (req: Request, res: Response) 
   const user = (req as any).user;
   if (!user) return res.status(401).json({ error: 'Verification required to play' });
   try {
-    const { roomType, cardId } = req.body;
+    const { roomType, cardIds } = req.body;
     const room = await getRoomWithActiveGame(roomType);
     if (!room || !room.games[0]) return res.status(404).json({ error: 'No active game found' });
-    const { ticket, card } = await joinGame(user.id, room.games[0].id, cardId);
-    res.json({ success: true, ticket, card, gameId: room.games[0].id });
+    const { tickets, cards } = await joinGame(user.id, room.games[0].id, cardIds);
+    res.json({ success: true, tickets, cards, gameId: room.games[0].id });
   } catch (e: any) {
     res.status(400).json({ error: e.message });
   }

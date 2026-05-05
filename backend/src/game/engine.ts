@@ -359,8 +359,8 @@ import { PREDEFINED_CARDS } from '../lib/predefinedCards';
 export async function joinGame(
   userId: string,
   gameId: string,
-  cardId: number = 1 // Default to 1 if not provided
-): Promise<{ ticket: any; card: BingoCard }> {
+  cardIds: number[] = [1] // Default to card 1 if not provided
+): Promise<{ tickets: any[]; cards: BingoCard[] }> {
   const game = await prisma.game.findUnique({
     where: { id: gameId },
     include: { room: true, tickets: true },
@@ -371,104 +371,117 @@ export async function joinGame(
     throw new Error('Game is not accepting players');
   }
 
-  // Ensure cardId is valid 1-100
-  const normalizedCardId = Math.max(1, Math.min(100, cardId));
-  const cardPattern = PREDEFINED_CARDS[normalizedCardId];
+  const numTickets = cardIds.length;
+  if (numTickets === 0) throw new Error('No cards selected');
+  if (numTickets > 3) throw new Error('Maximum of 3 cards allowed per player');
 
-  if (!cardPattern) throw new Error('Invalid card selection');
-
-  // Convert predefined format [[...], [...]] to engine format { rows: [...] }
-  const card: BingoCard = {
-    rows: cardPattern.map(row => row.map(cell => cell === 0 ? 'FREE' : cell)) as any
-  };
-
-  // Enforce Hard Limit of 3 cards
+  // Enforce total limit of 3 cards per player per game
   const existingTicketsCount = await prisma.ticket.count({
     where: { userId, gameId }
   });
-  if (existingTicketsCount >= 3) throw new Error('Maximum of 3 cards allowed per player');
+  if (existingTicketsCount + numTickets > 3) {
+    throw new Error(`You already have ${existingTicketsCount} tickets. Maximum allowed is 3.`);
+  }
 
-  // Check wallet balance
+  // Validate and prepare cards
+  const preparedCards: { id: number, pattern: BingoCard }[] = [];
+  for (const cardId of cardIds) {
+    const normalizedId = Math.max(1, Math.min(100, cardId));
+    const pattern = PREDEFINED_CARDS[normalizedId];
+    if (!pattern) throw new Error(`Invalid card selection: ${cardId}`);
+    
+    preparedCards.push({
+      id: normalizedId,
+      pattern: { rows: pattern.map(row => row.map(cell => cell === 0 ? 'FREE' : cell)) as any }
+    });
+  }
+
+  // Check wallet balance for TOTAL amount
   const wallet = await prisma.wallet.findUnique({ where: { userId } });
   if (!wallet) throw new Error('Wallet not found');
 
-  const ticketPrice = game.room.ticketPrice;
-  if (new Decimal(wallet.balance).lessThan(ticketPrice)) {
-    throw new Error(`Insufficient balance. Need ${ticketPrice}, have ${wallet.balance}`);
+  const unitPrice = game.room.ticketPrice;
+  const totalPrice = new Decimal(unitPrice).mul(numTickets);
+
+  if (new Decimal(wallet.balance).lessThan(totalPrice)) {
+    throw new Error(`Insufficient balance. Need ${totalPrice.toFixed(2)}, have ${wallet.balance.toFixed(2)}`);
   }
 
-  // Deduct balance
-  const newBalance = new Decimal(wallet.balance).sub(ticketPrice);
-  const houseEdge = new Decimal(ticketPrice).mul(config.game.houseEdgePercent).div(100);
-  const prizeContribution = new Decimal(ticketPrice).sub(houseEdge);
+  // Deduct balance and update game prize
+  const newBalance = new Decimal(wallet.balance).sub(totalPrice);
+  const totalHouseEdge = new Decimal(totalPrice).mul(config.game.houseEdgePercent).div(100);
+  const totalPrizeContribution = new Decimal(totalPrice).sub(totalHouseEdge);
 
-  await prisma.$transaction([
-    prisma.wallet.update({
+  const results = await prisma.$transaction(async (tx) => {
+    // 1. Update wallet
+    const updatedWallet = await tx.wallet.update({
       where: { userId },
       data: {
         balance: newBalance,
-        totalSpent: new Decimal(wallet.totalSpent).add(ticketPrice),
+        totalSpent: { increment: totalPrice },
       },
-    }),
-    prisma.game.update({
-      where: { id: gameId },
-      data: {
-        totalPrize: new Decimal(game.totalPrize).add(prizeContribution),
-        houseEdge: new Decimal(game.houseEdge).add(houseEdge),
-        currentPlayers: { increment: 1 },
-      } as any,
-    }),
-    prisma.transaction.create({
+    });
+
+    // 2. Create Transaction record
+    await tx.transaction.create({
       data: {
         userId,
         type: 'TICKET_PURCHASE',
-        amount: ticketPrice,
+        amount: totalPrice,
         balanceBefore: wallet.balance,
         balanceAfter: newBalance,
         status: 'COMPLETED',
         referenceId: gameId,
-        description: `Ticket for ${game.room.type} game`,
+        description: `Purchased ${numTickets} tickets for ${game.room.type} game`,
       },
-    }),
-  ]);
+    });
 
-  const ticket = await prisma.ticket.create({
-    data: { userId, gameId, card: card as any, markedNumbers: [] },
+    // 3. Create Tickets
+    const tickets = await Promise.all(preparedCards.map(c => 
+      tx.ticket.create({
+        data: { userId, gameId, card: c.pattern as any, markedNumbers: [] }
+      })
+    ));
+
+    // 4. Update Game
+    await tx.game.update({
+      where: { id: gameId },
+      data: {
+        totalPrize: { increment: totalPrizeContribution },
+        houseEdge: { increment: totalHouseEdge },
+        currentPlayers: { increment: 1 }, // Note: We count unique users for the 'minPlayers' start logic usually
+      },
+    });
+
+    return { tickets, updatedWallet };
   });
 
-  // Update room player count
+  // Update room player count logic
   const updatedGame = await prisma.game.findUnique({
     where: { id: gameId },
     include: { tickets: true },
   });
-  const playerCount = updatedGame?.tickets.length ?? 0;
+  const playerCount = updatedGame?.tickets.length ?? 0; // Total tickets in game
 
-  await triggerGameEvent(gameId, 'player-joined', { userId, playerCount });
+  await triggerGameEvent(gameId, 'player-joined', { userId, playerCount, numTickets });
   await triggerAdminEvent('player-joined', { gameId, userId, playerCount });
 
   // Auto-start countdown if enough players
   const minPlayers = game.room.minPlayers;
-  if (playerCount >= minPlayers) {
+  // Use unique users for minPlayers check
+  const uniquePlayers = await prisma.ticket.groupBy({
+    where: { gameId },
+    by: ['userId']
+  });
+  
+  if (uniquePlayers.length >= minPlayers) {
     const currentState = activeGames.get(gameId);
     if (!currentState?.countdownTimer) {
-      await startCountdown(gameId, playerCount);
-    } else {
-      // Update countdown if more players joined during countdown
-      const state = activeGames.get(gameId);
-      if (state) {
-        const newCountdown = getCountdownSeconds(playerCount);
-        const currentCountdown = (await prisma.game.findUnique({ where: { id: gameId } }))?.countdownSeconds ?? 30;
-        if (newCountdown < currentCountdown) {
-          clearTimeout(state.countdownTimer);
-          state.countdownTimer = setTimeout(() => runGame(gameId), newCountdown * 1000);
-          await prisma.game.update({ where: { id: gameId }, data: { countdownSeconds: newCountdown } });
-          await triggerGameEvent(gameId, 'countdown-update', { seconds: newCountdown, playerCount });
-        }
-      }
+      await startCountdown(gameId, uniquePlayers.length);
     }
   }
 
-  return { ticket, card };
+  return { tickets: results.tickets, cards: preparedCards.map(c => c.pattern) };
 }
 
 export function getActiveGames(): Map<string, ActiveGame> {

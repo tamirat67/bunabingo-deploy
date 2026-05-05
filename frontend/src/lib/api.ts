@@ -32,7 +32,7 @@ export const createWithdrawal = (data: { amount: number; accountName: string; ac
 
 // Rooms & Games
 export const getRooms = () => api.get('/rooms').then(r => r.data);
-export const joinGame = (roomType: string, cardId?: number) => api.post('/games/join', { roomType, cardId }).then(r => r.data);
+export const joinGame = (roomType: string, cardIds: number[]) => api.post('/games/join', { roomType, cardIds }).then(r => r.data);
 export const getGame = (gameId: string) => api.get(`/games/${gameId}`).then(r => r.data);
 export const getMyCard = (gameId: string) => api.get(`/games/${gameId}/mycard`).then(r => r.data);
 export const getMyTickets = () => api.get('/mytickets').then(r => r.data);
