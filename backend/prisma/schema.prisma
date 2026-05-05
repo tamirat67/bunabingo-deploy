@@ -89,6 +89,7 @@ model User {
   lastActiveAt     DateTime    @default(now())
   ipHash           String?     // hashed for privacy
   deviceHash       String?
+  phoneNumber      String?
   referredById     String?
   referredBy       User?       @relation("Referral", fields: [referredById], references: [id])
   referrals        User[]      @relation("Referral")

@@ -49,16 +49,17 @@ export async function telegramAuthMiddleware(
     const tgUser = JSON.parse(userParam);
     const startParam = params.get('start_param');
 
-    const user = await findOrCreateUser({
-      id: tgUser.id,
-      username: tgUser.username,
-      first_name: tgUser.first_name,
-      last_name: tgUser.last_name,
-    }, startParam || undefined);
+    // Look for user, but DO NOT CREATE
+    const user = await getUserByTelegramId(tgUser.id);
 
-    if (user.status === 'BANNED') return res.status(403).json({ error: 'Account banned' });
-
-    (req as any).user = user;
+    if (user) {
+      if (user.status === 'BANNED') return res.status(403).json({ error: 'Account banned' });
+      (req as any).user = user;
+    } else {
+      // Not registered - attach tgUser so /auth/register can use it
+      (req as any).tgUser = { ...tgUser, startParam };
+    }
+    
     next();
   } catch (err) {
     return res.status(401).json({ error: 'Authentication failed' });

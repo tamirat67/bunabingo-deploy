@@ -13,6 +13,7 @@ api.interceptors.request.use(cfg => {
 
 // Auth
 export const getMe = () => api.get('/me').then(r => r.data);
+export const register = (data: { phoneNumber: string; referredById?: string }) => api.post('/auth/register', data).then(r => r.data);
 export const getProfile = () => api.get('/me/profile').then(r => r.data);
 export const updateProfile = (data: { firstName: string; phoneNumber: string }) => api.post('/me/profile', data).then(r => r.data);
 export const getWallet = () => api.get('/wallet').then(r => r.data);

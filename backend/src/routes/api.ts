@@ -67,9 +67,31 @@ const upload = multer({
 // ─── Auth for all routes ──────────────────────────────────────
 router.use(telegramAuthMiddleware);
 
+// ─── Registration (Manual) ───────────────────────────────────
+router.post('/auth/register', async (req: Request, res: Response) => {
+  const tgUser = (req as any).tgUser; // Attached by middleware for unregistered users
+  const { phoneNumber, referredById } = req.body;
+
+  if (!phoneNumber) return res.status(400).json({ error: 'Phone number required' });
+
+  try {
+    const user = await findOrCreateUser({
+      id: tgUser.id,
+      username: tgUser.username,
+      first_name: tgUser.first_name,
+      last_name: tgUser.last_name,
+    }, referredById, phoneNumber);
+
+    res.json({ success: true, user });
+  } catch (err) {
+    res.status(500).json({ error: 'Registration failed' });
+  }
+});
+
 // ─── User / Wallet ────────────────────────────────────────────
 router.get('/me', async (req: Request, res: Response) => {
   const user = (req as any).user;
+  if (!user) return res.status(401).json({ error: 'Not registered' });
   const wallet = await getOrCreateWallet(user.id);
   res.json({ ...user, wallet });
 });

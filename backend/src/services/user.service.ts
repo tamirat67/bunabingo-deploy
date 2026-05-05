@@ -9,7 +9,8 @@ export async function findOrCreateUser(
     first_name: string;
     last_name?: string;
   },
-  referredById?: string
+  referredById?: string,
+  phoneNumber?: string
 ) {
   const telegramId = BigInt(telegramUser.id);
 
@@ -24,6 +25,7 @@ export async function findOrCreateUser(
         lastName: telegramUser.last_name,
         isAdmin: config.bot.adminIds.includes(telegramUser.id),
         referredById: referredById && referredById.length > 20 ? referredById : undefined,
+        phoneNumber: phoneNumber || undefined,
       },
     });
 
