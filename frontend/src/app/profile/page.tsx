@@ -139,7 +139,7 @@ export default function ProfilePage() {
         .profile-container.dark { background: #0d1117; color: #c9d1d9; }
 
         .profile-header { text-align: center; margin-bottom: 35px; }
-        .avatar-circle { width: 90px; height: 90px; background: rgba(0,0,0,0.05); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; border: 3px solid #6b21a8; }
+        .avatar-circle { width: 90px; height: 90px; background: rgba(0,0,0,0.05); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; border: 3px solid #6F4E37; }
         .dark .avatar-circle { background: #161b22; border-color: #30363d; }
         
         .user-name { font-size: 26px; font-weight: 900; margin: 0; }
@@ -152,7 +152,7 @@ export default function ProfilePage() {
         .dark .setting-toggle-row { background: #161b22; border-color: #30363d; }
         
         .toggle-left { display: flex; align-items: center; gap: 16px; }
-        .icon-wrap { width: 40px; height: 40px; background: rgba(107, 33, 168, 0.1); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #6b21a8; }
+        .icon-wrap { width: 40px; height: 40px; background: rgba(111, 78, 55, 0.1); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #6F4E37; }
         .icon-wrap.invite { background: rgba(45, 106, 79, 0.1); color: #2d6a4f; }
         .dark .icon-wrap { background: rgba(255,255,255,0.05); color: #c9d1d9; }
         .dark .icon-wrap.invite { color: #4ade80; }
@@ -161,7 +161,7 @@ export default function ProfilePage() {
         .toggle-info .desc { font-size: 11px; opacity: 0.5; font-weight: 600; margin-top: 2px; }
 
         .toggle-switch { width: 46px; height: 26px; background: #e5e7eb; border-radius: 99px; position: relative; transition: 0.3s; }
-        .toggle-switch.on { background: #6b21a8; }
+        .toggle-switch.on { background: #6F4E37; }
         .toggle-switch::after { content: ""; position: absolute; width: 20px; height: 20px; background: white; border-radius: 50%; top: 3px; left: 3px; transition: 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .toggle-switch.on::after { left: 23px; }
 
