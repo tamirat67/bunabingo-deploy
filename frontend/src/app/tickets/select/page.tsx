@@ -3,7 +3,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getMe, joinGame } from '../../../lib/api';
 import { PREDEFINED_CARDS } from '../../../lib/predefinedCards';
-import { ChevronLeft, RefreshCw, Play, Zap, X, Star } from 'lucide-react';
+import { ChevronLeft, RefreshCw, Play, Zap, X, Star, LayoutGrid } from 'lucide-react';
 
 function TicketContent() {
   const router = useRouter();
@@ -15,7 +15,7 @@ function TicketContent() {
   const [loading, setLoading] = useState(true);
   const [selectedCard, setSelectedCard] = useState<number | null>(null);
   const [joining, setJoining] = useState(false);
-  const [occupiedCards, setOccupiedCards] = useState<number[]>([]); // Empty by default
+  const [occupiedCards, setOccupiedCards] = useState<number[]>([]); 
   const [jackpot, setJackpot] = useState(808);
   const [dismissAlert, setDismissAlert] = useState(false);
 
@@ -61,7 +61,7 @@ function TicketContent() {
           <ChevronLeft size={24} />
         </button>
         <div className="title-stack">
-          <h1>Select Cartela</h1>
+          <h1>Buna Bingo</h1>
           <p>{roomType} • Stake {ticketPrice}</p>
         </div>
       </div>
@@ -97,7 +97,7 @@ function TicketContent() {
         </div>
       </div>
 
-      {/* Low Balance Alert (Now Dismissible) */}
+      {/* Low Balance Alert */}
       {isLowBalance && !dismissAlert && (
         <div className="topup-alert-box dismissible">
           <div className="alert-content">
@@ -128,59 +128,48 @@ function TicketContent() {
         </div>
       </div>
 
-      {/* PATTERN PREVIEW SHEET */}
-      {selectedCard && (
-        <div className="pattern-sheet-overlay" onClick={() => setSelectedCard(null)}>
-          <div className="pattern-sheet" onClick={(e) => e.stopPropagation()}>
-             <div className="sheet-handle"></div>
-             <div className="sheet-header">
-                <div className="sheet-title">
-                   <h2>Cartela #{selectedCard}</h2>
-                   <p>Card Pattern Preview</p>
+      {/* INLINE PREVIEW & ACTION ZONE */}
+      <div className="inline-action-zone">
+         <div className="preview-column">
+            {selectedCard ? (
+              <div className="inline-pattern-box">
+                <div className="pattern-label">Pattern #{selectedCard}</div>
+                <div className="pattern-mini-grid">
+                  {activePattern?.map((row, ri) => (
+                    row.map((num, ci) => (
+                      <div key={`${ri}-${ci}`} className={`mini-cell ${num === 0 ? 'free' : ''}`}>
+                        {num === 0 ? <Star size={10} fill="var(--gold-accent)" color="var(--gold-accent)" /> : num}
+                      </div>
+                    ))
+                  ))}
                 </div>
-                <button className="btn-close-sheet" onClick={() => setSelectedCard(null)}>
-                   <X size={20} />
-                </button>
-             </div>
+              </div>
+            ) : (
+              <div className="empty-preview-box">
+                 <LayoutGrid size={32} opacity={0.2} />
+                 <span>Pick a card to see pattern</span>
+              </div>
+            )}
+         </div>
 
-             <div className="pattern-preview-grid">
-                {activePattern?.map((row, ri) => (
-                  row.map((num, ci) => (
-                    <div key={`${ri}-${ci}`} className={`preview-cell ${num === 0 ? 'free' : ''}`}>
-                      {num === 0 ? <Star size={16} fill="var(--gold-accent)" color="var(--gold-accent)" /> : num}
-                    </div>
-                  ))
-                ))}
-             </div>
-
-             <button 
-               className={`btn-start-from-sheet ${(joining || isLowBalance) ? 'locked' : ''}`}
-               onClick={handleJoin}
-               disabled={joining || isLowBalance}
-             >
-                <Play size={20} />
-                <span>{joining ? 'JOINING...' : `JOIN WITH #${selectedCard}`}</span>
-             </button>
-          </div>
-        </div>
-      )}
-
-      {/* Action Footer */}
-      <div className="selection-footer-bar">
-        <button className="btn-footer-refresh" onClick={loadUser}>
-          <RefreshCw size={18} />
-          <span>Refresh</span>
-        </button>
-        <button 
-          className="btn-footer-start disabled"
-          disabled
-        >
-          <span>Pick a Cartela</span>
-        </button>
+         <div className="actions-column">
+            <button className="btn-refresh-inline" onClick={loadUser}>
+              <RefreshCw size={18} />
+              <span>Refresh</span>
+            </button>
+            <button 
+              className={`btn-start-inline ${(joining || isLowBalance || !selectedCard) ? 'locked' : ''}`}
+              onClick={handleJoin}
+              disabled={joining || isLowBalance || !selectedCard}
+            >
+              <Play size={18} />
+              <span>{joining ? 'JOINING...' : 'START GAME'}</span>
+            </button>
+         </div>
       </div>
 
       <style jsx>{`
-        .bingo-selection-container { min-height: 100vh; background: var(--bg-main); color: var(--text-main); padding-bottom: 120px; transition: 0.3s; }
+        .bingo-selection-container { min-height: 100vh; background: var(--bg-main); color: var(--text-main); padding-bottom: 160px; transition: 0.3s; position: relative; }
         
         .top-header-nav { display: flex; align-items: center; padding: 16px; gap: 16px; background: var(--bg-nav); color: white; }
         .btn-back-nav { background: rgba(255,255,255,0.1); border: none; color: white; width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
@@ -203,7 +192,7 @@ function TicketContent() {
         .alert-content p { font-size: 12px; font-weight: 800; margin: 0; line-height: 1.5; }
         .btn-dismiss-alert { background: rgba(154, 3, 30, 0.1); border: none; color: var(--red); width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
 
-        .grid-scroll-area { padding: 0 12px; }
+        .grid-scroll-area { padding: 0 12px; margin-bottom: 20px; }
         .cartela-100-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 6px; }
         .cartela-item { 
           aspect-ratio: 1; background: var(--bg-card); border: 1.5px solid var(--border-light); border-radius: 8px; 
@@ -214,35 +203,30 @@ function TicketContent() {
         .cartela-item.held { background: #6F4E37; color: white; opacity: 0.5; cursor: not-allowed; border: none; }
         .cartela-item.chosen { background: var(--gold-accent); color: black; border-color: var(--gold-accent); transform: scale(1.1); z-index: 2; box-shadow: 0 0 15px rgba(212, 175, 55, 0.4); }
         
-        .pattern-sheet-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 1000; display: flex; align-items: flex-end; backdrop-filter: blur(4px); }
-        .pattern-sheet { 
-          width: 100%; background: var(--bg-main); border-radius: 30px 30px 0 0; padding: 20px 24px 40px; 
-          animation: slideUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
-          border-top: 2px solid var(--gold-accent);
-          box-shadow: 0 -10px 40px rgba(0,0,0,0.3);
+        /* INLINE ACTION ZONE */
+        .inline-action-zone { 
+           position: fixed; bottom: 0; left: 0; right: 0; 
+           background: var(--bg-main); border-top: 2px solid var(--gold-accent);
+           padding: 16px; display: grid; grid-template-columns: 140px 1fr; gap: 16px;
+           box-shadow: 0 -10px 30px rgba(0,0,0,0.1); z-index: 1000;
         }
-        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
         
-        .sheet-handle { width: 40px; height: 4px; background: var(--border-light); border-radius: 2px; margin: 0 auto 15px; }
-        .sheet-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .sheet-title h2 { font-size: 20px; font-weight: 900; margin: 0; color: var(--gold-accent); }
-        .sheet-title p { font-size: 12px; opacity: 0.6; font-weight: 700; margin: 0; }
-        .btn-close-sheet { background: var(--bg-card); border: 1.5px solid var(--border-light); color: var(--text-main); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .preview-column { display: flex; flex-direction: column; justify-content: center; }
+        .inline-pattern-box { background: var(--bg-card); border: 1.5px solid var(--gold-accent); border-radius: 12px; padding: 8px; }
+        .pattern-label { font-size: 10px; font-weight: 900; text-align: center; margin-bottom: 6px; color: var(--gold-accent); text-transform: uppercase; }
+        .pattern-mini-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; }
+        .mini-cell { aspect-ratio: 1; background: white; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 900; color: #4B3621; border: 1px solid rgba(0,0,0,0.05); }
+        .theme-dark .mini-cell { background: #374151; color: #f3f4f6; border-color: #4b5563; }
+        .mini-cell.free { background: rgba(212, 175, 55, 0.1); }
 
-        .pattern-preview-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 25px; background: #FFF9E6; padding: 12px; border-radius: 16px; border: 2px solid var(--gold-accent); }
-        .theme-dark .pattern-preview-grid { background: #1f2937; border-color: #4b5563; }
-        .preview-cell { aspect-ratio: 1; background: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 900; color: #4B3621; border: 1px solid rgba(0,0,0,0.05); }
-        .theme-dark .preview-cell { background: #374151; color: #f3f4f6; border-color: #4b5563; }
-        .preview-cell.free { background: rgba(212, 175, 55, 0.1); }
+        .empty-preview-box { background: var(--bg-card); border-radius: 12px; border: 1.5px dashed var(--border-light); height: 110px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: var(--text-main); opacity: 0.5; text-align: center; }
+        .empty-preview-box span { font-size: 10px; font-weight: 800; padding: 0 10px; }
 
-        .btn-start-from-sheet { width: 100%; background: #22c55e; color: white; border: none; border-radius: 16px; padding: 18px; font-weight: 900; font-size: 16px; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 6px 0 #16a34a; cursor: pointer; }
-        .btn-start-from-sheet.locked { opacity: 0.5; filter: grayscale(1); box-shadow: none; transform: translateY(2px); cursor: not-allowed; }
-        .btn-start-from-sheet:not(.locked):active { transform: translateY(2px); box-shadow: none; }
-
-        .selection-footer-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-main); padding: 20px 16px; display: flex; gap: 12px; border-top: 1px solid var(--border-light); z-index: 900; }
-        .btn-footer-refresh { flex: 1; background: #3b82f6; color: white; border: none; border-radius: 14px; padding: 16px; font-weight: 900; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 5px 0 #2563eb; cursor: pointer; }
-        .btn-footer-start { flex: 1.5; background: #22c55e; color: white; border: none; border-radius: 14px; padding: 16px; font-weight: 900; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 5px 0 #16a34a; }
-        .btn-footer-start.disabled { opacity: 0.5; filter: grayscale(1); box-shadow: none; }
+        .actions-column { display: flex; flex-direction: column; gap: 10px; justify-content: center; }
+        .btn-refresh-inline { background: #3b82f6; color: white; border: none; border-radius: 12px; padding: 12px; font-weight: 900; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 0 #2563eb; cursor: pointer; font-size: 13px; }
+        .btn-start-inline { background: #22c55e; color: white; border: none; border-radius: 12px; padding: 18px; font-weight: 900; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 6px 0 #16a34a; cursor: pointer; font-size: 15px; }
+        .btn-start-inline.locked { opacity: 0.5; filter: grayscale(1); box-shadow: none; transform: translateY(2px); cursor: not-allowed; }
+        .btn-refresh-inline:active, .btn-start-inline:not(.locked):active { transform: translateY(2px); box-shadow: none; }
       `}</style>
     </div>
   );
