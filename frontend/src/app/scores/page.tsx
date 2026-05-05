@@ -1,14 +1,16 @@
 'use client';
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
+import { getLeaderboard } from '../../lib/api';
 import Navbar from '../../components/Navbar';
-import { Trophy, ChevronLeft, Calendar, User, Star, Medal } from 'lucide-react';
+import { Trophy, ChevronLeft, Star } from 'lucide-react';
 
 interface Leader {
   id: string;
   name: string;
   tgId: string;
   score: number;
+  amount: number;
   rank: number;
 }
 
@@ -19,25 +21,23 @@ function ScoresContent() {
   const [leaders, setLeaders] = useState<Leader[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Mock data for initial polish (Will link to real backend endpoint once ready)
-  useEffect(() => {
-    const mockLeaders: Leader[] = [
-      { id: '1', name: 'Tamirat', tgId: '25198**50501', score: 39, rank: 1 },
-      { id: '2', name: 'Medu', tgId: '25192**31677', score: 21, rank: 2 },
-      { id: '3', name: 'Ablel', tgId: '25198**40848', score: 20, rank: 3 },
-      { id: '4', name: 'Abdi Boru', tgId: '25191**94528', score: 20, rank: 4 },
-      { id: '5', name: 'Nafi', tgId: '25191**50260', score: 18, rank: 5 },
-      { id: '6', name: 'tebedaBaby', tgId: '25171**59746', score: 17, rank: 6 },
-      { id: '7', name: 'Eliad', tgId: '25192**89711', score: 15, rank: 7 },
-    ];
-    
-    setTimeout(() => {
-      setLeaders(mockLeaders);
+  const fetchScores = async () => {
+    setLoading(true);
+    try {
+      const data = await getLeaderboard(timeframe);
+      setLeaders(data);
+    } catch (err) {
+      console.error('Failed to load leaderboard', err);
+    } finally {
       setLoading(false);
-    }, 800);
+    }
+  };
+
+  useEffect(() => {
+    fetchScores();
   }, [timeframe]);
 
-  if (loading) return <div className="loading"><div className="spinner" /><span>LOADING SCORES...</span></div>;
+  if (loading && leaders.length === 0) return <div className="loading"><div className="spinner" /><span>SYNCING SCORES...</span></div>;
 
   return (
     <div className="buna-scores-container">
@@ -74,19 +74,19 @@ function ScoresContent() {
       {/* Top 3 Spotlight */}
       <div className="top-spotlight">
          <div className="spot-item s2">
-            <div className="avatar-circle">M</div>
+            <div className="avatar-circle">{leaders[1]?.name.charAt(0) || '?'}</div>
             <div className="rank-badge">2</div>
-            <div className="name">{leaders[1]?.name}</div>
+            <div className="name">{leaders[1]?.name || '---'}</div>
          </div>
          <div className="spot-item s1">
-            <div className="avatar-circle gold-border">T</div>
+            <div className="avatar-circle gold-border">{leaders[0]?.name.charAt(0) || '?'}</div>
             <div className="rank-badge gold">1</div>
-            <div className="name">{leaders[0]?.name}</div>
+            <div className="name">{leaders[0]?.name || '---'}</div>
          </div>
          <div className="spot-item s3">
-            <div className="avatar-circle">A</div>
+            <div className="avatar-circle">{leaders[2]?.name.charAt(0) || '?'}</div>
             <div className="rank-badge">3</div>
-            <div className="name">{leaders[2]?.name}</div>
+            <div className="name">{leaders[2]?.name || '---'}</div>
          </div>
       </div>
 
@@ -94,6 +94,9 @@ function ScoresContent() {
       <div className="ranking-list-section">
          <div className="list-hdr">Top Players (100)</div>
          <div className="ranking-scroll">
+            {leaders.length === 0 && !loading && (
+              <div className="empty-scores">No wins recorded for this period yet.</div>
+            )}
             {leaders.map((player) => (
               <div key={player.id} className="rank-card">
                  <div className={`rank-initial ${player.rank <= 3 ? 'top' : ''}`}>
@@ -139,7 +142,7 @@ function ScoresContent() {
         .rank-badge { position: absolute; bottom: 15px; right: -5px; width: 22px; height: 22px; background: #94a3b8; border-radius: 50%; color: white; font-size: 11px; font-weight: 900; display: flex; align-items: center; justify-content: center; border: 2px solid white; }
         .rank-badge.gold { background: var(--gold-accent); width: 28px; height: 28px; font-size: 14px; bottom: 25px; }
         
-        .name { margin-top: 8px; font-size: 11px; font-weight: 800; opacity: 0.8; }
+        .name { margin-top: 8px; font-size: 11px; font-weight: 800; opacity: 0.8; max-width: 60px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
         .ranking-list-section { padding: 0 16px; }
         .list-hdr { font-size: 11px; font-weight: 800; opacity: 0.5; margin-bottom: 12px; text-align: center; text-transform: uppercase; letter-spacing: 1px; }
@@ -155,6 +158,7 @@ function ScoresContent() {
         .p-id { font-size: 10px; font-weight: 700; opacity: 0.4; }
         
         .player-score { font-size: 18px; font-weight: 900; color: var(--coffee-dark); opacity: 0.8; }
+        .empty-scores { text-align: center; padding: 40px; opacity: 0.5; font-weight: 800; font-size: 14px; }
       `}</style>
     </div>
   );

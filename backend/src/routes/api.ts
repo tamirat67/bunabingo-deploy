@@ -279,6 +279,61 @@ router.get('/history', async (req: Request, res: Response) => {
   res.json(winners);
 });
 
+// ─── Public Leaderboard ───────────────────────────────────────
+router.get('/leaderboard', async (req: Request, res: Response) => {
+  const timeframe = (req.query.timeframe as string) || 'today';
+  let dateFilter = {};
+
+  const now = new Date();
+  if (timeframe === 'today') {
+    dateFilter = { gte: new Date(now.setHours(0,0,0,0)) };
+  } else if (timeframe === 'week') {
+    const weekAgo = new Date();
+    weekAgo.setDate(now.getDate() - 7);
+    dateFilter = { gte: weekAgo };
+  } else if (timeframe === 'month') {
+    const monthAgo = new Date();
+    monthAgo.setMonth(now.getMonth() - 1);
+    dateFilter = { gte: monthAgo };
+  }
+
+  try {
+    const topWinners = await prisma.winner.groupBy({
+      by: ['userId'],
+      where: { paidAt: dateFilter },
+      _count: { id: true },
+      _sum: { prizeAmount: true },
+      orderBy: { _count: { id: 'desc' } },
+      take: 100
+    });
+
+    const enriched = await Promise.all(topWinners.map(async (w, idx) => {
+      const user = await prisma.user.findUnique({
+        where: { id: w.userId },
+        select: { firstName: true, telegramId: true, telegramUsername: true }
+      });
+      
+      const rawTgId = user?.telegramId.toString() || '0000000000';
+      const obfuscated = rawTgId.length > 5 
+        ? rawTgId.slice(0, 5) + '**' + rawTgId.slice(-3) 
+        : rawTgId;
+
+      return {
+        id: w.userId,
+        name: user?.telegramUsername || user?.firstName || 'Buna Player',
+        tgId: obfuscated,
+        score: w._count.id,
+        amount: Number(w._sum.prizeAmount || 0),
+        rank: idx + 1
+      };
+    }));
+
+    res.json(enriched);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch leaderboard' });
+  }
+});
+
 // ─── Pusher Auth (private channels) ──────────────────────────
 router.post('/pusher/auth', async (req: Request, res: Response) => {
   const user = (req as any).user;

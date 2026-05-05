@@ -37,6 +37,7 @@ export const getGame = (gameId: string) => api.get(`/games/${gameId}`).then(r =>
 export const getMyCard = (gameId: string) => api.get(`/games/${gameId}/mycard`).then(r => r.data);
 export const getMyTickets = () => api.get('/mytickets').then(r => r.data);
 export const getHistory = () => api.get('/history').then(r => r.data);
+export const getLeaderboard = (timeframe: string) => api.get(`/leaderboard?timeframe=${timeframe}`).then(r => r.data);
 
 // Pusher auth
 export const pusherAuth = (socketId: string, channelName: string) =>
