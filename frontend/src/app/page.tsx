@@ -122,34 +122,38 @@ export default function BunaLobbyPage() {
           </div>
 
           <div className="games-stack">
-             {rooms.map((room, idx) => (
-               <div key={room.id} className="row-wrapper">
-                  {idx > 0 && <div className="jackpot-line">JACKPOT 0 / 1000</div>}
-                  <div className="buna-row">
-                     <div className="c-bet">
-                        <div className="amt">{room.ticketPrice}</div>
-                        <div className="unit">ETB</div>
-                     </div>
-                     <div className="c-win">
-                        <Trophy size={18} className="gold-icon" />
-                        <div className="win-content">
-                           <div className="win-num gold">{Number(room.ticketPrice) * 8}</div>
-                           <div className="win-sub">0 players</div>
-                        </div>
-                     </div>
-                     <div className="c-action">
-                        <div className="badge-col">
-                           <span className="b-active">ACTIVE 0</span>
-                           <span className="b-ready">READY</span>
-                        </div>
-                        <div className="btn-box">
-                           {idx % 2 === 0 && <span className="bonus-pill">BONUS</span>}
-                           <button className="join-btn" onClick={() => { setActiveRoom({type: room.type, price: Number(room.ticketPrice)}); setSelectedCards([]); setView('SELECT'); }}>JOIN</button>
-                        </div>
-                     </div>
-                  </div>
-               </div>
-             ))}
+             {[10, 20, 50, 100].map((price, idx) => {
+               const type = idx === 0 ? 'CASUAL' : idx === 1 ? 'STANDARD' : idx === 2 ? 'PRO' : 'JACKPOT';
+               const label = idx === 0 ? 'CASUAL' : idx === 1 ? 'STANDARD' : idx === 2 ? 'PRO' : 'JACKPOT';
+               return (
+                 <div key={type} className="row-wrapper">
+                    {idx > 0 && <div className="jackpot-line">JACKPOT 0 / 1000</div>}
+                    <div className="buna-row">
+                       <div className="c-bet">
+                          <div className="amt">{price}</div>
+                          <div className="unit">ETB</div>
+                       </div>
+                       <div className="c-win">
+                          <Trophy size={18} className="gold-icon" />
+                          <div className="win-content">
+                             <div className="win-num gold">{price * 8}</div>
+                             <div className="win-sub">0 players</div>
+                          </div>
+                       </div>
+                       <div className="c-action">
+                          <div className="badge-col">
+                             <span className="b-active">ACTIVE 0</span>
+                             <span className="b-ready">READY</span>
+                          </div>
+                          <div className="btn-box">
+                             {idx % 2 === 0 && <span className="bonus-pill">BONUS</span>}
+                             <button className="join-btn" onClick={() => { setActiveRoom({type, price}); setSelectedCards([]); setView('SELECT'); }}>JOIN</button>
+                          </div>
+                       </div>
+                    </div>
+                 </div>
+               );
+             })}
           </div>
 
           {/* Demo Section (Dark Bar) */}
