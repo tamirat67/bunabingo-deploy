@@ -46,7 +46,8 @@ export async function handleStart(ctx: Context) {
         ]),
       }
     );
-  } catch (err) {
+  } catch (err: any) {
+    logger.error('Error in handleStart:', err);
     await ctx.reply('❌ Something went wrong. Please try again.');
   }
 }

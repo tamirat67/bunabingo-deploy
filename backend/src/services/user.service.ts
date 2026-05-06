@@ -29,8 +29,12 @@ export async function findOrCreateUser(
       },
     });
 
-    // Create wallet with 1000 ETB for testing with friends
-    await prisma.wallet.create({ data: { userId: user.id, balance: 1000 } });
+    // Create wallet with 1000 ETB for testing with friends (robust upsert)
+    await prisma.wallet.upsert({
+      where: { userId: user.id },
+      create: { userId: user.id, balance: 1000 },
+      update: {}, // Don't overwrite if it exists
+    });
 
     if (user.referredById) {
       await prisma.user.update({
