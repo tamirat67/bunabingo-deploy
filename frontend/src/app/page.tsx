@@ -25,7 +25,7 @@ export default function LobbyPage() {
   const router = useRouter();
   const { show } = useToast();
 
-  const loadData = async () => {
+  const loadData = async (retryCount = 0) => {
     try {
       let u;
       try {
@@ -47,8 +47,13 @@ export default function LobbyPage() {
       }
     } catch (err: any) {
       console.error('Lobby load failed', err);
+      if (retryCount < 5) {
+        setTimeout(() => loadData(retryCount + 1), 2000);
+      }
     } finally {
-      setLoading(false);
+      if (retryCount === 0 || rooms.length > 0) {
+        setLoading(false);
+      }
     }
   };
 
