@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { getRooms, getWallet, getMe, register, joinGame } from '../lib/api';
 import Navbar from '../components/Navbar';
 import Splash from '../components/Splash';
@@ -19,6 +19,7 @@ interface Room {
 }
 
 export default function BunaLobbyPage() {
+  const [mounted, setMounted] = useState(false);
   const [view, setView] = useState<'LOBBY' | 'SELECT' | 'GAME'>('LOBBY');
   const [rooms, setRooms] = useState<Room[]>([]);
   const [wallet, setWallet] = useState<any>(null);
@@ -31,43 +32,46 @@ export default function BunaLobbyPage() {
   const [joining, setJoining] = useState(false);
   const { show } = useToast();
 
-  const loadData = async (retryCount = 0) => {
+  const loadData = useCallback(async (retryCount = 0) => {
     try {
-      let u = await getMe().catch(async (err) => {
+      const u = await getMe().catch(async (err) => {
         if (err.response?.status === 401) {
           const twa = (window as any).Telegram?.WebApp;
           const startParam = twa ? new URLSearchParams(twa.initData).get('start_param') : null;
           return await register({ phoneNumber: '', referredById: startParam || undefined });
         }
-        throw err;
+        return null;
       });
-      if (u) {
-        setUser(u);
-        const [r, w] = await Promise.all([getRooms(), getWallet()]);
-        setRooms(r);
-        setWallet(w);
-      }
+      
+      if (u) setUser(u);
+      
+      const [r, w] = await Promise.all([
+        getRooms().catch(() => []),
+        getWallet().catch(() => null)
+      ]);
+      
+      setRooms(r);
+      setWallet(w);
     } catch (err: any) {
-      if (retryCount < 5) setTimeout(() => loadData(retryCount + 1), 2000);
+      if (retryCount < 3) setTimeout(() => loadData(retryCount + 1), 3000);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     const twa = (window as any).Telegram?.WebApp;
-    if (twa) { twa.ready(); twa.expand(); }
+    if (twa) { 
+      twa.ready(); 
+      twa.expand(); 
+      // Set header color to match coffee theme
+      if (twa.setHeaderColor) twa.setHeaderColor('#6F4E37');
+    }
     
     setMounted(true);
     loadData();
     if (!sessionStorage.getItem('buna-splash-shown')) setShowSplash(true);
-  }, []);
-
-  if (!mounted) return (
-    <div style={{ background: '#6F4E37', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyCenter: 'center', color: 'white', fontWeight: '900' }}>
-       BUNA BINGO LOADING...
-    </div>
-  );
+  }, [loadData]);
 
   const handleToggleCard = (num: number) => {
     setSelectedCards(prev => {
@@ -91,6 +95,7 @@ export default function BunaLobbyPage() {
     }
   };
 
+  if (!mounted) return <div className="loading-fallback">LOADING BUNA...</div>;
   if (showSplash) return <Splash isLoading={loading} onFinish={() => { setShowSplash(false); sessionStorage.setItem('buna-splash-shown', 'true'); }} />;
 
   return (
@@ -117,7 +122,6 @@ export default function BunaLobbyPage() {
             </div>
           </div>
 
-          {/* Bingo Games Section */}
           <div className="section-title-bar">
              <Target size={16} className="icon gold" />
              <span>BINGO GAMES</span>
@@ -132,7 +136,6 @@ export default function BunaLobbyPage() {
           <div className="games-stack">
              {[10, 20, 50, 100].map((price, idx) => {
                const type = idx === 0 ? 'CASUAL' : idx === 1 ? 'STANDARD' : idx === 2 ? 'PRO' : 'JACKPOT';
-               const label = idx === 0 ? 'CASUAL' : idx === 1 ? 'STANDARD' : idx === 2 ? 'PRO' : 'JACKPOT';
                return (
                  <div key={type} className="row-wrapper">
                     {idx > 0 && <div className="jackpot-line">JACKPOT 0 / 1000</div>}
@@ -164,9 +167,8 @@ export default function BunaLobbyPage() {
              })}
           </div>
 
-          {/* Demo Section (Dark Bar) */}
           <div className="demo-strip">
-              <div className="jackpot-line">JACKPOT 0 / 1000</div>
+              <div className="jackpot-line">PRACTICE ZONE</div>
               <div className="demo-inner" onClick={() => { setActiveRoom({type: 'CASUAL', price: 10}); setSelectedCards([]); setView('SELECT'); }}>
                  <div className="c-bet">
                     <div className="amt white">FREE</div>
@@ -186,7 +188,6 @@ export default function BunaLobbyPage() {
               </div>
           </div>
 
-          {/* Spin Games Section */}
           <div className="section-title-bar mt">
              <Dices size={16} className="icon gold" />
              <span>SPIN GAMES</span>
@@ -294,32 +295,30 @@ export default function BunaLobbyPage() {
       )}
 
       <style jsx>{`
+        .loading-fallback { background: #6F4E37; color: white; height: 100vh; display: flex; align-items: center; justify-content: center; font-weight: 900; }
         .buna-bunker { min-height: 100vh; background: #F5ECD7; color: #5C3D1E; padding-bottom: 90px; }
         .view-fade { animation: fadeIn 0.3s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* TOP NAV */
-        .top-nav-pro { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: #6F4E37; color: white; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .top-nav-pro { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: #6F4E37; color: white; }
         .nav-left { display: flex; align-items: center; gap: 6px; }
         .live-dot { width: 8px; height: 8px; background: #4ade80; border-radius: 50%; box-shadow: 0 0 8px #4ade80; }
-        .live-txt { color: #F5ECD7; font-size: 12px; font-weight: 800; opacity: 0.8; }
+        .live-txt { font-size: 12px; font-weight: 800; opacity: 0.8; }
         .pulse { animation: pulse 2s infinite; }
         .nav-right { display: flex; gap: 15px; }
-        .stat-item { display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 900; color: white; }
+        .stat-item { display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 900; }
         .gold { color: #facc15; }
         .lbl { opacity: 0.6; font-size: 11px; }
 
-        /* HEADER BARS */
         .section-title-bar { background: #F5ECD7; padding: 12px 16px; display: flex; align-items: center; gap: 8px; font-weight: 900; color: #C98A1A; font-size: 14px; }
         .mt { margin-top: 10px; }
         .table-header-labels { display: grid; grid-template-columns: 70px 1fr 130px; padding: 0 16px 8px; color: #C98A1A; font-size: 10px; font-weight: 900; opacity: 0.6; }
         .h-l.c { text-align: center; }
         .h-l.r { text-align: right; }
 
-        /* ROWS */
         .games-stack { padding: 0 10px; }
         .buna-row { display: grid; grid-template-columns: 70px 1fr 130px; padding: 12px; background: white; border-radius: 12px; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .jackpot-line { text-align: center; font-size: 9px; font-weight: 900; color: #6F4E37; padding: 6px 0; opacity: 0.4; letter-spacing: 1px; }
+        .jackpot-line { text-align: center; font-size: 9px; font-weight: 900; color: #6F4E37; padding: 6px 0; opacity: 0.4; }
         
         .c-bet .amt { font-size: 26px; font-weight: 900; color: #6F4E37; line-height: 1; }
         .c-bet .amt.white { color: white; }
@@ -342,17 +341,14 @@ export default function BunaLobbyPage() {
         
         .btn-box { position: relative; }
         .bonus-pill { position: absolute; top: -14px; right: 0; background: #facc15; color: #6F4E37; font-size: 7px; font-weight: 900; padding: 2px 6px; border-radius: 4px; border: 1px solid #6F4E37; }
-        .join-btn { background: #22c55e; color: white; border: none; padding: 10px 24px; border-radius: 12px; font-weight: 900; font-size: 15px; box-shadow: 0 4px 0 #16a34a; cursor: pointer; }
-        .join-btn:active { transform: translateY(2px); box-shadow: none; }
+        .join-btn { background: #22c55e; color: white; border: none; padding: 10px 24px; border-radius: 12px; font-weight: 900; font-size: 15px; box-shadow: 0 4px 0 #16a34a; }
         .join-btn.spin { background: #8b5cf6; box-shadow: 0 4px 0 #7c3aed; }
 
-        /* DEMO STRIP */
         .demo-strip { margin: 10px 0; }
-        .demo-inner { margin: 0 10px; display: grid; grid-template-columns: 70px 1fr 130px; padding: 15px 12px; background: #6F4E37; border-radius: 12px; align-items: center; cursor: pointer; }
+        .demo-inner { margin: 0 10px; display: grid; grid-template-columns: 70px 1fr 130px; padding: 15px 12px; background: #6F4E37; border-radius: 12px; align-items: center; }
         .btn-open { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; font-size: 10px; font-weight: 900; padding: 6px 12px; border-radius: 8px; }
         .btn-try-gold { background: #facc15; color: #6F4E37; border: none; padding: 10px 18px; border-radius: 10px; font-weight: 900; font-size: 13px; }
 
-        /* SELECTION */
         .header-nav-pro { display: flex; align-items: center; gap: 15px; padding: 16px; background: #6F4E37; color: white; }
         .back-btn { background: rgba(255,255,255,0.1); border: none; color: white; width: 40px; height: 40px; border-radius: 12px; }
         .header-title h1 { font-size: 18px; font-weight: 900; margin: 0; }
