@@ -23,7 +23,7 @@ export async function findOrCreateUser(
         telegramUsername: telegramUser.username,
         firstName: telegramUser.first_name,
         lastName: telegramUser.last_name,
-        isAdmin: config.bot.adminIds.includes(telegramUser.id),
+        isAdmin: config.bot.adminIds.includes(telegramUser.id.toString()),
         referredById: referredById && referredById.length > 20 ? referredById : undefined,
         phoneNumber: phoneNumber || undefined,
       },
@@ -120,5 +120,5 @@ export async function banUser(userId: string, adminId: string, reason: string) {
 }
 
 export async function isAdmin(telegramId: number): Promise<boolean> {
-  return config.bot.adminIds.includes(telegramId);
+  return config.bot.adminIds.includes(telegramId.toString());
 }

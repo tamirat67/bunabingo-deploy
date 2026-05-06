@@ -4,7 +4,7 @@ dotenv.config();
 export const config = {
   bot: {
     token: process.env.BOT_TOKEN!,
-    adminIds: (process.env.ADMIN_TELEGRAM_IDS || '').split(',').map(id => parseInt(id.trim())).filter(Boolean),
+    adminIds: (process.env.ADMIN_TELEGRAM_IDS || '').split(',').map(id => id.trim()).filter(Boolean),
     miniAppUrl: process.env.MINI_APP_URL || 'https://localhost:3000',
   },
   server: {
