@@ -491,8 +491,12 @@ export async function joinGame(
   });
   const playerCount = updatedGame?.tickets.length ?? 0; // Total tickets in game
 
-  await triggerGameEvent(gameId, 'player-joined', { userId, playerCount, numTickets });
-  await triggerAdminEvent('player-joined', { gameId, userId, playerCount });
+  try {
+    await triggerGameEvent(gameId, 'player-joined', { userId, playerCount, numTickets });
+    await triggerAdminEvent('player-joined', { gameId, userId, playerCount });
+  } catch (e) {
+    logger.error('Pusher notification failed but join succeeded:', e);
+  }
 
   // Auto-start countdown if enough players
   const minPlayers = game.room.minPlayers;
@@ -505,7 +509,11 @@ export async function joinGame(
   if (uniquePlayers.length >= minPlayers) {
     const currentState = activeGames.get(gameId);
     if (!currentState?.countdownTimer) {
-      await startCountdown(gameId, uniquePlayers.length);
+      try {
+        await startCountdown(gameId, uniquePlayers.length);
+      } catch (e) {
+        logger.error('Countdown start failed:', e);
+      }
     }
   }
 
