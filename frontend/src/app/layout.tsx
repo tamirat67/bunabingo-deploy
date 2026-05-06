@@ -25,22 +25,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           src="https://telegram.org/js/telegram-web-app.js" 
           strategy="beforeInteractive"
         />
-        {/* Anti-Crash Self-Repair Script */}
-        <script dangerouslySetInnerHTML={{ __html: `
-          window.addEventListener('error', function(e) {
-            console.log('Detected crash, repairing...');
-            if (!window.hasRepaired) {
-              window.hasRepaired = true;
-              setTimeout(() => window.location.reload(true), 1000);
-            }
-          });
-          setTimeout(() => {
-            if (!document.querySelector('.buna-bunker') && !document.querySelector('.splash-container')) {
-              console.log('App hung, force reloading...');
-              window.location.href = window.location.href + '&retry=1';
-            }
-          }, 8000);
-        `}} />
       </head>
       <body>
         <ToastProvider>
