@@ -89,6 +89,12 @@ export default function BunkerPage() {
             <div className="stat"><Gift size={14} className="gold" /> 0.00</div>
             <div className="stat"><Wallet size={14} className="gold" /> {(wallet?.balance || 0).toFixed(2)}</div>
           </div>
+          <div className="header"><Dices size={18} /> SPIN GAMES</div>
+          <div className="spin-grid">
+             <div className="spin-card p">MEGA SPIN</div>
+             <div className="spin-card b">LUCKY 7</div>
+          </div>
+
           <div className="header"><Target size={18} /> BINGO GAMES</div>
           <div className="list">
             {rooms.map(room => (
@@ -98,6 +104,15 @@ export default function BunkerPage() {
                 <button className="join" onClick={() => { setActiveRoom({type: room.type, price: Number(room.ticketPrice)}); setSelectedCards([]); setView('SELECT'); }}>JOIN</button>
               </div>
             ))}
+          </div>
+
+          <div className="header"><Play size={18} /> FREE DEMO</div>
+          <div className="list">
+             <div className="row demo" onClick={() => { setActiveRoom({type: 'CASUAL', price: 10}); setSelectedCards([]); setView('SELECT'); }}>
+                <div className="bet"><b>FREE</b> <span>TEST</span></div>
+                <div className="prize">Practice Mode</div>
+                <button className="join try">TRY</button>
+             </div>
           </div>
           <Navbar />
         </div>
@@ -152,7 +167,13 @@ export default function BunkerPage() {
         .cell.active { background:#C98A1A; color:white; border-color:#C98A1A; }
         .footer-action { position:fixed; bottom:0; left:0; right:0; padding:15px; background:#F5ECD7; border-top:1px solid #EFE4CC; }
         .go { width:100%; padding:15px; background:#22c55e; color:white; border:none; border-radius:10px; font-weight:900; box-shadow:0 4px 0 #16a34a; }
-        .go.off { opacity:0.5; box-shadow:none; }
+        .join.try { background: #3b82f6; box-shadow: 0 3px 0 #2563eb; }
+        .row.demo { border: 1.5px dashed #C98A1A; background: #FFF0D0; cursor: pointer; }
+
+        .spin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 10px 10px; }
+        .spin-card { height: 70px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 900; font-size: 14px; }
+        .spin-card.p { background: linear-gradient(135deg, #a855f7, #7e22ce); }
+        .spin-card.b { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
       `}</style>
     </div>
   );
