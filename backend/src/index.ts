@@ -70,7 +70,7 @@ async function main() {
       menuButton: {
         type: 'web_app',
         text: '🎰 Play Bingo Now',
-        web_app: { url: `${config.bot.miniAppUrl}?v=3` }
+        web_app: { url: `${config.bot.miniAppUrl}?v=99` }
       }
     });
 

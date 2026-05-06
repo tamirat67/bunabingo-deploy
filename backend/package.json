@@ -1,5 +1,5 @@
 {
-  "name": "buna-bingo-bot-backend",
+  "name": "bunabingo-backend",
   "version": "1.0.0",
   "description": "BunaBingoBot - Telegram Bot Backend",
   "main": "dist/index.js",

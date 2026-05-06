@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
+  reactStrictMode: false, // Reduced strictness for better compatibility
   async headers() {
     return [
       {
@@ -8,11 +8,7 @@ const nextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: "frame-ancestors * https://t.me https://web.telegram.org https://desktop.telegram.org;"
-          },
-          {
-            key: 'X-Frame-Options',
-            value: 'ALLOWALL'
+            value: "frame-ancestors *;"
           },
           {
             key: 'Access-Control-Allow-Origin',
