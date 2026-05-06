@@ -254,6 +254,20 @@ export default function BunaLobbyPage() {
           </div>
 
           <div className="action-bar-fixed">
+             <div className="preview-row">
+                {selectedCards.map(id => (
+                  <div key={id} className="mini-pattern">
+                     <div className="p-num">#{id}</div>
+                     <div className="p-grid">
+                        {PREDEFINED_CARDS[id]?.map((row, ri) => row.map((n, ci) => (
+                          <div key={`${ri}-${ci}`} className={`p-cell ${n===0?'f':''}`}>
+                            {n===0 ? <Star size={6} fill="#6F4E37" /> : n}
+                          </div>
+                        )))}
+                     </div>
+                  </div>
+                ))}
+             </div>
              <button className={`btn-go ${joining||!selectedCards.length?'locked':''}`} onClick={handleJoinGame} disabled={joining||!selectedCards.length}>
                <Play size={20} />
                <span>{joining ? '...' : `JOIN WITH ${selectedCards.length} CARDS`}</span>
@@ -338,7 +352,13 @@ export default function BunaLobbyPage() {
         .grid-cell.active { background: #facc15; color: #6F4E37; border-color: #6F4E37; transform: scale(1.05); z-index: 2; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         .check-badge { position: absolute; top: -3px; right: -3px; color: #22c55e; background: white; border-radius: 50%; }
 
-        .action-bar-fixed { position: fixed; bottom: 0; left: 0; right: 0; background: #6F4E37; padding: 15px 15px 30px; border-top: 1px solid rgba(255,255,255,0.1); }
+        .action-bar-fixed { position: fixed; bottom: 0; left: 0; right: 0; background: #6F4E37; padding: 10px 15px 30px; border-top: 1px solid rgba(255,255,255,0.1); display:flex; flex-direction:column; gap:10px; }
+        .preview-row { display:flex; gap:8px; overflow-x:auto; padding-bottom:5px; }
+        .mini-pattern { background:#F5ECD7; border-radius:8px; padding:5px; width:70px; flex-shrink:0; }
+        .p-num { font-size:8px; font-weight:900; text-align:center; color:#6F4E37; margin-bottom:2px; }
+        .p-grid { display:grid; grid-template-columns:repeat(5, 1fr); gap:1px; }
+        .p-cell { aspect-ratio:1; background:white; font-size:5px; display:flex; align-items:center; justify-content:center; font-weight:900; }
+        .p-cell.f { background:#FFF0D0; }
         .btn-go { width: 100%; padding: 16px; background: #22c55e; color: white; border: none; border-radius: 14px; font-weight: 900; font-size: 16px; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 5px 0 #16a34a; }
         .btn-go.locked { opacity: 0.5; box-shadow: none; transform: translateY(2px); }
 
