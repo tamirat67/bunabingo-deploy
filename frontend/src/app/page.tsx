@@ -61,6 +61,21 @@ export default function BunaLobbyPage() {
     if (twa) { twa.ready(); twa.expand(); }
   }, []);
 
+  const handleOpenSelect = (type: string, price: number) => {
+    setActiveRoom({ type, price });
+    setSelectedCards([]);
+    setView('SELECT');
+    window.scrollTo(0, 0);
+  };
+
+  const handleToggleCard = (num: number) => {
+    setSelectedCards(prev => {
+      if (prev.includes(num)) return prev.filter(id => id !== num);
+      if (prev.length < 3) return [...prev, num];
+      return prev;
+    });
+  };
+
   const handleJoinGame = async () => {
     if (!activeRoom || selectedCards.length === 0 || joining) return;
     setJoining(true);
