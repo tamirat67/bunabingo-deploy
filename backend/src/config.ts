@@ -28,10 +28,10 @@ export const config = {
       JACKPOT: parseFloat(process.env.TICKET_PRICE_JACKPOT || '100'),
     },
     minPlayers: {
-      CASUAL: 2,
-      STANDARD: 3,
-      PRO: 5,
-      JACKPOT: 10,
+      CASUAL: 1,
+      STANDARD: 1,
+      PRO: 1,
+      JACKPOT: 1,
     },
     countdown: {
       2: 30,   // 2 players → 30s

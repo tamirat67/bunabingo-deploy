@@ -52,12 +52,16 @@ export async function findOrCreateUser(
       logger.info(`🎉 [Auth] New user registered: ${user.firstName} (TG: ${telegramId})`);
     } else {
       logger.info(`[Auth] Returning existing user: ${user.firstName} (ID: ${user.id})`);
-      // Ensure they have a wallet (robustness)
-      await prisma.wallet.upsert({
-        where: { userId: user.id },
-        create: { userId: user.id, balance: 1000 },
-        update: {},
-      });
+      // Ensure they have a test bankroll (refill if < 100)
+      const wallet = await prisma.wallet.findUnique({ where: { userId: user.id } });
+      if (!wallet || Number(wallet.balance) < 100) {
+        await prisma.wallet.upsert({
+          where: { userId: user.id },
+          create: { userId: user.id, balance: 1000 },
+          update: { balance: 1000 },
+        });
+        logger.info(`[Auth] Refilled existing user ${user.id} to 1000 ETB`);
+      }
     }
 
     return user;
