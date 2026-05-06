@@ -23,7 +23,7 @@ async function main() {
   app.set('trust proxy', 1); // Required for Render/Heroku reverse proxy
 
   app.use(cors({
-    origin: true,
+    origin: '*',
     credentials: true
   }));
   app.use(helmet({

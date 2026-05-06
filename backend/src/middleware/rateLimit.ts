@@ -22,7 +22,7 @@ export const withdrawLimiter = rateLimit({
 });
 
 export const joinGameLimiter = rateLimit({
-  windowMs: 10 * 1000, // 10 seconds
-  max: 3,
-  message: { error: 'You are joining too fast. Please wait.' },
+  windowMs: 5 * 1000, // 5 seconds
+  max: 20, // 20 times
+  message: { error: 'Please wait a moment before joining again.' },
 });
