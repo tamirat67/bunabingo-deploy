@@ -245,21 +245,26 @@ router.post('/games/join', joinGameLimiter, async (req: Request, res: Response) 
   try {
     const { roomType, cardIds } = req.body;
     
-    // Self-healing: Ensure room exists and has a game
-    let room = await getRoomWithActiveGame(roomType);
+    // Self-healing: Ensure room exists and has a joinable game
+    let room = await getRoomWithActiveGame(roomType as any);
     
     if (!room) {
-       // Force initialization if room is missing
        await initializeRooms();
-       room = await getRoomWithActiveGame(roomType);
+       room = await getRoomWithActiveGame(roomType as any);
     }
 
-    if (!room || !room.games[0]) {
-       return res.status(404).json({ error: `Room ${roomType} is currently initializing. Please try again in a second.` });
+    let gameId = room?.games[0]?.id;
+    if (!gameId && room) {
+       // If no game is waiting, create one now!
+       gameId = await createWaitingGame(room.id);
     }
 
-    const { tickets, cards } = await joinGame(user.id, room.games[0].id, cardIds);
-    res.json({ success: true, tickets, cards, gameId: room.games[0].id });
+    if (!gameId) {
+       return res.status(404).json({ error: "Game engine is busy. Please try again in 2 seconds." });
+    }
+
+    const { tickets, cards } = await joinGame(user.id, gameId, cardIds);
+    res.json({ success: true, tickets, cards, gameId });
   } catch (e: any) {
     res.status(400).json({ error: e.message });
   }
