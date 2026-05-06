@@ -20,6 +20,7 @@ async function main() {
 
   // ─── Express Server ──────────────────────────────────────
   const app = express();
+  app.set('trust proxy', 1); // Required for Render/Heroku reverse proxy
 
   app.use(cors({
     origin: true,
@@ -59,6 +60,9 @@ async function main() {
   if (config.server.nodeEnv === 'production') {
     // Webhook mode for production
     const webhookUrl = `${process.env.WEBHOOK_URL}/bot${config.bot.token}`;
+    const miniAppUrl = (process.env.MINI_APP_URL?.startsWith('http') 
+      ? process.env.MINI_APP_URL 
+      : `https://${process.env.MINI_APP_URL}`) || 'https://bunabingo.vercel.app';
     await bot.telegram.setWebhook(webhookUrl);
     
     // Explicitly set the Menu Button (the keyboard Mini App button)
