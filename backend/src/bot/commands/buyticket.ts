@@ -72,7 +72,9 @@ export async function handleJoinRoom(ctx: Context, roomType: string) {
       return;
     }
 
-    const { ticket, card } = await joinGame(user.id, activeGame.id);
+    const { tickets, cards } = await joinGame(user.id, activeGame.id);
+    const ticket = tickets[0];
+    const card = cards[0];
 
     const cardDisplay = card.map((row, r) =>
       row.map((cell, c) => {

@@ -387,12 +387,12 @@ export async function joinGame(
   const preparedCards: { id: number, pattern: BingoCard }[] = [];
   for (const cardId of cardIds) {
     const normalizedId = Math.max(1, Math.min(100, cardId));
-    const pattern = PREDEFINED_CARDS[normalizedId - 1];
+    const pattern = PREDEFINED_CARDS[normalizedId];
     if (!pattern) throw new Error(`Invalid card selection: ${cardId}`);
     
     preparedCards.push({
       id: normalizedId,
-      pattern: { rows: pattern.map(row => row.map(cell => cell === 0 ? 'FREE' : cell)) as any }
+      pattern: pattern.map(row => row.map(cell => cell === 0 ? 'FREE' : cell)) as any
     });
   }
 
