@@ -45,6 +45,11 @@ function TicketContent() {
     });
   };
 
+  const handleRefresh = async () => {
+    setSelectedCards([]);
+    await loadUser();
+  };
+
   const handleJoin = async () => {
     if (selectedCards.length === 0 || joining) return;
     setJoining(true);
@@ -174,7 +179,7 @@ function TicketContent() {
          </div>
 
          <div className="actions-column">
-            <button className="btn-refresh-inline" onClick={loadUser}>
+            <button className="btn-refresh-inline" onClick={handleRefresh}>
               <RefreshCw size={18} />
               <span>Refresh</span>
             </button>
