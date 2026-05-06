@@ -5,7 +5,9 @@ export const config = {
   bot: {
     token: process.env.BOT_TOKEN!,
     adminIds: (process.env.ADMIN_TELEGRAM_IDS || '').split(',').map(id => id.trim()).filter(Boolean),
-    miniAppUrl: process.env.MINI_APP_URL || 'https://localhost:3000',
+    miniAppUrl: (process.env.MINI_APP_URL?.startsWith('http') 
+      ? process.env.MINI_APP_URL 
+      : `https://${process.env.MINI_APP_URL}`) || 'https://buna-bingo-bot.vercel.app',
   },
   server: {
     port: parseInt(process.env.PORT || '3001'),
