@@ -1,6 +1,9 @@
 import cron from 'node-cron';
+import axios from 'axios';
 import { runFraudDetection } from './fraud.detector';
 import { logger } from '../lib/logger';
+
+const SELF_URL = 'https://bunabingo.onrender.com/health';
 
 export function startJobs(): void {
   // Fraud detection every 30 minutes
@@ -32,13 +35,15 @@ export function startJobs(): void {
     }
   });
 
-  // DB keep-alive ping every 4 minutes to prevent Neon idle connection drops
+  // DB & Server keep-alive ping every 4 minutes
   cron.schedule('*/4 * * * *', async () => {
     try {
       const { prisma } = await import('../lib/prisma');
       await prisma.$queryRaw`SELECT 1`;
+      // Also ping self to keep Render awake
+      await axios.get(SELF_URL);
     } catch (err) {
-      logger.warn('[Jobs] DB keep-alive ping failed, reconnecting...');
+      logger.warn('[Jobs] Keep-alive ping failed, reconnecting...');
       try {
         const { prisma } = await import('../lib/prisma');
         await prisma.$disconnect();
