@@ -177,9 +177,9 @@ function TicketContent() {
               <span>Refresh</span>
             </button>
             <button 
-              className={`btn-start-inline ${(joining || isLowBalance || selectedCards.length === 0) ? 'locked' : ''}`}
+              className={`btn-start-inline ${(joining || selectedCards.length === 0) ? 'locked' : ''}`}
               onClick={handleJoin}
-              disabled={joining || isLowBalance || selectedCards.length === 0}
+              disabled={joining || selectedCards.length === 0}
             >
               <Play size={18} />
               <span>{joining ? 'JOINING...' : `JOIN WITH ${selectedCards.length} ${selectedCards.length === 1 ? 'CARD' : 'CARDS'}`}</span>
