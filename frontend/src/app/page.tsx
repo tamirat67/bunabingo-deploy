@@ -14,14 +14,19 @@ interface Room {
   currentPlayers: number;
 }
 
-// Global flag to ensure splash only shows once per session
-let hasShownSplash = false;
-
 export default function LobbyPage() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [wallet, setWallet] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [showSplash, setShowSplash] = useState(!hasShownSplash);
+  const [showSplash, setShowSplash] = useState(false);
+
+  useEffect(() => {
+    // Only show splash if not shown in this session
+    const shown = sessionStorage.getItem('buna-splash-shown');
+    if (!shown) {
+      setShowSplash(true);
+    }
+  }, []);
   const router = useRouter();
   const { show } = useToast();
 
@@ -61,7 +66,10 @@ export default function LobbyPage() {
     loadData();
   }, []);
 
+  const [loadingJoin, setLoadingJoin] = useState<string | null>(null);
+
   const handleJoin = (type: string, price: number) => {
+    setLoadingJoin(type);
     // Hard navigation is more reliable in Telegram webviews
     window.location.href = `/tickets/select?type=${type}&price=${price}`;
   };
@@ -77,7 +85,7 @@ export default function LobbyPage() {
     <div className="lobby-container">
       {showSplash && <Splash isLoading={loading} onFinish={() => {
         setShowSplash(false);
-        hasShownSplash = true;
+        sessionStorage.setItem('buna-splash-shown', 'true');
       }} />}
       
       <div className="lobby-nav-top">
@@ -134,7 +142,13 @@ export default function LobbyPage() {
                   <div className="badge-active">ACTIVE 0</div>
                   <div className="badge-ready">READY</div>
                 </div>
-                <button className="btn-join-simple" onClick={() => handleJoin(room.type, room.price)}>JOIN</button>
+                <button 
+                  className={`btn-join-simple ${loadingJoin === room.type ? 'loading-btn' : ''}`} 
+                  onClick={() => handleJoin(room.type, room.price)}
+                  disabled={!!loadingJoin}
+                >
+                  {loadingJoin === room.type ? 'WAIT...' : 'JOIN'}
+                </button>
               </div>
             </div>
           </div>
@@ -254,6 +268,7 @@ export default function LobbyPage() {
         .btn-open-mini { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 6px 12px; border-radius: 8px; font-size: 10px; font-weight: 900; }
         .btn-try-mini { background: var(--gold-accent); border: none; color: black; padding: 6px 12px; border-radius: 8px; font-size: 10px; font-weight: 900; box-shadow: 0 4px 0 #b8962f; }
 
+        .btn-join-simple.loading-btn { opacity: 0.7; filter: grayscale(1); cursor: not-allowed; box-shadow: none; transform: translateY(2px); }
         @keyframes pulse { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
       `}</style>
     </div>
