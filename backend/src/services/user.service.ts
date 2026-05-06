@@ -66,15 +66,6 @@ export async function findOrCreateUser(
     throw err;
   }
 }
-      await prisma.wallet.update({
-        where: { userId: user.id },
-        data: { balance: 1000 }
-      });
-    }
-  }
-
-  return user;
-}
 
 export async function getUserById(userId: string) {
   return prisma.user.findUnique({
