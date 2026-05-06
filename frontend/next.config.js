@@ -6,8 +6,9 @@ const nextConfig = {
       {
         source: '/(.*)',
         headers: [
-          { key: 'Content-Security-Policy', value: "frame-ancestors *" },
+          { key: 'Content-Security-Policy', value: "frame-ancestors * https://t.me https://web.telegram.org" },
           { key: 'X-Frame-Options', value: 'ALLOWALL' },
+          { key: 'Access-Control-Allow-Origin', value: '*' },
         ],
       },
     ];
