@@ -69,7 +69,7 @@ async function main() {
     await bot.telegram.setChatMenuButton({
       menuButton: {
         type: 'web_app',
-        text: '🎰 Play Bingo Now',
+        text: 'Play Buna Bingo',
         web_app: { url: `${config.bot.miniAppUrl}` }
       }
     });
