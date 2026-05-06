@@ -34,26 +34,36 @@ export default function BunaLobbyPage() {
 
   const loadData = useCallback(async (retryCount = 0) => {
     try {
+      const twa = (window as any).Telegram?.WebApp;
+      const initData = twa?.initData || '';
+      
+      // If we are in Telegram but initData is empty, wait a bit and retry
+      if (!initData && retryCount < 5) {
+        setTimeout(() => loadData(retryCount + 1), 1000);
+        return;
+      }
+
       const u = await getMe().catch(async (err) => {
-        if (err.response?.status === 401) {
-          const twa = (window as any).Telegram?.WebApp;
-          const startParam = twa ? new URLSearchParams(twa.initData).get('start_param') : null;
+        if (err.response?.status === 401 && initData) {
+          const startParam = new URLSearchParams(initData).get('start_param');
           return await register({ phoneNumber: '', referredById: startParam || undefined });
         }
         return null;
       });
       
-      if (u) setUser(u);
-      
-      const [r, w] = await Promise.all([
-        getRooms().catch(() => []),
-        getWallet().catch(() => null)
-      ]);
-      
-      setRooms(r);
-      setWallet(w);
+      if (u) {
+        setUser(u);
+        const [r, w] = await Promise.all([
+          getRooms().catch(() => []),
+          getWallet().catch(() => null)
+        ]);
+        setRooms(r);
+        setWallet(w);
+      } else if (retryCount < 5) {
+        setTimeout(() => loadData(retryCount + 1), 2000);
+      }
     } catch (err: any) {
-      if (retryCount < 3) setTimeout(() => loadData(retryCount + 1), 3000);
+      if (retryCount < 5) setTimeout(() => loadData(retryCount + 1), 2000);
     } finally {
       setLoading(false);
     }
