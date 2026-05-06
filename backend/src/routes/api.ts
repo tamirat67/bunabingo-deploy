@@ -266,7 +266,11 @@ router.post('/games/join', joinGameLimiter, async (req: Request, res: Response) 
     const { tickets, cards } = await joinGame(user.id, gameId, cardIds);
     res.json({ success: true, tickets, cards, gameId });
   } catch (e: any) {
-    res.status(400).json({ error: e.message });
+    logger.error('JOIN GAME ERROR:', e);
+    res.status(400).json({ 
+      error: e.message || 'Server error during join',
+      detail: e.stack
+    });
   }
 });
 

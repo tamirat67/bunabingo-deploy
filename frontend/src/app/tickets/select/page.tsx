@@ -52,7 +52,9 @@ function TicketContent() {
       const res = await joinGame(roomType, selectedCards);
       router.push(`/game?id=${res.gameId}`);
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Failed to join game');
+      const msg = err.response?.data?.error || 'Failed to join game';
+      const detail = err.response?.data?.detail ? `\n\nDetail: ${err.response.data.detail.slice(0, 100)}...` : '';
+      alert(`${msg}${detail}`);
     } finally {
       setJoining(false);
     }
