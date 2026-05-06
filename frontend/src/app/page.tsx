@@ -187,7 +187,7 @@ export default function BunaLobbyPage() {
           </div>
 
           <div className="games-stack">
-             {[10, 20, 50].map((price, idx) => (
+             {[10, 20, 50, 100].map((price, idx) => (
                 <div key={idx} className="row-wrapper">
                    {idx > 0 && <div className="jackpot-line">JACKPOT 0 / 1000</div>}
                    <div className="buna-row">
