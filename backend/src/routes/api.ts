@@ -104,17 +104,17 @@ router.get('/me/wallet/audit', async (req: Request, res: Response) => {
   try {
     const wallet = await getOrCreateWallet(user.id);
     const audit = await prisma.transaction.groupBy({
-      where: { walletId: wallet.id, status: 'COMPLETED' },
+      where: { userId: user.id, status: 'COMPLETED' },
       by: ['type'],
       _sum: { amount: true }
     });
     const sums: Record<string, number> = {};
     audit.forEach(item => { sums[item.type] = Number(item._sum.amount || 0); });
-    const trueBalance = (sums['DEPOSIT'] || 0) + (sums['WINNING'] || 0) - (sums['BET'] || 0) - (sums['WITHDRAWAL'] || 0);
+    const trueBalance = (sums['DEPOSIT'] || 0) + (sums['PRIZE_WIN'] || 0) - (sums['TICKET_PURCHASE'] || 0) - (sums['WITHDRAWAL'] || 0);
     if (Math.abs(Number(wallet.balance) - trueBalance) > 0.01) {
       await prisma.wallet.update({ where: { id: wallet.id }, data: { balance: trueBalance } });
     }
-    res.json({ mainBalance: trueBalance, bonusBalance: Number(wallet.bonusBalance), coins: sums['WINNING'] || 0, walletId: wallet.id });
+    res.json({ mainBalance: trueBalance, bonusBalance: 0, coins: sums['PRIZE_WIN'] || 0, walletId: wallet.id });
   } catch (err) {
     res.status(500).json({ error: 'Wallet audit failed' });
   }
@@ -138,8 +138,8 @@ router.get('/me/profile', async (req: Request, res: Response) => {
     // Audit: Calculate total coins earned from transaction history
     const totalEarnings = await prisma.transaction.aggregate({
       where: { 
-        walletId: fullUser.wallet?.id,
-        type: 'WINNING',
+        userId: fullUser.id,
+        type: 'PRIZE_WIN',
         status: 'COMPLETED'
       },
       _sum: { amount: true }
@@ -148,7 +148,7 @@ router.get('/me/profile', async (req: Request, res: Response) => {
     res.json({
       username: fullUser.telegramUsername || fullUser.firstName || 'User',
       balance: fullUser.wallet?.balance || 0,
-      bonusBalance: fullUser.wallet?.bonusBalance || 0,
+      bonusBalance: 0,
       gamesWon: fullUser._count.winners,
       totalCoins: totalEarnings._sum.amount || 0
     });
