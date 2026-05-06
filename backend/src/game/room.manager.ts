@@ -35,9 +35,19 @@ export async function initializeRooms(): Promise<void> {
   ];
 
   for (const roomData of rooms) {
-    let room = await prisma.room.findFirst({ where: { type: roomData.type, isActive: true } });
+    let room = await prisma.room.findFirst({ where: { type: roomData.type } });
     if (!room) {
       room = await prisma.room.create({ data: roomData });
+    } else {
+      // Force sync the price and minPlayers if they changed
+      room = await prisma.room.update({
+        where: { id: room.id },
+        data: { 
+          ticketPrice: roomData.ticketPrice,
+          minPlayers: roomData.minPlayers,
+          isActive: true 
+        }
+      });
     }
     // Ensure there's always a waiting game in each room
     await createWaitingGame(room.id);
