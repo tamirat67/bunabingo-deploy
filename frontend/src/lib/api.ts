@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { getTgInitData } from './telegram';
 
-const BASE = process.env.NEXT_PUBLIC_API_URL || 'https://bunabingo.onrender.com';
+const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 const api = axios.create({ baseURL: `${BASE}/api` });
 

@@ -1,27 +1,21 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: false,
+  reactStrictMode: true,
   async headers() {
     return [
       {
         source: '/(.*)',
         headers: [
-          {
-            key: 'Content-Security-Policy',
-            value: "frame-ancestors *; frame-src *; child-src *;"
-          },
-          {
-            key: 'X-Frame-Options',
-            value: 'ALLOWALL'
-          }
+          // Allow ALL origins to embed — required for Telegram Mini App on all clients
+          { key: 'Content-Security-Policy', value: "frame-ancestors *" },
         ],
       },
     ];
   },
   env: {
-    NEXT_PUBLIC_API_URL: 'https://bunabingo.onrender.com',
-    NEXT_PUBLIC_PUSHER_KEY: '13890cf18bf6ba41dc0d',
-    NEXT_PUBLIC_PUSHER_CLUSTER: 'ap2',
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
+    NEXT_PUBLIC_PUSHER_KEY: process.env.NEXT_PUBLIC_PUSHER_KEY || '',
+    NEXT_PUBLIC_PUSHER_CLUSTER: process.env.NEXT_PUBLIC_PUSHER_CLUSTER || 'ap2',
   },
 };
 
