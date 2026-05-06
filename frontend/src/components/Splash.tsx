@@ -32,7 +32,11 @@ export default function Splash({ onFinish, isLoading }: SplashProps) {
   return (
     <div className={`splash-container ${fading ? 'fade-out' : ''}`}>
       <div className="logo-boom">
-        <img src="/logo.jpg" alt="Buna Bingo Logo" className="brand-logo" />
+        <div className="center-content">
+          <img src="/logo.jpg" alt="Buna Bingo Logo" className="brand-logo" />
+          <h2 className="motto">Buna Bingo</h2>
+          <p className="sub-motto">Wake Up to a Jackpot ☀️</p>
+        </div>
       </div>
 
       <style jsx>{`
@@ -50,8 +54,12 @@ export default function Splash({ onFinish, isLoading }: SplashProps) {
           display: flex; justify-content: center; align-items: center;
         }
 
+        .center-content { display: flex; flex-direction: column; align-items: center; }
+        .motto { color: #D4AF37; margin: 20px 0 0; font-size: 32px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; }
+        .sub-motto { color: #f5ecd7; margin: 5px 0 0; font-size: 14px; font-weight: 800; opacity: 0.8; text-transform: uppercase; letter-spacing: 1px; }
+
         .brand-logo {
-          width: 250px; height: 250px;
+          width: 180px; height: 180px;
           border-radius: 50%;
           box-shadow: 0 15px 50px rgba(0,0,0,0.6);
           object-fit: cover;

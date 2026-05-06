@@ -18,17 +18,18 @@ export async function handleStart(ctx: Context) {
     await getOrCreateWallet(user.id);
 
     const isNewUser = (Date.now() - user.registeredAt.getTime()) < 5000;
-    const greeting = isNewUser ? '🎉 Welcome to BunaBingo!' : `👋 Welcome back, <b>${user.firstName}</b>!`;
+    const greeting = isNewUser ? '🏆 <b>Buna Bingo — Wake Up to a Jackpot!</b> ☀️' : `👑 <b>Welcome back to The Royal Buna Way, ${user.firstName}!</b>`;
 
     logger.info(`[Bot] Sending start message to ${user.id} (${user.firstName})`);
     
     await ctx.reply(
       `${greeting}\n\n` +
-      `🎰 <b>BunaBingo</b> — Fully Automated Bingo Platform\n\n` +
-      `🎮 Games start automatically when players join\n` +
-      `💰 Win instantly — prizes sent to your wallet\n` +
+      `🎰 <b>Buna Bingo: Rich Flavor, Golden Wins.</b> ☕️💰\n\n` +
+      `✨ <i>The Perfect Blend of Luck and Luxury.</i> ✨\n\n` +
+      `🎮 Games start instantly when players join\n` +
+      `💰 Win automatically — prizes sent to your wallet\n` +
       `🔐 Secure · Fair · 100% Automated\n\n` +
-      `Use the buttons below or open the Mini App 👇`,
+      `Sip, Play, Win: The Royal Buna Way! 👇`,
       {
         parse_mode: 'HTML',
         ...Markup.inlineKeyboard([
