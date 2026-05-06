@@ -3,7 +3,7 @@ import { Request, Response } from 'express';
 
 export const apiLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
-  max: 600, // 600 requests
+  max: 9999, // Practically unlimited for testing
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many requests, please slow down.' },
