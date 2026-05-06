@@ -62,8 +62,8 @@ export default function LobbyPage() {
   }, []);
 
   const handleJoin = (type: string, price: number) => {
-    // We removed the local balance check so the backend can auto-refill testing bankrolls
-    router.push(`/tickets/select?type=${type}&price=${price}`);
+    // Hard navigation is more reliable in Telegram webviews
+    window.location.href = `/tickets/select?type=${type}&price=${price}`;
   };
 
   const roomConfig = [
