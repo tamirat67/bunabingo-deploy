@@ -18,6 +18,8 @@ interface Room {
   currentPlayers: number;
 }
 
+export const dynamic = 'force-dynamic';
+
 export default function BunaLobbyPage() {
   const [mounted, setMounted] = useState(false);
   const [view, setView] = useState<'LOBBY' | 'SELECT' | 'GAME'>('LOBBY');
