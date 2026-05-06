@@ -60,6 +60,16 @@ async function main() {
     // Webhook mode for production
     const webhookUrl = `${process.env.WEBHOOK_URL}/bot${config.bot.token}`;
     await bot.telegram.setWebhook(webhookUrl);
+    
+    // Explicitly set the Menu Button (the keyboard Mini App button)
+    await bot.telegram.setChatMenuButton({
+      menuButton: {
+        type: 'web_app',
+        text: '🎮 Open Mini App',
+        web_app: { url: config.bot.miniAppUrl }
+      }
+    });
+
     app.use(`/bot${config.bot.token}`, (req, res) => {
       bot.handleUpdate(req.body, res);
     });
