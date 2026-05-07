@@ -58,6 +58,28 @@ body {
   transition: all 0.2s;
 }
 
+/* Practice Mode (Demo) */
+.demo-mode .game-row {
+  background: rgba(76, 175, 80, 0.08) !important;
+  border-left: 4px solid #4CAF50 !important;
+}
+
+.badge-demo {
+  background: #4CAF50 !important;
+  color: white !important;
+  font-weight: bold;
+}
+
+.btn-demo {
+  background: #4CAF50 !important;
+  box-shadow: 0 4px 0 #388E3C !important;
+}
+
+.btn-demo:active {
+  box-shadow: 0 0 0 transparent !important;
+  transform: translateY(4px);
+}
+
 .nav-item.active {
   color: var(--coffee-primary);
 }

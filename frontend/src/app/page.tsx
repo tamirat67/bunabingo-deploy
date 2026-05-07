@@ -76,36 +76,63 @@ export default function LobbyPage() {
     router.push(`/tickets/select?type=${room.type}&stake=${room.price}`);
   };
 
-  const renderGameRow = (room: Room, isSpin = false) => (
-    <div key={`${isSpin ? 'spin' : 'bingo'}-${room.price}`} onClick={() => handleJoinRoom(room)}>
-      {room.price === 20 && <div className="jackpot-bar">JACKPOT 508 / 1000</div>}
-      
-      <div className="game-row" style={{ opacity: room.price === 0 || room.active ? 1 : 0.7 }}>
-        <div className="bet-col">
-          <span className="bet-amount">{room.price === 0 ? '🎮' : room.price}</span>
-          <span className="bet-label">{room.price === 0 ? 'DEMO' : 'ETB'}</span>
-        </div>
+  const renderGameRow = (room: Room, isSpin = false) => {
+    const isDemo = room.price === 0;
+    
+    return (
+      <div 
+        key={`${isSpin ? 'spin' : 'bingo'}-${room.price}`} 
+        onClick={() => handleJoinRoom(room)}
+        className={`game-row-wrapper ${isDemo ? 'demo-mode' : ''}`}
+      >
+        {room.price === 20 && <div className="jackpot-bar">JACKPOT 508 / 1000</div>}
         
-        <div className="win-col">
-          <Trophy size={20} className={room.win > 0 ? 'trophy-gold' : 'trophy-muted'} style={{ opacity: room.win > 0 ? 1 : 0.3 }} />
-          <div className="win-info">
-            <div className="win-amount" style={{ color: room.win > 0 ? 'var(--gold)' : 'white', opacity: room.win > 0 ? 1 : 0.5 }}>{room.win}</div>
-            <div className="player-count">{room.players} players</div>
+        <div className="game-row" style={{ 
+          opacity: isDemo || room.active ? 1 : 0.7,
+          border: isDemo ? '1px solid #4CAF50' : 'none',
+          background: isDemo ? 'rgba(76, 175, 80, 0.05)' : ''
+        }}>
+          <div className="bet-col">
+            <span className="bet-amount">{isDemo ? '🎮' : room.price}</span>
+            <span className="bet-label">{isDemo ? 'FREE' : 'ETB'}</span>
           </div>
-        </div>
-
-        <div className="action-col">
-          <div className="status-badges">
-            <span className="badge badge-active">ACTIVE {room.active}</span>
-            <span className="badge badge-ready">READY</span>
+          
+          <div className="win-col">
+            {isDemo ? (
+              <div className="win-info">
+                <div className="win-amount" style={{ color: '#4CAF50' }}>DEMO</div>
+                <div className="player-count">Practice Mode</div>
+              </div>
+            ) : (
+              <>
+                <Trophy size={20} className={room.win > 0 ? 'trophy-gold' : 'trophy-muted'} style={{ opacity: room.win > 0 ? 1 : 0.3 }} />
+                <div className="win-info">
+                  <div className="win-amount" style={{ color: room.win > 0 ? 'var(--gold)' : 'white', opacity: room.win > 0 ? 1 : 0.5 }}>{room.win}</div>
+                  <div className="player-count">{room.players} players</div>
+                </div>
+              </>
+            )}
           </div>
-          <button className={`btn-join ${isSpin ? 'purple' : ''}`}>
-            {room.price === 0 ? 'PLAY FREE' : room.isBonus ? '🎁 BONUS JOIN' : 'JOIN'}
-          </button>
+  
+          <div className="action-col">
+            <div className="status-badges">
+              {isDemo ? (
+                <span className="badge badge-demo">NO REAL MONEY</span>
+              ) : (
+                <>
+                  <span className="badge badge-active">ACTIVE {room.active}</span>
+                  <span className="badge badge-ready">READY</span>
+                </>
+              )}
+            </div>
+            <button className={`btn-join ${isSpin ? 'purple' : ''} ${isDemo ? 'btn-demo' : ''}`}>
+              {isDemo ? 'TRY FREE' : room.isBonus ? '🎁 BONUS JOIN' : 'JOIN'}
+            </button>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="lobby-container">
