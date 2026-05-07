@@ -7,8 +7,10 @@ export default function ScoresPage() {
   const [board, setBoard] = useState('score');
   const [time, setTime] = useState('today');
   const [players, setPlayers] = useState<any[]>([]);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     getLeaderboard(time).then(setPlayers).catch(() => {
       // Fallback to demo data if API fails
       setPlayers([
@@ -17,7 +19,9 @@ export default function ScoresPage() {
         { firstName: 'Ablel', phoneNumber: '251981234848', wins: 20 },
       ]);
     });
-  }, [time]);
+  }, [time, mounted]);
+
+  if (!mounted) return null;
 
   const maskPhone = (phone: string) => {
     if (!phone) return '****';

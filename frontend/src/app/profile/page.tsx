@@ -6,10 +6,14 @@ import { Check, Volume2, Moon, Users, ChevronRight } from 'lucide-react';
 
 export default function ProfilePage() {
   const [user, setUser] = useState<any>(null);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     getMe().then(setUser).catch(() => {});
   }, []);
+
+  if (!mounted) return null;
 
   return (
     <div className="profile-container">
