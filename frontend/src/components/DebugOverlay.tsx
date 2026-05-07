@@ -11,14 +11,20 @@ if (typeof window !== 'undefined') {
   const originalError = console.error;
 
   console.log = (...args) => {
-    const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ');
+    const msg = args.map(a => {
+      if (a instanceof Error) return `${a.message} \n ${a.stack}`;
+      return typeof a === 'object' ? JSON.stringify(a) : a;
+    }).join(' ');
     globalLogs = [`[LOG] ${new Date().toLocaleTimeString()}: ${msg}`, ...globalLogs].slice(0, 50);
     logListeners.forEach(l => l(globalLogs));
     originalLog(...args);
   };
 
   console.error = (...args) => {
-    const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ');
+    const msg = args.map(a => {
+      if (a instanceof Error) return `${a.message} \n ${a.stack}`;
+      return typeof a === 'object' ? JSON.stringify(a) : a;
+    }).join(' ');
     globalLogs = [`[ERR] ${new Date().toLocaleTimeString()}: ${msg}`, ...globalLogs].slice(0, 50);
     logListeners.forEach(l => l(globalLogs));
     originalError(...args);

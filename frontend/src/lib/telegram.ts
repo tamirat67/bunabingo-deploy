@@ -13,9 +13,7 @@ export const initTelegram = () => {
     if (app) {
       if (typeof app.ready === 'function') app.ready();
       if (typeof app.expand === 'function') app.expand();
-      
-      // Set header color to match coffee theme if possible
-      if (app.setHeaderColor) app.setHeaderColor('#6F4E37');
+      if (app.enableClosingConfirmation) app.enableClosingConfirmation();
     }
   } catch (e) {
     console.warn('Telegram SDK init failed:', e);
