@@ -31,10 +31,6 @@ export default function LobbyPage() {
 
   if (!mounted) return null;
 
-  if (user && !user.phoneNumber) {
-    return <RegistrationOverlay onComplete={(updatedUser: any) => setUser(updatedUser)} />;
-  }
-
   const bingoRooms: Room[] = [
     { type: 'DEMO', price: 0, win: 0, players: 0, active: 1, isBonus: true },
     { type: 'CASUAL', price: 10, win: 592, players: 74, active: 0, isBonus: true },
@@ -49,8 +45,34 @@ export default function LobbyPage() {
     { type: 'PRO', price: 50, win: 0, players: 0, active: 1 },
   ];
 
+  const handleJoinRoom = (room: Room) => {
+    if (room.isBonus && room.price === 0) return; // Demo handled separately
+    
+    if (!user?.phoneNumber) {
+      const app = (window as any).Telegram?.WebApp;
+      if (app) {
+        app.requestContact(async (ok: boolean, response: any) => {
+          if (ok && response?.responseLine) {
+            try {
+              const res = await verifyPhone(response);
+              setUser(res.user);
+              router.push(`/tickets/select?type=${room.type}&stake=${room.price}`);
+            } catch (err) {
+              alert('Verification failed. Please try again.');
+            }
+          }
+        });
+      } else {
+        alert('Please open in Telegram to play.');
+      }
+      return;
+    }
+    
+    router.push(`/tickets/select?type=${room.type}&stake=${room.price}`);
+  };
+
   const renderGameRow = (room: Room, isSpin = false) => (
-    <div key={`${isSpin ? 'spin' : 'bingo'}-${room.price}`} onClick={() => !room.isBonus && router.push(`/tickets/select?type=${room.type}&stake=${room.price}`)}>
+    <div key={`${isSpin ? 'spin' : 'bingo'}-${room.price}`} onClick={() => handleJoinRoom(room)}>
       {room.price === 20 && <div className="jackpot-bar">JACKPOT 508 / 1000</div>}
       
       <div className="game-row" style={{ opacity: room.price === 0 || room.active ? 1 : 0.7 }}>
