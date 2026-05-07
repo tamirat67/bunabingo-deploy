@@ -28,9 +28,10 @@ const upload = multer({
 // ─── PUBLIC Routes (no auth needed) ──────────────────────────
 router.get('/rooms', async (_req: Request, res: Response) => {
   try {
-    const rooms = await getRooms();
+    const rooms = await withRetry(() => prisma.room.findMany());
     res.json(rooms);
-  } catch (e) {
+  } catch (err) {
+    logger.error('Failed to load rooms:', err);
     res.status(500).json({ error: 'Failed to load rooms' });
   }
 });

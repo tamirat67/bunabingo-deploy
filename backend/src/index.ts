@@ -13,6 +13,7 @@ import prisma from './lib/prisma';
 import { startJobs } from './jobs';
 
 async function main() {
+  const bot = createBot();
   // Global BigInt JSON serialization fix
   (BigInt.prototype as any).toJSON = function() {
     return this.toString();
@@ -63,7 +64,6 @@ async function main() {
   startJobs();
 
   // ─── Telegram Bot ────────────────────────────────────────
-  const bot = createBot();
 
   // Non-blocking: don't await so server stays responsive during bot init
   (async () => {
