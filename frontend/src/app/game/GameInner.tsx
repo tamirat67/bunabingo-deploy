@@ -80,14 +80,14 @@ export default function GameInner() {
       }),
     });
 
-    const ch = pusher.subscribe(`game-${gameId}`);
+    const ch = pusher.subscribe(`private-game-${gameId}`);
     ch.bind('number-drawn', (d: { number: number }) => {
       setLastBall(d.number);
       setDrawn(prev => [...prev, d.number]);
       announceNumber(d.number); // <-- VOICEOVER
     });
     // ... (other binds)
-    return () => pusher.unsubscribe(`game-${gameId}`);
+    return () => pusher.unsubscribe(`private-game-${gameId}`);
   }, [gameId]);
 
   function startCd(secs: number) {

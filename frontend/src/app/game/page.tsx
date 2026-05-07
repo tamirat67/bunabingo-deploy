@@ -4,6 +4,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { getGame, getMyCard, pusherAuth } from '../../lib/api';
 import Pusher from 'pusher-js';
 import { Trophy, ChevronLeft, Volume2, VolumeX, Star, Zap, Users, Wallet, PlayCircle, RefreshCw, LogOut } from 'lucide-react';
+import Navbar from '../../components/Navbar';
 
 function GameContent() {
   const searchParams = useSearchParams();
@@ -211,6 +212,8 @@ function GameContent() {
             <button className="btn-aux leave" onClick={() => router.push('/')}><LogOut size={20} /> Leave</button>
          </div>
       </div>
+
+      <Navbar />
 
       {/* WINNER OVERLAY */}
       {isGameFinished && (
