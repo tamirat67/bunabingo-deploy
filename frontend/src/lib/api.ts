@@ -25,5 +25,6 @@ export const pusherAuth = (socketId: string, channelName: string) => api.post('/
 export const claimBingo = (gameId: string) => api.post(`/games/${gameId}/bingo`).then(res => res.data);
 export const addTicket = (gameId: string, cardIds: number[]) => api.post(`/games/${gameId}/tickets`, { cardIds }).then(res => res.data);
 export const getLeaderboard = (timeframe: string) => api.get(`/leaderboard?timeframe=${timeframe}`).then(res => res.data);
+export const getHistory = () => api.get('/history').then(res => res.data);
 
 export default api;
