@@ -8,16 +8,20 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const initData = getTgInitData();
-  if (initData) {
-    config.headers['x-telegram-init-data'] = initData;
+  try {
+    const initData = getTgInitData();
+    if (initData) {
+      config.headers['x-telegram-init-data'] = initData;
+    }
+  } catch (e) {
+    console.warn('Interceptor error:', e);
   }
   return config;
-});
+}, (error) => Promise.reject(error));
 
-export const getRooms = () => api.get('/rooms').then(res => res.data);
-export const getMe = () => api.get('/me').then(res => res.data);
-export const getWallet = () => api.get('/wallet').then(res => res.data);
+export const getRooms = () => api.get('/rooms').then(res => res.data).catch(() => []);
+export const getMe = () => api.get('/me').then(res => res.data).catch(() => null);
+export const getWallet = () => api.get('/wallet').then(res => res.data).catch(() => null);
 export const joinGame = (roomType: string, cardIds: number[]) => api.post('/games/join', { roomType, cardIds }).then(res => res.data);
 export const getGame = (id: string) => api.get(`/games/${id}`).then(res => res.data);
 export const getMyCard = (id: string) => api.get(`/games/${id}/mycard`).then(res => res.data);
