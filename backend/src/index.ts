@@ -54,12 +54,21 @@ async function main() {
   });
 
   // ─── Database ────────────────────────────────────────────
-  await prisma.$connect();
-  logger.info('✅ Database connected');
+  try {
+    await withRetry(() => prisma.$connect());
+    logger.info('✅ Database connected');
+  } catch (dbErr) {
+    logger.error('❌ Database connection failed after retries:', dbErr);
+    // Continue anyway; Prisma will retry on the first real query
+  }
 
   // ─── Initialize Rooms ────────────────────────────────────
-  await initializeRooms();
-  logger.info('✅ Game rooms initialized');
+  try {
+    await withRetry(() => initializeRooms());
+    logger.info('✅ Game rooms initialized');
+  } catch (roomErr) {
+    logger.error('❌ Failed to initialize rooms:', roomErr);
+  }
 
   // ─── Background Jobs ─────────────────────────────────────
   startJobs();
