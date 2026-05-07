@@ -237,8 +237,10 @@ body {
   border: none;
   padding: 6px 12px;
   border-radius: 8px;
-  font-size: 12px;
-  font-weight: bold;/* Premium Game UI */
+  font-weight: bold;
+}
+
+/* Premium Game UI */
 .calling-board-card-premium { flex: 1; background: #3D2B24; border-radius: 16px; padding: 10px; }
 .board-header-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; margin-bottom: 8px; }
 .h-sq { height: 30px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 900; border-radius: 4px; }
