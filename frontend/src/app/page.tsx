@@ -1,7 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { getRooms, getWallet, getMe } from '../lib/api';
+import { getRooms, getWallet, getMe, verifyPhone } from '../lib/api';
 import { initTelegram } from '../lib/telegram';
+import { useRouter } from 'next/navigation';
 import Navbar from '../components/Navbar';
 import RegistrationOverlay from '../components/RegistrationOverlay';
 import { Trophy, Gift, Wallet as WalletIcon, Target, PlayCircle, Dices } from 'lucide-react';
@@ -16,6 +17,7 @@ interface Room {
 }
 
 export default function LobbyPage() {
+  const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [wallet, setWallet] = useState<any>(null);
   const [rooms, setRooms] = useState<any[]>([]);
