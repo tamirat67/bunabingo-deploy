@@ -33,15 +33,27 @@ async function main() {
   app.use(express.urlencoded({ extended: true }));
   app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
+  // Root route for testing
+  app.get('/', (req, res) => {
+    res.send('Buna Bingo API is running!');
+  });
+
   app.use('/api', apiLimiter, apiRoutes);
+
+  // Request logging middleware
+  app.use((req, res, next) => {
+    logger.info(`${req.method} ${req.url}`);
+    next();
+  });
 
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
   const host = '0.0.0.0';
-  app.listen(config.server.port, host, () => {
-    logger.info(`🚀 API server running on ${host}:${config.server.port}`);
+  const port = config.server.port;
+  app.listen(port, host, () => {
+    logger.info(`🚀 API server running on ${host}:${port}`);
   });
 
   // ─── Database ────────────────────────────────────────────
@@ -56,35 +68,33 @@ async function main() {
   startJobs();
 
   // ─── Telegram Bot ────────────────────────────────────────
-  const bot = createBot();
-
-  if (config.server.nodeEnv === 'production') {
-    // Webhook mode for production
-    const webhookUrl = `${process.env.WEBHOOK_URL}/bot${config.bot.token}`;
-    const miniAppUrl = (process.env.MINI_APP_URL?.startsWith('http') 
-      ? process.env.MINI_APP_URL 
-      : `https://${process.env.MINI_APP_URL}`) || 'https://bunabingo.vercel.app';
-    await bot.telegram.setWebhook(webhookUrl);
-    
-    // Explicitly set the Menu Button (the keyboard Mini App button)
-    await bot.telegram.setChatMenuButton({
-      menuButton: {
-        type: 'web_app',
-        text: 'Play Buna Bingo',
-        web_app: { url: `${config.bot.miniAppUrl}` }
+  // Make bot setup non-blocking to prevent startup hangs
+  (async () => {
+    try {
+      const bot = createBot();
+      if (config.server.nodeEnv === 'production') {
+        const webhookUrl = `${process.env.WEBHOOK_URL}/bot${config.bot.token}`;
+        await bot.telegram.setWebhook(webhookUrl);
+        await bot.telegram.setChatMenuButton({
+          menuButton: {
+            type: 'web_app',
+            text: 'Play Buna Bingo',
+            web_app: { url: `${config.bot.miniAppUrl}` }
+          }
+        });
+        app.use(`/bot${config.bot.token}`, (req, res) => {
+          bot.handleUpdate(req.body, res);
+        });
+        logger.info(`🤖 Bot running via webhook: ${webhookUrl}`);
+      } else {
+        await bot.telegram.deleteWebhook();
+        bot.launch();
+        logger.info('🤖 Bot running via long polling');
       }
-    });
-
-    app.use(`/bot${config.bot.token}`, (req, res) => {
-      bot.handleUpdate(req.body, res);
-    });
-    logger.info(`🤖 Bot running via webhook: ${webhookUrl}`);
-  } else {
-    // Long polling for development
-    await bot.telegram.deleteWebhook();
-    bot.launch();
-    logger.info('🤖 Bot running via long polling');
-  }
+    } catch (botErr) {
+      logger.error('Failed to initialize bot:', botErr);
+    }
+  })();
 
   // ─── Graceful Shutdown ───────────────────────────────────
   const shutdown = async (signal: string) => {
