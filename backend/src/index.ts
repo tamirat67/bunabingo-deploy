@@ -63,10 +63,11 @@ async function main() {
   startJobs();
 
   // ─── Telegram Bot ────────────────────────────────────────
-  // Make bot setup non-blocking to prevent startup hangs
+  const bot = createBot();
+
+  // Non-blocking: don't await so server stays responsive during bot init
   (async () => {
     try {
-      const bot = createBot();
       if (config.server.nodeEnv === 'production') {
         const webhookUrl = `${process.env.WEBHOOK_URL}/bot${config.bot.token}`;
         await bot.telegram.setWebhook(webhookUrl);
@@ -77,7 +78,7 @@ async function main() {
             web_app: { url: `${config.bot.miniAppUrl}` }
           }
         });
-        app.use(`/bot${config.bot.token}`, (req, res) => {
+        app.use(`/bot${config.bot.token}`, (req: any, res: any) => {
           bot.handleUpdate(req.body, res);
         });
         logger.info(`🤖 Bot running via webhook: ${webhookUrl}`);
@@ -87,14 +88,14 @@ async function main() {
         logger.info('🤖 Bot running via long polling');
       }
     } catch (botErr) {
-      logger.error('Failed to initialize bot:', botErr);
+      logger.error('Failed to initialize bot (non-fatal):', botErr);
     }
   })();
 
   // ─── Graceful Shutdown ───────────────────────────────────
   const shutdown = async (signal: string) => {
     logger.info(`${signal} received — shutting down...`);
-    bot.stop(signal);
+    try { bot.stop(signal); } catch (_) {}
     await prisma.$disconnect();
     process.exit(0);
   };
