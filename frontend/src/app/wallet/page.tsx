@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { getMe, getWallet } from '../lib/api';
-import Navbar from '../components/Navbar';
+import { getMe, getWallet } from '../../lib/api';
+import Navbar from '../../components/Navbar';
 import { RefreshCw, User, CheckCircle, Wallet as WalletIcon, Coins, Download } from 'lucide-react';
 
 export default function WalletPage() {
