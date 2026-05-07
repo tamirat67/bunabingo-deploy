@@ -36,6 +36,7 @@ enum WithdrawalStatus {
 }
 
 enum RoomType {
+  DEMO       // Free practice
   CASUAL     // 2+ players, ticket: $10
   STANDARD   // 5+ players, ticket: $20
   PRO        // 10+ players, ticket: $50

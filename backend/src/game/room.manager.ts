@@ -9,6 +9,12 @@ import { RoomType } from '@prisma/client';
 export async function initializeRooms(): Promise<void> {
   const rooms = [
     {
+      type: RoomType.DEMO,
+      ticketPrice: (config.game.ticketPrice as any).DEMO,
+      minPlayers: (config.game.minPlayers as any).DEMO,
+      maxPlayers: 100,
+    },
+    {
       type: RoomType.CASUAL,
       ticketPrice: config.game.ticketPrice.CASUAL,
       minPlayers: config.game.minPlayers.CASUAL,

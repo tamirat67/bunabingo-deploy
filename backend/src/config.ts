@@ -22,12 +22,14 @@ export const config = {
   },
   game: {
     ticketPrice: {
+      DEMO: 0,
       CASUAL: parseFloat(process.env.TICKET_PRICE_CASUAL || '10'),
       STANDARD: parseFloat(process.env.TICKET_PRICE_STANDARD || '20'),
       PRO: parseFloat(process.env.TICKET_PRICE_PRO || '50'),
       JACKPOT: parseFloat(process.env.TICKET_PRICE_JACKPOT || '100'),
     },
     minPlayers: {
+      DEMO: 1,
       CASUAL: 1,
       STANDARD: 1,
       PRO: 1,
