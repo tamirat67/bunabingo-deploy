@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { getGame, getMyCard, pusherAuth } from '../../lib/api';
+import { getGame, getMyCard, pusherAuth, claimBingo } from '../../lib/api';
 import Navbar from '../../components/Navbar';
 import Pusher from 'pusher-js';
 import { Volume2, RefreshCw, LogOut, PlusCircle } from 'lucide-react';
