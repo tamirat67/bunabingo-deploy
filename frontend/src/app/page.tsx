@@ -5,7 +5,8 @@ import Navbar from '../components/Navbar';
 import Splash from '../components/Splash';
 import { useRouter } from 'next/navigation';
 import { useToast } from '../components/Toast';
-import { Target, Trophy, Play, Dices, Gift, Wallet, Zap } from 'lucide-react';
+import { initTelegram } from '../lib/telegram';
+import { Target, Trophy, Play, Dices, Gift, Wallet, Zap, AlertCircle } from 'lucide-react';
 
 interface Room {
   id: string;
@@ -22,6 +23,7 @@ export default function LobbyPage() {
   const [wallet, setWallet] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showSplash, setShowSplash] = useState(!hasShownSplash);
+  const [authError, setAuthError] = useState<string | null>(null);
   const router = useRouter();
   const { show } = useToast();
 
@@ -33,10 +35,16 @@ export default function LobbyPage() {
       } catch (err: any) {
         if (err.response?.status === 401) {
           const twa = (window as any).Telegram?.WebApp;
-          const startParam = twa ? new URLSearchParams(twa.initData).get('start_param') : null;
-          u = await register({ phoneNumber: '', referredById: startParam || undefined });
+          const startParam = twa ? new URLSearchParams(twa.initData || '').get('start_param') : null;
+          try {
+            u = await register({ phoneNumber: '', referredById: startParam || undefined });
+          } catch (regErr: any) {
+            setAuthError(regErr.response?.data?.error || 'Registration failed. Please open from Telegram.');
+            return;
+          }
         } else {
-          throw err;
+          setAuthError(err.response?.data?.error || 'Server connection failed.');
+          return;
         }
       }
 
@@ -44,15 +52,18 @@ export default function LobbyPage() {
         const [r, w] = await Promise.all([getRooms(), getWallet()]);
         setRooms(r);
         setWallet(w);
+        setAuthError(null);
       }
     } catch (err: any) {
       console.error('Lobby load failed', err);
+      setAuthError('Failed to connect to server. Please check your connection.');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    initTelegram(); // Critical: signals Telegram the app is ready & expands it
     loadData();
   }, []);
 
@@ -70,6 +81,19 @@ export default function LobbyPage() {
     { type: 'PRO', price: 50, label: 'Pro' },
     { type: 'JACKPOT', price: 100, label: 'Jackpot' },
   ];
+
+  if (authError) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-main)', color: 'var(--text-main)', padding: '32px', textAlign: 'center', gap: '16px' }}>
+        <AlertCircle size={52} color="#ef4444" />
+        <h2 style={{ fontSize: '20px', fontWeight: 900 }}>Connection Error</h2>
+        <p style={{ fontSize: '14px', opacity: 0.7, maxWidth: '280px', lineHeight: 1.6 }}>{authError}</p>
+        <button onClick={() => { setAuthError(null); setLoading(true); loadData(); }} style={{ background: 'var(--bg-nav)', color: 'white', border: 'none', padding: '14px 32px', borderRadius: '14px', fontWeight: 900, fontSize: '16px', marginTop: '8px' }}>
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="lobby-container">

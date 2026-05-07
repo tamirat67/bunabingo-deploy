@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { getUserByTelegramId, findOrCreateUser } from '../services/user.service';
 import crypto from 'crypto';
+import { logger } from '../lib/logger';
 
 /**
  * Validates Telegram Mini App initData and attaches user to req
@@ -13,8 +14,20 @@ export async function telegramAuthMiddleware(
 ) {
   try {
     const initData = req.headers['x-telegram-init-data'] as string;
+    const isDev = process.env.NODE_ENV !== 'production';
 
+    // In dev mode with no initData: attach a mock test user so the browser works
     if (!initData) {
+      if (isDev) {
+        const devUser = await findOrCreateUser({
+          id: 999999999,
+          username: 'dev_tester',
+          first_name: 'Dev',
+          last_name: 'Tester',
+        });
+        (req as any).user = devUser;
+        return next();
+      }
       return res.status(401).json({ error: 'Missing Telegram auth data' });
     }
 
@@ -40,7 +53,9 @@ export async function telegramAuthMiddleware(
       .digest('hex');
 
     if (expectedHash !== hash) {
-      return res.status(401).json({ error: 'Invalid Telegram signature' });
+      logger.warn(`[Auth] Hash mismatch! Possible BOT_TOKEN mismatch on server.`);
+      logger.warn(`[Auth] Expected: ${expectedHash.slice(0,10)}... Got: ${hash?.slice(0,10)}...`);
+      return res.status(401).json({ error: 'Invalid Telegram signature. Check BOT_TOKEN on server.' });
     }
 
     const userParam = params.get('user');
