@@ -1,17 +1,16 @@
 'use client';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { getRooms, getWallet, getMe, verifyPhone } from '../lib/api';
 import { initTelegram } from '../lib/telegram';
 import { useRouter } from 'next/navigation';
 import Navbar from '../components/Navbar';
-import RegistrationOverlay from '../components/RegistrationOverlay';
-import { Trophy, Gift, Wallet as WalletIcon, Target, PlayCircle, Dices } from 'lucide-react';
+import { Trophy, Gift, Wallet as WalletIcon, Target, Play, Dices } from 'lucide-react';
 
 interface Room {
   type: string;
   price: number;
-  players: number;
   win: number;
+  players: number;
   active: number;
   isBonus?: boolean;
 }
@@ -27,29 +26,11 @@ export default function LobbyPage() {
     setMounted(true);
     initTelegram();
     getMe().then(setUser);
-    getWallet().then(setWallet).catch(() => {});
-    getRooms().then(setRooms).catch(() => {});
+    getWallet().then(setWallet);
+    getRooms().then(setRooms);
   }, []);
 
-  if (!mounted) return null;
-
-  const bingoRooms: Room[] = [
-    { type: 'DEMO', price: 0, win: 0, players: 0, active: 1, isBonus: true },
-    { type: 'CASUAL', price: 10, win: 592, players: 74, active: 0, isBonus: true },
-    { type: 'STANDARD', price: 20, win: 0, players: 0, active: 0 },
-    { type: 'PRO', price: 50, win: 0, players: 0, active: 1 },
-    { type: 'JACKPOT', price: 100, win: 0, players: 0, active: 0 },
-  ];
-
-  const spinRooms: Room[] = [
-    { type: 'CASUAL', price: 10, win: 0, players: 0, active: 0, isBonus: true },
-    { type: 'STANDARD', price: 20, win: 0, players: 0, active: 0 },
-    { type: 'PRO', price: 50, win: 0, players: 0, active: 1 },
-  ];
-
   const handleJoinRoom = (room: Room) => {
-    // Demo room can be joined without phone verification if you want, 
-    // but usually better to have one flow. Let's allow Demo always.
     if (room.price === 0) {
       router.push(`/tickets/select?type=${room.type}&stake=${room.price}`);
       return;
@@ -76,82 +57,117 @@ export default function LobbyPage() {
     router.push(`/tickets/select?type=${room.type}&stake=${room.price}`);
   };
 
-  const renderGameRow = (room: Room, isSpin = false) => {
-    const isDemo = room.price === 0;
-    
-    return (
-      <div 
-        key={`${isSpin ? 'spin' : 'bingo'}-${room.price}`} 
-        onClick={() => handleJoinRoom(room)}
-        className={`game-row-wrapper ${isDemo ? 'demo-mode' : ''}`}
-      >
-        {room.price === 20 && <div className="jackpot-bar">JACKPOT 508 / 1000</div>}
-        
-        <div className="game-row" style={{ 
-          opacity: isDemo || room.active ? 1 : 0.7,
-          border: isDemo ? '1px solid #4CAF50' : 'none',
-          background: isDemo ? 'rgba(76, 175, 80, 0.05)' : ''
-        }}>
-          <div className="bet-col">
-            <span className="bet-amount">{isDemo ? '🎮' : room.price}</span>
-            <span className="bet-label">{isDemo ? 'FREE' : 'ETB'}</span>
-          </div>
-          
-          <div className="win-col">
-            {isDemo ? (
-              <div className="win-info">
-                <div className="win-amount" style={{ color: '#4CAF50' }}>DEMO</div>
-                <div className="player-count">Practice Mode</div>
-              </div>
-            ) : (
-              <>
-                <Trophy size={20} className={room.win > 0 ? 'trophy-gold' : 'trophy-muted'} style={{ opacity: room.win > 0 ? 1 : 0.3 }} />
-                <div className="win-info">
-                  <div className="win-amount" style={{ color: room.win > 0 ? 'var(--gold)' : 'white', opacity: room.win > 0 ? 1 : 0.5 }}>{room.win}</div>
-                  <div className="player-count">{room.players} players</div>
-                </div>
-              </>
-            )}
-          </div>
-  
-          <div className="action-col">
-            <div className="status-badges">
-              {isDemo ? (
-                <span className="badge badge-demo">NO REAL MONEY</span>
-              ) : (
-                <>
-                  <span className="badge badge-active">ACTIVE {room.active}</span>
-                  <span className="badge badge-ready">READY</span>
-                </>
-              )}
-            </div>
-            <button className={`btn-join ${isSpin ? 'purple' : ''} ${isDemo ? 'btn-demo' : ''}`}>
-              {isDemo ? 'TRY FREE' : room.isBonus ? '🎁 BONUS JOIN' : 'JOIN'}
-            </button>
-          </div>
-        </div>
+  if (!mounted) return null;
+
+  const bingoRooms: Room[] = [
+    { type: 'DEMO', price: 0, win: 0, players: 0, active: 1, isBonus: true },
+    { type: 'CASUAL', price: 10, win: 80, players: 0, active: 0, isBonus: true },
+    { type: 'STANDARD', price: 20, win: 160, players: 0, active: 0 },
+    { type: 'PRO', price: 50, win: 400, players: 0, active: 0 },
+    { type: 'JACKPOT', price: 100, win: 800, players: 0, active: 0 },
+  ];
+
   return (
     <div className="lobby-container">
-                <div className="demo-title">Practice Mode</div>
-                <div className="demo-sub">No real money</div>
-              </div>
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button className="btn-try" style={{ background: 'rgba(255,255,255,0.2)' }}>OPEN</button>
-            <button className="btn-try">TRY</button>
-          </div>
+      <div className="lobby-header-stats">
+        <div className="live-box"><span className="dot-green"></span> Live</div>
+        <div className="stats-group">
+          <div className="stat"><Gift size={14} color="#D4AF37" /> Bonus: <span className="gold-text">{(Number(0)).toFixed(2)}</span></div>
+          <div className="stat"><WalletIcon size={14} /> Balance: <span className="gold-text">{Number(wallet?.balance || 0).toFixed(2)}</span></div>
         </div>
       </div>
 
-      <div className="section-title" style={{ marginTop: '20px' }}>
-        <Dices size={18} color="#ffa726" />
-        <span>SPIN GAMES</span>
-      </div>
+      <div className="lobby-content">
+        <div className="section-header">
+          <Target size={20} color="#D4AF37" /> <span className="title-gold">BINGO GAMES</span>
+        </div>
+        
+        <div className="table-header-labels">
+          <span>BET</span>
+          <span style={{paddingLeft: '40px'}}>WIN/PLAYER</span>
+          <span style={{textAlign: 'right'}}>STATUS & JOIN</span>
+        </div>
 
-      <div className="rooms-stack">
-        {spinRooms.map(r => renderGameRow(r, true))}
+        <div className="games-list">
+          {bingoRooms.map((room) => {
+            const isDemo = room.type === 'DEMO';
+            if (isDemo) return (
+              <div key="demo" className="demo-row-premium" onClick={() => handleJoinRoom(room)}>
+                <div className="demo-left">
+                  <div className="f">FREE</div>
+                  <div className="d">DEMO</div>
+                </div>
+                <div className="demo-mid">
+                  <div className="p"><Play size={16} fill="white" /> Practice Mode</div>
+                  <div className="n">No real money</div>
+                </div>
+                <div className="demo-right">
+                  <button className="btn-open">OPEN</button>
+                  <button className="btn-try">TRY</button>
+                </div>
+              </div>
+            );
+
+            return (
+              <React.Fragment key={room.type}>
+                <div className="bingo-row-fit" onClick={() => handleJoinRoom(room)}>
+                  <div className="bet-part">
+                    <div className="num">{room.price}</div>
+                    <div className="unit">ETB</div>
+                  </div>
+                  <div className="prize-part">
+                    <Trophy size={24} color="#8D6E63" />
+                    <div className="p-info">
+                      <div className="val">{room.win}</div>
+                      <div className="cnt">{room.players} players</div>
+                    </div>
+                  </div>
+                  <div className="action-part">
+                    <div className="badges">
+                      <div className="b-active">ACTIVE {room.active}</div>
+                      <div className="b-ready">READY</div>
+                    </div>
+                    <button className="btn-join-3d">JOIN</button>
+                  </div>
+                </div>
+                <div className="jackpot-divider">JACKPOT 0 / 1000</div>
+              </React.Fragment>
+            );
+          })}
+        </div>
+
+        <div className="section-header" style={{marginTop: '20px'}}>
+          <Dices size={20} color="#D4AF37" /> <span className="title-gold">SPIN GAMES</span>
+        </div>
+        <div className="table-header-labels">
+          <span>BET</span>
+          <span style={{paddingLeft: '40px'}}>WIN/PLAYER</span>
+          <span style={{textAlign: 'right'}}>STATUS & JOIN</span>
+        </div>
+        
+        {/* Spin Row Match */}
+        <div className="bingo-row-fit" onClick={() => {}}>
+          <div className="bet-part">
+            <div className="num">10</div>
+            <div className="unit">ETB</div>
+          </div>
+          <div className="prize-part">
+            <Trophy size={24} color="#8D6E63" />
+            <div className="p-info">
+              <div className="val">0</div>
+              <div className="cnt">0 players</div>
+            </div>
+          </div>
+          <div className="action-part">
+            <div className="badges">
+              <div className="b-active">ACTIVE 0</div>
+              <div className="b-ready">READY</div>
+            </div>
+            <button className="btn-join-3d">JOIN</button>
+          </div>
+        </div>
       </div>
+      <Navbar />
     </div>
   );
 }
