@@ -34,6 +34,7 @@ export async function handleStart(ctx: Context) {
         parse_mode: 'HTML',
         ...Markup.inlineKeyboard([
           [Markup.button.webApp('🎮 Open Mini App', config.bot.miniAppUrl)],
+          [Markup.button.url('🔗 Direct Link (Fallback)', config.bot.miniAppUrl)],
           [
             Markup.button.callback('💰 Balance', 'cmd_balance'),
             Markup.button.callback('🎫 Buy Ticket', 'cmd_buy'),
