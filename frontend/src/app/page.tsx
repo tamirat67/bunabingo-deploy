@@ -36,10 +36,11 @@ export default function LobbyPage() {
   }
 
   const bingoRooms: Room[] = [
-    { type: 'STANDARD', price: 10, win: 592, players: 74, active: 0, isBonus: true },
+    { type: 'DEMO', price: 0, win: 0, players: 0, active: 1, isBonus: true },
+    { type: 'CASUAL', price: 10, win: 592, players: 74, active: 0, isBonus: true },
     { type: 'STANDARD', price: 20, win: 0, players: 0, active: 0 },
     { type: 'PRO', price: 50, win: 0, players: 0, active: 1 },
-    { type: 'JACKPOT', price: 100, win: 0, players: 0, active: 0, isBonus: true },
+    { type: 'JACKPOT', price: 100, win: 0, players: 0, active: 0 },
   ];
 
   const spinRooms: Room[] = [
@@ -49,14 +50,13 @@ export default function LobbyPage() {
   ];
 
   const renderGameRow = (room: Room, isSpin = false) => (
-    <div key={`${isSpin ? 'spin' : 'bingo'}-${room.price}`}>
-      {room.price === 20 && <div className="jackpot-bar">JACKPOT {room.price === 20 && !isSpin ? '508' : '0'} / 1000</div>}
-      {room.price > 20 && <div className="jackpot-bar">JACKPOT 0 / 1000</div>}
+    <div key={`${isSpin ? 'spin' : 'bingo'}-${room.price}`} onClick={() => !room.isBonus && router.push(`/tickets/select?type=${room.type}&stake=${room.price}`)}>
+      {room.price === 20 && <div className="jackpot-bar">JACKPOT 508 / 1000</div>}
       
-      <div className="game-row">
+      <div className="game-row" style={{ opacity: room.price === 0 || room.active ? 1 : 0.7 }}>
         <div className="bet-col">
-          <span className="bet-amount">{room.price}</span>
-          <span className="bet-label">ETB</span>
+          <span className="bet-amount">{room.price === 0 ? '🎮' : room.price}</span>
+          <span className="bet-label">{room.price === 0 ? 'DEMO' : 'ETB'}</span>
         </div>
         
         <div className="win-col">

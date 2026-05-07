@@ -95,26 +95,22 @@ export default function RegistrationOverlay({ onComplete }: { onComplete: () => 
         disabled={loading}
         style={{
           width: '100%',
-          background: '#6F4E37',
-          color: 'white',
+          background: '#E9E9EB', // Native-like light grey
+          color: '#4B3621',
           border: 'none',
-          padding: '18px',
-          borderRadius: '16px',
-          fontSize: '18px',
-          fontWeight: '900',
+          padding: '16px',
+          borderRadius: '30px', // Pill shape
+          fontSize: '17px',
+          fontWeight: '500',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           gap: '10px',
-          boxShadow: '0 6px 0 #4B3621'
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+          marginTop: 'auto'
         }}
       >
-        {loading ? 'Verifying...' : (
-          <>
-            <Phone size={20} />
-            VERIFY PHONE NUMBER
-          </>
-        )}
+        {loading ? 'Verifying...' : 'Share Contact'}
       </button>
 
       <div style={{marginTop: 'auto', fontSize: '10px', opacity: 0.4}}>
