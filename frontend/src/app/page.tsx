@@ -61,7 +61,10 @@ export default function LobbyPage() {
             <span className="badge badge-active">ACTIVE {room.active}</span>
             <span className="badge badge-ready">READY</span>
           </div>
-          <button className={`btn-join ${isSpin ? 'purple' : ''}`}>
+          <button 
+            className={`btn-join ${isSpin ? 'purple' : ''}`}
+            onClick={() => window.location.href = `/tickets/select?type=${room.type}&price=${room.price}`}
+          >
             {room.isBonus ? '🎁 BONUS JOIN' : 'JOIN'}
           </button>
         </div>
