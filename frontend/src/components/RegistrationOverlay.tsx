@@ -4,7 +4,7 @@ import { tg } from '../lib/telegram';
 import { verifyPhone } from '../lib/api';
 import { Phone, ShieldCheck, Coffee } from 'lucide-react';
 
-export default function RegistrationOverlay({ onComplete }: { onComplete: () => void }) {
+export default function RegistrationOverlay({ onComplete }: { onComplete: (user: any) => void }) {
   const [loading, setLoading] = useState(false);
 
   const handleShareContact = () => {
