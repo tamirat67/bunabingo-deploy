@@ -7,6 +7,7 @@ import { getUserWithdrawals, createWithdrawalRequest, getPendingWithdrawals, app
 import { getRooms, getRoomWithActiveGame, initializeRooms } from '../game/room.manager';
 import { joinGame, createWaitingGame } from '../game/engine';
 import { getAllUsers, suspendUser, banUser, findOrCreateUser } from '../services/user.service';
+import { withRetry } from '../lib/prisma';
 import prisma from '../lib/prisma';
 import multer from 'multer';
 import path from 'path';
