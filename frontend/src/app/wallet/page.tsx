@@ -11,7 +11,7 @@ export default function WalletPage() {
 
   useEffect(() => {
     setMounted(true);
-    getMe().then(setUser).catch(() => {});
+    getMe().then(setUser).catch(() => { });
   }, []);
 
   if (!mounted) return null;
@@ -52,7 +52,7 @@ export default function WalletPage() {
                 <WalletIcon size={18} opacity={0.5} />
                 <span>Bonus Balance</span>
               </div>
-              <span className="box-value" style={{color: '#66bb6a'}}>0</span>
+              <span className="box-value" style={{ color: '#66bb6a' }}>0</span>
             </div>
 
             <div className="sub-balance-box">
@@ -60,7 +60,7 @@ export default function WalletPage() {
                 <Coins size={18} color="#fbc02d" />
                 <span>Coins</span>
               </div>
-              <span className="box-value" style={{color: '#fbc02d'}}>0</span>
+              <span className="box-value" style={{ color: '#fbc02d' }}>0</span>
             </div>
 
             <button className="btn-convert">
@@ -69,7 +69,7 @@ export default function WalletPage() {
             </button>
           </div>
 
-          <div className="recent-section" style={{marginTop: '20px'}}>
+          <div className="recent-section" style={{ marginTop: '20px' }}>
             <h3 className="recent-title">Recent Transactions</h3>
             <div className="empty-state">No recent transactions</div>
           </div>
@@ -78,7 +78,7 @@ export default function WalletPage() {
         <div className="empty-state">No history available</div>
       )}
 
-      <div style={{textAlign: 'center', opacity: 0.3, fontSize: '10px', marginTop: 'auto'}}>© Addis Bingo</div>
+      <div style={{ textAlign: 'center', opacity: 0.3, fontSize: '10px', marginTop: 'auto' }}>© </div>
 
     </div>
   );

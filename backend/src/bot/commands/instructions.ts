@@ -2,7 +2,7 @@ import { Context } from 'telegraf';
 
 export async function handleInstructions(ctx: Context) {
   const text = 
-    `📖 <b>How to Play Addis Bingo</b>\n\n` +
+    `📖 <b>How to Play Buna Bingo</b>\n\n` +
     `1. <b>Register:</b> Create your account via the mini app.\n` +
     `2. <b>Deposit:</b> Add funds to your wallet using the Deposit button.\n` +
     `3. <b>Buy Tickets:</b> Choose a room and buy your bingo cards.\n` +

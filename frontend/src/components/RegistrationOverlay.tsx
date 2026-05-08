@@ -114,7 +114,7 @@ export default function RegistrationOverlay({ onComplete }: { onComplete: (user:
       </button>
 
       <div style={{marginTop: 'auto', fontSize: '10px', opacity: 0.4}}>
-        © Addis Bingo • Secure Telegram Mini App
+        © Buna Bingo • Secure Telegram Mini App
       </div>
     </div>
   );

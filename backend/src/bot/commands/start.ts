@@ -33,7 +33,11 @@ export async function handleStart(ctx: Context) {
     logger.info(`[Bot] Sending start message to ${tgUser.id} (${tgUser.first_name})`);
     
     await ctx.reply(
-      `Welcome to Addis Bingo! Choose an option below.`,
+      `☕️ <b>Buna Bingo: Rich Flavor, Golden Wins.</b>\n` +
+      `✨ <i>"The Perfect Blend of Luck and Luxury."</i>\n\n` +
+      `👑 Sip, Play, Win: <b>The Royal Buna Way.</b>\n` +
+      `☀️ Wake up to a <b>Jackpot</b> today!\n\n` +
+      `Choose an option below to begin your journey:`,
       {
         parse_mode: 'HTML',
         ...Markup.inlineKeyboard([
@@ -51,7 +55,7 @@ export async function handleStart(ctx: Context) {
           ],
           [
             Markup.button.callback('Instruction 📖', 'cmd_instructions'),
-            Markup.button.url('Invite ✉️', `https://t.me/share/url?url=${encodeURIComponent(config.bot.miniAppUrl)}&text=${encodeURIComponent('Join me on Addis Bingo! 🎰☕️')}`),
+            Markup.button.url('Invite ✉️', `https://t.me/share/url?url=${encodeURIComponent(config.bot.miniAppUrl)}&text=${encodeURIComponent('Join me on Buna Bingo! 🎰☕️')}`),
           ],
         ]),
       }

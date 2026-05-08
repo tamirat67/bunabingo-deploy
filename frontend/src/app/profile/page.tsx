@@ -74,7 +74,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <div style={{opacity: 0.3, fontSize: '10px', marginTop: '20px'}}>© Addis Bingo</div>
+      <div style={{opacity: 0.3, fontSize: '10px', marginTop: '20px'}}>© Buna Bingo</div>
       
     </div>
   );
