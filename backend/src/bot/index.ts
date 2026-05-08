@@ -1,4 +1,4 @@
-import { Telegraf, Context } from 'telegraf';
+import { Telegraf, Context, Markup } from 'telegraf';
 import { config } from '../config';
 import { handleStart } from './commands/start';
 import { handleBalance } from './commands/balance';
