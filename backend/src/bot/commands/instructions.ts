@@ -2,17 +2,30 @@ import { Context } from 'telegraf';
 
 export async function handleInstructions(ctx: Context) {
   const text = 
-    `📖 <b>How to Play Buna Bingo</b>\n\n` +
-    `1. <b>Register:</b> Create your account via the mini app.\n` +
-    `2. <b>Deposit:</b> Add funds to your wallet using the Deposit button.\n` +
-    `3. <b>Buy Tickets:</b> Choose a room and buy your bingo cards.\n` +
-    `4. <b>Win:</b> Numbers are drawn automatically. First to complete the pattern wins!\n\n` +
-    `Good luck! 🍀`;
+    `☕️ <b>የቡና ቢንጎ የጨዋታ ህጎች (Buna Bingo Rules)</b>\n\n` +
+    
+    `<b>🎴 የመጫወቻ ካርድ</b>\n` +
+    `• ጨዋታውን ለመጀመር ከሚመጡልን ከ1-100 የመጫወቻ ካርድ ውስጥ አንዱን እንመርጣለን።\n` +
+    `• የመጫወቻ ካርዱ ላይ በቀይ ቀለም የተመረጡ ቁጥሮች የሚያሳዩት ካርዱ በሌላ ተጫዋች መመረጡን ነው።\n` +
+    `• የመጫወቻ ካርዱን ስንነካው ከታች በኩል የካርድ ቁጥሩን እና ይዘቱን ያሳየናል።\n` +
+    `• የምንፈልገውን ካርድ ከመረጥን በኋላ ከታች መሃል ላይ <b>Play</b> የሚለውን በመንካት ወደ ጨዋታው እንገባለን።\n` +
+    `• <b>Active Game</b> የሚለው የሚያሳየን አሁን ላይ እየተካሄዱ ያሉ የጨዋታ ብዛቶችን ነው።\n\n` +
 
-  if (ctx.callbackQuery) {
-    await ctx.answerCbQuery();
-    await ctx.replyWithHTML(text);
-  } else {
-    await ctx.replyWithHTML(text);
-  }
+    `<b>🎮 ጨዋታ</b>\n` +
+    `• ወደ ጨዋታው ስንገባ በመረጥነው የካርድ ቁጥር መሰረት የመጫወቻ ካርድ እናገኛለን።\n` +
+    `• የመጀመሪያ ተጫዋች ከሆንን ከላይ በቀኝ በኩል <b>Wait</b> የሚል ጽሁፍ እናገኛለን።\n` +
+    `• ተጨማሪ ተጫዋቾች ሲገቡ ጨዋታው ለመጀመር ያለውን ቀሪ ሴኮንድ መቁጠር ይጀምራል።\n` +
+    `• ጨዋታው ሲጀምር ከ1 እስከ 75 ያሉ ቁጥሮች መጥራት ይጀምራል።\n` +
+    `• የሚጠራው ቁጥር የእኛ ካርድ ውስጥ ካለ ቁጥሩን በመንካት መምረጥ እንችላለን።\n` +
+    `• የመረጥነውን ቁጥር ማጥፋት ከፈለግን መልሰን ቁጥሩን በመንካት ማጥፋት እንችላለን።\n\n` +
+
+    `<b>🏆 አሸናፊ</b>\n` +
+    `• ቁጥሮቹ ሲጠሩ ወደ ጎን፣ ወደ ታች፣ አግዳሚ ወይም አራቱን ማእዘናት ከሞላን ወዲያውኑ <b>BINGO</b> የሚለውን በመንካት ማሸነፍ እንችላለን።\n` +
+    `• ህጉ ሳይሞላ <b>BINGO</b> የሚለውን ክሊክ ካደረግን ከጨዋታው እንባረራለን።\n` +
+    `• ሁለት ተጫዋቾች እኩል ቢያሸንፉ ቀድሞ <b>BINGO</b> ያለው ተጫዋች አሸናፊ ይሆናል።\n` +
+    `• ጨዋታው ውስጥ ከገባን በኋላ ሌላ ተጫዋች ካልገባ <b>Leave</b> የሚለውን በመንካት መውጣት እንችላለን።\n\n` +
+    
+    `☕️ <i>Buna Bingo: The Royal Way to Win!</i>`;
+
+  await ctx.reply(text, { parse_mode: 'HTML' });
 }
