@@ -21,6 +21,7 @@ api.interceptors.request.use((config) => {
 
 export const getRooms = () => api.get('/rooms').then(res => res.data).catch(() => []);
 export const getMe = () => api.get('/me').then(res => res.data).catch(() => null);
+export const getProfile = () => api.get('/me/profile').then(res => res.data).catch(() => null);
 export const getWallet = () => api.get('/wallet').then(res => res.data).catch(() => null);
 export const verifyPhone = (contact: any) => api.post('/auth/verify-phone', { contact }).then(res => res.data);
 export const joinGame = (roomType: string, cardIds: number[]) => api.post('/games/join', { roomType, cardIds }).then(res => res.data);
