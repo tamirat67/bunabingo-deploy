@@ -85,7 +85,7 @@ function SelectionContent() {
         ))}
       </div>
 
-      <div style={{height: '200px'}}></div> {/* Spacer for fixed footer to ensure visibility 1-100 */}
+      <div style={{height: '300px'}}></div> {/* Spacer: footer (130px) + navbar (85px) + buffer */}
 
       <div className="selection-footer-smart">
         <div className="footer-left-preview">
