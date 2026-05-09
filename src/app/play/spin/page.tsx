@@ -246,8 +246,6 @@ function SpinContent() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      <Navbar />
     </div>
   );
 }

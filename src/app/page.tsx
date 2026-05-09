@@ -170,7 +170,6 @@ export default function LobbyPage() {
           ))}
         </div>
       </div>
-      <Navbar />
     </div>
   );
 }

@@ -21,10 +21,10 @@ function NavContent() {
         const isActive = pathname === href;
         return (
           <Link key={label} href={href} className={`nav-item ${isActive ? 'active' : ''}`}>
-            <div className="nav-icon-wrapper">
-              <Icon size={24} />
+            <div className="nav-item-inner">
+              <Icon size={24} strokeWidth={isActive ? 2 : 1.5} />
+              <span>{label}</span>
             </div>
-            <span>{label}</span>
             {isActive && <div className="nav-indicator-line" />}
           </Link>
         );
