@@ -78,9 +78,8 @@ async function main() {
   // Non-blocking: don't await so server stays responsive during bot init
   (async () => {
     try {
-      if (config.server.nodeEnv === 'production') {
-        const webhookUrl = `${process.env.WEBHOOK_URL}/bot${config.bot.token}`;
-        await bot.telegram.setWebhook(webhookUrl);
+      // Always try to set the Menu Button if we have a Mini App URL
+      try {
         await bot.telegram.setChatMenuButton({
           menuButton: {
             type: 'web_app',
@@ -88,6 +87,14 @@ async function main() {
             web_app: { url: `${config.bot.miniAppUrl}` }
           }
         });
+        logger.info(`🤖 Chat Menu Button set to: ${config.bot.miniAppUrl}`);
+      } catch (err) {
+        logger.error('Failed to set Chat Menu Button:', err);
+      }
+
+      if (config.server.nodeEnv === 'production') {
+        const webhookUrl = `${process.env.WEBHOOK_URL}/bot${config.bot.token}`;
+        await bot.telegram.setWebhook(webhookUrl);
         app.use(`/bot${config.bot.token}`, (req: any, res: any) => {
           bot.handleUpdate(req.body, res);
         });
