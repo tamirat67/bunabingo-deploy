@@ -451,10 +451,10 @@ h1, h2, h3 { font-weight: 900; text-transform: uppercase; letter-spacing: 1px; }
 
 /* ─── Polished Game Page ─── */
 .gp-layout {
-  background: #2D1B14;
+  background: var(--cream-bg);
   min-height: 100vh;
   padding: 12px 12px 0 12px;
-  color: white;
+  color: var(--coffee-dark);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -467,13 +467,14 @@ h1, h2, h3 { font-weight: 900; text-transform: uppercase; letter-spacing: 1px; }
   gap: 4px;
 }
 .gp-stat {
-  background: rgba(255,255,255,0.06);
+  background: var(--white);
   border-radius: 8px;
   padding: 6px 4px;
   text-align: center;
+  box-shadow: 0 2px 6px rgba(61,43,31,0.06);
 }
-.gp-sl { font-size: 7px; color: rgba(255,255,255,0.4); margin-bottom: 2px; font-weight: 800; text-transform: uppercase; }
-.gp-sv { font-size: 11px; font-weight: 900; color: white; display: flex; align-items: center; justify-content: center; }
+.gp-sl { font-size: 7px; color: rgba(61,43,31,0.45); margin-bottom: 2px; font-weight: 800; text-transform: uppercase; }
+.gp-sv { font-size: 11px; font-weight: 900; color: var(--coffee-dark); display: flex; align-items: center; justify-content: center; }
 
 /* Main Area */
 .gp-main {
@@ -485,10 +486,11 @@ h1, h2, h3 { font-weight: 900; text-transform: uppercase; letter-spacing: 1px; }
 
 /* Master Calling Board */
 .gp-board {
-  background: rgba(0,0,0,0.25);
+  background: var(--white);
   border-radius: 12px;
   padding: 8px;
-  border: 1px solid rgba(212,175,55,0.15);
+  border: 1px solid rgba(212,175,55,0.3);
+  box-shadow: 0 4px 16px rgba(61,43,31,0.06);
 }
 .gp-col-headers {
   display: grid;
@@ -511,13 +513,13 @@ h1, h2, h3 { font-weight: 900; text-transform: uppercase; letter-spacing: 1px; }
 .gp-col { display: flex; flex-direction: column; gap: 3px; }
 .gp-cell {
   aspect-ratio: 1;
-  background: rgba(255,255,255,0.04);
+  background: rgba(61,43,31,0.04);
   border-radius: 3px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 9px;
-  color: rgba(255,255,255,0.25);
+  color: rgba(61,43,31,0.4);
   font-weight: 700;
   transition: all 0.2s;
 }
@@ -540,14 +542,15 @@ h1, h2, h3 { font-weight: 900; text-transform: uppercase; letter-spacing: 1px; }
 
 /* Countdown */
 .gp-countdown {
-  background: rgba(255,255,255,0.06);
+  background: var(--white);
   border-radius: 10px;
   padding: 10px;
   text-align: center;
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid rgba(212,175,55,0.3);
+  box-shadow: 0 2px 8px rgba(61,43,31,0.06);
 }
-.gp-cd-label { font-size: 8px; color: rgba(255,255,255,0.4); font-weight: 800; margin-bottom: 4px; }
-.gp-cd-val { font-size: 22px; font-weight: 900; color: white; }
+.gp-cd-label { font-size: 8px; color: rgba(61,43,31,0.45); font-weight: 800; margin-bottom: 4px; }
+.gp-cd-val { font-size: 22px; font-weight: 900; color: var(--coffee-dark); }
 
 /* Current Call */
 .gp-current-call {
