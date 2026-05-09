@@ -31,29 +31,6 @@ export default function LobbyPage() {
   }, []);
 
   const handleJoinRoom = (room: Room) => {
-    if (room.price === 0) {
-      router.push(`/tickets/select?type=${room.type}&stake=${room.price}`);
-      return;
-    }
-    
-    if (!user?.phoneNumber) {
-      const app = (window as any).Telegram?.WebApp;
-      if (app) {
-        app.requestContact(async (ok: boolean, response: any) => {
-          if (ok && response?.responseLine) {
-            try {
-              const res = await verifyPhone(response);
-              setUser(res.user);
-              router.push(`/tickets/select?type=${room.type}&stake=${room.price}`);
-            } catch (err) {
-              alert('Verification failed. Please try again.');
-            }
-          }
-        });
-      }
-      return;
-    }
-    
     router.push(`/tickets/select?type=${room.type}&stake=${room.price}`);
   };
 
