@@ -49,10 +49,10 @@ function SelectionContent() {
   return (
     <div className="selection-container brown">
       <div className="selection-header-top">
-        <button className="btn-back" onClick={() => router.push('/')}><ChevronLeft size={20} color="white" /></button>
+        <button className="btn-back" onClick={() => router.push('/')}><ChevronLeft size={20} color="#4B3621" /></button>
         <div className="header-text">
-          <h1 style={{color: 'white', opacity: 0.8}}>Buna Bingo</h1>
-          <p style={{color: 'white', opacity: 0.6}}>{roomType} • STAKE {stake}</p>
+          <h1 style={{color: '#3D2B1F', fontWeight: 900}}>Buna Bingo</h1>
+          <p style={{color: 'rgba(61,43,31,0.6)', fontWeight: 800}}>{roomType} • STAKE {stake}</p>
         </div>
       </div>
 
