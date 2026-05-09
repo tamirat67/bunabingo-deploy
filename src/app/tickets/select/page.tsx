@@ -88,22 +88,25 @@ function SelectionContent() {
       <div style={{height: '300px'}}></div> {/* Spacer: footer (130px) + navbar (85px) + buffer */}
 
       <div className="selection-footer-smart">
-        <div className="footer-left-preview">
-          {previewCard ? (
-            <>
-              <div className="flp-title">PATTERN #{lastSelected}</div>
-              <div className="pc-mini-grid">
-                {previewCard.map((row, ri) => row.map((cell, ci) => (
-                  <div key={`${ri}-${ci}`} className={`pc-mini-cell ${cell === 0 ? 'star' : ''}`}>
-                    {cell === 0 ? '★' : cell}
-                  </div>
-                )))}
-              </div>
-            </>
+        <div className="footer-cards-scroll">
+          {selected.length === 0 ? (
+            <div className="footer-no-cards">Select cards to preview</div>
           ) : (
-            <div style={{height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: 'rgba(61,43,31,0.4)', textAlign: 'center'}}>
-              Select a card<br/>to preview
-            </div>
+            selected.map(num => {
+              const card = PREDEFINED_CARDS[num] || [];
+              return (
+                <div key={num} className="footer-card-item">
+                  <div className="flp-title">#{num}</div>
+                  <div className="pc-mini-grid">
+                    {card.map((row, ri) => row.map((cell, ci) => (
+                      <div key={`${ri}-${ci}`} className={`pc-mini-cell ${cell === 0 ? 'star' : ''}`}>
+                        {cell === 0 ? '★' : cell}
+                      </div>
+                    )))}
+                  </div>
+                </div>
+              );
+            })
           )}
         </div>
 
