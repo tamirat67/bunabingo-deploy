@@ -323,7 +323,9 @@ router.post('/games/:gameId/bingo', async (req: Request, res: Response) => {
     let won = false;
     
     for (const ticket of tickets) {
-      const result = checkWin(ticket.card as any, drawnNumbers);
+      const cardData = ticket.card as any;
+      const rows = Array.isArray(cardData) ? cardData : cardData.rows;
+      const result = checkWin(rows as any, drawnNumbers);
       if (result.won) {
         won = true;
         break;

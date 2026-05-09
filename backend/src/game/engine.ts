@@ -146,8 +146,9 @@ async function checkAllTickets(gameId: string, drawnNumbers: number[]): Promise<
   const existingWinModes = new Set(existingWinners.map(w => w.winMode));
 
   for (const ticket of tickets) {
-    const card = ticket.card as BingoCard;
-    const result = checkWin(card, drawnNumbers);
+    const cardData = ticket.card as any;
+    const rows = Array.isArray(cardData) ? cardData : cardData.rows;
+    const result = checkWin(rows as BingoCard, drawnNumbers);
 
     if (result.won) {
       for (const mode of result.modes) {
@@ -437,7 +438,12 @@ export async function joinGame(
     // 3. Create Tickets
     const tickets = await Promise.all(preparedCards.map(c => 
       tx.ticket.create({
-        data: { userId, gameId, card: c.pattern as any, markedNumbers: [] }
+        data: { 
+          userId, 
+          gameId, 
+          card: { id: c.id, rows: c.pattern } as any, 
+          markedNumbers: [] 
+        }
       })
     ));
 

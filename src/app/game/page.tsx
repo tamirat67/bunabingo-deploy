@@ -182,29 +182,35 @@ function GameContent() {
 
           {/* Player Cards Stack */}
           <div className="gp-cards-stack">
-            {tickets.map((t: any, idx: number) => (
-              <div key={t.id || idx} className="gp-card">
-                <div className="gp-card-header">
-                  {COLUMNS.map(c => (
-                    <div key={c.label} className="gp-card-h" style={{ background: c.color }}>{c.label}</div>
-                  ))}
+            {tickets.map((t: any, idx: number) => {
+              const cardData = t.card as any;
+              const rows = Array.isArray(cardData) ? cardData : cardData.rows;
+              const cardId = cardData?.id || (idx + 1);
+
+              return (
+                <div key={t.id || idx} className="gp-card">
+                  <div className="gp-card-header">
+                    {COLUMNS.map(c => (
+                      <div key={c.label} className="gp-card-h" style={{ background: c.color }}>{c.label}</div>
+                    ))}
+                  </div>
+                  <div className="gp-card-grid">
+                    {rows?.map?.((row: any[], ri: number) => row?.map?.((cell: any, ci: number) => {
+                      const isFree = cell === 'FREE' || cell === 0;
+                      const isMarked = !isFree && isCalled(Number(cell));
+                      return (
+                        <div key={`${ri}-${ci}`}
+                          className={`gp-card-cell ${isFree ? 'free' : ''} ${isMarked ? 'marked' : ''}`}
+                          style={isMarked ? { background: getColumnColor(Number(cell)), color: '#fff' } : {}}>
+                          {isFree ? '★' : cell}
+                        </div>
+                      );
+                    }))}
+                  </div>
+                  <div className="gp-card-label">Board number {cardId}</div>
                 </div>
-                <div className="gp-card-grid">
-                  {t.card?.rows?.map?.((row: any[], ri: number) => row?.map?.((cell: any, ci: number) => {
-                    const isFree = cell === 'FREE' || cell === 0;
-                    const isMarked = !isFree && isCalled(Number(cell));
-                    return (
-                      <div key={`${ri}-${ci}`}
-                        className={`gp-card-cell ${isFree ? 'free' : ''} ${isMarked ? 'marked' : ''}`}
-                        style={isMarked ? { background: getColumnColor(Number(cell)), color: '#fff' } : {}}>
-                        {isFree ? '★' : cell}
-                      </div>
-                    );
-                  }))}
-                </div>
-                <div className="gp-card-label">Board number {idx + 1}</div>
-              </div>
-            ))}
+              );
+            })}
             {tickets.length === 0 && (
               <div style={{color: 'rgba(255,255,255,0.3)', fontSize: '12px', textAlign: 'center', padding: '12px'}}>
                 No tickets found
