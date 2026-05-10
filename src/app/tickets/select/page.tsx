@@ -22,7 +22,7 @@ function SelectionContent() {
   const toggleSelect = (num: number) => {
     setSelected(prev => {
       if (prev.includes(num)) return prev.filter(n => n !== num);
-      if (prev.length >= 5) return prev;
+      if (prev.length >= 10) return prev;
       return [...prev, num];
     });
   };
