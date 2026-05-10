@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Trophy, Gift, Wallet as WalletIcon, Target, Play, Dices, ExternalLink, ShieldCheck, History, User, ChevronDown, MoreVertical, X, Coffee } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// ── Coffee, Gold & Espresso Theme (Addis Game Zone) ──────────────────
+// ── Coffee, Gold & Espresso Theme (Buna Game Zone) ──────────────────
 const T = {
   bg:      '#F5E6BE',   // Cream
   header:  '#3D2B1F',   // Espresso (Dark coffee)
@@ -101,7 +101,7 @@ export default function LobbyPage() {
       <div style={{ background: T.header, padding: '12px 15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `2px solid ${T.gold}` }}>
          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <Coffee size={24} color={T.gold} />
-            <div style={{ fontSize: '20px', fontWeight: '900', color: T.gold, letterSpacing: '1px' }}>ADDIS GAME ZONE</div>
+            <div style={{ fontSize: '20px', fontWeight: '900', color: T.gold, letterSpacing: '1px' }}>BUNA GAME ZONE</div>
          </div>
          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <ChevronDown size={24} color={T.gold} />

@@ -76,7 +76,7 @@ export async function handleStart(ctx: Context) {
     logger.info(`[Start] Showing main menu to ${tgUser.id} (${tgUser.first_name})`);
 
     await ctx.reply(
-      `Welcome to Addis Bingo! Choose an option below.`,
+      `Welcome to Buna Bingo! Choose an option below.`,
       Markup.inlineKeyboard([
         // ── Row 1: Games ─────────────────────────────────────────────────────
         [
