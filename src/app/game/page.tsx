@@ -189,9 +189,11 @@ function GameContent() {
         {/* ═══ RIGHT COLUMN: Scrollable Cards ═══ */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '80vh', overflowY: 'auto', paddingRight: '2px' }}>
           {visibleTickets.map((t: any) => {
-            const rows: any[][] = Array.isArray(t.card) ? t.card : (t.card?.rows ?? []);
-            const cardId = t.cardId ?? t.card?.id ?? '?';
-            const prize  = stake * 8;
+            // Backend stores card as { id: number, rows: number[][] }
+            const cardObj  = t.card as { id: number; rows: any[][] };
+            const rows     = cardObj?.rows ?? [];
+            const cardId   = cardObj?.id ?? '?';
+            const prize    = stake * 8;
 
             return (
               <div key={t.id} style={{ position: 'relative' }}>
@@ -205,7 +207,7 @@ function GameContent() {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '4px' }}>
                     {rows.map((row: any[], ri: number) =>
                       row.map((cell: any, ci: number) => {
-                        const isFree   = cell === 0 || cell === 'FREE';
+                        const isFree   = cell === 'FREE' || cell === 0 || cell === null;
                         const isMarked = !isFree && isCalled(Number(cell));
                         return (
                           <motion.div
