@@ -574,17 +574,18 @@ export async function joinGame(
     logger.error('Pusher notification failed but join succeeded:', e);
   }
 
-  // Auto-start countdown if enough tickets are sold (Total pool, not just unique users)
-  const minTickets = game.room.minPlayers; // Re-using minPlayers as minTickets
-  const totalTicketsCount = updatedGame?.tickets.length ?? 0;
+  // Auto-start countdown if enough UNIQUE players join
+  const minPlayers = game.room.minPlayers;
+  const uniquePlayers = await prisma.ticket.groupBy({
+    where: { gameId },
+    by: ['userId']
+  });
   
-  if (totalTicketsCount >= minTickets) {
+  if (uniquePlayers.length >= minPlayers) {
     const currentState = activeGames.get(gameId);
     if (!currentState?.countdownTimer) {
       try {
-        // We still pass the unique player count for the notification, but trigger on total tickets
-        const uniqueCount = await prisma.ticket.groupBy({ where: { gameId }, by: ['userId'] });
-        await startCountdown(gameId, uniqueCount.length);
+        await startCountdown(gameId, uniquePlayers.length);
       } catch (e) {
         logger.error('Countdown start failed:', e);
       }
