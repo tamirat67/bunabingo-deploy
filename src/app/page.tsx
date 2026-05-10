@@ -232,29 +232,7 @@ export default function LobbyPage() {
         </div>
       </div>
 
-      {/* Bottom Navbar */}
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#3D2B1F', padding: '10px 0', display: 'flex', justifyContent: 'space-around', borderTop: '2px solid #D4AF37', zIndex: 100 }}>
-         <div onClick={() => router.push('/')} style={{ color: '#D4AF37', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-            <Home size={24} />
-            <span style={{ fontSize: '10px', fontWeight: 'bold' }}>Home</span>
-         </div>
-         <div onClick={() => router.push('/')} style={{ color: 'rgba(255,255,255,0.4)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-            <Trophy size={24} />
-            <span style={{ fontSize: '10px', fontWeight: 'bold' }}>Games</span>
-         </div>
-         <div onClick={() => router.push('/history')} style={{ color: 'rgba(255,255,255,0.4)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-            <History size={24} />
-            <span style={{ fontSize: '10px', fontWeight: 'bold' }}>History</span>
-         </div>
-         <div onClick={() => router.push('/wallet')} style={{ color: 'rgba(255,255,255,0.4)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-            <Wallet size={24} />
-            <span style={{ fontSize: '10px', fontWeight: 'bold' }}>Wallet</span>
-         </div>
-         <div onClick={() => router.push('/profile')} style={{ color: 'rgba(255,255,255,0.4)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-            <User size={24} />
-            <span style={{ fontSize: '10px', fontWeight: 'bold' }}>Profile</span>
-         </div>
-      </div>
+      <div style={{height: '80px'}} />
     </div>
   );
 }

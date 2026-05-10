@@ -257,29 +257,7 @@ function GameContent() {
          Add Board <PlusCircle size={20} />
       </div>
 
-      {/* Bottom Navbar */}
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'white', padding: '10px 0', display: 'flex', justifyContent: 'space-around', borderTop: '1px solid #EEE', zIndex: 100 }}>
-         <div onClick={() => router.push('/')} style={{ color: '#7D5BA6', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-            <Home size={20} />
-            <span style={{ fontSize: '10px', fontWeight: 'bold' }}>Game</span>
-         </div>
-         <div style={{ color: '#AAA', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-            <Trophy size={20} />
-            <span style={{ fontSize: '10px', fontWeight: 'bold' }}>Scores</span>
-         </div>
-         <div onClick={() => router.push('/history')} style={{ color: '#AAA', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-            <History size={20} />
-            <span style={{ fontSize: '10px', fontWeight: 'bold' }}>History</span>
-         </div>
-         <div onClick={() => router.push('/wallet')} style={{ color: '#AAA', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-            <Wallet size={20} />
-            <span style={{ fontSize: '10px', fontWeight: 'bold' }}>Wallet</span>
-         </div>
-         <div onClick={() => router.push('/profile')} style={{ color: '#AAA', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-            <User size={20} />
-            <span style={{ fontSize: '10px', fontWeight: 'bold' }}>Profile</span>
-         </div>
-      </div>
+
     </div>
   );
 }
