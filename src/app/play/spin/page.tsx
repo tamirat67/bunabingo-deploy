@@ -54,7 +54,7 @@ function PrizeWheel({ segments, sliceDeg }: { segments: any[]; sliceDeg: number 
       })}
       <circle cx={cx} cy={cy} r={60} fill="url(#hubG)" stroke={T.gold} strokeWidth={4} />
       <g transform={`translate(${cx - 40}, ${cy - 40}) scale(0.8)`}>
-        <text x="50" y="35" textAnchor="middle" fill={T.gold} fontSize="11" fontWeight="bold">ADDIS GAME ZONE</text>
+        <text x="50" y="35" textAnchor="middle" fill={T.gold} fontSize="11" fontWeight="bold">BUNA GAME ZONE</text>
         <text x="50" y="60" textAnchor="middle" fill="#ffffff" fontSize="26" fontWeight="black">SPIN</text>
       </g>
     </svg>
@@ -141,7 +141,7 @@ function SpinContent() {
     <div style={{ background: T.bg, minHeight: '100vh', paddingBottom: '90px', fontFamily: "'Segoe UI', sans-serif" }}>
       <div style={{ background: T.header, padding: '12px 15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `3px solid ${T.gold}` }}>
         <div style={{ color: T.gold, fontWeight: '900', fontSize: '18px', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <ShieldCheck size={20} /> ADDIS GAME ZONE
+          <ShieldCheck size={20} /> BUNA GAME ZONE
         </div>
         <div onClick={() => setSoundOn(!soundOn)} style={{ color: soundOn ? T.gold : '#666', cursor: 'pointer' }}>
           {soundOn ? <Volume2 size={22} /> : <VolumeX size={22} />}

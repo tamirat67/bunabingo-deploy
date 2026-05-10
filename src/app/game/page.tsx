@@ -6,7 +6,7 @@ import Pusher from 'pusher-js';
 import { Volume2, VolumeX, RefreshCw, LogOut, Plus, X, Bell, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// ── Addis Game Zone Coffee & Gold Theme ──────────────────────────────────────────────
+// ── Buna Game Zone Coffee & Gold Theme ──────────────────────────────────────────────
 const T = {
   bg:      '#F5E6BE',   // Cream
   header:  '#3D2B1F',   // Dark coffee
@@ -120,10 +120,10 @@ function GameContent() {
   return (
     <div style={{ background: T.bg, minHeight: '100vh', paddingBottom: '90px', fontFamily: "'Segoe UI', sans-serif", overflowX: 'hidden' }}>
 
-      {/* ── Addis Game Zone Header ── */}
+      {/* ── Buna Game Zone Header ── */}
       <div style={{ background: T.header, padding: '12px 15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `3px solid ${T.gold}`, position: 'sticky', top: 0, zIndex: 100 }}>
         <div style={{ color: T.gold, fontWeight: '900', fontSize: '18px', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <ShieldCheck size={20} /> ADDIS GAME ZONE
+          <ShieldCheck size={20} /> BUNA GAME ZONE
         </div>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           <div style={{ background: game?.status === 'RUNNING' ? '#27AE60' : '#E67E22', color: 'white', fontSize: '10px', fontWeight: '900', padding: '3px 10px', borderRadius: '20px' }}>

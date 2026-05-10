@@ -3,8 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { getRooms, getWallet, getMe } from '../lib/api';
 import { initTelegram } from '../lib/telegram';
 import { useRouter } from 'next/navigation';
-import Navbar from '../components/Navbar';
-import { Trophy, Gift, Wallet as WalletIcon, Target, Play, Dices, ExternalLink, User, Home, List, History, Wallet } from 'lucide-react';
+import { Trophy, Gift, Wallet as WalletIcon, Target, Play, Dices, ExternalLink, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface Room {
@@ -65,50 +64,50 @@ export default function LobbyPage() {
 
   if (!mounted) return null;
 
-  const bingoRooms: Room[] = [
-    { type: 'CASUAL', price: 10, win: 80, players: 0, active: 0 },
-    { type: 'STANDARD', price: 20, win: 160, players: 0, active: 0 },
-    { type: 'PRO', price: 50, win: 400, players: 0, active: 0 },
-    { type: 'JACKPOT', price: 100, win: 800, players: 0, active: 0 },
-  ];
+  // Use dynamic data from API or fall back to defaults
+  const bingoRooms: Room[] = rooms.filter(r => !r.type.startsWith('SPIN_')).map(r => ({
+    type: r.type,
+    price: Number(r.ticketPrice),
+    win: Number(r.ticketPrice) * 8,
+    players: r.games?.[0]?.tickets?.length || 0,
+    active: r.isActive ? 1 : 0
+  }));
 
-  const spinRooms: Room[] = [
-    { type: 'SPIN_10', price: 10, win: 80, players: 0, active: 0 },
-    { type: 'SPIN_20', price: 20, win: 160, players: 0, active: 0 },
-    { type: 'SPIN_50', price: 50, win: 400, players: 0, active: 0 },
-    { type: 'SPIN_100', price: 100, win: 800, players: 0, active: 0 },
-  ];
+  const spinRooms: Room[] = rooms.filter(r => r.type.startsWith('SPIN_')).map(r => ({
+    type: r.type,
+    price: Number(r.ticketPrice),
+    win: Number(r.ticketPrice) * 8,
+    players: r.games?.[0]?.tickets?.length || 0,
+    active: r.isActive ? 1 : 0
+  }));
 
   return (
-    <div className="lobby-container" style={{ background: '#F5E6BE', minHeight: '100vh', paddingBottom: '80px', fontFamily: 'sans-serif' }}>
+    <div className="lobby-container" style={{ background: '#F5E6BE', minHeight: '100vh', paddingBottom: '80px', fontFamily: "'Inter', sans-serif" }}>
       
-      {/* Dark Header */}
-      <div style={{ background: '#3D2B1F', color: 'white', padding: '10px 15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '14px', fontWeight: 'bold' }}>
-         <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <span style={{ width: '8px', height: '8px', background: '#4CAF50', borderRadius: '50%', display: 'inline-block' }}></span>
-            Live
+      {/* Buna Game Zone Header */}
+      <div style={{ background: '#3D2B1F', color: 'white', padding: '15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '2px solid #D4AF37' }}>
+         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#D4AF37', fontWeight: '900', fontSize: '18px' }}>
+            <ShieldCheck size={24} />
+            BUNA GAME ZONE
          </div>
-         <div style={{ display: 'flex', gap: '20px' }}>
+         <div style={{ display: 'flex', gap: '15px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-               <Gift size={16} color="#D4AF37" /> Bonus: <span style={{ color: '#D4AF37' }}>0.00</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-               <WalletIcon size={16} color="#D4AF37" /> Balance: <span style={{ color: '#D4AF37' }}>{Number(wallet?.balance || 0).toFixed(2)}</span>
+               <WalletIcon size={16} color="#D4AF37" />
+               <span style={{ color: '#D4AF37', fontWeight: '900' }}>{Number(wallet?.balance || 0).toFixed(0)} ETB</span>
             </div>
          </div>
       </div>
 
       <div className="lobby-content" style={{ paddingTop: '10px' }}>
         
-        {/* Active Game Banner if exists */}
         <AnimatePresence>
           {activeGame && (
             <motion.div 
-              initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
               onClick={goToActiveGame}
-              style={{ background: '#D4AF37', color: '#3D2B1F', padding: '12px 15px', margin: '10px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 4px 10px rgba(0,0,0,0.2)', cursor: 'pointer' }}
+              style={{ background: 'linear-gradient(90deg, #D4AF37, #B8860B)', color: '#3D2B1F', padding: '12px 15px', margin: '10px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 4px 15px rgba(212,175,55,0.4)', cursor: 'pointer' }}
             >
-               <div style={{ fontWeight: '900', fontSize: '14px' }}>YOU HAVE AN ACTIVE GAME! CLICK TO JOIN</div>
+               <div style={{ fontWeight: '900', fontSize: '13px' }}>🎯 ACTIVE TOURNAMENT IN PROGRESS! CLICK TO RE-JOIN</div>
                <ExternalLink size={18} />
             </motion.div>
           )}
@@ -116,123 +115,58 @@ export default function LobbyPage() {
 
         {/* Bingo Section */}
         <div style={{ padding: '10px 15px' }}>
-          <div style={{ color: '#D4AF37', fontSize: '18px', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '15px' }}>
-            <Target size={20} /> BINGO GAMES
+          <div style={{ color: '#3D2B1F', fontSize: '16px', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '15px', opacity: 0.8 }}>
+            <Target size={20} color="#D4AF37" /> BINGO TOURNAMENTS
           </div>
           
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#8D6E63', fontWeight: 'bold', marginBottom: '10px', padding: '0 5px' }}>
-             <span>BET</span>
-             <span>WIN/PLAYER</span>
-             <span>STATUS & JOIN</span>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
-            {bingoRooms.map((room, idx) => (
-              <React.Fragment key={room.type}>
-                <div style={{ background: 'white', padding: '15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {bingoRooms.length > 0 ? bingoRooms.map((room) => (
+                <div key={room.type} onClick={() => handleJoinRoom(room)} style={{ background: 'white', padding: '15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderRadius: '16px', boxShadow: '0 4px 12px rgba(61,43,31,0.05)', cursor: 'pointer', border: '1px solid rgba(212,175,55,0.2)' }}>
                     <div style={{ width: '60px' }}>
-                        <div style={{ fontSize: '32px', fontWeight: '900', color: '#333', lineHeight: '1' }}>{room.price}</div>
-                        <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#666' }}>ETB</div>
+                        <div style={{ fontSize: '28px', fontWeight: '900', color: '#3D2B1F', lineHeight: '1' }}>{room.price}</div>
+                        <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#D4AF37' }}>ETB</div>
                     </div>
-
-                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '10px', paddingLeft: '30px' }}>
-                        <Trophy size={28} color="#999" />
+                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '12px', paddingLeft: '20px' }}>
+                        <Trophy size={24} color="#D4AF37" />
                         <div>
-                            <div style={{ fontSize: '24px', fontWeight: '900', color: '#D4AF37', lineHeight: '1' }}>{room.win}</div>
-                            <div style={{ fontSize: '10px', color: '#999', fontWeight: 'bold' }}>{room.players} players</div>
+                            <div style={{ fontSize: '20px', fontWeight: '900', color: '#3D2B1F', lineHeight: '1' }}>{room.win} ETB</div>
+                            <div style={{ fontSize: '10px', color: '#8D6E63', fontWeight: 'bold' }}>{room.players} players joined</div>
                         </div>
                     </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                            <div style={{ background: '#4A90E2', color: 'white', fontSize: '8px', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>ACTIVE {room.active}</div>
-                            <div style={{ background: '#E8F5E9', color: '#4CAF50', fontSize: '8px', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold', textAlign: 'center', border: '1px solid #C8E6C9' }}>READY</div>
-                        </div>
-                        <button 
-                            onClick={() => handleJoinRoom(room)}
-                            style={{ background: '#2ECC71', color: 'white', border: 'none', padding: '12px 18px', borderRadius: '12px', fontWeight: '900', fontSize: '16px', boxShadow: '0 4px 0 #27AE60', cursor: 'pointer' }}
-                        >
-                            JOIN
-                        </button>
-                    </div>
+                    <button style={{ background: '#27AE60', color: 'white', border: 'none', padding: '10px 15px', borderRadius: '10px', fontWeight: '900', fontSize: '14px', boxShadow: '0 4px 0 #1E8449' }}>JOIN</button>
                 </div>
-                <div style={{ background: '#EEDCBA', color: '#8D6E63', textAlign: 'center', fontSize: '9px', fontWeight: 'bold', padding: '3px 0', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                    JACKPOT 0 / 1000
-                </div>
-              </React.Fragment>
-            ))}
+            )) : <div style={{ textAlign: 'center', padding: '40px', color: '#8D6E63' }}>Loading tournaments...</div>}
           </div>
-        </div>
-
-        {/* Demo Section */}
-        <div style={{ background: '#3D2B1F', color: 'white', padding: '20px 15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '10px 0' }}>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <div style={{ fontSize: '28px', fontWeight: '900', lineHeight: '1' }}>FREE</div>
-                <div style={{ fontSize: '12px', fontWeight: 'bold', opacity: 0.6 }}>DEMO</div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, paddingLeft: '30px' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Play size={20} fill="white" />
-                </div>
-                <div>
-                    <div style={{ fontWeight: 'bold', fontSize: '16px' }}>Practice Mode</div>
-                    <div style={{ fontSize: '10px', opacity: 0.6 }}>No real money</div>
-                </div>
-            </div>
-            <div style={{ display: 'flex', gap: '8px' }}>
-                <button style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.3)', color: 'white', padding: '8px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold' }}>OPEN</button>
-                <button onClick={() => router.push('/tickets/select?type=DEMO&price=0')} style={{ background: '#D4AF37', border: 'none', color: '#3D2B1F', padding: '8px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold' }}>TRY</button>
-            </div>
         </div>
 
         {/* Spin Section */}
-        <div style={{ padding: '10px 15px' }}>
-          <div style={{ color: '#D4AF37', fontSize: '18px', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '15px' }}>
-            <Dices size={20} /> SPIN GAMES
+        <div style={{ padding: '20px 15px 10px' }}>
+          <div style={{ color: '#3D2B1F', fontSize: '16px', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '15px', opacity: 0.8 }}>
+            <Dices size={20} color="#D4AF37" /> SPIN RAFFLES
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#8D6E63', fontWeight: 'bold', marginBottom: '10px', padding: '0 5px' }}>
-             <span>BET</span>
-             <span>WIN/PLAYER</span>
-             <span>STATUS & JOIN</span>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {spinRooms.map((room) => (
-              <React.Fragment key={room.type}>
-                <div style={{ background: 'white', padding: '15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div key={room.type} onClick={() => handleJoinRoom(room)} style={{ background: 'white', padding: '15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderRadius: '16px', boxShadow: '0 4px 12px rgba(61,43,31,0.05)', cursor: 'pointer', border: '1px solid rgba(212,175,55,0.2)' }}>
                     <div style={{ width: '60px' }}>
-                        <div style={{ fontSize: '32px', fontWeight: '900', color: '#333', lineHeight: '1' }}>{room.price}</div>
-                        <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#666' }}>ETB</div>
+                        <div style={{ fontSize: '28px', fontWeight: '900', color: '#3D2B1F', lineHeight: '1' }}>{room.price}</div>
+                        <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#D4AF37' }}>ETB</div>
                     </div>
-                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '10px', paddingLeft: '30px' }}>
-                        <Trophy size={28} color="#999" />
+                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '12px', paddingLeft: '20px' }}>
+                        <div style={{ width: '32px', height: '32px', background: '#3D2B1F', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Play size={16} fill="#D4AF37" color="#D4AF37" />
+                        </div>
                         <div>
-                            <div style={{ fontSize: '24px', fontWeight: '900', color: '#D4AF37', lineHeight: '1' }}>{room.win}</div>
-                            <div style={{ fontSize: '10px', color: '#999', fontWeight: 'bold' }}>{room.players} players</div>
+                            <div style={{ fontSize: '20px', fontWeight: '900', color: '#3D2B1F', lineHeight: '1' }}>{room.win} ETB</div>
+                            <div style={{ fontSize: '10px', color: '#8D6E63', fontWeight: 'bold' }}>{room.players} tickets sold</div>
                         </div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                            <div style={{ background: '#4A90E2', color: 'white', fontSize: '8px', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>ACTIVE {room.active}</div>
-                            <div style={{ background: '#E8F5E9', color: '#4CAF50', fontSize: '8px', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold', textAlign: 'center', border: '1px solid #C8E6C9' }}>READY</div>
-                        </div>
-                        <button 
-                            onClick={() => handleJoinRoom(room)}
-                            style={{ background: '#2ECC71', color: 'white', border: 'none', padding: '12px 18px', borderRadius: '12px', fontWeight: '900', fontSize: '16px', boxShadow: '0 4px 0 #27AE60', cursor: 'pointer' }}
-                        >
-                            JOIN
-                        </button>
-                    </div>
+                    <button style={{ background: '#D4AF37', color: '#3D2B1F', border: 'none', padding: '10px 15px', borderRadius: '10px', fontWeight: '900', fontSize: '14px', boxShadow: '0 4px 0 #B8860B' }}>SPIN</button>
                 </div>
-                <div style={{ background: '#EEDCBA', color: '#8D6E63', textAlign: 'center', fontSize: '9px', fontWeight: 'bold', padding: '3px 0', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                    JACKPOT 0 / 1000
-                </div>
-              </React.Fragment>
             ))}
           </div>
         </div>
       </div>
-
-      <div style={{height: '80px'}} />
+      <div style={{height: '100px'}} />
     </div>
   );
 }

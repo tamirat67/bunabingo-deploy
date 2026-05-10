@@ -60,7 +60,7 @@ function SelectionContent() {
         <button className="btn-back" onClick={() => router.push('/')}><ChevronLeft size={20} color="#4B3621" /></button>
         <div className="header-text">
           <h1 style={{color: '#3D2B1F', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '8px'}}>
-            <ShieldCheck size={24} /> ADDIS GAME ZONE
+            <ShieldCheck size={24} /> BUNA GAME ZONE
           </h1>
           <p style={{color: 'rgba(61,43,31,0.6)', fontWeight: 800}}>{roomType} • STAKE {stake}</p>
         </div>
