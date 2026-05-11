@@ -146,7 +146,7 @@ export async function handleStart(ctx: Context) {
         ],
         // ── Row 4: Help & Referral ────────────────────────────────────────────
         [
-          Markup.button.webApp('Instruction 📖', `${config.bot.miniAppUrl}/instructions`),
+          Markup.button.callback('Instruction 📖', 'cmd_instructions'),
           Markup.button.url(
             'Invite ✉️',
             shareUrl
@@ -170,7 +170,7 @@ export async function handleStart(ctx: Context) {
             Markup.button.url('Contact support 📞', 'https://t.me/bunabingosupport'),
           ],
           [
-            Markup.button.webApp('Instruction 📖', `${config.bot.miniAppUrl}/instructions`),
+            Markup.button.callback('Instruction 📖', 'cmd_instructions'),
             Markup.button.url(
               'Invite ✉️',
               shareUrl
