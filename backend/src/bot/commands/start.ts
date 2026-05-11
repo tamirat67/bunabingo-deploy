@@ -122,7 +122,8 @@ export async function handleStart(ctx: Context) {
       `☀️🏆 "Buna Bingo — Wake Up to a Jackpot."\n` +
       `☀️🏆 "ቡና ቢንጎ — ከጃክፖት ጋር ይንቁ!"\n\n` +
       `Choose an option below:\n` +
-      `ከታች አንድ አማራጭ ይምረጡ፡-`;
+      `ከታች አንድ አማራጭ ይምረጡ፡-\n\n` +
+      `✉️ <a href="${shareUrl}">Share Invite Link & Earn 5 ETB!</a>`;
 
     await ctx.replyWithPhoto(bannerUrl, {
       caption: mainMenuText,
