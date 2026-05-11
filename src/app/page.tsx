@@ -110,17 +110,17 @@ export default function LobbyPage() {
       </div>
 
       {/* ── Wallet & Bonus Stats ── */}
-      <div style={{ background: '#2D1B14', padding: '10px 15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(212,175,55,0.1)' }}>
+      <div style={{ background: T.header, padding: '10px 15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid ${T.gold}22` }}>
          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#4CAF50', fontSize: '11px', fontWeight: '900', textTransform: 'uppercase' }}>
             <div style={{ width: '6px', height: '6px', background: '#4CAF50', borderRadius: '50%', boxShadow: '0 0 5px #4CAF50' }} />
             Live
          </div>
          <div style={{ display: 'flex', gap: '15px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: T.gold, fontSize: '12px', fontWeight: '900' }}>
-               <Gift size={14} color={T.gold} /> BONUS: <span style={{ color: 'white' }}>0.00</span>
+               <Gift size={14} color={T.gold} /> BONUS: <span style={{ color: T.textL }}>0.00</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#4CAF50', fontSize: '12px', fontWeight: '900' }}>
-               <WalletIcon size={14} color="#4CAF50" /> BALANCE: <span style={{ color: 'white' }}>{Number(wallet?.balance || 0).toFixed(2)}</span>
+               <WalletIcon size={14} color="#4CAF50" /> BALANCE: <span style={{ color: T.textL }}>{Number(wallet?.balance || 0).toFixed(2)}</span>
             </div>
          </div>
       </div>
@@ -155,17 +155,17 @@ export default function LobbyPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
             {bingoRooms.map((room) => (
               <React.Fragment key={room.type}>
-                <div onClick={() => handleJoinRoom(room)} style={{ background: T.card, padding: '15px 10px', display: 'grid', gridTemplateColumns: '70px 1fr 120px', alignItems: 'center', borderRadius: '4px', cursor: 'pointer' }}>
+                <div onClick={() => handleJoinRoom(room)} style={{ background: T.cardLobby, padding: '15px 10px', display: 'grid', gridTemplateColumns: '70px 1fr 120px', alignItems: 'center', borderRadius: '4px', cursor: 'pointer' }}>
                     <div>
                         <div style={{ fontSize: '24px', fontWeight: '900', color: T.gold, lineHeight: '1' }}>{room.price}</div>
-                        <div style={{ fontSize: '9px', fontWeight: '900', color: 'rgba(255,255,255,0.4)' }}>ETB</div>
+                        <div style={{ fontSize: '9px', fontWeight: '900', color: T.textL, opacity: 0.4 }}>ETB</div>
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
                         <Trophy size={20} color={T.gold} />
                         <div style={{ textAlign: 'left' }}>
                             <div style={{ fontSize: '20px', fontWeight: '900', color: T.gold, lineHeight: '1' }}>{Number(room.win).toFixed(0)}</div>
-                            <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.4)', fontWeight: 'bold' }}>{room.players} players</div>
+                            <div style={{ fontSize: '9px', color: T.textL, opacity: 0.4, fontWeight: 'bold' }}>{room.players} players</div>
                         </div>
                     </div>
 
@@ -226,16 +226,16 @@ export default function LobbyPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
           {spinRooms.map((room) => (
               <React.Fragment key={room.type}>
-                <div onClick={() => handleJoinRoom(room)} style={{ background: T.card, padding: '15px 10px', display: 'grid', gridTemplateColumns: '70px 1fr 120px', alignItems: 'center', borderRadius: '4px', cursor: 'pointer' }}>
+                <div onClick={() => handleJoinRoom(room)} style={{ background: T.cardLobby, padding: '15px 10px', display: 'grid', gridTemplateColumns: '70px 1fr 120px', alignItems: 'center', borderRadius: '4px', cursor: 'pointer' }}>
                     <div>
                         <div style={{ fontSize: '24px', fontWeight: '900', color: T.gold, lineHeight: '1' }}>{room.price}</div>
-                        <div style={{ fontSize: '9px', fontWeight: '900', color: 'rgba(255,255,255,0.4)' }}>ETB</div>
+                        <div style={{ fontSize: '9px', fontWeight: '900', color: T.textL, opacity: 0.4 }}>ETB</div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
                         <Trophy size={20} color={T.gold} />
                         <div style={{ textAlign: 'left' }}>
-                            <div style={{ fontSize: '20px', fontWeight: '900', color: 'white', lineHeight: '1' }}>{room.win}</div>
-                            <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.4)', fontWeight: 'bold' }}>{room.players} players</div>
+                            <div style={{ fontSize: '20px', fontWeight: '900', color: T.textL, lineHeight: '1' }}>{room.win}</div>
+                            <div style={{ fontSize: '9px', color: T.textL, opacity: 0.4, fontWeight: 'bold' }}>{room.players} players</div>
                         </div>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '5px' }}>

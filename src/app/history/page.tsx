@@ -1,10 +1,15 @@
 'use client';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { getHistory, getGlobalHistory } from '../../lib/api';
-import { RefreshCw, Search, Trophy, Calendar, Clock, User } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useTheme } from '../../context/ThemeContext';
+import { RefreshCw, Search, Trophy, Calendar, Clock, User, Play, Wallet as WalletIcon, History as HistoryIcon } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 export default function HistoryPage() {
-  const [tab, setTab] = useState('recent'); // 'recent' or 'my'
+  const router = useRouter();
+  const { T } = useTheme();
+  const [tab, setTab] = useState('recent');
   const [filter, setFilter] = useState<number | null>(null);
   const [search, setSearch] = useState('');
   const [globalHistory, setGlobalHistory] = useState<any[]>([]);
@@ -24,78 +29,121 @@ export default function HistoryPage() {
   if (!mounted) return null;
 
   const currentData = tab === 'recent' ? globalHistory : myHistory;
-  
   const filteredData = currentData.filter(item => {
     if (filter && Number(item.game?.room?.ticketPrice) !== filter) return false;
-    if (search && !item.user?.firstName?.toLowerCase().includes(search.toLowerCase()) && 
+    if (search && !item.user?.firstName?.toLowerCase().includes(search.toLowerCase()) &&
         !item.gameId?.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
 
   return (
-    <div className="history-container">
-      <div className="wallet-header" style={{ justifyContent: 'center', position: 'relative' }}>
-        <span>Bingo History</span>
-        <RefreshCw size={20} style={{ position: 'absolute', right: 0 }} onClick={loadData} />
+    <div style={{ background: T.bg, minHeight: '100vh', paddingBottom: '100px', fontFamily: "'Outfit', sans-serif", color: T.text, transition: 'all 0.3s ease' }}>
+
+      {/* ── Header ── */}
+      <div style={{ background: T.header, padding: '12px 15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `2px solid ${T.gold}` }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ width: '32px', height: '32px', background: T.gold, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <HistoryIcon size={18} color={T.header} />
+          </div>
+          <div style={{ fontSize: '18px', fontWeight: '900', color: T.gold, letterSpacing: '0.5px' }}>BINGO HISTORY</div>
+        </div>
+        <RefreshCw size={20} color={T.gold} onClick={loadData} style={{ cursor: 'pointer' }} />
       </div>
 
-      <div className="history-tabs">
-        <div className={`h-tab ${tab === 'recent' ? 'active' : ''}`} onClick={() => setTab('recent')}>Recent Games</div>
-        <div className={`h-tab ${tab === 'my' ? 'active' : ''}`} onClick={() => setTab('my')}>My Games</div>
+      <div style={{ padding: '20px 15px' }}>
+
+        {/* ── Tabs ── */}
+        <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+          {[['recent', 'Recent Games'], ['my', 'My Games']].map(([key, label]) => (
+            <div key={key} onClick={() => setTab(key)} style={{ flex: 1, textAlign: 'center', padding: '10px', borderRadius: '10px', background: tab === key ? T.gold : 'transparent', color: tab === key ? T.header : T.text, fontWeight: '900', fontSize: '13px', cursor: 'pointer', border: tab === key ? 'none' : `1px solid ${T.border}` }}>
+              {label}
+            </div>
+          ))}
+        </div>
+
+        {/* ── Filter Chips ── */}
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '15px', flexWrap: 'wrap' }}>
+          {[10, 20, 50, 100].map(amt => (
+            <div key={amt} onClick={() => setFilter(filter === amt ? null : amt)} style={{ padding: '6px 14px', borderRadius: '20px', background: filter === amt ? T.gold : 'transparent', color: filter === amt ? T.header : T.text, fontWeight: '900', fontSize: '12px', cursor: 'pointer', border: filter === amt ? 'none' : `1px solid ${T.border}` }}>
+              {amt} ETB
+            </div>
+          ))}
+        </div>
+
+        {/* ── Search Bar ── */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: T.card, padding: '10px 15px', borderRadius: '12px', border: `1px solid ${T.border}`, marginBottom: '20px' }}>
+          <Search size={16} style={{ opacity: 0.4, flexShrink: 0 }} />
+          <input
+            type="text"
+            placeholder="Search by player or game ID..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', fontFamily: "'Outfit', sans-serif", fontSize: '13px', color: T.text }}
+          />
+        </div>
+
+        {/* ── History List ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {filteredData.map((item, i) => {
+            const date = new Date(item.paidAt);
+            const dateStr = date.toLocaleDateString();
+            const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const name = item.user?.firstName || item.user?.telegramUsername || 'Player';
+            const refCode = item.gameId?.substring(0, 6).toUpperCase() || '—';
+            const boardNum = item.ticketId?.substring(0, 4).toUpperCase() || '—';
+            const prize = Number(item.prizeAmount || 0).toFixed(0);
+
+            return (
+              <motion.div key={item.id || i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }} style={{ background: T.card, padding: '14px', borderRadius: '16px', border: `1px solid ${T.border}`, display: 'flex', alignItems: 'center', gap: '12px', boxShadow: '0 2px 6px rgba(0,0,0,0.04)' }}>
+                <div style={{ width: '44px', height: '44px', background: `${T.gold}22`, borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Trophy size={22} color={T.gold} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: '900', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <User size={12} style={{ opacity: 0.5, flexShrink: 0 }} /> {name}
+                  </div>
+                  <div style={{ fontSize: '11px', opacity: 0.4, marginTop: '2px' }}>Game #{refCode} · Board #{boardNum}</div>
+                  <div style={{ display: 'flex', gap: '10px', marginTop: '4px', fontSize: '10px', opacity: 0.4 }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}><Calendar size={10} /> {dateStr}</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}><Clock size={10} /> {timeStr}</span>
+                  </div>
+                </div>
+                <div style={{ fontWeight: '900', fontSize: '18px', color: T.gold, flexShrink: 0 }}>
+                  {prize} <span style={{ fontSize: '10px', opacity: 0.5 }}>ETB</span>
+                </div>
+              </motion.div>
+            );
+          })}
+
+          {filteredData.length === 0 && (
+            <div style={{ background: T.card, borderRadius: '16px', border: `1px solid ${T.border}`, padding: '40px 20px', textAlign: 'center' }}>
+              <div style={{ opacity: 0.2, marginBottom: '10px' }}><HistoryIcon size={40} style={{ margin: '0 auto' }} /></div>
+              <div style={{ fontSize: '13px', opacity: 0.5 }}>No games found</div>
+            </div>
+          )}
+        </div>
       </div>
 
-      <div className="filter-chips">
-        {[10, 20, 50, 100].map(amt => (
-          <div 
-            key={amt} 
-            className={`f-chip ${filter === amt ? 'active' : ''}`}
-            onClick={() => setFilter(filter === amt ? null : amt)}
-          >
-            {amt} Birr
+      {/* ── Premium Navbar ── */}
+      <div style={{ position: 'fixed', bottom: 15, left: 15, right: 15, background: T.header, display: 'flex', justifyContent: 'space-around', padding: '10px 5px', borderRadius: '20px', border: `1px solid ${T.gold}`, boxShadow: '0 8px 32px rgba(0,0,0,0.3)', zIndex: 1000 }}>
+        {[
+          { label: 'Game',    icon: <Play size={20} color={T.gold} />, active: false, path: '/' },
+          { label: 'Scores',  icon: <Trophy size={20} color={T.gold} />, active: false, path: '/scores' },
+          { label: 'History', icon: <HistoryIcon size={20} fill={T.gold} color={T.gold} />, active: true, path: '/history' },
+          { label: 'Wallet',  icon: <WalletIcon size={20} color={T.gold} />, active: false, path: '/wallet' },
+          { label: 'Profile', icon: <User size={20} color={T.gold} />, active: false, path: '/profile' },
+        ].map((item) => (
+          <div key={item.label} onClick={() => router.push(item.path)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', flex: 1, opacity: item.active ? 1 : 0.5, cursor: 'pointer' }}>
+            {item.icon}
+            <span style={{ fontSize: '10px', fontWeight: '900', color: T.gold }}>{item.label}</span>
           </div>
         ))}
       </div>
 
-      <div className="search-bar">
-        <Search size={16} opacity={0.5} />
-        <input 
-          type="text" 
-          placeholder="Search by game number..." 
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </div>
-
-      <div className="history-list">
-        {filteredData.map((item, i) => {
-          const date = new Date(item.paidAt);
-          const dateStr = date.toLocaleDateString();
-          const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-          const name = item.user?.firstName || item.user?.telegramUsername || 'Me';
-          const refCode = item.gameId.substring(0, 6).toUpperCase();
-          const boardNum = item.ticketId.substring(0, 4).toUpperCase();
-
-          return (
-            <div key={item.id} className="history-card">
-              <div className="hc-left">
-                <Trophy size={32} color="#D4AF37" />
-                <div className="hc-info">
-                  <div className="hc-name"><User size={12} /> {name}</div>
-                  <div className="hc-sub">Refs: {refCode}</div>
-                  <div className="hc-sub">Board #{boardNum}</div>
-                  <div className="hc-sub">22 calls</div>
-                </div>
-              </div>
-              <div className="hc-right">
-                <div className="hc-date"><Calendar size={12} /> {dateStr}</div>
-                <div className="hc-date"><Clock size={12} /> {timeStr}</div>
-                <div className="hc-prize">{Number(item.prizeAmount).toFixed(0)} birr</div>
-              </div>
-            </div>
-          );
-        })}
-        {filteredData.length === 0 && <div className="empty-state">No games found</div>}
-      </div>
+      <style jsx global>{`
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;900&display=swap');
+        body { background: ${T.bg} !important; margin: 0; padding: 0; transition: background 0.3s ease; }
+      `}</style>
     </div>
   );
 }

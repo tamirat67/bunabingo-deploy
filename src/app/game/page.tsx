@@ -25,6 +25,7 @@ function colLabel(n: number) {
 
 function GameContent() {
   const router  = useRouter();
+  const { T } = useTheme();
   const sp      = useSearchParams();
   const gameId  = sp.get('id');
 
