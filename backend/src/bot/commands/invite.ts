@@ -25,8 +25,8 @@ export async function handleInvite(ctx: Context) {
     const bannerUrl = `${process.env.WEBHOOK_URL}/uploads/banner.png`;
     const messageText = 
       `✉️ <b><a href="${shareUrl}">Invite Your Friends & Earn!</a></b> ☕️💰\n\n` +
-      `"Rich Flavor, Golden Wins." ✨\n\n` +
-      `Share your personal invite link and earn <b>5 ETB bonus</b> for every friend who joins!\n\n` +
+      `"Spin Wheel, Play, Win: The Royal Buna Way." 👑\n\n` +
+      `Share your personal invite link and earn <b>5 ETB bonus</b> for every friend who joins!\n\n`+
       `🔗 <b>Your invite link:</b>\n` +
       `<a href="${inviteLink}">${inviteLink}</a>\n\n` +
       `👥 Friends referred: <b>${user.referralCount}</b>\n` +

@@ -48,7 +48,7 @@ export async function handleStart(ctx: Context) {
         ? // ── Invited user path ───────────────────────────────────────────────
           `🎉 <b>${referrerName}</b> invited you to <b>Buna Bingo</b>!\n` +
           `እንኳን ደና መጡ!\n\n` +
-          `☕️ <i>"Sip, Play, Win: The Royal Buna Way."</i>\n` +
+          `☕️ <i>"Spin Wheel, Play, Win: The Royal Buna Way."</i>\n` +
           `☕️ <i>"ይጎንጩ፣ ይጫወቱ፣ ያሸንፉ፦ በንጉሳዊው የቡና መንገድ!"</i>\n\n` +
           `✨ <b>Join now and you both earn a 5 ETB bonus!</b>\n` +
           `✨ <b>አሁኑኑ ይቀላቀሉ እና የ 5 ብር ቦነስ ያግኙ!</b>\n\n` +
@@ -82,11 +82,11 @@ export async function handleStart(ctx: Context) {
     }
 
     // ── 3b. Phone already saved → show main menu ──────────────────────────────
-    const inviteLink = `${config.bot.miniAppUrl}/invite/${user.id}`;
-    const shareText  = encodeURIComponent(
+    const inviteLink   = `${config.bot.miniAppUrl}/invite/${user.id}`;
+    const shareMessage = encodeURIComponent(
       `🎰 Join me on Buna Bingo! ☕️ We both get 5 ETB bonus!\n\n`
     );
-    const shareUrl = `https://t.me/share/url?url=${inviteLink}&text=${shareText}`;
+    const shareUrl = `https://t.me/share/url?url=${inviteLink}&text=${shareMessage}`;
 
     logger.info(`[Start] Showing main menu to ${tgUser.id} (${tgUser.first_name})`);
 
@@ -117,7 +117,7 @@ export async function handleStart(ctx: Context) {
       `✨ "የቡና ጣዕም፣ ወርቃማ ድሎች።"\n\n` +
       `🎰 "The Perfect Blend of Luck and Luxury."\n` +
       `🎰 "የዕድል እና የቅንጦት ፍጹም ውህደት።"\n\n` +
-      `👑 "Sip, Play, Win: The Royal Buna Way."\n` +
+      `👑 "Spin Wheel, Play, Win: The Royal Buna Way."\n` +
       `👑 "ይጎንጩ፣ ይጫወቱ፣ ያሸንፉ፦ በንጉሳዊው የቡና መንገድ!"\n\n` +
       `☀️🏆 "Buna Bingo — Wake Up to a Jackpot."\n` +
       `☀️🏆 "ቡና ቢንጎ — ከጃክፖት ጋር ይንቁ!"\n\n` +

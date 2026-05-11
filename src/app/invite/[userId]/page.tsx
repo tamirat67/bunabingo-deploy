@@ -10,7 +10,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   
   return {
     title: 'Join me on Buna Bingo! ☕️💰',
-    description: 'Sip, Play, Win: The Royal Buna Way. Join now and we both earn a 5 ETB bonus!',
+    description: 'Spin Wheel, Play, Win: The Royal Buna Way. Join now and we both earn a 5 ETB bonus!',
     openGraph: {
       title: 'Buna Bingo - Rich Flavor, Golden Wins ✨',
       description: '🎰 Join me on Buna Bingo! ☕️ We both get 5 ETB bonus!',
