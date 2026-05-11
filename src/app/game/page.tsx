@@ -6,16 +6,7 @@ import Pusher from 'pusher-js';
 import { Volume2, VolumeX, RefreshCw, LogOut, Plus, X, Bell, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// ── Buna Game Zone Coffee & Gold Theme ──────────────────────────────────────────────
-const T = {
-  bg:      '#F5E6BE',   // Cream
-  header:  '#3D2B1F',   // Dark coffee
-  gold:    '#D4AF37',   // Gold
-  goldDk:  '#8B6B1D',   // Deep gold
-  brown:   '#8D6E63',   // Warm brown
-  statBg:  '#EEDCBA',
-  card:    '#FFFFFF',
-};
+import { useTheme } from '../../context/ThemeContext';
 
 const COL_COLOR: Record<string, string> = {
   B: '#E74C3C', I: '#E67E22', N: '#D4AF37', G: '#27AE60', O: '#8E44AD',

@@ -6,19 +6,11 @@ import { RefreshCw, LogOut, Volume2, VolumeX, ShieldCheck, Trophy } from 'lucide
 import { getMe, getGame, pusherAuth, getMyCard } from '../../../lib/api';
 import Pusher from 'pusher-js';
 
-const T = {
-  bg:      '#F5E6BE',   // Cream
-  header:  '#3D2B1F',   // Dark coffee
-  gold:    '#D4AF37',   // Gold
-  goldDk:  '#8B6B1D',   // Deep gold
-  brown:   '#8D6E63',   // Warm brown
-  card:    '#FFFFFF',
-  statBg:  '#EEDCBA',
-};
+import { useTheme } from '../../../context/ThemeContext';
 
 const PALETTE = ['#D4AF37','#E67E22','#C0392B','#8B6B1D','#A0522D','#CD853F','#DAA520','#B8860B'];
 
-function PrizeWheel({ segments, sliceDeg }: { segments: any[]; sliceDeg: number }) {
+function PrizeWheel({ segments, sliceDeg, T }: { segments: any[]; sliceDeg: number; T: any }) {
   const cx = 200, cy = 200, r = 190, labelR = 145;
   return (
     <svg viewBox="0 0 400 400" style={{ width: '100%', height: '100%', filter: 'drop-shadow(0 6px 20px rgba(61,43,31,0.5))' }}>
@@ -70,6 +62,7 @@ function slicePath(cx: number, cy: number, r: number, s: number, e: number) {
 
 function SpinContent() {
   const router = useRouter();
+  const { T } = useTheme();
   const sp = useSearchParams();
   const gameId = sp.get('id');
 
@@ -175,7 +168,7 @@ function SpinContent() {
               <div style={{ width: 0, height: 0, borderLeft: '14px solid transparent', borderRight: '14px solid transparent', borderTop: `28px solid ${T.header}`, filter: `drop-shadow(0 2px 4px ${T.gold})` }} />
             </div>
             <div id="wheel-inner" style={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden' }}>
-              {segments.length > 0 ? <PrizeWheel segments={segments} sliceDeg={360 / segments.length} /> : 
+              {segments.length > 0 ? <PrizeWheel segments={segments} sliceDeg={360 / segments.length} T={T} /> : 
                 <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: T.brown }}><RefreshCw size={40} style={{ animation: 'spin 2s linear infinite' }} /></div>}
             </div>
           </div>
