@@ -46,17 +46,21 @@ export async function handleStart(ctx: Context) {
       // Build message depending on whether they came via invite link
       const message = referrerName
         ? // ── Invited user path ───────────────────────────────────────────────
-          `🎉 <b>${referrerName}</b> invited you to <b>Buna Bingo</b>!\n\n` +
-          `☕️ <i>The ultimate Ethiopian bingo experience.</i>\n\n` +
-          `✨ <b>Join now and you both earn a 5 ETB bonus!</b>\n\n` +
-          `To activate your account, please share your phone number.\n` +
-          `Telegram will ask for your confirmation before sharing anything.`
+          `🎉 <b>${referrerName}</b> invited you to <b>Buna Bingo</b>!\n` +
+          `እንኳን ደና መጡ!\n\n` +
+          `☕️ <i>"Sip, Play, Win: The Royal Buna Way."</i>\n` +
+          `☕️ <i>"ይጎንጩ፣ ይጫወቱ፣ ያሸንፉ፦ በንጉሳዊው የቡና መንገድ!"</i>\n\n` +
+          `✨ <b>Join now and you both earn a 5 ETB bonus!</b>\n` +
+          `✨ <b>አሁኑኑ ይቀላቀሉ እና የ 5 ብር ቦነስ ያግኙ!</b>\n\n` +
+          `To activate, please share your phone number:\n` +
+          `ለመቀጠል እባክዎ ስልክ ቁጥርዎን ያጋሩ፡-`
         : // ── Organic / direct user path ──────────────────────────────────────
-          `👋 Welcome to <b>Buna Bingo</b>, ${tgUser.first_name}!\n\n` +
-          `☕️ <i>Rich Flavor, Golden Wins.</i>\n\n` +
-          `To keep your account secure and prevent duplicates, ` +
-          `please share your phone number to continue.\n` +
-          `Telegram will ask for your confirmation before sharing anything.`;
+          `👋 Welcome to <b>Buna Bingo</b>, ${tgUser.first_name}!\n` +
+          `እንኳን ደና መጡ!\n\n` +
+          `☕️ <i>"Rich Flavor, Golden Wins."</i>\n` +
+          `☕️ <i>"የቡና ጣዕም፣ ወርቃማ ድሎች።"</i>\n\n` +
+          `Please share your phone number to continue:\n` +
+          `ለመቀጠል እባክዎ ስልክ ቁጥርዎን ያጋሩ፡-`;
 
       const bannerUrl = `${process.env.WEBHOOK_URL}/uploads/banner.jpg`;
 
@@ -87,12 +91,18 @@ export async function handleStart(ctx: Context) {
 
     const bannerUrl = `${process.env.WEBHOOK_URL}/uploads/banner.jpg`;
     const mainMenuText = 
-      `Welcome to Buna Bingo! ☕️💰\n\n` +
-      `"Rich Flavor, Golden Wins." ✨\n` +
-      `"The Perfect Blend of Luck and Luxury." 🎰\n` +
-      `"Sip, Play, Win: The Royal Buna Way." 👑\n` +
-      `"Buna Bingo — Wake Up to a Jackpot." ☀️🏆\n\n` +
-      `Choose an option below:`;
+      `<b>Welcome to Buna Bingo!</b> ☕️💰\n` +
+      `<b>እንኳን ደና መጡ!</b>\n\n` +
+      `✨ "Rich Flavor, Golden Wins."\n` +
+      `✨ "የቡና ጣዕም፣ ወርቃማ ድሎች።"\n\n` +
+      `🎰 "The Perfect Blend of Luck and Luxury."\n` +
+      `🎰 "የዕድል እና የቅንጦት ፍጹም ውህደት።"\n\n` +
+      `👑 "Sip, Play, Win: The Royal Buna Way."\n` +
+      `👑 "ይጎንጩ፣ ይጫወቱ፣ ያሸንፉ፦ በንጉሳዊው የቡና መንገድ!"\n\n` +
+      `☀️🏆 "Buna Bingo — Wake Up to a Jackpot."\n` +
+      `☀️🏆 "ቡና ቢንጎ — ከጃክፖት ጋር ይንቁ!"\n\n` +
+      `Choose an option below:\n` +
+      `ከታች አንድ አማራጭ ይምረጡ፡-`;
 
     await ctx.replyWithPhoto(bannerUrl, {
       caption: mainMenuText,
