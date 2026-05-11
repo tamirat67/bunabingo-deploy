@@ -6,19 +6,11 @@ import { useRouter } from 'next/navigation';
 import { Trophy, Gift, Wallet as WalletIcon, Target, Play, Dices, ExternalLink, ShieldCheck, History, User, ChevronDown, MoreVertical, X, Coffee } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// ── Coffee, Gold & Espresso Theme (Buna Game Zone) ──────────────────
-const T = {
-  bg:      '#F5E6BE',   // Cream
-  header:  '#3D2B1F',   // Espresso (Dark coffee)
-  gold:    '#D4AF37',   // Gold
-  goldDk:  '#B8860B',   // Deep gold
-  brown:   '#4B3621',   // Coffee
-  card:    '#3D2B1F',   // Espresso row background
-  textL:   '#F5E6BE',   // Cream text for dark backgrounds
-};
+import { useTheme } from '../context/ThemeContext';
 
 export default function LobbyPage() {
   const router = useRouter();
+  const { T } = useTheme();
   const [user, setUser] = useState<any>(null);
   const [wallet, setWallet] = useState<any>(null);
   const [rooms, setRooms] = useState<any[]>([]);

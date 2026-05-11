@@ -16,6 +16,8 @@ export const metadata: Metadata = {
   },
 };
 
+import { ThemeProvider } from '../context/ThemeContext';
+
 export default function RootLayout({
   children,
 }: {
@@ -31,11 +33,13 @@ export default function RootLayout({
         />
       </head>
       <body>
-        <Suspense fallback={null}>
-          {children}
-        </Suspense>
-        <Navbar />
-        <DebugOverlay />
+        <ThemeProvider>
+          <Suspense fallback={null}>
+            {children}
+          </Suspense>
+          <Navbar />
+          <DebugOverlay />
+        </ThemeProvider>
       </body>
     </html>
   );

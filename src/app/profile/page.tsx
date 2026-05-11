@@ -23,56 +23,14 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// ── Theme Definitions ────────────────────────────────────────────────────────
-const THEMES = {
-  GOLDEN: {
-    name: 'Light Golden',
-    bg:      '#F5E6BE',   // Cream
-    header:  '#3D2B1F',   // Espresso
-    gold:    '#D4AF37',   // Gold
-    text:    '#3D2B1F',   // Dark Brown
-    card:    '#FFFFFF',   // White cards
-    cardTxt: '#3D2B1F',
-    border:  'rgba(61,43,31,0.1)'
-  },
-  GRAY: {
-    name: 'Gray Dark',
-    bg:      '#2B2B2B',   // Dark Gray
-    header:  '#1A1A1A',   // Pitch Black
-    gold:    '#E0E0E0',   // Silver
-    text:    '#F5F5F5',   // White-ish
-    card:    '#333333',   // Lighter Gray
-    cardTxt: '#FFFFFF',
-    border:  'rgba(255,255,255,0.05)'
-  },
-  LIGHT: {
-    name: 'System Light',
-    bg:      '#FFFFFF',   // Pure White
-    header:  '#F8F9FA',   // Light Gray
-    gold:    '#007AFF',   // Blue (System)
-    text:    '#000000',   // Black
-    card:    '#F2F2F7',   // System Gray
-    cardTxt: '#000000',
-    border:  'rgba(0,0,0,0.05)'
-  },
-  DARK: {
-    name: 'Dark Mode',
-    bg:      '#121212',   // Amoled Black
-    header:  '#1E1E1E',   // Dark Gray
-    gold:    '#D4AF37',   // Gold
-    text:    '#FFFFFF',   // White
-    card:    '#1E1E1E',   // Dark card
-    cardTxt: '#FFFFFF',
-    border:  'rgba(255,255,255,0.1)'
-  }
-};
+import { useTheme, THEMES } from '../../context/ThemeContext';
 
 export default function ProfilePage() {
   const router = useRouter();
+  const { activeThemeKey, setTheme, T } = useTheme();
   const [profile, setProfile] = useState<any>(null);
   const [mounted, setMounted] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const [activeThemeKey, setActiveThemeKey] = useState<keyof typeof THEMES>('GOLDEN');
   const [showThemePicker, setShowThemePicker] = useState(false);
 
   useEffect(() => {
@@ -82,11 +40,6 @@ export default function ProfilePage() {
     // Load local settings
     const savedSound = localStorage.getItem('game_sound');
     if (savedSound !== null) setSoundEnabled(savedSound === 'true');
-    
-    const savedTheme = localStorage.getItem('app_theme');
-    if (savedTheme && THEMES[savedTheme as keyof typeof THEMES]) {
-      setActiveThemeKey(savedTheme as keyof typeof THEMES);
-    }
 
     refreshData();
   }, []);
@@ -104,9 +57,8 @@ export default function ProfilePage() {
     localStorage.setItem('game_sound', String(newState));
   };
 
-  const selectTheme = (key: keyof typeof THEMES) => {
-    setActiveThemeKey(key);
-    localStorage.setItem('app_theme', key);
+  const selectTheme = (key: any) => {
+    setTheme(key);
     setShowThemePicker(false);
   };
 
