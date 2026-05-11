@@ -170,7 +170,7 @@ export async function handleDepositMessage(ctx: Context): Promise<boolean> {
     );
 
     // Use transaction ID as the reference (unique & verifiable)
-    await submitDeposit(ctx, session.amount!, d.transactionId, undefined, 'telebirr');
+    await submitDeposit(ctx, session.amount!, d.transactionId, undefined, 'telebirr', d);
     return true;
   }
 
@@ -295,7 +295,8 @@ async function submitDeposit(
   amount: number,
   referenceOrSms: string,
   screenshotFileId: string | undefined,
-  paymentMethod?: PaymentMethod
+  paymentMethod?: PaymentMethod,
+  meta?: any
 ) {
   const tgUser = ctx.from!;
   clearSession(tgUser.id);
@@ -336,14 +337,29 @@ async function submitDeposit(
     const userName = tgUser.username ? `@${tgUser.username}` : user.firstName;
     const isSms = paymentMethod === 'telebirr';
 
-    const adminCaption =
+    let adminCaption =
       `📥 *New Manual Deposit — ${methodLabel}*\n\n` +
       `👤 User: ${userName}\n` +
       `💵 Amount: *${amount.toFixed(2)} ETB*\n` +
-      (isSms
+      `🆔 Deposit ID: \`${deposit.id}\`\n\n`;
+
+    if (paymentMethod === 'telebirr' && meta) {
+      const d = meta;
+      const receiptUrl = `https://transactioninfo.ethiotelecom.et/receipt/${d.transactionId}`;
+      adminCaption += 
+        `📱 *Telebirr Receipt Details*\n` +
+        `\`\`\`\n` +
+        `Dear ${d.senderName},\n` +
+        `You have transferred ETB ${d.amount.toFixed(2)} to ${d.recipientName} (${d.recipientPhoneMasked}) ` +
+        `on ${d.dateTime}. Your transaction number is ${d.transactionId}. ` +
+        `The service fee is ETB ${d.serviceFee.toFixed(2)}.\n` +
+        `\`\`\`\n` +
+        `🔗 *Hit link to view receipt:* \n${receiptUrl}`;
+    } else {
+      adminCaption += isSms
         ? `📱 SMS Receipt:\n\`\`\`\n${referenceOrSms}\n\`\`\``
-        : `🔖 Reference: \`${referenceOrSms}\``) +
-      `\n🆔 Deposit ID: \`${deposit.id}\``;
+        : `🔖 Reference: \`${referenceOrSms}\``;
+    }
 
     const adminKeyboard = Markup.inlineKeyboard([
       [
