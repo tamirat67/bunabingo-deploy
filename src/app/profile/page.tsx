@@ -73,8 +73,6 @@ export default function ProfilePage() {
 
   if (!mounted) return null;
 
-  const T = THEMES[activeThemeKey];
-
   return (
     <div style={{ background: T.bg, minHeight: '100vh', paddingBottom: '100px', fontFamily: "'Outfit', sans-serif", color: T.text, transition: 'all 0.3s ease' }}>
       
