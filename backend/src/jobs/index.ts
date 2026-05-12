@@ -1,17 +1,28 @@
 import cron from 'node-cron';
 import axios from 'axios';
 import { runFraudDetection } from './fraud.detector';
+import { updateBotDescription } from './bot.description.updater';
 import { logger } from '../lib/logger';
+import { Telegraf } from 'telegraf';
 
 const SELF_URL = 'https://bunabingo.onrender.com/health';
 
-export function startJobs(): void {
+export function startJobs(bot: Telegraf): void {
   // Fraud detection every 30 minutes
   cron.schedule('*/30 * * * *', async () => {
     try {
       await runFraudDetection();
     } catch (err) {
       logger.error('[Jobs] Fraud detection error:', err);
+    }
+  });
+
+  // Update bot description with active user count every hour
+  cron.schedule('0 * * * *', async () => {
+    try {
+      await updateBotDescription(bot);
+    } catch (err) {
+      logger.error('[Jobs] Bot description update error:', err);
     }
   });
 
@@ -52,5 +63,5 @@ export function startJobs(): void {
     }
   });
 
-  logger.info('✅ Background jobs started (fraud scan every 30min, cleanup every 1h, DB ping every 4min)');
+  logger.info('✅ Background jobs started (fraud scan every 30min, description update every 1h, cleanup every 1h, DB ping every 4min)');
 }

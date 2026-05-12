@@ -71,13 +71,17 @@ async function main() {
   }
 
   // ─── Background Jobs ─────────────────────────────────────
-  startJobs();
+  startJobs(bot);
 
   // ─── Telegram Bot ────────────────────────────────────────
 
   // Non-blocking: don't await so server stays responsive during bot init
   (async () => {
     try {
+      // ── Update bot description on startup ───────────────────────────────────
+      const { updateBotDescription } = await import('./jobs/bot.description.updater');
+      await updateBotDescription(bot);
+
       // ── Register commands in Telegram (command picker) ──────────────────────
       try {
         await bot.telegram.setMyCommands([
