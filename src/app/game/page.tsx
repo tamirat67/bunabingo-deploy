@@ -227,19 +227,38 @@ function GameContent() {
         )}
       </AnimatePresence>
 
-      {/* ── Single BINGO button for all cards ── */}
-      {visible.length > 0 && game?.status === 'RUNNING' && (
-        <motion.div
-          whileTap={{ scale: 0.95 }}
-          onClick={handleBingo}
-          style={{ position: 'fixed', bottom: '15px', left: '15px', right: '15px', background: `linear-gradient(135deg, ${T.gold}, ${T.goldDk})`, color: T.header, padding: '16px', borderRadius: '18px', fontWeight: '900', fontSize: '20px', textAlign: 'center', boxShadow: '0 8px 24px rgba(0,0,0,0.3)', zIndex: 300, cursor: 'pointer', border: `2px solid ${T.goldDk}`, letterSpacing: '1px' }}
-        >
-          ☕ BINGO! &nbsp;<span style={{ fontSize: '13px', opacity: 0.75 }}>({visible.length} card{visible.length > 1 ? 's' : ''} · {prize} ETB)</span>
-        </motion.div>
+      {/* ── Fixed Footer Action Bar ── */}
+      {visible.length > 0 && (game?.status === 'RUNNING' || game?.status === 'COUNTDOWN') && (
+        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: T.card, padding: '15px', borderTop: `2px solid ${T.gold}55`, zIndex: 1000, boxShadow: '0 -4px 20px rgba(0,0,0,0.1)' }}>
+          <motion.button
+            whileTap={game?.status === 'RUNNING' ? { scale: 0.95 } : {}}
+            onClick={handleBingo}
+            disabled={game?.status !== 'RUNNING'}
+            style={{ 
+              width: '100%',
+              background: game?.status === 'RUNNING' ? `linear-gradient(135deg, ${T.gold}, ${T.goldDk})` : 'rgba(0,0,0,0.1)', 
+              color: game?.status === 'RUNNING' ? T.header : 'rgba(0,0,0,0.3)', 
+              padding: '16px', 
+              borderRadius: '18px', 
+              fontWeight: '900', 
+              fontSize: '22px', 
+              textAlign: 'center', 
+              cursor: game?.status === 'RUNNING' ? 'pointer' : 'not-allowed', 
+              border: game?.status === 'RUNNING' ? `2px solid ${T.goldDk}` : 'none', 
+              letterSpacing: '1px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '10px'
+            }}
+          >
+            ☕ BINGO! <span style={{ fontSize: '13px', opacity: 0.7 }}>({prize} ETB)</span>
+          </motion.button>
+        </div>
       )}
 
-      {/* ── Add Board FAB ── */}
-      <motion.div whileTap={{ scale: 0.9 }} onClick={() => router.push(`/tickets/select?type=${game?.room?.type || 'STANDARD'}&price=${stake}`)} style={{ position: 'fixed', bottom: '80px', right: '15px', background: T.header, color: T.gold, padding: '12px 18px', borderRadius: '30px', fontWeight: '900', fontSize: '13px', boxShadow: '0 8px 20px rgba(0,0,0,0.2)', zIndex: 200, cursor: 'pointer', border: `2px solid ${T.gold}` }}>
+      {/* ── Add Board FAB (Shifted up to avoid footer) ── */}
+      <motion.div whileTap={{ scale: 0.9 }} onClick={() => router.push(`/tickets/select?type=${game?.room?.type || 'STANDARD'}&price=${stake}`)} style={{ position: 'fixed', bottom: '100px', right: '15px', background: T.header, color: T.gold, padding: '12px 18px', borderRadius: '30px', fontWeight: '900', fontSize: '13px', boxShadow: '0 8px 20px rgba(0,0,0,0.2)', zIndex: 200, cursor: 'pointer', border: `2px solid ${T.gold}` }}>
         <Plus size={18} style={{ display: 'inline', marginRight: '5px' }} /> ADD BOARD
       </motion.div>
 

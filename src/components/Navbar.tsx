@@ -14,6 +14,7 @@ const navItems = [
 
 function NavContent() {
   const pathname = usePathname() ?? '';
+  if (pathname === '/game') return null;
 
   return (
     <div className="nav-container">
