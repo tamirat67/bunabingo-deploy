@@ -67,82 +67,56 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       { name: 'My Players', icon: FiUsers, path: '/admin/players' },
     ]),
     { name: 'Transactions', icon: FiDollarSign, path: '/admin/transactions' },
-    { name: 'Settings', icon: FiSettings, path: '/admin/settings' },
-  ];
-
   return (
     <div className="admin-layout admin-body">
-      {/* Sidebar */}
-      <aside className="admin-sidebar" style={{ width: isSidebarOpen ? '260px' : '80px' }}>
-        {/* Logo */}
+      <aside className={`admin-sidebar ${isSidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
           <div className="sidebar-logo">
             <FiAward />
           </div>
-          {isSidebarOpen && (
-            <span className="sidebar-title">
-              {isAdmin ? 'ADMIN' : 'AGENT'} PORTAL
-            </span>
-          )}
+          <span className="sidebar-title">BUNA ADMIN</span>
+          <div className="sidebar-toggle" style={{ marginLeft: 'auto' }} onClick={() => setSidebarOpen(false)}>
+            <FiX />
+          </div>
         </div>
 
-        {/* Nav Links */}
         <nav className="sidebar-nav">
-          {navItems.map((item) => {
-            const isActive = pathname === item.path;
-            return (
-              <Link
-                key={item.name}
-                href={item.path}
-                className={`nav-link ${isActive ? 'active' : ''}`}
-              >
-                <item.icon style={{ fontSize: '20px', flexShrink: 0 }} />
-                {isSidebarOpen && <span style={{ marginLeft: '12px' }}>{item.name}</span>}
-              </Link>
-            );
-          })}
+          <NavLink href="/admin" icon={<FiActivity />} label="Dashboard" />
+          <NavLink href="/admin/users" icon={<FiUsers />} label="All Users" />
+          <NavLink href="/admin/agents" icon={<FiShield />} label="All Agents" />
+          <NavLink href="/admin/transactions" icon={<FiCreditCard />} label="Transactions" />
+          <NavLink href="/admin/settings" icon={<FiSettings />} label="Settings" />
         </nav>
 
-        {/* User Footer */}
         <div className="sidebar-footer">
           <div className="user-pill">
-            <div className="user-avatar">
-              {user.firstName[0]}
+            <div className="user-avatar">{user.firstName[0]}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: '800', fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.firstName}</div>
+              <div style={{ fontSize: '10px', opacity: 0.6 }}>{user.role}</div>
             </div>
-            {isSidebarOpen && (
-              <div style={{ overflow: 'hidden', flex: 1 }}>
-                <p style={{ fontSize: '14px', fontWeight: '700', margin: 0 }}>{user.firstName}</p>
-                <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: 0 }}>{user.role}</p>
-              </div>
-            )}
-            {isSidebarOpen && (
-              <button 
-                onClick={() => router.push('/')}
-                style={{ background: 'none', border: 'none', color: 'var(--admin-text-muted)', cursor: 'pointer' }}
-              >
-                <FiLogOut />
-              </button>
-            )}
+            <FiLogOut style={{ cursor: 'pointer', color: '#ef4444' }} onClick={handleLogout} />
           </div>
         </div>
       </aside>
 
-      {/* Main Content */}
       <main className="admin-main">
-        {/* Header */}
         <header className="admin-header">
-          <button 
-            onClick={() => setSidebarOpen(!isSidebarOpen)}
-            style={{ background: 'none', border: 'none', color: 'var(--admin-text-muted)', cursor: 'pointer', padding: '8px' }}
-          >
-            {isSidebarOpen ? <FiX size={24} /> : <FiMenu size={24} />}
-          </button>
+          <div className="sidebar-toggle" onClick={() => setSidebarOpen(true)}>
+            <FiMenu />
+          </div>
           
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '24px' }}>
-             <div style={{ textAlign: 'right' }}>
-                <p style={{ fontSize: '11px', color: 'var(--admin-text-muted)', margin: 0, textTransform: 'uppercase', fontWeight: '800' }}>Balance</p>
-                <p style={{ fontSize: '18px', fontWeight: '900', color: 'var(--admin-accent)', margin: 0 }}>{Number(user.wallet?.balance || 0).toLocaleString()} ETB</p>
-             </div>
+          <div style={{ flex: 1 }}>
+            <h2 style={{ fontSize: '14px', fontWeight: '800', color: '#3d2b1f', textTransform: 'uppercase', letterSpacing: '1px' }}>
+              {pathname === '/admin' ? 'Overview' : pathname.split('/').pop()?.replace('-', ' ')}
+            </h2>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+            <div style={{ textAlign: 'right', display: 'none', md: 'block' }}>
+               <div style={{ fontSize: '10px', fontWeight: '800', color: '#d4af37' }}>PLATFORM BALANCE</div>
+               <div style={{ fontSize: '16px', fontWeight: '900', color: '#3d2b1f' }}>{Number(user.wallet?.balance || 0).toLocaleString()} <span style={{ fontSize: '10px' }}>ETB</span></div>
+            </div>
           </div>
         </header>
 

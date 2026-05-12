@@ -270,7 +270,70 @@
   transition: all 0.3s;
 }
 
-.login-input:focus {
-  border-color: var(--cmd-gold);
-  background: white;
+/* ─── Mobile Responsiveness ─── */
+
+@media (max-width: 1024px) {
+  :root {
+    --sidebar-w: 0px;
+  }
+  
+  .admin-sidebar {
+    position: fixed;
+    left: -280px;
+    height: 100vh;
+    width: 280px;
+    box-shadow: 20px 0 60px rgba(0,0,0,0.2);
+  }
+  
+  .admin-sidebar.open {
+    left: 0;
+    --sidebar-w: 280px;
+  }
+
+  .admin-header {
+    padding: 0 20px;
+  }
+
+  .admin-content {
+    padding: 20px;
+  }
+
+  .stat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .data-table-container {
+    overflow-x: auto;
+    border-radius: 20px;
+  }
+
+  .data-table th, .data-table td {
+    padding: 16px;
+    white-space: nowrap;
+  }
+  
+  .sidebar-toggle {
+    display: flex !important;
+  }
+}
+
+.sidebar-toggle {
+  display: none;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  background: var(--cmd-coffee);
+  color: white;
+  border-radius: 10px;
+  margin-right: 16px;
+  cursor: pointer;
+}
+
+.stat-card-m {
+  padding: 20px;
+}
+
+.stat-value {
+  font-size: 24px;
 }
