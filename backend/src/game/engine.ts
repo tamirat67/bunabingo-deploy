@@ -77,11 +77,15 @@ async function runGame(gameId: string): Promise<void> {
 
   if (!game || game.status === GameStatus.CANCELLED) return;
 
-  // Ensure 10+ UNIQUE players still in game
+  // Ensure 10+ TICKETS and 2+ UNIQUE players still in game
+  const ticketCount = game.tickets.length;
   const uniquePlayers = await prisma.ticket.groupBy({ where: { gameId }, by: ['userId'] });
-  if (uniquePlayers.length < 10 && game.room.type !== 'DEMO') {
-    await cancelGame(gameId, 'Not enough independent players when game started (Min 10)');
-    return;
+  
+  if (game.room.type !== 'DEMO') {
+    if (ticketCount < game.room.minPlayers || uniquePlayers.length < 2) {
+      await cancelGame(gameId, `Not enough players or tickets to start (Min ${game.room.minPlayers} tickets, 2 players)`);
+      return;
+    }
   }
 
   // ─── Special Handling for SPIN rooms (Raffle Draw) ──────────────────────────
@@ -618,14 +622,15 @@ export async function joinGame(
     logger.error('Pusher notification failed but join succeeded:', e);
   }
 
-  // Auto-start countdown if enough UNIQUE players join
-  const minPlayers = game.room.minPlayers;
+  // Auto-start countdown if enough TICKETS join (and at least 2 unique users)
+  const minTickets = game.room.minPlayers; // We use minPlayers field to store minTickets requirement
+  const totalTickets = playerCount;
   const uniquePlayers = await prisma.ticket.groupBy({
     where: { gameId },
     by: ['userId']
   });
   
-  if (uniquePlayers.length >= minPlayers) {
+  if (totalTickets >= minTickets && uniquePlayers.length >= 2) {
     const currentState = activeGames.get(gameId);
     if (!currentState?.countdownTimer) {
       try {
