@@ -109,6 +109,30 @@ function GameContent() {
   const cdText  = countdown !== null ? `${countdown}s` : (game?.status === 'WAITING' ? 'WAIT' : 'LIVE');
   const visible = tickets.filter(t => !hidden.has(t.id));
 
+  const checkAnyBingo = () => {
+    if (drawn.length === 0) return false;
+    const drawnSet = new Set(drawn);
+    for (const t of tickets) {
+      if (hidden.has(t.id)) continue;
+      const rows = t.card?.rows ?? [];
+      if (rows.length === 0) continue;
+      
+      const isMarked = (r: number, c: number) => {
+        const val = rows[r][c];
+        return val === 'FREE' || val === 0 || val === null || drawnSet.has(Number(val));
+      };
+
+      for (let r = 0; r < 5; r++) if ([0,1,2,3,4].every(c => isMarked(r, c))) return true;
+      for (let c = 0; c < 5; c++) if ([0,1,2,3,4].every(r => isMarked(r, c))) return true;
+      if ([0,1,2,3,4].every(i => isMarked(i, i))) return true;
+      if ([0,1,2,3,4].every(i => isMarked(i, 4-i))) return true;
+      if (isMarked(0,0) && isMarked(0,4) && isMarked(4,0) && isMarked(4,4)) return true;
+    }
+    return false;
+  };
+
+  const hasBingo = checkAnyBingo();
+
   return (
     <div style={{ background: T.bg, minHeight: '100vh', paddingBottom: '90px', fontFamily: "'Segoe UI', sans-serif", overflowX: 'hidden' }}>
 
@@ -173,11 +197,9 @@ function GameContent() {
               )))}
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button onClick={() => window.location.reload()} style={{ flex: 1, background: T.header, color: T.gold, border: `2px solid ${T.gold}`, padding: '12px', borderRadius: '14px', fontWeight: 'bold' }}>Refresh</button>
-            <button onClick={() => router.push('/')} style={{ flex: 1, background: '#C0392B', color: 'white', border: 'none', padding: '12px', borderRadius: '14px', fontWeight: 'bold' }}>Leave</button>
           </div>
         </div>
+      </div>
 
         {/* My Cartelas (Right) */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '15px' }}>
@@ -228,32 +250,37 @@ function GameContent() {
       </AnimatePresence>
 
       {/* ── Fixed Footer Action Bar ── */}
-      {visible.length > 0 && (game?.status === 'RUNNING' || game?.status === 'COUNTDOWN') && (
-        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: T.card, padding: '15px', borderTop: `2px solid ${T.gold}55`, zIndex: 1000, boxShadow: '0 -4px 20px rgba(0,0,0,0.1)' }}>
+      {(game?.status === 'RUNNING' || game?.status === 'COUNTDOWN' || game?.status === 'WAITING') && (
+        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: T.card, padding: '10px 15px', borderTop: `2px solid ${T.gold}55`, zIndex: 1000, boxShadow: '0 -4px 20px rgba(0,0,0,0.1)', display: 'flex', gap: '8px' }}>
+          <button onClick={() => window.location.reload()} style={{ width: '45px', height: '45px', background: T.header, color: T.gold, border: `1px solid ${T.gold}55`, borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><RefreshCw size={20} /></button>
+          
           <motion.button
             whileTap={game?.status === 'RUNNING' ? { scale: 0.95 } : {}}
+            animate={hasBingo ? { scale: [1, 1.03, 1], boxShadow: ['0 0 0px #FFD700', '0 0 20px #FFD700', '0 0 0px #FFD700'] } : {}}
+            transition={hasBingo ? { repeat: Infinity, duration: 1.5 } : {}}
             onClick={handleBingo}
             disabled={game?.status !== 'RUNNING'}
             style={{ 
-              width: '100%',
-              background: game?.status === 'RUNNING' ? `linear-gradient(135deg, ${T.gold}, ${T.goldDk})` : 'rgba(0,0,0,0.1)', 
+              flex: 1,
+              background: game?.status === 'RUNNING' ? (hasBingo ? 'linear-gradient(135deg, #F1C40F, #E67E22)' : `linear-gradient(135deg, ${T.gold}, ${T.goldDk})`) : 'rgba(0,0,0,0.05)', 
               color: game?.status === 'RUNNING' ? T.header : 'rgba(0,0,0,0.3)', 
-              padding: '16px', 
-              borderRadius: '18px', 
+              height: '45px', 
+              borderRadius: '12px', 
               fontWeight: '900', 
-              fontSize: '22px', 
+              fontSize: '18px', 
               textAlign: 'center', 
               cursor: game?.status === 'RUNNING' ? 'pointer' : 'not-allowed', 
-              border: game?.status === 'RUNNING' ? `2px solid ${T.goldDk}` : 'none', 
-              letterSpacing: '1px',
+              border: game?.status === 'RUNNING' ? `1px solid ${T.goldDk}` : 'none', 
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '10px'
+              gap: '6px'
             }}
           >
-            ☕ BINGO! <span style={{ fontSize: '13px', opacity: 0.7 }}>({prize} ETB)</span>
+            ☕ BINGO! <span style={{ fontSize: '11px', opacity: 0.7 }}>({prize} ETB)</span>
           </motion.button>
+
+          <button onClick={() => router.push('/')} style={{ width: '45px', height: '45px', background: '#C0392B', color: 'white', border: 'none', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><LogOut size={20} /></button>
         </div>
       )}
 
