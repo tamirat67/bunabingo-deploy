@@ -22,7 +22,10 @@ function SelectionContent() {
   const toggleSelect = (num: number) => {
     setSelected(prev => {
       if (prev.includes(num)) return prev.filter(n => n !== num);
-      if (prev.length >= 100) return prev;
+      if (prev.length >= 5) {
+        alert('Maximum of 5 cards allowed per player');
+        return prev;
+      }
       return [...prev, num];
     });
   };

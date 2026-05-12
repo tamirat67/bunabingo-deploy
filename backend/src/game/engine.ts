@@ -545,7 +545,7 @@ export async function joinGame(
 
   const numTickets = cardIds.length;
   if (numTickets === 0) throw new Error('No cards selected');
-  if (numTickets > 100) throw new Error('Maximum of 100 cards allowed per player');
+  if (numTickets > 5) throw new Error('Maximum of 5 cards allowed per player');
   
   // Clear any existing tickets for this user in this game before adding new ones
   // This prevents 'garbage' or old selections from persisting if the user re-joins
