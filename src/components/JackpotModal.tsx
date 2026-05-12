@@ -121,7 +121,7 @@ export default function JackpotModal({ show, onClose, jackpotAmount }: JackpotMo
             </div>
 
             {/* Rules in Amharic */}
-            <div style={{ spaceY: '15px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
               <div style={{ display: 'flex', gap: '12px' }}>
                 <span style={{ fontSize: '20px' }}>🎉</span>
                 <p style={{ fontSize: '15px', fontWeight: '700', color: T.header }}>ታላቅ ዜና!</p>
