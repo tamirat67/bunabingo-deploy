@@ -3,15 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Trophy, ExternalLink, Sparkles } from 'lucide-react';
 import { markJackpotSeen } from '../lib/api';
-
-const T = {
-  gold: '#F1C40F',
-  goldDk: '#D4AC0D',
-  header: '#2C3E50',
-  bg: '#F4F7F6',
-  card: '#FFFFFF',
-  border: '#E0E6ED',
-};
+import { useTheme } from '../context/ThemeContext';
 
 interface JackpotModalProps {
   show: boolean;
@@ -21,6 +13,7 @@ interface JackpotModalProps {
 
 export default function JackpotModal({ show, onClose, jackpotAmount }: JackpotModalProps) {
   const [mounted, setMounted] = useState(false);
+  const { T } = useTheme();
 
   useEffect(() => {
     setMounted(true);
@@ -76,7 +69,7 @@ export default function JackpotModal({ show, onClose, jackpotAmount }: JackpotMo
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#9B59B6' }}></div>
-               <span style={{ fontWeight: '900', fontSize: '18px', color: T.header, letterSpacing: '0.5px' }}>JAKCPOT</span>
+               <span style={{ fontWeight: '900', fontSize: '18px', color: T.header, letterSpacing: '0.5px' }}>JACKPOT</span>
             </div>
             <button onClick={handleClose} style={{ color: '#95A5A6', border: 'none', background: 'none', cursor: 'pointer' }}>
               <X size={24} />
