@@ -28,7 +28,11 @@ const upload = multer({
   },
 });
 
+import authRouter from './auth';
+
 // ─── PUBLIC Routes (no auth needed) ──────────────────────────
+router.use('/auth', authRouter);
+
 router.get('/rooms', async (_req: Request, res: Response) => {
   try {
     const rooms = await withRetry(() => getRooms());
@@ -798,7 +802,6 @@ import agentRouter from './agent';
 router.use('/agent', agentRouter);
 
 // ─── Auth Routes ──────────────────────────────────────────────
-import authRouter from './auth';
-router.use('/auth', authRouter);
+
 
 export default router;
