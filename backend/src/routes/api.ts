@@ -349,6 +349,26 @@ router.post('/games/join', joinGameLimiter, async (req: Request, res: Response) 
   }
 });
 
+// ─── Get Occupied Cards for Room ────────────────────────────
+router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
+  const { type } = req.params;
+  try {
+    const room = await getRoomWithActiveGame(type as any);
+    const gameId = room?.games[0]?.id;
+    if (!gameId) return res.json({ occupiedIds: [] });
+
+    const tickets = await prisma.ticket.findMany({
+      where: { gameId },
+      select: { card: true }
+    });
+
+    const occupiedIds = tickets.map(t => (t.card as any).id);
+    res.json({ occupiedIds, gameId });
+  } catch (e: any) {
+    res.status(500).json({ error: 'Failed to fetch occupied cards' });
+  }
+});
+
 router.post('/games/:gameId/bingo', async (req: Request, res: Response) => {
   const user = (req as any).user;
   const { gameId } = req.params;

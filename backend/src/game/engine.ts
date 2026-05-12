@@ -551,6 +551,20 @@ export async function joinGame(
   if (numTickets === 0) throw new Error('No cards selected');
   if (numTickets > 5) throw new Error('Maximum of 5 cards allowed per player');
   
+  // Check if any cards are already taken by other users in this game
+  const occupiedTickets = await prisma.ticket.findMany({
+    where: { 
+      gameId,
+      userId: { not: userId } 
+    },
+    select: { card: true }
+  });
+  const takenIds = occupiedTickets.map(t => (t.card as any).id);
+  const duplicates = cardIds.filter(id => takenIds.includes(id));
+  if (duplicates.length > 0) {
+    throw new Error(`Cartela(s) #${duplicates.join(', #')} are already taken by another player!`);
+  }
+
   // Clear any existing tickets for this user in this game before adding new ones
   // This prevents 'garbage' or old selections from persisting if the user re-joins
   if (game.status === GameStatus.WAITING || game.status === GameStatus.COUNTDOWN) {
@@ -617,6 +631,9 @@ export async function joinGame(
 
   try {
     await triggerGameEvent(gameId, 'player-joined', { userId, playerCount, numTickets });
+    await triggerGameEvent(game.roomId, 'card-occupied', { 
+      occupiedIds: (await prisma.ticket.findMany({ where: { gameId }, select: { card: true } })).map(t => (t.card as any).id) 
+    });
     await triggerAdminEvent('player-joined', { gameId, userId, playerCount });
   } catch (e) {
     logger.error('Pusher notification failed but join succeeded:', e);

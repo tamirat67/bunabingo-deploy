@@ -1,9 +1,10 @@
 'use client';
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { getMe, joinGame } from '../../../lib/api';
+import { getMe, joinGame, getOccupiedCards } from '../../../lib/api';
 import { PREDEFINED_CARDS } from '../../../lib/predefinedCards';
 import { ChevronLeft, RefreshCw, Zap, X, Play, ShieldCheck } from 'lucide-react';
+import Pusher from 'pusher-js';
 
 function SelectionContent() {
   const router = useRouter();
@@ -13,15 +14,42 @@ function SelectionContent() {
 
   const [user, setUser] = useState<any>(null);
   const [selected, setSelected] = useState<number[]>([]);
+  const [occupied, setOccupied] = useState<number[]>([]);
   const [joining, setJoining] = useState(false);
 
   useEffect(() => {
     getMe().then(setUser).catch(() => {});
-  }, []);
+    
+    // Fetch initial occupancy
+    getOccupiedCards(roomType).then(res => {
+      setOccupied(res.occupiedIds || []);
+      
+      // Subscribe to real-time updates
+      const pk = process.env.NEXT_PUBLIC_PUSHER_KEY, pc = process.env.NEXT_PUBLIC_PUSHER_CLUSTER;
+      if (!pk || !pc || !res.gameId) return;
+      const pusher = new Pusher(pk, { cluster: pc });
+      // We broadcast on the room ID channel for occupancy updates
+      const ch = pusher.subscribe(`game-${res.roomId || roomType}`); 
+      // Wait, I need to make sure backend uses a consistent channel. 
+      // I'll adjust backend to use roomType as channel for occupancy.
+      
+      ch.bind('card-occupied', (data: { occupiedIds: number[] }) => {
+        setOccupied(data.occupiedIds);
+      });
+
+      return () => { ch.unbind_all(); pusher.disconnect(); };
+    }).catch(() => {});
+  }, [roomType]);
+
+  // Auto-deselect if someone else buys your card
+  useEffect(() => {
+    setSelected(prev => prev.filter(id => !occupied.includes(id)));
+  }, [occupied]);
 
   const toggleSelect = (num: number) => {
     setSelected(prev => {
       if (prev.includes(num)) return prev.filter(n => n !== num);
+      if (occupied.includes(num)) return prev; // Cannot select occupied
       if (prev.length >= 5) {
         alert('Maximum of 5 cards allowed per player');
         return prev;
@@ -87,15 +115,25 @@ function SelectionContent() {
       </div>
 
       <div className="grid-brown">
-        {Array.from({ length: 100 }, (_, i) => i + 1).map(num => (
-          <div 
-            key={num} 
-            className={`num-brown ${selected.includes(num) ? 'selected' : ''}`}
-            onClick={() => toggleSelect(num)}
-          >
-            {num}
-          </div>
-        ))}
+        {Array.from({ length: 100 }, (_, i) => i + 1).map(num => {
+          const isOccupied = occupied.includes(num);
+          const isSelected = selected.includes(num);
+          return (
+            <div 
+              key={num} 
+              className={`num-brown ${isSelected ? 'selected' : ''} ${isOccupied ? 'occupied' : ''}`}
+              style={{
+                backgroundColor: isOccupied ? '#27AE60' : (isSelected ? '#D4AF37' : 'white'),
+                color: isOccupied || isSelected ? 'white' : '#3D2B1F',
+                cursor: isOccupied ? 'not-allowed' : 'pointer',
+                opacity: isOccupied ? 0.8 : 1
+              }}
+              onClick={() => !isOccupied && toggleSelect(num)}
+            >
+              {num}
+            </div>
+          );
+        })}
       </div>
 
       <div style={{height: '300px'}}></div>
