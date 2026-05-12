@@ -195,7 +195,7 @@ function GameContent() {
               <motion.div layout key={t.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ position: 'relative', background: T.card, borderRadius: '16px', overflow: 'hidden', border: `2px solid ${T.gold}55`, boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>
                 <button onClick={() => hideCard(t.id)} style={{ position: 'absolute', top: '4px', right: '5px', width: '20px', height: '20px', background: '#C0392B', color: 'white', border: 'none', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}><X size={10} /></button>
                 <div style={{ background: T.header, padding: '4px 10px', color: T.gold, fontWeight: '900', fontSize: '11px' }}>
-                   #{cardId}
+                   Cartela #{cardId}
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '2px', padding: '5px' }}>
                   {['B','I','N','G','O'].map(l => (
