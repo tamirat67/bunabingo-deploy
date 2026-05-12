@@ -15,12 +15,13 @@ export default function AgentDashboard() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const userData = await api.get('/me');
+        const userResponse = await api.get('/me');
+        const userData = userResponse.data;
         setUser(userData);
         
         // Specifically fetch Agent stats
-        const statsData = await api.get('/agent/stats');
-        setStats(statsData);
+        const statsResponse = await api.get('/agent/stats');
+        setStats(statsResponse.data);
       } catch (err) {
         console.error('Failed to fetch agent stats:', err);
       } finally {

@@ -15,13 +15,14 @@ export default function AdminDashboard() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const userData = await api.get('/me');
+        const userResponse = await api.get('/me');
+        const userData = userResponse.data;
         setUser(userData);
         
         const isAdmin = userData.role === 'ADMIN' || userData.isAdmin;
         const endpoint = isAdmin ? '/admin/analytics' : '/agent/stats';
-        const statsData = await api.get(endpoint);
-        setStats(statsData);
+        const statsResponse = await api.get(endpoint);
+        setStats(statsResponse.data);
       } catch (err) {
         console.error('Failed to fetch stats:', err);
       } finally {

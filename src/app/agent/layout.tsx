@@ -18,7 +18,8 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
   useEffect(() => {
     async function loadUser() {
       try {
-        const userData = await api.get('/me');
+        const response = await api.get('/me');
+        const userData = response.data;
         // Both Agents and Admins can see this, but it's the "Agent view"
         if (userData.role !== 'AGENT' && userData.role !== 'ADMIN' && !userData.isAdmin) {
           router.push('/');

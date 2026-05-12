@@ -15,8 +15,8 @@ export default function AgentPlayersPage() {
 
   async function fetchPlayers() {
     try {
-      const data = await api.get('/agent/players');
-      setPlayers(data.players || []);
+      const response = await api.get('/agent/players');
+      setPlayers(response.data.players || []);
     } catch (err) {
       console.error('Failed to fetch players:', err);
     } finally {

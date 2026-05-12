@@ -18,7 +18,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   useEffect(() => {
     async function loadUser() {
       try {
-        const userData = await api.get('/me');
+        const response = await api.get('/me');
+        const userData = response.data;
         if (userData.role !== 'ADMIN' && userData.role !== 'AGENT' && !userData.isAdmin) {
           router.push('/'); // Redirect non-privileged users
           return;
