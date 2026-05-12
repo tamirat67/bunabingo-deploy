@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { FiSearch, FiUsers, FiTrendingUp } from 'react-icons/fi';
 import api from '@/lib/api';
-import '../../admin.css';
+import '@/app/admin.css';
 
 export default function AgentPlayersPage() {
   const [players, setPlayers] = useState<any[]>([]);

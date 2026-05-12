@@ -8,7 +8,7 @@ import {
   FiSettings, FiLogOut, FiMenu, FiX, FiAward, FiArrowLeft
 } from 'react-icons/fi';
 import api from '@/lib/api';
-import '../admin.css';
+import '@/app/admin.css';
 
 export default function AgentLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setSidebarOpen] = useState(true);

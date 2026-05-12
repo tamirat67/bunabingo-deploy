@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FiLock, FiUser, FiAward, FiAlertCircle } from 'react-icons/fi';
 import api from '@/lib/api';
-import '../admin.css';
+import '@/app/admin.css';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
