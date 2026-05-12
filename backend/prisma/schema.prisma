@@ -97,8 +97,9 @@ model User {
   firstName        String
   lastName         String?
   status           UserStatus  @default(ACTIVE)
-  role             UserRole    @default(PLAYER) // Added role
-  isAdmin          Boolean     @default(false)  // Kept for backward compatibility
+  role             UserRole    @default(PLAYER)
+  password         String?     // For web dashboard login
+  isAdmin          Boolean     @default(false)
   registeredAt     DateTime    @default(now())
   hasSeenJackpot   Boolean     @default(false)
   lastActiveAt     DateTime    @default(now())

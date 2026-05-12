@@ -21,12 +21,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         const response = await api.get('/me');
         const userData = response.data;
         if (userData.role !== 'ADMIN' && userData.role !== 'AGENT' && !userData.isAdmin) {
-          router.push('/'); // Redirect non-privileged users
+          router.push('/admin/login'); // Redirect unauthorized users
           return;
         }
         setUser(userData);
       } catch (err) {
-        router.push('/');
+        router.push('/admin/login');
       }
     }
     loadUser();

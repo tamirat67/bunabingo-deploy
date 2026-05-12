@@ -2,10 +2,11 @@ import { Request, Response, NextFunction } from 'express';
 import { getUserByTelegramId, findOrCreateUser } from '../services/user.service';
 import crypto from 'crypto';
 import { logger } from '../lib/logger';
+import jwt from 'jsonwebtoken';
+import { config } from '../config';
 
 /**
- * Validates Telegram Mini App initData and attaches user to req
- * https://core.telegram.org/bots/webapps#validating-data-received-via-the-mini-app
+ * Validates Telegram Mini App initData OR JWT Token and attaches user to req
  */
 export async function telegramAuthMiddleware(
   req: Request,
@@ -14,7 +15,26 @@ export async function telegramAuthMiddleware(
 ) {
   try {
     const initData = req.headers['x-telegram-init-data'] as string;
+    const authHeader = req.headers['authorization'];
     const isDev = process.env.NODE_ENV !== 'production';
+
+    // ─── 1. Check for JWT (Web Login) ───────────────────────────
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      try {
+        const decoded = jwt.verify(token, config.server.jwtSecret) as any;
+        const user = await getUserByTelegramId(Number(decoded.telegramId));
+        if (user) {
+          if (user.status === 'BANNED') return res.status(403).json({ error: 'Account banned' });
+          (req as any).user = user;
+          return next();
+        }
+      } catch (err) {
+        logger.warn('[Auth] Invalid JWT token provided');
+      }
+    }
+
+    // ─── 2. Check for Telegram InitData ─────────────────────────
 
     // In dev mode with no initData: attach a mock test user so the browser works
     if (!initData) {

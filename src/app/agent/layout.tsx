@@ -22,12 +22,12 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
         const userData = response.data;
         // Both Agents and Admins can see this, but it's the "Agent view"
         if (userData.role !== 'AGENT' && userData.role !== 'ADMIN' && !userData.isAdmin) {
-          router.push('/');
+          router.push('/admin/login');
           return;
         }
         setUser(userData);
       } catch (err) {
-        router.push('/');
+        router.push('/admin/login');
       }
     }
     loadUser();

@@ -797,4 +797,8 @@ router.use('/admin', adminRouter);
 import agentRouter from './agent';
 router.use('/agent', agentRouter);
 
+// ─── Auth Routes ──────────────────────────────────────────────
+import authRouter from './auth';
+router.use('/auth', authRouter);
+
 export default router;

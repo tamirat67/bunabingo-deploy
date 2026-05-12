@@ -9,9 +9,18 @@ const api = axios.create({
 
 api.interceptors.request.use((config) => {
   try {
+    // 1. Check for Telegram InitData
     const initData = getTgInitData();
     if (initData) {
       config.headers['x-telegram-init-data'] = initData;
+    }
+
+    // 2. Check for Web Auth Token (JWT)
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('admin_token');
+      if (token) {
+        config.headers['Authorization'] = `Bearer ${token}`;
+      }
     }
   } catch (e) {
     console.warn('Interceptor error:', e);

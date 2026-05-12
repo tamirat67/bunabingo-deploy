@@ -70,6 +70,27 @@ async function main() {
     logger.error('❌ Failed to initialize rooms:', roomErr);
   }
 
+  // ─── STARTUP HELPERS ───────────────────────────────────────
+  // Initialize default passwords for admins listed in config if they don't have one
+  (async () => {
+    try {
+      const bcrypt = await import('bcrypt');
+      for (const adminTgId of config.bot.adminIds) {
+        const user = await prisma.user.findUnique({ where: { telegramId: BigInt(adminTgId) } });
+        if (user && !user.password) {
+          const hashedPassword = await bcrypt.hash('admin123', 10);
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { password: hashedPassword }
+          });
+          logger.info(`[Setup] Set default password for Admin: ${user.firstName} (TG: ${adminTgId})`);
+        }
+      }
+    } catch (err) {
+      logger.error('[Setup] Failed to initialize admin passwords:', err);
+    }
+  })();
+
   // ─── Background Jobs ─────────────────────────────────────
   startJobs(bot);
 
