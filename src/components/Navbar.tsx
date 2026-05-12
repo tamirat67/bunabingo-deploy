@@ -38,12 +38,18 @@ function NavContent() {
 export default function Navbar() {
   const [mounted, setMounted] = useState(false);
   const { T } = useTheme();
+  const pathname = usePathname();
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   if (!mounted) return null;
+
+  // Hide navbar on management pages
+  if (pathname?.startsWith('/admin') || pathname?.startsWith('/agent')) {
+    return null;
+  }
 
   return (
     <nav className="bottom-navbar" style={{ backgroundColor: T.card, border: `1px solid ${T.border}` }}>

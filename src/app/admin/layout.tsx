@@ -17,6 +17,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     async function loadUser() {
+      // Don't check auth if we are already on the login page
+      if (pathname === '/admin/login') {
+        setUser({ firstName: 'Guest', role: 'GUEST' }); // Temporary guest state
+        return;
+      }
+
       try {
         const response = await api.get('/me');
         const userData = response.data;

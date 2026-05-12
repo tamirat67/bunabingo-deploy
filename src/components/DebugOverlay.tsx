@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { Terminal, X, Trash2 } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 
 let globalLogs: string[] = [];
 let logListeners: ((logs: string[]) => void)[] = [];
@@ -34,6 +35,7 @@ if (typeof window !== 'undefined') {
 export default function DebugOverlay() {
   const [isOpen, setIsOpen] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
+  const pathname = usePathname();
 
   useEffect(() => {
     setLogs(globalLogs);
@@ -43,6 +45,10 @@ export default function DebugOverlay() {
       logListeners = logListeners.filter(l => l !== listener);
     };
   }, []);
+
+  if (pathname?.startsWith('/admin') || pathname?.startsWith('/agent')) {
+    return null;
+  }
 
   if (!isOpen) {
     return (
