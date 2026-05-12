@@ -795,6 +795,28 @@ adminRouter.get('/games/active', async (_req, res) => {
   res.json(games);
 });
 
+adminRouter.get('/rooms', async (_req, res) => {
+  const rooms = await prisma.room.findMany({ orderBy: { ticketPrice: 'asc' } });
+  res.json(rooms);
+});
+
+adminRouter.patch('/rooms/:id', async (req, res) => {
+  const { ticketPrice, minPlayers, isActive } = req.body;
+  try {
+    const updated = await prisma.room.update({
+      where: { id: req.params.id },
+      data: { 
+        ticketPrice: ticketPrice !== undefined ? parseFloat(ticketPrice) : undefined,
+        minPlayers: minPlayers !== undefined ? parseInt(minPlayers) : undefined,
+        isActive: isActive !== undefined ? !!isActive : undefined
+      }
+    });
+    res.json({ success: true, room: updated });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update room' });
+  }
+});
+
 router.use('/admin', adminRouter);
 
 // ─── Agent Routes ─────────────────────────────────────────────
