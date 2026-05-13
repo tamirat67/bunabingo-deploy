@@ -15,6 +15,8 @@ interface ActiveGame {
   drawnNumbers: number[];
   drawInterval?: NodeJS.Timeout;
   countdownTimer?: NodeJS.Timeout;
+  countdownInterval?: NodeJS.Timeout;
+  secondsRemaining?: number;
   numberPool: number[];
 }
 
@@ -32,9 +34,7 @@ function buildNumberPool(): number[] {
 
 // ─── Determine Countdown ──────────────────────────────────────
 function getCountdownSeconds(playerCount: number): number {
-  if (playerCount >= 20) return 5;
-  if (playerCount >= 5)  return 15;
-  return 30;
+  return (config.game.countdown as any).default || 60;
 }
 
 // ─── Start Countdown ──────────────────────────────────────────
@@ -49,23 +49,51 @@ export async function startCountdown(gameId: string, playerCount: number): Promi
     },
   });
 
-  await triggerGameEvent(gameId, 'countdown-start', { seconds, playerCount });
-  logger.info(`[Game ${gameId}] Countdown started: ${seconds}s for ${playerCount} players`);
-
-  const timer = setTimeout(() => runGame(gameId), seconds * 1000);
-
-  const existing = activeGames.get(gameId);
-  if (existing) {
-    existing.countdownTimer = timer;
-  } else {
-    activeGames.set(gameId, {
+  let existing = activeGames.get(gameId);
+  if (!existing) {
+    existing = {
       gameId,
       roomType: 'CASUAL',
       drawnNumbers: [],
       numberPool: buildNumberPool(),
-      countdownTimer: timer,
-    });
+    };
+    activeGames.set(gameId, existing);
   }
+
+  existing.secondsRemaining = seconds;
+
+  // Initial broadcast
+  await triggerGameEvent(gameId, 'countdown-start', { seconds, playerCount });
+  logger.info(`[Game ${gameId}] Countdown started: ${seconds}s for ${playerCount} players`);
+
+  // Clear any existing timer/interval
+  if (existing.countdownInterval) clearInterval(existing.countdownInterval);
+  if (existing.countdownTimer) clearTimeout(existing.countdownTimer);
+
+  // Set up the tick interval
+  existing.countdownInterval = setInterval(async () => {
+    if (existing!.secondsRemaining! > 0) {
+      existing!.secondsRemaining!--;
+      
+      // Get current ticket count for "players count" display
+      const game = await prisma.game.findUnique({
+        where: { id: gameId },
+        include: { tickets: true }
+      });
+      const currentTicketCount = game?.tickets.length || 0;
+
+      await triggerGameEvent(gameId, 'countdown-tick', { 
+        secondsRemaining: existing!.secondsRemaining,
+        playerCount: currentTicketCount 
+      });
+    } else {
+      if (existing!.countdownInterval) {
+        clearInterval(existing!.countdownInterval);
+        existing!.countdownInterval = undefined;
+      }
+      runGame(gameId);
+    }
+  }, 1000);
 }
 
 // ─── Run Game ─────────────────────────────────────────────────
@@ -456,6 +484,7 @@ async function finishGame(gameId: string, reason: string): Promise<void> {
   const state = activeGames.get(gameId);
   if (state?.drawInterval) clearInterval(state.drawInterval);
   if (state?.countdownTimer) clearTimeout(state.countdownTimer);
+  if (state?.countdownInterval) clearInterval(state.countdownInterval);
   activeGames.delete(gameId);
 
   await prisma.game.update({
@@ -484,6 +513,7 @@ export async function cancelGame(gameId: string, reason: string): Promise<void> 
   const state = activeGames.get(gameId);
   if (state?.drawInterval) clearInterval(state.drawInterval);
   if (state?.countdownTimer) clearTimeout(state.countdownTimer);
+  if (state?.countdownInterval) clearInterval(state.countdownInterval);
   activeGames.delete(gameId);
 
   await prisma.game.update({
@@ -630,7 +660,14 @@ export async function joinGame(
   const playerCount = updatedGame?.tickets.length ?? 0; // Total tickets in game
 
   try {
-    await triggerGameEvent(gameId, 'player-joined', { userId, playerCount, numTickets });
+    const currentState = activeGames.get(gameId);
+    await triggerGameEvent(gameId, 'player-joined', { 
+      userId, 
+      playerCount, 
+      numTickets,
+      secondsRemaining: currentState?.secondsRemaining 
+    });
+    await triggerGameEvent(game.roomId, 'player-count-update', { playerCount });
     await triggerGameEvent(game.roomId, 'card-occupied', { 
       occupiedIds: (await prisma.ticket.findMany({ where: { gameId }, select: { card: true } })).map(t => (t.card as any).id) 
     });

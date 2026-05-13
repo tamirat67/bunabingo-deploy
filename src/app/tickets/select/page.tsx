@@ -16,6 +16,7 @@ function SelectionContent() {
   const [selected, setSelected] = useState<number[]>([]);
   const [occupied, setOccupied] = useState<number[]>([]);
   const [joining, setJoining] = useState(false);
+  const [playerCount, setPlayerCount] = useState(0);
 
   useEffect(() => {
     getMe().then(setUser).catch(() => {});
@@ -32,6 +33,10 @@ function SelectionContent() {
       
       ch.bind('card-occupied', (data: { occupiedIds: number[] }) => {
         setOccupied(data.occupiedIds);
+      });
+
+      ch.bind('player-count-update', (data: { playerCount: number }) => {
+        setPlayerCount(data.playerCount);
       });
 
       return () => { ch.unbind_all(); pusher.disconnect(); };
@@ -97,7 +102,7 @@ function SelectionContent() {
       <div className="stats-row-brown">
         <div className="capsule-white"><div className="l">WALLET</div><div className="v">{Number(balance).toFixed(0)}</div></div>
         <div className="capsule-white"><div className="l">BONUS</div><div className="v">0</div></div>
-        <div className="capsule-white"><div className="l">ACTIVE GAME</div><div className="v">{activeGames}</div></div>
+        <div className="capsule-white"><div className="l">PLAYERS</div><div className="v">{playerCount}</div></div>
         <div className="capsule-brown total-box"><div className="l" style={{color: 'rgba(255,255,255,0.5)'}}>STAKE</div><div className="v">{stake}</div></div>
       </div>
 

@@ -98,7 +98,18 @@ function SpinContent() {
       authorizer: ch => ({ authorize: (sid, cb) => pusherAuth(sid, ch.name).then(d => cb(null, d)).catch(e => cb(e, null)) }),
     });
     const ch = pusher.subscribe(`private-game-${gameId}`);
-    ch.bind('countdown-start', (d: any) => setCountdown(d.seconds));
+    ch.bind('countdown-start', (d: any) => {
+      setCountdown(d.seconds);
+      if (d.playerCount !== undefined) setGame((p: any) => p ? { ...p, currentPlayers: d.playerCount } : p);
+    });
+    ch.bind('countdown-tick', (d: any) => {
+      setCountdown(d.secondsRemaining);
+      setGame((p: any) => p ? { ...p, currentPlayers: d.playerCount } : p);
+    });
+    ch.bind('player-joined', (d: any) => {
+      setGame((p: any) => p ? { ...p, currentPlayers: d.playerCount } : p);
+      if (d.secondsRemaining !== undefined) setCountdown(d.secondsRemaining);
+    });
     ch.bind('spin-result', (d: any) => { setCountdown(null); handleRaffleResult(d); });
     return () => { ch.unbind_all(); pusher.disconnect(); };
   }, [gameId, mounted]);

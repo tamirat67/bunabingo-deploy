@@ -38,10 +38,8 @@ export const config = {
       VIP: 10,
     },
     countdown: {
-      2: 30,   // 2 players → 30s
-      5: 15,   // 5+ players → 15s
-      20: 5,   // 20+ players → 5s
-    } as Record<number, number>,
+      default: 60,
+    } as Record<string, number>,
     drawIntervalMs: 3000,         // 3 seconds between draws
     houseEdgePercent: parseFloat(process.env.HOUSE_EDGE_PERCENT || '20'),
     totalNumbers: 75,             // standard bingo 1-75

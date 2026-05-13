@@ -85,7 +85,21 @@ function GameContent() {
       }
     });
 
-    ch.bind('countdown-start', (d: { seconds: number }) => setCountdown(d.seconds));
+    ch.bind('countdown-start', (d: { seconds: number, playerCount?: number }) => {
+      setCountdown(d.seconds);
+      if (d.playerCount !== undefined) setGame((p: any) => p ? { ...p, currentPlayers: d.playerCount } : p);
+    });
+
+    ch.bind('countdown-tick', (d: { secondsRemaining: number, playerCount: number }) => {
+      setCountdown(d.secondsRemaining);
+      setGame((p: any) => p ? { ...p, currentPlayers: d.playerCount } : p);
+    });
+
+    ch.bind('player-joined', (d: { playerCount: number, secondsRemaining?: number }) => {
+      setGame((p: any) => p ? { ...p, currentPlayers: d.playerCount } : p);
+      if (d.secondsRemaining !== undefined) setCountdown(d.secondsRemaining);
+    });
+
     ch.bind('game-update', (d: any) => {
       if (d.status === 'FINISHED') setWinMsg(d.winners?.[0] ? `Card #${(d.winners[0].ticket?.card as any)?.id} WON! 🏆` : 'Game Over');
       setGame((p: any) => p ? { ...p, ...d } : p);
