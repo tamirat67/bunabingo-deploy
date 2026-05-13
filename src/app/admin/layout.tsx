@@ -121,7 +121,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-            <div style={{ textAlign: 'right', display: 'none', md: 'block' }}>
+            <div style={{ textAlign: 'right', display: 'none' }}>
                <div style={{ fontSize: '10px', fontWeight: '800', color: '#d4af37' }}>PLATFORM BALANCE</div>
                <div style={{ fontSize: '16px', fontWeight: '900', color: '#3d2b1f' }}>{Number(user.wallet?.balance || 0).toLocaleString()} <span style={{ fontSize: '10px' }}>ETB</span></div>
             </div>
