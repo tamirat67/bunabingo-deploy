@@ -176,16 +176,28 @@ export async function debitWallet(
   let newBonus = bonus;
 
   if (type === 'TICKET_PURCHASE') {
-    // Use bonus first
-    if (bonus.greaterThan(0)) {
-      const bonusToUse = Decimal.min(bonus, remainingToDebit);
-      newBonus = bonus.sub(bonusToUse);
-      remainingToDebit = remainingToDebit.sub(bonusToUse);
+    // Use main balance first
+    if (balance.greaterThan(0)) {
+      const balanceToUse = Decimal.min(balance, remainingToDebit);
+      newBalance = balance.sub(balanceToUse);
+      remainingToDebit = remainingToDebit.sub(balanceToUse);
     }
+    
+    // Use bonus for the remainder
+    if (remainingToDebit.greaterThan(0)) {
+      if (bonus.greaterThanOrEqualTo(remainingToDebit)) {
+        newBonus = bonus.sub(remainingToDebit);
+        remainingToDebit = new Decimal(0);
+      } else {
+        // This case should ideally not be reached because of the totalAvailable check above,
+        // but it's good for safety.
+        throw new Error('Insufficient total funds');
+      }
+    }
+  } else {
+    // Withdrawal: ONLY use main balance
+    newBalance = balance.sub(remainingToDebit);
   }
-
-  // Use main balance for the rest
-  newBalance = balance.sub(remainingToDebit);
 
   await prisma.wallet.update({
     where: { userId: userId },
