@@ -343,14 +343,6 @@ function GameContent() {
                           }}
                         >
                           {isFree ? '★' : cell}
-                          {/* Called but NOT yet marked - Hint Pulse */}
-                          {callMarked && !userMarked && (
-                             <motion.div 
-                               animate={{ opacity: [0.3, 0.7, 0.3], scale: [1, 1.1, 1] }}
-                               transition={{ repeat: Infinity, duration: 1.5 }}
-                               style={{ position: 'absolute', inset: 0, border: `2px solid ${T.gold}`, borderRadius: '4px' }}
-                             />
-                          )}
                           {userMarked && (
                              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} style={{ position: 'absolute', width: '80%', height: '80%', border: `2px solid ${T.header}`, borderRadius: '50%', opacity: 0.5 }} />
                           )}
