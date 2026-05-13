@@ -75,6 +75,8 @@ function SpinContent() {
   const [countdown, setCountdown] = useState<number | null>(null);
   const [soundOn, setSoundOn] = useState(true);
   const [mounted, setMounted] = useState(false);
+  const [endTime, setEndTime] = useState<number | null>(null);
+  const [serverOff, setServerOff] = useState(0);
   const totalSpun = useRef(0);
 
   useEffect(() => {
@@ -83,6 +85,10 @@ function SpinContent() {
 
     Promise.all([getGame(gameId), getMyCard(gameId)]).then(([g, t]) => {
       setGame(g);
+      if (g.endTime && g.serverTime) {
+        setServerOff(g.serverTime - Date.now());
+        setEndTime(g.endTime);
+      }
       setTickets((t.tickets || []).sort((a: any, b: any) => (a.card?.id || 0) - (b.card?.id || 0)));
       if (g.status === 'COUNTDOWN') setCountdown(g.countdownSeconds);
       if (g.status === 'FINISHED' && g.winners?.length) {
@@ -99,14 +105,26 @@ function SpinContent() {
     });
     const ch = pusher.subscribe(`private-game-${gameId}`);
     ch.bind('countdown-start', (d: any) => {
+      if (d.endTime && d.serverTime) {
+        setServerOff(d.serverTime - Date.now());
+        setEndTime(d.endTime);
+      }
       setCountdown(d.seconds);
       if (d.playerCount !== undefined) setGame((p: any) => p ? { ...p, currentPlayers: d.playerCount } : p);
     });
     ch.bind('countdown-tick', (d: any) => {
+      if (d.endTime && d.serverTime) {
+        setServerOff(d.serverTime - Date.now());
+        setEndTime(d.endTime);
+      }
       setCountdown(d.secondsRemaining);
       setGame((p: any) => p ? { ...p, currentPlayers: d.playerCount } : p);
     });
     ch.bind('player-joined', (d: any) => {
+      if (d.endTime && d.serverTime) {
+        setServerOff(d.serverTime - Date.now());
+        setEndTime(d.endTime);
+      }
       setGame((p: any) => p ? { ...p, currentPlayers: d.playerCount } : p);
       if (d.secondsRemaining !== undefined) setCountdown(d.secondsRemaining);
     });
@@ -116,12 +134,15 @@ function SpinContent() {
 
   // Local countdown fallback for smoothness
   useEffect(() => {
-    if (countdown === null || countdown <= 0) return;
+    if (endTime === null) return;
     const timer = setInterval(() => {
-      setCountdown(prev => (prev !== null && prev > 0 ? prev - 1 : prev));
+      const now = Date.now() + serverOff;
+      const rem = Math.max(0, Math.ceil((endTime - now) / 1000));
+      setCountdown(rem);
+      if (rem <= 0) setEndTime(null);
     }, 1000);
     return () => clearInterval(timer);
-  }, [countdown]);
+  }, [endTime, serverOff]);
 
   const handleRaffleResult = (data: any) => {
     const sold = data.soldCards || [];

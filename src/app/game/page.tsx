@@ -39,6 +39,8 @@ function GameContent() {
   const [winMsg,    setWinMsg]    = useState<string | null>(null);
   const [toast,     setToast]     = useState<string | null>(null);
   const [mounted,   setMounted]   = useState(false);
+  const [endTime,   setEndTime]   = useState<number | null>(null);
+  const [serverOff, setServerOff] = useState(0);
 
   const toastTimer = useRef<any>(null);
 
@@ -49,6 +51,10 @@ function GameContent() {
     const loadData = () => {
       Promise.all([getGame(gameId), getMyCard(gameId)]).then(([g, t]) => {
         setGame(g);
+        if (g.endTime && g.serverTime) {
+          setServerOff(g.serverTime - Date.now());
+          setEndTime(g.endTime);
+        }
         // Sort tickets by card ID for better UX
         const sorted = (t.tickets || []).sort((a: any, b: any) => (a.card?.id || 0) - (b.card?.id || 0));
         setTickets(sorted);
@@ -85,20 +91,32 @@ function GameContent() {
       }
     });
 
-    ch.bind('countdown-start', (d: { seconds: number, playerCount?: number }) => {
+    ch.bind('countdown-start', (d: { seconds: number, playerCount?: number, endTime?: number, serverTime?: number }) => {
       console.log('Pusher: countdown-start', d);
+      if (d.endTime && d.serverTime) {
+        setServerOff(d.serverTime - Date.now());
+        setEndTime(d.endTime);
+      }
       setCountdown(d.seconds);
       if (d.playerCount !== undefined) setGame((p: any) => p ? { ...p, currentPlayers: d.playerCount } : p);
     });
 
-    ch.bind('countdown-tick', (d: { secondsRemaining: number, playerCount: number }) => {
+    ch.bind('countdown-tick', (d: { secondsRemaining: number, playerCount: number, endTime?: number, serverTime?: number }) => {
       console.log('Pusher: countdown-tick', d);
+      if (d.endTime && d.serverTime) {
+        setServerOff(d.serverTime - Date.now());
+        setEndTime(d.endTime);
+      }
       setCountdown(d.secondsRemaining);
       setGame((p: any) => p ? { ...p, currentPlayers: d.playerCount } : p);
     });
 
-    ch.bind('player-joined', (d: { playerCount: number, secondsRemaining?: number }) => {
+    ch.bind('player-joined', (d: { playerCount: number, secondsRemaining?: number, endTime?: number, serverTime?: number }) => {
       console.log('Pusher: player-joined', d);
+      if (d.endTime && d.serverTime) {
+        setServerOff(d.serverTime - Date.now());
+        setEndTime(d.endTime);
+      }
       setGame((p: any) => p ? { ...p, currentPlayers: d.playerCount } : p);
       if (d.secondsRemaining !== undefined) setCountdown(d.secondsRemaining);
     });
@@ -113,12 +131,15 @@ function GameContent() {
 
   // Local countdown fallback for smoothness
   useEffect(() => {
-    if (countdown === null || countdown <= 0) return;
+    if (endTime === null) return;
     const timer = setInterval(() => {
-      setCountdown(prev => (prev !== null && prev > 0 ? prev - 1 : prev));
+      const now = Date.now() + serverOff;
+      const rem = Math.max(0, Math.ceil((endTime - now) / 1000));
+      setCountdown(rem);
+      if (rem <= 0) setEndTime(null);
     }, 1000);
     return () => clearInterval(timer);
-  }, [countdown]);
+  }, [endTime, serverOff]);
 
   const isCalled   = (n: number) => drawn.includes(n);
   const hideCard   = (id: string) => setHidden(p => new Set([...p, id]));

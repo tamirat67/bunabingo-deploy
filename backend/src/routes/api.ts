@@ -558,7 +558,9 @@ router.get('/games/:gameId', async (req: Request, res: Response) => {
   res.json({
     ...game,
     countdownSeconds: state?.secondsRemaining ?? (game as any).countdownSeconds,
-    currentPlayers: state?.secondsRemaining !== undefined ? (game as any).tickets?.length : (game as any).currentPlayers
+    currentPlayers: state?.secondsRemaining !== undefined ? (game as any).tickets?.length : (game as any).currentPlayers,
+    endTime: state?.secondsRemaining ? (Date.now() + state.secondsRemaining * 1000) : undefined,
+    serverTime: Date.now()
   });
 });
 

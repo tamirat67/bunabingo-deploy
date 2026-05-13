@@ -62,8 +62,8 @@ export async function startCountdown(gameId: string, playerCount: number): Promi
 
   existing.secondsRemaining = seconds;
 
-  // Initial broadcast
-  await triggerGameEvent(gameId, 'countdown-start', { seconds, playerCount });
+  const endTime = Date.now() + seconds * 1000;
+  await triggerGameEvent(gameId, 'countdown-start', { seconds, playerCount, endTime, serverTime: Date.now() });
   logger.info(`[Game ${gameId}] Countdown started: ${seconds}s for ${playerCount} players`);
 
   // Clear any existing timer/interval
@@ -84,9 +84,12 @@ export async function startCountdown(gameId: string, playerCount: number): Promi
 
       logger.info(`[Game ${gameId}] Countdown tick: ${existing!.secondsRemaining}s, Players: ${currentTicketCount}`);
 
+      const endTime = Date.now() + existing!.secondsRemaining! * 1000;
       await triggerGameEvent(gameId, 'countdown-tick', { 
         secondsRemaining: existing!.secondsRemaining,
-        playerCount: currentTicketCount 
+        playerCount: currentTicketCount,
+        endTime,
+        serverTime: Date.now()
       });
     } else {
       if (existing!.countdownInterval) {
@@ -113,7 +116,8 @@ async function runGame(gameId: string): Promise<void> {
   
   if (game.room.type !== 'DEMO') {
     if (ticketCount < game.room.minPlayers || uniquePlayers.length < 2) {
-      await cancelGame(gameId, `Not enough players or tickets to start (Min ${game.room.minPlayers} tickets, 2 players)`);
+      logger.info(`[Game ${gameId}] Loop: Not enough players/tickets (${ticketCount}/${game.room.minPlayers}). Restarting countdown.`);
+      await startCountdown(gameId, ticketCount);
       return;
     }
   }
@@ -663,11 +667,14 @@ export async function joinGame(
 
   try {
     const currentState = activeGames.get(gameId);
+    const endTime = currentState?.secondsRemaining ? (Date.now() + currentState.secondsRemaining * 1000) : undefined;
     await triggerGameEvent(gameId, 'player-joined', { 
       userId, 
       playerCount, 
       numTickets,
-      secondsRemaining: currentState?.secondsRemaining 
+      secondsRemaining: currentState?.secondsRemaining,
+      endTime,
+      serverTime: Date.now()
     });
     await triggerGameEvent(game.roomId, 'player-count-update', { playerCount });
     await triggerGameEvent(game.roomId, 'card-occupied', { 
