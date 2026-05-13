@@ -131,6 +131,7 @@ router.get('/me', async (req: Request, res: Response) => {
       telegramId: user.telegramId?.toString(),
       telegramUsername: user.username,
       isAdmin: user.isAdmin,
+      role: user.role,
       hasSeenJackpot: user.hasSeenJackpot,
       jackpot: {
         amount: jackpot.currentAmount.toString(),
