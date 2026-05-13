@@ -12,7 +12,10 @@ const router = Router();
  * Standard username (telegramId) and password login for Admins/Agents
  */
 router.post('/login', async (req: Request, res: Response) => {
-  const { username, password } = req.body;
+  let { username, password } = req.body;
+  if (username && username.startsWith('@')) {
+    username = username.substring(1);
+  }
 
   if (!username || !password) {
     return res.status(400).json({ error: 'Username and password are required' });
