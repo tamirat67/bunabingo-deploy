@@ -86,10 +86,9 @@ function GameContent() {
       if (toastTimer.current) clearTimeout(toastTimer.current);
       toastTimer.current = setTimeout(() => setToast(null), 2500);
 
-      if (soundOn && typeof window !== 'undefined' && 'speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        const u = new SpeechSynthesisUtterance(`${colLabel(num)} ${num}`);
-        u.rate = 1.0; window.speechSynthesis.speak(u);
+      if (soundOn) {
+        const audio = new Audio(`/audio/${colLabel(num)}${num}.mp3`);
+        audio.play().catch(e => console.warn('Audio play failed:', e));
       }
     });
 
@@ -127,9 +126,23 @@ function GameContent() {
       if (d.status === 'FINISHED') {
         const winner = d.winners?.[0];
         setWinMsg(winner ? `Card #${(winner.ticket?.card as any)?.id} WON! 🏆` : 'Game Over');
+        
+        if (soundOn) {
+          const audio = new Audio('/audio/stop.mp3');
+          audio.play().catch(e => console.warn('Audio play failed:', e));
+        }
+
         // Auto-redirect to lobby after 8 seconds
         setTimeout(() => router.push('/'), 8000);
       }
+
+      if (d.status === 'RUNNING') {
+        if (soundOn) {
+          const audio = new Audio('/audio/start.mp3');
+          audio.play().catch(e => console.warn('Audio play failed:', e));
+        }
+      }
+
       setGame((p: any) => p ? { ...p, ...d } : p);
     });
 
@@ -167,6 +180,10 @@ function GameContent() {
     try { 
       const res = await claimBingo(gameId);
       if (res.won) {
+        if (soundOn) {
+          const audio = new Audio('/audio/stop.mp3');
+          audio.play().catch(e => console.warn('Audio play failed:', e));
+        }
         setToast(`🎊 BINGO! ${res.mode} (+${res.prize} ETB)`);
         if (toastTimer.current) clearTimeout(toastTimer.current);
         toastTimer.current = setTimeout(() => setToast(null), 4000);
