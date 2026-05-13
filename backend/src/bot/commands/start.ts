@@ -40,7 +40,7 @@ export async function handleStart(ctx: Context) {
     await getOrCreateWallet(user.id);
 
     // ── 3a. Phone not yet collected → smart contextual contact-share prompt ────
-    if (!user.phoneNumber) {
+    if (!user.phone) {
       logger.info(`[Start] User ${tgUser.id} needs phone. Referred by: ${referrerName ?? 'none'}`);
 
       // Build message depending on whether they came via invite link

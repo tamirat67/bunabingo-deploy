@@ -61,7 +61,7 @@ export async function handleAdminDeposits(ctx: Context) {
       `📥 *Deposit Request*\n\n` +
       `👤 User: ${userName}\n` +
       `💵 Amount: *${Number(dep.amount).toFixed(2)} ETB*\n` +
-      `🔖 Reference: ${dep.reference || 'N/A'}\n` +
+      `🔖 Reference: ${dep.txnId || 'N/A'}\n` +
       `📅 Submitted: ${dep.createdAt.toLocaleString()}`,
       {
         parse_mode: 'Markdown',

@@ -29,8 +29,8 @@ export async function handleInvite(ctx: Context) {
       `Share your personal invite link and earn <b>5 ETB bonus</b> for every friend who joins!\n\n`+
       `🔗 <b>Your invite link:</b>\n` +
       `<a href="${inviteLink}">${inviteLink}</a>\n\n` +
-      `👥 Friends referred: <b>${user.referralCount}</b>\n` +
-      `💰 Bonus earned: <b>${(user.referralCount * 5).toFixed(2)} ETB</b>\n\n` +
+      `👥 Friends referred: <b>${user._count?.referrals || 0}</b>\n` +
+      `💰 Bonus earned: <b>${((user._count?.referrals || 0) * 5).toFixed(2)} ETB</b>\n\n` +
       `✨ <i>Invite more friends to grow your jackpot!</i>`;
 
     await ctx.replyWithPhoto(bannerUrl, {

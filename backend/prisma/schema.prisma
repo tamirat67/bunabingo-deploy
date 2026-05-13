@@ -1,5 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
   provider = "prisma-client-js"
@@ -11,55 +9,25 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// ─────────────────────────────────────────────
-//  ENUMS
-// ─────────────────────────────────────────────
-
-enum UserRole {
-  PLAYER
-  AGENT
-  ADMIN
-}
-
-enum UserStatus {
-  ACTIVE
-  SUSPENDED
-  BANNED
-}
-
-enum DepositStatus {
-  PENDING
-  APPROVED
-  REJECTED
-}
-
-enum WithdrawalStatus {
-  PENDING
-  APPROVED
-  REJECTED
-  PROCESSING
-  COMPLETED
-}
-
 enum RoomType {
-  DEMO       // Free practice
-  CASUAL     // 2+ players, ticket: $10
-  STANDARD   // 5+ players, ticket: $20
-  PRO        // 10+ players, ticket: $50
-  JACKPOT    // 20+ players, ticket: $100
-  VIP        // VIP room, ticket: $200
-  SPIN_10    // Instant win: $10
-  SPIN_20    // Instant win: $20
-  SPIN_50    // Instant win: $50
-  SPIN_100   // Instant win: $100
+  DEMO
+  CASUAL
+  STANDARD
+  PRO
+  JACKPOT
+  VIP
+  SPIN_10
+  SPIN_20
+  SPIN_50
+  SPIN_100
 }
 
 enum GameStatus {
-  WAITING     // Accepting players
-  COUNTDOWN   // Countdown started
-  RUNNING     // Numbers being drawn
-  FINISHED    // Game over
-  CANCELLED   // Not enough players
+  WAITING
+  COUNTDOWN
+  RUNNING
+  FINISHED
+  CANCELLED
 }
 
 enum WinMode {
@@ -70,265 +38,212 @@ enum WinMode {
   FULL_HOUSE
 }
 
-enum TransactionType {
-  DEPOSIT
-  WITHDRAWAL
-  TICKET_PURCHASE
-  PRIZE_WIN
-  REFUND
-  REFERRAL_BONUS
-}
-
-enum TransactionStatus {
-  PENDING
-  COMPLETED
-  FAILED
-  REVERSED
-}
-
-// ─────────────────────────────────────────────
-//  MODELS
-// ─────────────────────────────────────────────
-
 model User {
-  id               String      @id @default(uuid())
-  telegramId       BigInt      @unique
-  telegramUsername String?
-  firstName        String
-  lastName         String?
-  status           UserStatus  @default(ACTIVE)
-  role             UserRole    @default(PLAYER)
-  password         String?     // For web dashboard login
-  isAdmin          Boolean     @default(false)
-  registeredAt     DateTime    @default(now())
-  hasSeenJackpot   Boolean     @default(false)
-  lastActiveAt     DateTime    @default(now())
-  ipHash           String?     // hashed for privacy
-  deviceHash       String?
-  phoneNumber      String?
-
-  // Referral / Agent Hierarchy
-  referredById     String?
-  referredBy       User?       @relation("Referral", fields: [referredById], references: [id])
-  referrals        User[]      @relation("Referral")
-
-  agentId          String?     // The Agent who "owns" this player
-  agent            User?       @relation("AgentPlayers", fields: [agentId], references: [id])
-  players          User[]      @relation("AgentPlayers")
-
-  referralCount    Int         @default(0)
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  telegramId       BigInt   @unique @map("telegram_id")
+  username         String?
+  telegramUsername String?  @map("telegram_username")
+  firstName        String?  @map("first_name")
+  lastName         String?  @map("last_name")
+  phone            String?
+  phoneNumber      String?  @map("phone_number") // Some parts of code use this
+  passwordHash     String?  @map("password_hash")
+  referralCode     String?  @unique @map("referral_code")
+  referredBy       String?  @db.Uuid @map("referred_by")
+  role             String   @default("PLAYER")
+  isAdmin          Boolean  @default(false) @map("is_admin")
+  status           String   @default("ACTIVE")
+  hasSeenJackpot   Boolean  @default(false) @map("has_seen_jackpot")
+  lastActiveAt     DateTime @default(now()) @db.Timestamptz(6) @map("last_active_at")
+  createdAt        DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
 
   wallet           Wallet?
   deposits         Deposit[]
   withdrawals      Withdrawal[]
+  transactions     Transaction[]
+  adminLogs        AdminLog[]    @relation("AdminActor")
+  auditLogs        AdminLog[]    @relation("AuditUser")
   tickets          Ticket[]
   winners          Winner[]
-  transactions     Transaction[]
-  auditLogs        AdminLog[]   @relation("AuditUser")
-  adminActions     AdminLog[]   @relation("AdminActor")
 
-  @@index([telegramId])
-  @@index([status])
-  @@index([role])
+  // Self-relation for referrals
+  referrer         User?    @relation("UserReferrals", fields: [referredBy], references: [id])
+  referrals        User[]   @relation("UserReferrals")
+
   @@map("users")
 }
 
-model Jackpot {
-  id              String   @id @default("GLOBAL")
-  currentAmount   Decimal  @default(0) @db.Decimal(18, 2)
-  targetAmount    Decimal  @default(1000) @db.Decimal(18, 2)
-  minTickets      Int      @default(10)      // Minimum tickets in game to contribute
-  contributionPercent Decimal @default(1) @db.Decimal(5, 2) // 1% of ticket price
-  lastWonAt       DateTime?
-  lastWinnerId    String?
-  updatedAt       DateTime @updatedAt
-
-  @@map("jackpots")
-}
-
 model Wallet {
-  id            String   @id @default(uuid())
-  userId        String   @unique
-  balance       Decimal  @default(0) @db.Decimal(18, 2)
-  bonusBalance  Decimal  @default(0) @db.Decimal(18, 2)
-  commissionBalance Decimal @default(0) @db.Decimal(18, 2) // Added for Agents
-  coins         Int      @default(0)
-  totalDeposited Decimal @default(0) @db.Decimal(18, 2)
-  totalWithdrawn Decimal @default(0) @db.Decimal(18, 2)
-  totalWon      Decimal  @default(0) @db.Decimal(18, 2)
-  totalSpent    Decimal  @default(0) @db.Decimal(18, 2)
-  totalCommissionEarned Decimal @default(0) @db.Decimal(18, 2) // Added for Agents
-  updatedAt     DateTime @updatedAt
-  createdAt     DateTime @default(now())
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String   @unique @db.Uuid @map("user_id")
+  balance          Decimal  @default(0) @db.Decimal(20, 4)
+  credit           Decimal  @default(0) @db.Decimal(20, 4)
+  commissionRate   Decimal  @default(0.20) @db.Decimal(5, 4) @map("commission_rate")
+  referralBalance  Decimal  @default(0) @db.Decimal(20, 4) @map("referral_balance")
+  bonusBalance     Decimal  @default(0) @db.Decimal(20, 4) @map("bonus_balance")
+  coins            Int      @default(0)
+  totalDeposited   Decimal  @default(0) @db.Decimal(20, 4) @map("total_deposited")
+  totalWithdrawn   Decimal  @default(0) @db.Decimal(20, 4) @map("total_withdrawn")
+  totalWon         Decimal  @default(0) @db.Decimal(20, 4) @map("total_won")
+  totalSpent       Decimal  @default(0) @db.Decimal(20, 4) @map("total_spent")
+  createdAt        DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt        DateTime @default(now()) @db.Timestamptz(6) @map("updated_at")
 
-  user          User     @relation(fields: [userId], references: [id])
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("wallets")
 }
 
-model Deposit {
-  id            String        @id @default(uuid())
-  userId        String
-  amount        Decimal       @db.Decimal(18, 2)
-  reference     String?       // payment reference number
-  screenshotUrl String?       // uploaded screenshot path
-  status        DepositStatus @default(PENDING)
-  adminNote     String?
-  approvedBy    String?       // admin user id
-  approvedAt    DateTime?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-
-  user          User          @relation(fields: [userId], references: [id])
-
-  @@index([userId])
-  @@index([status])
-  @@map("deposits")
-}
-
-model Withdrawal {
-  id             String           @id @default(uuid())
-  userId         String
-  amount         Decimal          @db.Decimal(18, 2)
-  accountName    String
-  accountNumber  String
-  bankName       String
-  status         WithdrawalStatus @default(PENDING)
-  adminNote      String?
-  approvedBy     String?
-  approvedAt     DateTime?
-  processedAt    DateTime?
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-
-  user           User             @relation(fields: [userId], references: [id])
-
-  @@index([userId])
-  @@index([status])
-  @@map("withdrawals")
-}
-
 model Room {
-  id              String     @id @default(uuid())
-  type            RoomType
-  ticketPrice     Decimal    @db.Decimal(18, 2)
-  minPlayers      Int
-  maxPlayers      Int        @default(100)
-  currentPlayers  Int        @default(0)
-  isActive        Boolean    @default(true)
-  createdAt       DateTime   @default(now())
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  type           RoomType @unique
+  ticketPrice    Decimal  @db.Decimal(20, 4) @map("ticket_price")
+  minPlayers     Int      @default(2) @map("min_players")
+  maxPlayers     Int      @default(100) @map("max_players")
+  currentPlayers Int      @default(0) @map("current_players")
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
 
-  games           Game[]
+  games          Game[]
 
   @@map("rooms")
 }
 
 model Game {
-  id              String      @id @default(uuid())
-  roomId          String
-  status          GameStatus  @default(WAITING)
-  totalPrize      Decimal     @default(0) @db.Decimal(18, 2)
-  houseEdge       Decimal     @default(0) @db.Decimal(18, 2)
-  countdownSeconds Int?
-  startedAt       DateTime?
-  finishedAt      DateTime?
-  cancelledAt     DateTime?
-  cancelReason    String?
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  id               String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  roomId           String      @db.Uuid @map("room_id")
+  status           GameStatus  @default(WAITING)
+  totalPrize       Decimal     @default(0) @db.Decimal(20, 4) @map("total_prize")
+  houseEdge        Decimal     @default(0) @db.Decimal(20, 4) @map("house_edge")
+  countdownSeconds Int?        @map("countdown_seconds")
+  startedAt        DateTime?   @db.Timestamptz(6) @map("started_at")
+  finishedAt       DateTime?   @db.Timestamptz(6) @map("finished_at")
+  cancelledAt      DateTime?   @db.Timestamptz(6) @map("cancelled_at")
+  cancelReason     String?     @map("cancel_reason")
+  createdAt        DateTime    @default(now()) @db.Timestamptz(6) @map("created_at")
 
-  room            Room        @relation(fields: [roomId], references: [id])
-  tickets         Ticket[]
-  drawHistory     DrawHistory[]
-  winners         Winner[]
+  room             Room        @relation(fields: [roomId], references: [id])
+  tickets          Ticket[]
+  winners          Winner[]
+  drawHistory      DrawHistory[]
 
-  @@index([status])
-  @@index([roomId])
   @@map("games")
 }
 
 model Ticket {
-  id        String    @id @default(uuid())
-  userId    String
-  gameId    String
-  card      Json      // 5x5 bingo card as JSON
-  markedNumbers Int[] // numbers auto-marked
-  isWinner  Boolean   @default(false)
-  purchasedAt DateTime @default(now())
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String   @db.Uuid @map("user_id")
+  gameId        String   @db.Uuid @map("game_id")
+  card          Json
+  markedNumbers Json     @map("marked_numbers")
+  isWinner      Boolean  @default(false) @map("is_winner")
+  purchasedAt   DateTime @default(now()) @db.Timestamptz(6) @map("purchased_at")
 
-  user      User      @relation(fields: [userId], references: [id])
-  game      Game      @relation(fields: [gameId], references: [id])
-  winners   Winner[]
+  user          User     @relation(fields: [userId], references: [id])
+  game          Game     @relation(fields: [gameId], references: [id])
+  winners       Winner[]
 
-  @@index([userId, gameId]) // allow multiple tickets per user per game
-  @@index([gameId])
-  @@index([userId])
   @@map("tickets")
 }
 
-model DrawHistory {
-  id         String   @id @default(uuid())
-  gameId     String
-  number     Int
-  drawnAt    DateTime @default(now())
-  sequence   Int      // draw order (1st, 2nd, 3rd...)
-
-  game       Game     @relation(fields: [gameId], references: [id])
-
-  @@index([gameId])
-  @@map("draw_history")
-}
-
 model Winner {
-  id         String   @id @default(uuid())
-  gameId     String
-  userId     String
-  ticketId   String
-  winMode    WinMode
-  prizeAmount Decimal @db.Decimal(18, 2)
-  paidAt     DateTime @default(now())
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  gameId      String   @db.Uuid @map("game_id")
+  userId      String   @db.Uuid @map("user_id")
+  ticketId    String   @db.Uuid @map("ticket_id")
+  winMode     WinMode  @map("win_mode")
+  prizeAmount Decimal  @db.Decimal(20, 4) @map("prize_amount")
+  paidAt      DateTime @default(now()) @db.Timestamptz(6) @map("paid_at")
 
-  game       Game     @relation(fields: [gameId], references: [id])
-  user       User     @relation(fields: [userId], references: [id])
-  ticket     Ticket   @relation(fields: [ticketId], references: [id])
+  game        Game     @relation(fields: [gameId], references: [id])
+  user        User     @relation(fields: [userId], references: [id])
+  ticket      Ticket   @relation(fields: [ticketId], references: [id])
 
-  @@index([gameId])
-  @@index([userId])
   @@map("winners")
 }
 
+model DrawHistory {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  gameId    String   @db.Uuid @map("game_id")
+  number    Int
+  sequence  Int
+  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  game      Game     @relation(fields: [gameId], references: [id])
+
+  @@map("draw_history")
+}
+
+model Deposit {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String?  @db.Uuid @map("user_id")
+  amount      Decimal  @db.Decimal(20, 4)
+  txnId       String   @unique @map("txn_id")
+  receiptUrl  String?  @map("receipt_url")
+  details     String?
+  status      String   @default("pending")
+  createdAt   DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  user        User?    @relation(fields: [userId], references: [id])
+
+  @@map("deposits")
+}
+
+model Withdrawal {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String?  @db.Uuid @map("user_id")
+  amount        Decimal  @db.Decimal(20, 4)
+  bankName      String   @map("bank_name")
+  accountNumber String   @map("account_number")
+  accountName   String   @map("account_name")
+  status        String   @default("pending")
+  createdAt     DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  user          User?    @relation(fields: [userId], references: [id])
+
+  @@map("withdrawals")
+}
+
 model Transaction {
-  id          String            @id @default(uuid())
-  userId      String
-  type        TransactionType
-  amount      Decimal           @db.Decimal(18, 2)
-  balanceBefore Decimal         @db.Decimal(18, 2)
-  balanceAfter  Decimal         @db.Decimal(18, 2)
-  status      TransactionStatus @default(PENDING)
-  referenceId String?           // deposit/withdrawal/game id
-  description String?
-  createdAt   DateTime          @default(now())
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String   @db.Uuid @map("user_id")
+  type          String
+  amount        Decimal  @db.Decimal(20, 4)
+  balanceBefore Decimal  @db.Decimal(20, 4) @map("balance_before")
+  balanceAfter  Decimal  @db.Decimal(20, 4) @map("balance_after")
+  status        String   @default("completed")
+  referenceId   String?  @map("reference_id")
+  description   String?
+  createdAt     DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
 
-  user        User              @relation(fields: [userId], references: [id])
+  user          User     @relation(fields: [userId], references: [id])
 
-  @@index([userId])
-  @@index([type])
   @@map("transactions")
 }
 
 model AdminLog {
-  id          String   @id @default(uuid())
-  adminId     String
-  targetUserId String?
-  action      String
-  details     Json?
-  ipAddress   String?
-  createdAt   DateTime @default(now())
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  adminId      String   @db.Uuid @map("admin_id")
+  action       String
+  targetUserId String?  @db.Uuid @map("target_user_id")
+  details      Json?
+  createdAt    DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
 
-  admin       User     @relation("AdminActor", fields: [adminId], references: [id])
-  targetUser  User?    @relation("AuditUser", fields: [targetUserId], references: [id])
+  admin        User     @relation("AdminActor", fields: [adminId], references: [id])
+  targetUser   User?    @relation("AuditUser", fields: [targetUserId], references: [id])
 
-  @@index([adminId])
-  @@index([action])
   @@map("admin_logs")
+}
+
+model Jackpot {
+  id                  String   @id @default("GLOBAL")
+  currentAmount       Decimal  @default(0) @db.Decimal(18, 2) @map("current_amount")
+  targetAmount        Decimal  @default(1000) @db.Decimal(18, 2) @map("target_amount")
+  minTickets          Int      @default(20) @map("min_tickets")
+  contributionPercent Decimal  @default(0.01) @db.Decimal(5, 4) @map("contribution_percent")
+  lastWonAt           DateTime @default(now()) @db.Timestamptz(6) @map("last_won_at")
+  lastWinnerId        String?  @map("last_winner_id")
+  updatedAt           DateTime @default(now()) @db.Timestamptz(6) @map("updated_at")
+
+  @@map("jackpots")
 }

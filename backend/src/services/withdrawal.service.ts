@@ -2,49 +2,66 @@ import prisma from '../lib/prisma';
 import { debitWallet } from './wallet.service';
 import { triggerAdminEvent, triggerUserEvent } from '../lib/pusher';
 import { logger } from '../lib/logger';
-import { config } from '../config';
+import { notifyAgent } from '../bot/notifier';
 import { Decimal } from '@prisma/client/runtime/library';
 
 export async function createWithdrawalRequest(
   userId: string,
   amount: number,
-  accountName: string,
+  bankName: string,
   accountNumber: string,
-  bankName: string
+  accountName: string
 ) {
-  if (amount < config.withdrawal.minAmount) {
-    throw new Error(`Minimum withdrawal is ${config.withdrawal.minAmount}`);
-  }
-  if (amount > config.withdrawal.maxAmount) {
-    throw new Error(`Maximum withdrawal is ${config.withdrawal.maxAmount}`);
-  }
+  if (amount < 25) throw new Error('Minimum withdrawal is 25 ETB');
 
-  // Check balance
+  // Check balance first
   const wallet = await prisma.wallet.findUnique({ where: { userId } });
-  if (!wallet) throw new Error('Wallet not found');
-  if (new Decimal(wallet.balance.toString()).lessThan(amount)) {
+  if (!wallet || new Decimal(wallet.balance.toString()).lessThan(amount)) {
     throw new Error('Insufficient balance');
   }
 
-  // Check no pending withdrawal
-  const pending = await prisma.withdrawal.findFirst({
-    where: { userId, status: 'PENDING' },
-  });
-  if (pending) throw new Error('You already have a pending withdrawal request');
-
   const withdrawal = await prisma.withdrawal.create({
-    data: { userId, amount, accountName, accountNumber, bankName, status: 'PENDING' },
-    include: { user: { select: { firstName: true, telegramUsername: true } } },
+    data: {
+      userId,
+      amount,
+      bankName,
+      accountNumber,
+      accountName,
+      status: 'pending',
+    },
+    include: { user: { select: { username: true, referredBy: true } } },
   });
 
+  // Notify Admin
   await triggerAdminEvent('new-withdrawal', {
     withdrawalId: withdrawal.id,
     userId,
     amount,
-    userName: withdrawal.user.firstName,
-    accountName,
+    userName: withdrawal.user?.username || 'User',
     bankName,
+    accountNumber,
   });
+
+  // Notify Agent if applicable
+  if (withdrawal.user?.referredBy) {
+    await triggerUserEvent(withdrawal.user.referredBy, 'agent-new-withdrawal', {
+      withdrawalId: withdrawal.id,
+      userId,
+      amount,
+      userName: withdrawal.user?.username || 'User',
+    });
+
+    // Notify agent on Telegram
+    await notifyAgent(
+      withdrawal.user.referredBy,
+      `💸 <b>New Withdrawal Request</b>\n\n` +
+      `👤 <b>Player:</b> ${withdrawal.user?.username || 'Unknown'}\n` +
+      `💰 <b>Amount:</b> ${amount} ETB\n` +
+      `🏦 <b>Bank:</b> ${bankName}\n` +
+      `💳 <b>Account:</b> ${accountNumber}\n\n` +
+      `Please check your agent portal to approve/reject.`
+    );
+  }
 
   logger.info(`Withdrawal request: user ${userId}, amount ${amount}, bank ${bankName}`);
   return withdrawal;
@@ -53,29 +70,25 @@ export async function createWithdrawalRequest(
 export async function approveWithdrawal(withdrawalId: string, adminId: string) {
   const withdrawal = await prisma.withdrawal.findUnique({ where: { id: withdrawalId } });
   if (!withdrawal) throw new Error('Withdrawal not found');
-  if (withdrawal.status !== 'PENDING') throw new Error('Withdrawal already processed');
-
-  // Debit wallet
-  await debitWallet(withdrawal.userId, withdrawal.amount, 'WITHDRAWAL', withdrawalId, 'Withdrawal approved');
+  if (withdrawal.status !== 'pending') throw new Error('Withdrawal already processed');
 
   await prisma.withdrawal.update({
     where: { id: withdrawalId },
-    data: { status: 'COMPLETED', approvedBy: adminId, approvedAt: new Date(), processedAt: new Date() },
+    data: { status: 'approved' },
   });
 
-  await prisma.adminLog.create({
-    data: {
-      adminId,
-      targetUserId: withdrawal.userId,
-      action: 'APPROVE_WITHDRAWAL',
-      details: { withdrawalId, amount: withdrawal.amount },
-    },
-  });
+  if (withdrawal.userId) {
+    await debitWallet(withdrawal.userId, withdrawal.amount, 'WITHDRAWAL', withdrawalId, 'Withdrawal approved');
 
-  await triggerUserEvent(withdrawal.userId, 'withdrawal-approved', {
-    withdrawalId,
-    amount: withdrawal.amount.toString(),
-  });
+    await prisma.adminLog.create({
+      data: { adminId: adminId, targetUserId: withdrawal.userId, action: 'APPROVE_WITHDRAWAL', details: { withdrawalId, amount: withdrawal.amount } },
+    });
+
+    await triggerUserEvent(withdrawal.userId, 'withdrawal-approved', {
+      withdrawalId,
+      amount: withdrawal.amount.toString(),
+    });
+  }
 
   logger.info(`Withdrawal approved: ${withdrawalId} by admin ${adminId}`);
 }
@@ -83,33 +96,36 @@ export async function approveWithdrawal(withdrawalId: string, adminId: string) {
 export async function rejectWithdrawal(withdrawalId: string, adminId: string, reason: string) {
   const withdrawal = await prisma.withdrawal.findUnique({ where: { id: withdrawalId } });
   if (!withdrawal) throw new Error('Withdrawal not found');
-  if (withdrawal.status !== 'PENDING') throw new Error('Withdrawal already processed');
+  if (withdrawal.status !== 'pending') throw new Error('Withdrawal already processed');
 
   await prisma.withdrawal.update({
     where: { id: withdrawalId },
-    data: { status: 'REJECTED', adminNote: reason, approvedBy: adminId, approvedAt: new Date() },
+    data: { status: 'rejected' },
   });
 
-  await prisma.adminLog.create({
-    data: { adminId, targetUserId: withdrawal.userId, action: 'REJECT_WITHDRAWAL', details: { withdrawalId, reason } },
-  });
+  if (withdrawal.userId) {
+    await prisma.adminLog.create({
+      data: { adminId: adminId, targetUserId: withdrawal.userId, action: 'REJECT_WITHDRAWAL', details: { withdrawalId, reason } },
+    });
 
-  await triggerUserEvent(withdrawal.userId, 'withdrawal-rejected', { withdrawalId, reason });
+    await triggerUserEvent(withdrawal.userId, 'withdrawal-rejected', { withdrawalId, reason });
+  }
+
   logger.info(`Withdrawal rejected: ${withdrawalId} — ${reason}`);
 }
 
 export async function getPendingWithdrawals() {
   return prisma.withdrawal.findMany({
-    where: { status: 'PENDING' },
-    include: { user: { select: { firstName: true, telegramUsername: true, telegramId: true } } },
+    where: { status: 'pending' },
+    include: { user: { select: { username: true, telegramId: true, telegramUsername: true, firstName: true } } },
     orderBy: { createdAt: 'asc' },
   });
 }
 
 export async function getUserWithdrawals(userId: string) {
   return prisma.withdrawal.findMany({
-    where: { userId },
     orderBy: { createdAt: 'desc' },
     take: 20,
   });
 }
+

@@ -34,7 +34,7 @@ export async function handleRegister(ctx: Context) {
     await getOrCreateWallet(user.id);
 
     // ── First-time: phone not yet collected → trigger native contact dialog ──
-    if (!user.phoneNumber) {
+    if (!user.phone && !user.phoneNumber) {
       logger.info(`[Register] New user ${tgUser.id} — requesting phone`);
 
       return ctx.reply(
@@ -55,7 +55,7 @@ export async function handleRegister(ctx: Context) {
     // ── Already registered → show profile card ────────────────────────────────
     const wallet = await getOrCreateWallet(user.id);
 
-    const memberSince = user.registeredAt.toLocaleDateString('en-ET', {
+    const memberSince = user.createdAt.toLocaleDateString('en-ET', {
       year: 'numeric', month: 'long', day: 'numeric',
     });
 
@@ -64,11 +64,11 @@ export async function handleRegister(ctx: Context) {
     return ctx.reply(
       `✅ <b>Account Profile</b>\n\n` +
       `👤 <b>Name:</b> ${user.firstName}${user.lastName ? ` ${user.lastName}` : ''}\n` +
-      `📱 <b>Phone:</b> ${user.phoneNumber}\n` +
+      `📱 <b>Phone:</b> ${user.phone || user.phoneNumber}\n` +
       `🆔 <b>Username:</b> ${user.telegramUsername ? `@${user.telegramUsername}` : 'N/A'}\n` +
       `📅 <b>Member Since:</b> ${memberSince}\n` +
       `💰 <b>Balance:</b> ${Number(wallet.balance).toFixed(2)} ETB\n` +
-      `👥 <b>Referrals:</b> ${user.referralCount}`,
+      `👥 <b>Referrals:</b> ${user._count?.referrals || 0}`,
       {
         parse_mode: 'HTML',
         ...Markup.inlineKeyboard([

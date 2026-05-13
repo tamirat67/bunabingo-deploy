@@ -52,8 +52,6 @@ router.post('/auth/register', async (req: Request, res: Response) => {
   const tgUser = (req as any).tgUser; // Attached by middleware for unregistered users
   const { phoneNumber, referredById } = req.body;
 
-  // Phone number is now optional for basic registration
-
   try {
     const user = await findOrCreateUser({
       id: tgUser.id,
@@ -85,7 +83,7 @@ router.post('/auth/verify-phone', async (req: Request, res: Response) => {
   try {
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
-      data: { phoneNumber }
+      data: { phone: phoneNumber }
     });
     res.json({ success: true, user: updatedUser });
   } catch (err) {
@@ -129,9 +127,9 @@ router.get('/me', async (req: Request, res: Response) => {
       id: user.id,
       firstName: user.firstName,
       lastName: user.lastName ?? null,
-      phoneNumber: user.phoneNumber ?? null,
+      phoneNumber: user.phone ?? null,
       telegramId: user.telegramId?.toString(),
-      telegramUsername: user.telegramUsername,
+      telegramUsername: user.username,
       isAdmin: user.isAdmin,
       hasSeenJackpot: user.hasSeenJackpot,
       jackpot: {
@@ -249,8 +247,7 @@ router.post('/me/profile', async (req: Request, res: Response) => {
       where: { id: user.id },
       data: { 
         firstName: firstName || undefined,
-        // We'll store phone in a custom field if we add it, but for now just update firstName
-        // If we want to store phone, we'd need a field in schema.
+        phone: phoneNumber || undefined,
       }
     });
     res.json({ success: true, user: updated });

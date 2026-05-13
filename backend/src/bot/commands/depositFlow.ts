@@ -309,9 +309,9 @@ async function submitDeposit(
       data: {
         userId: user.id,
         amount,
-        reference: referenceOrSms,
-        screenshotUrl: screenshotFileId ?? null,
-        status: 'PENDING',
+        txnId: referenceOrSms,
+        receiptUrl: screenshotFileId ?? null,
+        status: 'pending',
       },
     });
 

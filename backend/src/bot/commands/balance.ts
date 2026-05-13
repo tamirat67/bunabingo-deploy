@@ -12,8 +12,8 @@ export async function handleBalance(ctx: Context) {
     if (ctx.callbackQuery) await ctx.answerCbQuery();
     const wallet = await getOrCreateWallet(user.id);
 
-    const phoneDisplay = user.phoneNumber
-      ? `📱 ${user.phoneNumber}  ✅ *VERIFIED*`
+    const phoneDisplay = user.phone
+      ? `📱 ${user.phone}  ✅ *VERIFIED*`
       : `📱 _No phone linked_`;
 
     await ctx.reply(

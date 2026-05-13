@@ -144,7 +144,7 @@ export async function validateTelebirrSms(
   }
 
   const duplicate = await prisma.deposit.findFirst({
-    where: { reference: { contains: data.transactionId } },
+    where: { txnId: { contains: data.transactionId } },
   });
   if (duplicate) {
     return {

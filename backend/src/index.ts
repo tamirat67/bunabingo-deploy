@@ -12,7 +12,7 @@ import { config } from './config';
 import prisma, { withRetry } from './lib/prisma';
 import { startJobs } from './jobs';
 
-const bot = createBot();
+export const bot = createBot();
 
 async function main() {
   // Global BigInt JSON serialization fix
@@ -85,7 +85,7 @@ async function main() {
           await prisma.user.update({
             where: { id: user.id },
             data: { 
-              password: hashedPassword,
+              passwordHash: hashedPassword,
               role: 'ADMIN',
               isAdmin: true
             }

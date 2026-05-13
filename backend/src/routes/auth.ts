@@ -30,7 +30,7 @@ router.post('/login', async (req: Request, res: Response) => {
       include: { wallet: true }
     });
 
-    if (!user || !user.password) {
+    if (!user || !user.passwordHash) {
       logger.warn(`[Auth] Failed login attempt for: ${username} (User not found or no password set)`);
       return res.status(401).json({ error: 'Invalid credentials or access denied' });
     }
@@ -41,7 +41,7 @@ router.post('/login', async (req: Request, res: Response) => {
     }
 
     // Check password
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await bcrypt.compare(password, user.passwordHash);
     if (!isMatch) {
       logger.warn(`[Auth] Invalid password for user: ${username}`);
       return res.status(401).json({ error: 'Invalid credentials' });
@@ -98,7 +98,7 @@ router.post('/setup-password', async (req: Request, res: Response) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     await prisma.user.update({
       where: { id: user.id },
-      data: { password: hashedPassword }
+      data: { passwordHash: hashedPassword }
     });
 
     res.json({ success: true, message: 'Password set successfully' });

@@ -20,8 +20,8 @@ export const XP_REWARDS = {
 
 export async function getOrCreateWallet(userId: string) {
   return prisma.wallet.upsert({
-    where: { userId },
-    create: { userId, balance: 0 },
+    where: { userId: userId },
+    create: { userId: userId, balance: 0 },
     update: {},
   });
 }
@@ -44,7 +44,7 @@ export async function creditWallet(
   const newBalance = new Decimal(wallet.balance.toString()).add(amt);
 
   await prisma.wallet.update({
-    where: { userId },
+    where: { userId: userId },
     data: {
       balance: newBalance,
       totalDeposited: type === 'DEPOSIT'
@@ -58,13 +58,13 @@ export async function creditWallet(
 
   await prisma.transaction.create({
     data: {
-      userId,
+      userId: userId,
       type,
       amount: amt,
       balanceBefore: wallet.balance,
       balanceAfter: newBalance,
-      status: 'COMPLETED',
-      referenceId,
+      status: 'completed',
+      referenceId: referenceId,
       description,
     },
   });
@@ -83,7 +83,7 @@ export async function creditBonus(
   const newBonus = new Decimal(wallet.bonusBalance.toString()).add(amt);
 
   await prisma.wallet.update({
-    where: { userId },
+    where: { userId: userId },
     data: { bonusBalance: newBonus },
   });
 
@@ -101,7 +101,7 @@ export async function awardCoins(
   const newCoins = wallet.coins + coins;
 
   await prisma.wallet.update({
-    where: { userId },
+    where: { userId: userId },
     data: { coins: newCoins },
   });
 
@@ -134,7 +134,7 @@ export async function convertCoinsToBonus(userId: string): Promise<{
   const newBonus = new Decimal(wallet.bonusBalance.toString()).add(bonusEarned);
 
   await prisma.wallet.update({
-    where: { userId },
+    where: { userId: userId },
     data: { coins: newCoins, bonusBalance: newBonus },
   });
 
@@ -172,7 +172,7 @@ export async function debitWallet(
   const newBalance = balance.sub(amt);
 
   await prisma.wallet.update({
-    where: { userId },
+    where: { userId: userId },
     data: {
       balance: newBalance,
       totalWithdrawn: type === 'WITHDRAWAL'
@@ -186,16 +186,18 @@ export async function debitWallet(
 
   await prisma.transaction.create({
     data: {
-      userId,
+      userId: userId,
       type,
       amount: amt,
       balanceBefore: wallet.balance,
       balanceAfter: newBalance,
-      status: 'COMPLETED',
-      referenceId,
+      status: 'completed',
+      referenceId: referenceId,
       description,
     },
   });
 
   await triggerUserEvent(userId, 'balance-updated', { newBalance: newBalance.toFixed(2) });
 }
+
+

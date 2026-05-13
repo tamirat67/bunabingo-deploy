@@ -1,8 +1,9 @@
 import { Router, Request, Response } from 'express';
 import { agentMiddleware } from '../middleware/auth';
-import { getPlayersUnderAgent } from '../services/user.service';
 import prisma from '../lib/prisma';
 import { logger } from '../lib/logger';
+import { approveDeposit, rejectDeposit } from '../services/deposit.service';
+import { approveWithdrawal, rejectWithdrawal } from '../services/withdrawal.service';
 
 const router = Router();
 
@@ -11,7 +12,6 @@ router.use(agentMiddleware);
 
 /**
  * GET /api/agent/stats
- * Returns high-level statistics for the agent's branch
  */
 router.get('/stats', async (req: Request, res: Response) => {
   const agent = (req as any).user;
@@ -20,29 +20,23 @@ router.get('/stats', async (req: Request, res: Response) => {
     const [
       playerCount,
       totalDeposits,
-      totalGamesPlayed,
       commissionEarned
     ] = await Promise.all([
-      prisma.user.count({ where: { agentId: agent.id } }),
+      prisma.user.count({ where: { referredBy: agent.id } }),
       prisma.deposit.aggregate({
-        where: { user: { agentId: agent.id }, status: 'APPROVED' },
+        where: { user: { referredBy: agent.id }, status: 'approved' },
         _sum: { amount: true }
-      }),
-      prisma.ticket.count({
-        where: { user: { agentId: agent.id } }
       }),
       prisma.wallet.findUnique({
         where: { userId: agent.id },
-        select: { commissionBalance: true, totalCommissionEarned: true }
+        select: { balance: true }
       })
     ]);
 
     res.json({
       playerCount,
       totalDeposits: totalDeposits._sum.amount || 0,
-      totalGamesPlayed,
-      commissionBalance: commissionEarned?.commissionBalance || 0,
-      totalCommissionEarned: commissionEarned?.totalCommissionEarned || 0
+      commissionBalance: commissionEarned?.balance || 0,
     });
   } catch (err) {
     logger.error(`[AgentAPI] Failed to fetch stats for agent ${agent.id}:`, err);
@@ -52,7 +46,6 @@ router.get('/stats', async (req: Request, res: Response) => {
 
 /**
  * GET /api/agent/players
- * Paginated list of players belonging to this agent
  */
 router.get('/players', async (req: Request, res: Response) => {
   const agent = (req as any).user;
@@ -60,39 +53,120 @@ router.get('/players', async (req: Request, res: Response) => {
   const limit = parseInt(req.query.limit as string) || 20;
 
   try {
-    const result = await getPlayersUnderAgent(agent.id, page, limit);
-    res.json(result);
+    const players = await prisma.user.findMany({
+      where: { referredBy: agent.id },
+      skip: (page - 1) * limit,
+      take: limit,
+      orderBy: { createdAt: 'desc' }
+    });
+    const total = await prisma.user.count({ where: { referredBy: agent.id } });
+    
+    res.json({
+      users: players,
+      total,
+      pages: Math.ceil(total / limit)
+    });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch players' });
   }
 });
 
 /**
- * GET /api/agent/transactions
- * Recent transactions from players in this agent's branch
+ * GET /api/agent/deposits/pending
  */
-router.get('/transactions', async (req: Request, res: Response) => {
+router.get('/deposits/pending', async (req: Request, res: Response) => {
   const agent = (req as any).user;
-  const page = parseInt(req.query.page as string) || 1;
-  const limit = 20;
-
   try {
-    const transactions = await prisma.transaction.findMany({
-      where: { user: { agentId: agent.id } },
-      include: { 
-        user: { 
-          select: { firstName: true, telegramUsername: true } 
-        } 
+    const deposits = await prisma.deposit.findMany({
+      where: { 
+        status: 'pending',
+        user: { referredBy: agent.id }
       },
-      orderBy: { createdAt: 'desc' },
-      skip: (page - 1) * limit,
-      take: limit,
+      include: { user: true },
+      orderBy: { createdAt: 'asc' }
+    });
+    res.json(deposits);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch pending deposits' });
+  }
+});
+
+router.post('/deposits/:id/approve', async (req, res) => {
+  const agent = (req as any).user;
+  try {
+    const deposit = await prisma.deposit.findUnique({
+      where: { id: req.params.id },
+      include: { user: true }
     });
 
-    res.json(transactions);
+    if (!deposit || deposit.user?.referredBy !== agent.id) {
+      return res.status(403).json({ error: 'Unauthorized: This player is not in your branch.' });
+    }
+
+    await approveDeposit(req.params.id, agent.id);
+    res.json({ success: true });
+  } catch (e: any) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+router.post('/deposits/:id/reject', async (req, res) => {
+  const agent = (req as any).user;
+  try {
+    const deposit = await prisma.deposit.findUnique({
+      where: { id: req.params.id },
+      include: { user: true }
+    });
+
+    if (!deposit || deposit.user?.referredBy !== agent.id) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    await rejectDeposit(req.params.id, agent.id, req.body.reason || 'Rejected by agent');
+    res.json({ success: true });
+  } catch (e: any) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+/**
+ * GET /api/agent/withdrawals/pending
+ */
+router.get('/withdrawals/pending', async (req, res) => {
+  const agent = (req as any).user;
+  try {
+    const withdrawals = await prisma.withdrawal.findMany({
+      where: { 
+        status: 'pending',
+        user: { referredBy: agent.id }
+      },
+      include: { user: true },
+      orderBy: { createdAt: 'asc' }
+    });
+    res.json(withdrawals);
   } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch transactions' });
+    res.status(500).json({ error: 'Failed to fetch pending withdrawals' });
+  }
+});
+
+router.post('/withdrawals/:id/approve', async (req, res) => {
+  const agent = (req as any).user;
+  try {
+    const wd = await prisma.withdrawal.findUnique({
+      where: { id: req.params.id },
+      include: { user: true }
+    });
+
+    if (!wd || wd.user?.referredBy !== agent.id) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    await approveWithdrawal(req.params.id, agent.id);
+    res.json({ success: true });
+  } catch (e: any) {
+    res.status(400).json({ error: e.message });
   }
 });
 
 export default router;
+
