@@ -360,11 +360,12 @@ router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
 
     const tickets = await prisma.ticket.findMany({
       where: { gameId },
-      select: { card: true }
+      select: { card: true, userId: true }
     });
 
     const occupiedIds = tickets.map(t => (t.card as any).id);
-    res.json({ occupiedIds, gameId, roomId: room.id });
+    const playerCount = new Set(tickets.map(t => t.userId)).size;
+    res.json({ occupiedIds, gameId, roomId: room.id, playerCount });
   } catch (e: any) {
     res.status(500).json({ error: 'Failed to fetch occupied cards' });
   }

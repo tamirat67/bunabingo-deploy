@@ -24,6 +24,7 @@ function SelectionContent() {
     // Fetch initial occupancy
     getOccupiedCards(roomType).then(res => {
       setOccupied(res.occupiedIds || []);
+      setPlayerCount(res.playerCount || 0);
       
       // Subscribe to real-time updates
       const pk = process.env.NEXT_PUBLIC_PUSHER_KEY, pc = process.env.NEXT_PUBLIC_PUSHER_CLUSTER;

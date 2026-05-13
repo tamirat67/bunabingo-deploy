@@ -710,7 +710,9 @@ export async function joinGame(
     where: { id: gameId },
     include: { tickets: true },
   });
-  const playerCount = updatedGame?.tickets.length ?? 0; // Total tickets in game
+  const uniqueUsers = new Set(updatedGame?.tickets.map(t => t.userId) || []);
+  const playerCount = uniqueUsers.size; 
+  const totalTickets = updatedGame?.tickets.length ?? 0;
 
   try {
     const currentState = activeGames.get(gameId);
