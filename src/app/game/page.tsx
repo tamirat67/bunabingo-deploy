@@ -270,13 +270,16 @@ function GameContent() {
               ))}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '2px' }}>
-              {COL_RANGES.map(col => Array.from({ length: 15 }, (_, i) => col.s + i).map(n => (
-                <div key={n} style={{
-                  background: isCalled(n) ? COL_COLOR[col.l] : T.statBg,
-                  color:      isCalled(n) ? 'white' : T.text,
-                  fontSize: '10px', fontWeight: '900', textAlign: 'center', padding: '5.5px 0', borderRadius: '4px'
-                }}>{n}</div>
-              )))}
+              {Array.from({ length: 15 }, (_, i) => COL_RANGES.map(col => {
+                const n = col.s + i;
+                return (
+                  <div key={n} style={{
+                    background: isCalled(n) ? COL_COLOR[col.l] : T.statBg,
+                    color:      isCalled(n) ? 'white' : T.text,
+                    fontSize: '10px', fontWeight: '900', textAlign: 'center', padding: '5.5px 0', borderRadius: '4px'
+                  }}>{n}</div>
+                );
+              }))}
             </div>
           </div>
         </div>
