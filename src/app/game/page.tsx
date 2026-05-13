@@ -164,8 +164,19 @@ function GameContent() {
   const hideCard   = (id: string) => setHidden(p => new Set([...p, id]));
   const handleBingo = async () => {
     if (!gameId) return;
-    try { await claimBingo(gameId); }
-    catch (e: any) { alert(e.response?.data?.error || 'No Bingo yet! Keep playing.'); }
+    try { 
+      const res = await claimBingo(gameId);
+      if (res.won) {
+        setToast(`🎊 BINGO! ${res.mode} (+${res.prize} ETB)`);
+        if (toastTimer.current) clearTimeout(toastTimer.current);
+        toastTimer.current = setTimeout(() => setToast(null), 4000);
+      } else {
+        alert('No Bingo detected yet! Check your patterns.');
+      }
+    }
+    catch (e: any) { 
+      alert(e.response?.data?.error || 'No Bingo yet! Keep playing.'); 
+    }
   };
 
   if (!mounted) return null;
@@ -238,12 +249,17 @@ function GameContent() {
         {/* Master Board (Left) */}
         <div style={{ flex: '0 0 52%', display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <div style={{ flex: 1, background: T.header, borderRadius: '14px', padding: '10px', textAlign: 'center', border: `2px solid ${T.gold}` }}>
+            <div style={{ flex: 1, background: game?.status === 'RUNNING' ? '#27AE60' : T.header, borderRadius: '14px', padding: '10px', textAlign: 'center', border: `2px solid ${T.gold}`, transition: 'background 0.3s' }}>
               <div style={{ color: T.gold, fontSize: '9px', fontWeight: '900' }}>COUNT DOWN</div>
               <div style={{ color: 'white', fontSize: '24px', fontWeight: '900' }}>{cdText}</div>
             </div>
-            <motion.div key={lastBall} initial={{ scale: 0.5 }} animate={{ scale: 1 }} style={{ width: '56px', height: '56px', background: lastBall ? COL_COLOR[colLabel(lastBall)] : T.statBg, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '900', fontSize: '22px', border: `4px solid ${T.gold}`, color: lastBall ? 'white' : T.brown }}>
-              {lastBall ?? '•'}
+            <motion.div key={lastBall} initial={{ scale: 0.5 }} animate={{ scale: 1 }} style={{ width: '65px', height: '65px', background: lastBall ? COL_COLOR[colLabel(lastBall)] : T.statBg, borderRadius: '50%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontWeight: '900', border: `4px solid ${T.gold}`, color: lastBall ? 'white' : T.brown }}>
+              {lastBall ? (
+                <>
+                  <div style={{ fontSize: '14px', lineHeight: 1 }}>{colLabel(lastBall)}</div>
+                  <div style={{ fontSize: '24px', lineHeight: 1 }}>{lastBall}</div>
+                </>
+              ) : '•'}
             </motion.div>
           </div>
 
@@ -321,11 +337,20 @@ function GameContent() {
                             fontWeight: '900', 
                             background: isFree ? '#27AE60' : userMarked ? T.gold : T.statBg, 
                             color: isFree ? 'white' : (userMarked ? T.header : T.text), 
-                            border: (callMarked && !userMarked) ? `2px dashed ${T.gold}` : userMarked ? `1px solid ${T.gold}` : 'none',
-                            position: 'relative'
+                            border: userMarked ? `1px solid ${T.gold}` : 'none',
+                            position: 'relative',
+                            overflow: 'hidden'
                           }}
                         >
                           {isFree ? '★' : cell}
+                          {/* Called but NOT yet marked - Hint Pulse */}
+                          {callMarked && !userMarked && (
+                             <motion.div 
+                               animate={{ opacity: [0.3, 0.7, 0.3], scale: [1, 1.1, 1] }}
+                               transition={{ repeat: Infinity, duration: 1.5 }}
+                               style={{ position: 'absolute', inset: 0, border: `2px solid ${T.gold}`, borderRadius: '4px' }}
+                             />
+                          )}
                           {userMarked && (
                              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} style={{ position: 'absolute', width: '80%', height: '80%', border: `2px solid ${T.header}`, borderRadius: '50%', opacity: 0.5 }} />
                           )}
