@@ -124,7 +124,12 @@ function GameContent() {
     });
 
     ch.bind('game-update', (d: any) => {
-      if (d.status === 'FINISHED') setWinMsg(d.winners?.[0] ? `Card #${(d.winners[0].ticket?.card as any)?.id} WON! 🏆` : 'Game Over');
+      if (d.status === 'FINISHED') {
+        const winner = d.winners?.[0];
+        setWinMsg(winner ? `Card #${(winner.ticket?.card as any)?.id} WON! 🏆` : 'Game Over');
+        // Auto-redirect to lobby after 8 seconds
+        setTimeout(() => router.push('/'), 8000);
+      }
       setGame((p: any) => p ? { ...p, ...d } : p);
     });
 
