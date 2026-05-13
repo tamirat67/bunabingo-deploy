@@ -408,10 +408,10 @@ export async function claimBingoWin(gameId: string, userId: string): Promise<{ w
     if (result.won) {
       // Find the best available win mode that hasn't been claimed yet
       // Priority: FULL_HOUSE > FOUR_CORNERS > DIAGONAL > COLUMN > ROW
-      const priority = ['FULL_HOUSE', 'FOUR_CORNERS', 'DIAGONAL', 'COLUMN', 'ROW'];
+      const priority = ['FULL_HOUSE', 'FOUR_CORNERS', 'DIAGONAL', 'COLUMN', 'ROW'] as const;
       for (const mode of priority) {
-        if (result.modes.includes(mode) && !existingWinModes.has(mode)) {
-          await processWinner(gameId, userId, ticket.id, mode, drawnNumbers);
+        if (result.modes.includes(mode as any) && !existingWinModes.has(mode as any)) {
+          await processWinner(gameId, userId, ticket.id, mode as any, drawnNumbers);
           
           if (mode === 'FULL_HOUSE') {
              const state = activeGames.get(gameId);
