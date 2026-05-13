@@ -183,7 +183,7 @@ function GameContent() {
 
   const isSpin  = game?.room?.type?.startsWith('SPIN_');
   const stake   = game?.room?.ticketPrice || 0;
-  const prize   = stake * (isSpin ? 10 : 8);
+  const prize   = game?.totalPrize ? Number(game.totalPrize) : (tickets.length * stake * 0.8);
   const cdText  = countdown !== null ? `${countdown}s` : (game?.status === 'WAITING' ? 'WAIT' : 'LIVE');
   const visible = tickets.filter(t => !hidden.has(t.id));
 
