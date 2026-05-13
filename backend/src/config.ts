@@ -31,11 +31,11 @@ export const config = {
     },
     minPlayers: {
       DEMO: 1,
-      CASUAL: 10,
-      STANDARD: 10,
-      PRO: 10,
-      JACKPOT: 10,
-      VIP: 10,
+      CASUAL: 3,
+      STANDARD: 3,
+      PRO: 3,
+      JACKPOT: 3,
+      VIP: 3,
     },
     countdown: {
       default: 60,

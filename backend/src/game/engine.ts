@@ -242,7 +242,7 @@ async function runSpinRaffle(gameId: string): Promise<void> {
     include: { tickets: { include: { user: true } }, room: true }
   });
 
-  if (!game || game.tickets.length < 10) return;
+  if (!game || game.tickets.length < game.room.minPlayers) return;
 
   // 1. Pick a random ticket as the winner
   const winnerTicket = game.tickets[Math.floor(Math.random() * game.tickets.length)];
