@@ -8,7 +8,8 @@ import {
   FiSettings, FiLogOut, FiMenu, FiX, FiAward, FiArrowLeft
 } from 'react-icons/fi';
 import api from '@/lib/api';
-import '@/app/admin.css';
+import '../admin.css';
+import '../globals.css';
 
 export default function AgentLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
@@ -58,11 +59,11 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
       <aside className="admin-sidebar" style={{ width: isSidebarOpen ? '260px' : '80px' }}>
         {/* Logo */}
         <div className="sidebar-header">
-          <div className="sidebar-logo" style={{ background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)' }}>
-            <FiAward />
+          <div className="sidebar-logo" style={{ background: 'linear-gradient(135deg, #d4af37, #b8962e)' }}>
+            <FiAward style={{ color: '#000' }} />
           </div>
           {isSidebarOpen && (
-            <span className="sidebar-title">AGENT PORTAL</span>
+            <span className="sidebar-title" style={{ letterSpacing: '2px', fontWeight: '900' }}>BUNA BINGO</span>
           )}
         </div>
 
@@ -75,9 +76,10 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
                 key={item.name}
                 href={item.path}
                 className={`nav-link agent-link ${isActive ? 'active' : ''}`}
+                style={{ borderRadius: '14px', margin: '4px 12px' }}
               >
                 <item.icon style={{ fontSize: '20px', flexShrink: 0 }} />
-                {isSidebarOpen && <span style={{ marginLeft: '12px' }}>{item.name}</span>}
+                {isSidebarOpen && <span style={{ marginLeft: '12px', fontWeight: '700' }}>{item.name}</span>}
               </Link>
             );
           })}
@@ -85,23 +87,15 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
 
         {/* User Footer */}
         <div className="sidebar-footer">
-          <div className="user-pill">
-            <div className="user-avatar" style={{ color: 'var(--agent-accent)' }}>
+          <div className="user-pill" style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '16px' }}>
+            <div className="user-avatar" style={{ background: 'var(--cmd-card)', color: 'var(--agent-accent)', fontWeight: '900' }}>
               {(user.firstName || 'U')[0]}
             </div>
             {isSidebarOpen && (
               <div style={{ overflow: 'hidden', flex: 1 }}>
-                <p style={{ fontSize: '14px', fontWeight: '700', margin: 0 }}>{user.firstName}</p>
-                <p style={{ fontSize: '12px', color: 'var(--admin-text-muted)', margin: 0 }}>Agent Mode</p>
+                <p style={{ fontSize: '13px', fontWeight: '900', color: 'white', margin: 0 }}>{user.firstName}</p>
+                <p style={{ fontSize: '10px', color: 'var(--admin-text-muted)', margin: 0, textTransform: 'uppercase', fontWeight: '800' }}>Verified Agent</p>
               </div>
-            )}
-            {isSidebarOpen && (
-              <button 
-                onClick={() => router.push('/')}
-                style={{ background: 'none', border: 'none', color: 'var(--admin-text-muted)', cursor: 'pointer' }}
-              >
-                <FiLogOut />
-              </button>
             )}
           </div>
         </div>
@@ -113,19 +107,19 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
         <header className="admin-header">
           <button 
             onClick={() => setSidebarOpen(!isSidebarOpen)}
-            style={{ background: 'none', border: 'none', color: 'var(--admin-text-muted)', cursor: 'pointer', padding: '8px' }}
+            style={{ background: 'var(--cmd-card)', border: '1px solid var(--cmd-border)', color: 'white', cursor: 'pointer', padding: '10px', borderRadius: '12px' }}
           >
-            {isSidebarOpen ? <FiX size={24} /> : <FiMenu size={24} />}
+            {isSidebarOpen ? <FiX size={20} /> : <FiMenu size={20} />}
           </button>
           
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '24px' }}>
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '32px' }}>
              <div style={{ textAlign: 'right' }}>
-                <p style={{ fontSize: '11px', color: 'var(--admin-text-muted)', margin: 0, textTransform: 'uppercase', fontWeight: '800' }}>Commission</p>
-                <p style={{ fontSize: '18px', fontWeight: '900', color: 'var(--agent-accent)', margin: 0 }}>{Number(user.wallet?.commissionBalance || 0).toLocaleString()} ETB</p>
+                <p style={{ fontSize: '10px', color: 'var(--admin-text-muted)', margin: 0, textTransform: 'uppercase', fontWeight: '900', letterSpacing: '1px' }}>Balance</p>
+                <p style={{ fontSize: '20px', fontWeight: '900', color: 'var(--agent-accent)', margin: 0 }}>{Number(user.wallet?.commissionBalance || 0).toLocaleString()} <span style={{ fontSize: '12px' }}>ETB</span></p>
              </div>
-             <div style={{ width: '1px', height: '32px', background: 'var(--admin-border)' }}></div>
-             <Link href="/" style={{ color: 'var(--admin-text-muted)', textDecoration: 'none', fontSize: '12px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <FiArrowLeft /> Back to Game
+             <div style={{ width: '1px', height: '40px', background: 'var(--cmd-border)' }}></div>
+             <Link href="/" className="hover:text-gold transition-colors" style={{ color: 'white', textDecoration: 'none', fontSize: '12px', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                <FiArrowLeft size={18} /> BACK TO GAME
              </Link>
           </div>
         </header>

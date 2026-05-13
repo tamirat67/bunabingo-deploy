@@ -36,86 +36,81 @@ export default function SettingsPage() {
   </div>;
 
   return (
-    <div className="max-w-4xl space-y-8">
+    <div className="max-w-4xl mx-auto space-y-10">
       <div>
-        <h1 className="text-3xl font-bold text-white">Settings</h1>
-        <p className="text-gray-400 mt-1">Manage your agent profile and preferences.</p>
+        <h1 className="text-3xl font-black text-white tracking-tight uppercase">Settings</h1>
+        <p className="text-gray-400 mt-1">Manage your agent profile and account security.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {/* Sidebar Nav */}
-        <div className="space-y-2">
-          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-600 text-white font-bold transition-all shadow-lg shadow-blue-600/20">
-            <FiUser /> Profile Info
-          </button>
-          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:bg-white/5 hover:text-white transition-all font-bold">
-            <FiLock /> Security
-          </button>
-          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:bg-white/5 hover:text-white transition-all font-bold">
-            <FiBell /> Notifications
-          </button>
-          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:bg-white/5 hover:text-white transition-all font-bold">
-            <FiShield /> API Keys
-          </button>
-          <div className="pt-4 border-t border-white/5">
-            <button 
-              onClick={handleLogout}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-500 hover:bg-red-500/10 transition-all font-bold"
-            >
-              <FiLogOut /> Log Out
-            </button>
+        {/* Left: Profile Card */}
+        <div className="md:col-span-1 space-y-6">
+          <div className="bg-coffee border border-white/5 rounded-3xl p-8 text-center shadow-2xl relative overflow-hidden">
+            <div className="relative z-10">
+              <div className="w-24 h-24 bg-gold/10 rounded-full mx-auto flex items-center justify-center text-3xl font-black text-gold border-2 border-gold/20 mb-6">
+                {(user.firstName || 'U')[0]}
+              </div>
+              <h2 className="text-xl font-bold text-white">{user.firstName} {user.lastName}</h2>
+              <p className="text-gold text-xs font-black tracking-widest mt-1 uppercase">Official Agent</p>
+              
+              <div className="mt-8 pt-8 border-t border-white/5 flex flex-col gap-3">
+                 <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-500 font-bold">Role</span>
+                    <span className="text-white font-black">{user.role}</span>
+                 </div>
+                 <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-500 font-bold">Status</span>
+                    <span className="text-green-500 font-black">ACTIVE</span>
+                 </div>
+              </div>
+            </div>
+            <div className="absolute top-0 left-0 w-full h-1 bg-gold" />
           </div>
+
+          <button 
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center gap-3 bg-red-500/10 hover:bg-red-500/20 text-red-500 font-black py-4 rounded-2xl transition-all border border-red-500/20"
+          >
+            <FiLogOut /> LOGOUT SESSION
+          </button>
         </div>
 
-        {/* Content Area */}
+        {/* Right: Detailed Settings */}
         <div className="md:col-span-2 space-y-6">
-          <div className="bg-[#161616] border border-white/5 rounded-2xl p-8">
-            <h3 className="font-bold text-lg mb-6">Profile Information</h3>
+          <div className="bg-coffee border border-white/5 rounded-3xl p-8 shadow-2xl">
+            <h3 className="text-lg font-black text-white mb-8 flex items-center gap-3">
+              <FiUser className="text-gold" /> PERSONAL INFORMATION
+            </h3>
+            
             <div className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Username</label>
-                  <div className="bg-black/40 border border-white/10 px-4 py-3 rounded-xl text-gray-400 select-none">
-                    @{user?.username}
-                  </div>
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 block">First Name</label>
+                  <div className="bg-black/40 border border-white/10 p-4 rounded-xl text-white font-bold">{user.firstName}</div>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Role</label>
-                  <div className="bg-black/40 border border-white/10 px-4 py-3 rounded-xl text-blue-500 font-bold uppercase tracking-widest">
-                    {user?.role}
-                  </div>
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 block">Last Name</label>
+                  <div className="bg-black/40 border border-white/10 p-4 rounded-xl text-white font-bold">{user.lastName}</div>
                 </div>
               </div>
-
+              
               <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">First Name</label>
-                <input 
-                  type="text" 
-                  defaultValue={user?.firstName} 
-                  className="w-full bg-white/5 border border-white/10 px-4 py-3 rounded-xl text-white outline-none focus:border-blue-500 transition-all"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Telegram ID</label>
-                <div className="bg-black/40 border border-white/10 px-4 py-3 rounded-xl text-gray-400 select-none font-mono">
-                  {user?.telegramId?.toString()}
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 block">Phone Number</label>
+                <div className="bg-black/40 border border-white/10 p-4 rounded-xl text-white font-bold flex items-center justify-between">
+                  {user.phoneNumber}
+                  <span className="text-[10px] bg-green-500/20 text-green-500 px-2 py-0.5 rounded font-black">VERIFIED</span>
                 </div>
               </div>
-
-              <button className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3 rounded-xl transition-all shadow-lg shadow-blue-600/20">
-                Save Changes
-              </button>
             </div>
           </div>
 
-          <div className="bg-amber-500/5 border border-amber-500/10 rounded-2xl p-6 flex items-start gap-4">
-             <div className="p-2 bg-amber-500/20 rounded-lg text-amber-500">
+          <div className="bg-gold/5 border border-gold/10 rounded-2xl p-6 flex items-start gap-4">
+             <div className="p-2 bg-gold/20 rounded-lg text-gold">
                 <FiShield size={20} />
              </div>
              <div>
-                <h4 className="font-bold text-amber-500 text-sm">Agent Verification</h4>
-                <p className="text-xs text-amber-500/70 mt-1">Your account is fully verified. You have access to all referral and withdrawal processing features.</p>
+                <h4 className="font-bold text-gold text-sm uppercase tracking-widest">Agent Verification</h4>
+                <p className="text-xs text-gray-400 mt-1">Your account is fully verified. You have access to all referral and withdrawal processing features.</p>
              </div>
           </div>
         </div>

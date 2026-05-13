@@ -38,76 +38,60 @@ export default function PlayersPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-white">My Players</h1>
-          <p className="text-gray-400 mt-1">Manage and monitor players in your branch.</p>
+          <h1 className="text-3xl font-black text-white tracking-tight">My Players</h1>
+          <p className="text-gray-400 mt-1">Manage and track players in your branch.</p>
         </div>
-        <div className="bg-blue-600 px-4 py-2 rounded-xl text-white text-sm font-bold flex items-center shadow-lg shadow-blue-600/20">
-          <FiUsers className="mr-2" />
-          {total} TOTAL PLAYERS
+        
+        <div className="relative group">
+          <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" />
+          <input 
+            type="text"
+            placeholder="Search players..."
+            className="bg-coffee border border-white/10 rounded-xl pl-12 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-gold/30 w-full md:w-80 text-white transition-all shadow-lg"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
       </div>
 
-      {/* Search and Filters */}
-      <div className="flex items-center bg-[#161616] border border-white/5 rounded-xl px-4 py-1 focus-within:border-blue-500/50 transition-all">
-        <FiSearch className="text-gray-500 mr-3" />
-        <input 
-          type="text" 
-          placeholder="Search by username or name..." 
-          className="bg-transparent border-none outline-none text-white text-sm py-3 flex-1"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      </div>
-
-      {/* Players List */}
-      <div className="bg-[#161616] border border-white/5 rounded-2xl overflow-hidden">
+      {/* Players Table */}
+      <div className="bg-coffee border border-white/5 rounded-2xl overflow-hidden shadow-2xl">
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
+          <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="text-xs text-gray-500 uppercase font-bold tracking-wider border-y border-white/5 bg-white/[0.02]">
-                <th className="px-6 py-4">Player</th>
-                <th className="px-6 py-4">Joined Date</th>
-                <th className="px-6 py-4">Total Deposited</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4">Actions</th>
+              <tr className="border-bottom border-white/5 bg-white/2">
+                <th className="px-6 py-5 text-xs font-black text-gray-400 uppercase tracking-widest">Player</th>
+                <th className="px-6 py-5 text-xs font-black text-gray-400 uppercase tracking-widest">Phone</th>
+                <th className="px-6 py-5 text-xs font-black text-gray-400 uppercase tracking-widest">Joined</th>
+                <th className="px-6 py-5 text-xs font-black text-gray-400 uppercase tracking-widest text-right">Total Deposited</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {filteredPlayers.length > 0 ? filteredPlayers.map((player, i) => (
-                <tr key={i} className="hover:bg-white/[0.02] transition-colors group">
+              {filteredPlayers.length > 0 ? filteredPlayers.map((player: any) => (
+                <tr key={player.id} className="hover:bg-white/2 transition-colors group">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-500 font-bold">
-                        {(player.firstName || player.username || 'P')[0].toUpperCase()}
+                      <div className="w-10 h-10 rounded-full bg-gold/10 flex items-center justify-center text-gold font-bold">
+                        {(player.firstName || 'P')[0]}
                       </div>
                       <div>
-                        <div className="font-bold text-gray-200">
-                          {player.firstName || 'Anonymous'}
-                        </div>
-                        <div className="text-xs text-gray-500">@{player.username}</div>
+                        <div className="font-bold text-white group-hover:text-gold transition-colors">{player.firstName} {player.lastName}</div>
+                        <div className="text-xs text-gray-500">ID: {player.id.split('-')[0]}</div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-400">
+                  <td className="px-6 py-4 text-sm text-gray-300 font-medium">
+                    {player.phoneNumber}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-500">
                     {new Date(player.createdAt).toLocaleDateString()}
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-1 text-sm font-bold text-gray-200">
-                      <FiDollarSign size={14} className="text-green-500" />
-                      {(player.totalDeposited || 0).toLocaleString()} ETB
+                  <td className="px-6 py-4 text-right">
+                    <div className="text-sm font-black text-gold">
+                      {Number(player._count?.deposits * 100 || 0).toLocaleString()} ETB
                     </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="inline-flex items-center px-2 py-1 rounded-md bg-blue-500/10 text-blue-500 text-[10px] font-bold uppercase tracking-wider">
-                      Active
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <button className="p-2 bg-white/5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-all opacity-0 group-hover:opacity-100">
-                      <FiExternalLink size={18} />
-                    </button>
                   </td>
                 </tr>
               )) : (

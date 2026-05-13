@@ -20,7 +20,8 @@ router.get('/stats', async (req: Request, res: Response) => {
     const [
       playerCount,
       totalDeposits,
-      commissionEarned
+      wallet,
+      totalCommissionEarned
     ] = await Promise.all([
       prisma.user.count({ where: { referredBy: agent.id } }),
       prisma.deposit.aggregate({
@@ -30,13 +31,18 @@ router.get('/stats', async (req: Request, res: Response) => {
       prisma.wallet.findUnique({
         where: { userId: agent.id },
         select: { balance: true }
+      }),
+      prisma.transaction.aggregate({
+        where: { userId: agent.id, type: 'REFERRAL_BONUS' },
+        _sum: { amount: true }
       })
     ]);
-
+ 
     res.json({
       playerCount,
       totalDeposits: totalDeposits._sum.amount || 0,
-      commissionBalance: commissionEarned?.balance || 0,
+      commissionBalance: wallet?.balance || 0,
+      totalCommissionEarned: totalCommissionEarned._sum.amount || 0,
     });
   } catch (err) {
     logger.error(`[AgentAPI] Failed to fetch stats for agent ${agent.id}:`, err);

@@ -43,9 +43,9 @@ export default function AgentDashboard() {
 
   const statCards = [
     { label: 'My Players', value: stats.playerCount, icon: FiUsers, trend: '+5%', up: true, color: 'blue' },
-    { label: 'Deposit Volume', value: `${(stats.totalDeposits || 0).toLocaleString()} ETB`, icon: FiTrendingUp, trend: '+18%', up: true, color: 'amber' },
-    { label: 'Commission Balance', value: `${(stats.commissionBalance || 0).toLocaleString()} ETB`, icon: FiDollarSign, trend: 'Live', up: true, color: 'green' },
-    { label: 'Total Earned', value: `${(stats.totalCommissionEarned || 0).toLocaleString()} ETB`, icon: FiUserCheck, trend: 'All-time', up: true, color: 'purple' },
+    { label: 'Deposit Volume', value: `${(stats.totalDeposits || 0).toLocaleString()} ETB`, icon: FiTrendingUp, trend: '+18%', up: true, color: 'gold' },
+    { label: 'Commission Balance', value: `${(stats.commissionBalance || 0).toLocaleString()} ETB`, icon: FiDollarSign, trend: 'Live', up: true, color: 'gold' },
+    { label: 'Total Earned', value: `${(stats.totalCommissionEarned || 0).toLocaleString()} ETB`, icon: FiUserCheck, trend: 'All-time', up: true, color: 'gold' },
   ];
 
   return (
@@ -53,28 +53,25 @@ export default function AgentDashboard() {
       {/* Welcome Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Branch Overview</h1>
-          <p className="text-gray-500 mt-1">Monitor your performance and track your player activity.</p>
+          <h1 className="text-3xl font-black text-white tracking-tight">Branch Overview</h1>
+          <p className="text-gray-400 mt-1">Monitor your performance and track your player activity.</p>
         </div>
-        <div className="bg-blue-500/10 border border-blue-500/20 px-4 py-2 rounded-xl flex items-center">
-           <FiTarget className="text-blue-500 mr-2" />
-           <span className="text-sm font-bold text-blue-500 uppercase tracking-wider">Top Agent Tier</span>
+        <div className="bg-gold/10 border border-gold/20 px-4 py-2 rounded-xl flex items-center">
+           <FiTarget className="text-gold mr-2" />
+           <span className="text-sm font-bold text-gold uppercase tracking-wider">Top Agent Tier</span>
         </div>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {statCards.map((card, i) => (
-          <div key={i} className="bg-[#161616] border border-white/5 p-6 rounded-2xl relative overflow-hidden group hover:border-blue-500/30 transition-all">
+          <div key={i} className="bg-coffee border border-white/5 p-6 rounded-2xl relative overflow-hidden group hover:border-gold/30 transition-all shadow-2xl">
             <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br opacity-5 group-hover:opacity-10 transition-opacity
-              ${card.color === 'blue' ? 'from-blue-500 to-transparent' : 
-                card.color === 'green' ? 'from-green-500 to-transparent' : 
-                card.color === 'amber' ? 'from-amber-500 to-transparent' : 
-                card.color === 'red' ? 'from-red-500 to-transparent' : 'from-purple-500 to-transparent'}
+              ${card.color === 'blue' ? 'from-blue-500 to-transparent' : 'from-gold to-transparent'}
             `} />
             
             <div className="flex items-center justify-between">
-              <div className={`p-3 rounded-xl bg-white/5 text-${card.color}-500`}>
+              <div className={`p-3 rounded-xl bg-white/5 ${card.color === 'blue' ? 'text-blue-500' : 'text-gold'}`}>
                 <card.icon size={24} />
               </div>
               <div className={`flex items-center text-xs font-medium ${card.up ? 'text-green-500' : 'text-red-500'}`}>
@@ -84,8 +81,8 @@ export default function AgentDashboard() {
             </div>
 
             <div className="mt-4">
-              <p className="text-sm text-gray-500 font-medium uppercase tracking-wider">{card.label}</p>
-              <h2 className="text-2xl font-bold mt-1 tracking-tight">{card.value}</h2>
+              <p className="text-sm text-gray-400 font-medium uppercase tracking-wider">{card.label}</p>
+              <h2 className="text-2xl font-bold mt-1 tracking-tight text-white">{card.value}</h2>
             </div>
           </div>
         ))}
@@ -93,24 +90,27 @@ export default function AgentDashboard() {
 
       {/* Info Boxes */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-         <div className="bg-gradient-to-br from-blue-600/10 to-transparent border border-white/5 rounded-2xl p-8">
-            <h3 className="text-lg font-bold">Your Referral Link</h3>
-            <p className="text-sm text-gray-500 mt-1">New users who join using this link will be added to your branch.</p>
+         <div className="bg-gradient-to-br from-gold/10 to-transparent border border-white/5 rounded-2xl p-8 shadow-xl">
+            <h3 className="text-lg font-bold text-white">Your Referral Link</h3>
+            <p className="text-sm text-gray-400 mt-1">New users who join using this link will be added to your branch.</p>
             <div className="mt-6 flex items-center bg-black/40 border border-white/10 rounded-xl p-3">
-               <code className="text-blue-400 text-sm flex-1 truncate">t.me/BunaBingoBot?start={user.id}</code>
-               <button className="ml-3 bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold px-4 py-2 rounded-lg transition-all">
-                  Copy Link
+               <code className="text-gold text-sm flex-1 truncate font-mono">t.me/BunaBingoBot?start={user.id}</code>
+               <button className="ml-3 bg-gold hover:bg-gold-dark text-black text-xs font-black px-6 py-2.5 rounded-lg transition-all shadow-lg">
+                  COPY LINK
                </button>
             </div>
          </div>
 
-         <div className="bg-[#161616] border border-white/5 rounded-2xl p-8 flex flex-col justify-between">
+         <div className="bg-coffee border border-white/5 rounded-2xl p-8 flex flex-col justify-between shadow-xl">
             <div>
-               <h3 className="text-lg font-bold">Commission Rate</h3>
-               <p className="text-sm text-gray-500 mt-1">You earn a percentage of every deposit made by your players.</p>
+               <h3 className="text-lg font-bold text-white">Commission Rate</h3>
+               <p className="text-sm text-gray-400 mt-1">You earn a percentage of every deposit made by your players.</p>
                <div className="mt-4 flex items-center">
-                  <span className="text-3xl font-black text-green-500">10%</span>
-                  <span className="ml-3 text-gray-400 text-sm">Fixed Standard Rate</span>
+                  <span className="text-4xl font-black text-gold">10%</span>
+                  <div className="ml-4">
+                    <p className="text-white font-bold leading-none text-sm uppercase tracking-widest">Fixed Rate</p>
+                    <p className="text-gray-500 text-xs mt-1">Standard Agent Commission</p>
+                  </div>
                </div>
             </div>
          </div>
