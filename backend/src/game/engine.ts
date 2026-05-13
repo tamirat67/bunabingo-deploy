@@ -734,9 +734,9 @@ export async function joinGame(
     logger.error('Pusher notification failed but join succeeded:', e);
   }
 
-  // Auto-start countdown if enough TICKETS join (and at least 2 unique users)
-  const minTickets = game.room.minPlayers; // We use minPlayers field to store minTickets requirement
-  const totalTickets = playerCount;
+  // Auto-start countdown if enough unique players join
+  const minPlayers = 2; 
+  const currentUniquePlayers = uniqueUsers.size;
   const uniquePlayers = await prisma.ticket.groupBy({
     where: { gameId },
     by: ['userId']
