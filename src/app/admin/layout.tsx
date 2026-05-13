@@ -133,7 +133,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </main>
 
-      <style jsx global>{`
+      <style>{`
         .custom-scrollbar::-webkit-scrollbar {
           width: 6px;
         }
