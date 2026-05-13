@@ -74,6 +74,18 @@ export async function approveDeposit(depositId: string, adminId: string) {
     const bonusAmount = Number(deposit.amount) * 0.2;
     await creditBonus(deposit.userId, bonusAmount, `Deposit bonus (20%) for request #${depositId}`);
 
+    // ─── 10% Agent Commission ───
+    if (deposit.user?.referredBy) {
+      const commissionAmount = Number(deposit.amount) * 0.1;
+      await creditWallet(
+        deposit.user.referredBy, 
+        commissionAmount, 
+        'REFERRAL_BONUS', 
+        depositId, 
+        `Commission from player @${deposit.user.username} deposit`
+      );
+    }
+
     await prisma.adminLog.create({
       data: { adminId: adminId, targetUserId: deposit.userId, action: 'APPROVE_DEPOSIT', details: { depositId, amount: deposit.amount, bonus: bonusAmount } },
     });
