@@ -396,10 +396,10 @@ function GameContent() {
         )}
       </AnimatePresence>
 
-      <style jsx global>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         .custom-scroll::-webkit-scrollbar { width: 4px; }
         .custom-scroll::-webkit-scrollbar-thumb { background: #D4AF3744; border-radius: 10px; }
-      `}</style>
+      `}} />
     </div>
   );
 }
