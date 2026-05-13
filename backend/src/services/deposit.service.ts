@@ -57,7 +57,10 @@ export async function createDepositRequest(
 }
 
 export async function approveDeposit(depositId: string, adminId: string) {
-  const deposit = await prisma.deposit.findUnique({ where: { id: depositId } });
+  const deposit = await prisma.deposit.findUnique({ 
+    where: { id: depositId },
+    include: { user: { select: { username: true, referredBy: true } } }
+  });
   if (!deposit) throw new Error('Deposit not found');
   if (deposit.status !== 'pending') throw new Error('Deposit already processed');
 
