@@ -87,7 +87,7 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
         <div className="sidebar-footer">
           <div className="user-pill">
             <div className="user-avatar" style={{ color: 'var(--agent-accent)' }}>
-              {user.firstName[0]}
+              {(user.firstName || 'U')[0]}
             </div>
             {isSidebarOpen && (
               <div style={{ overflow: 'hidden', flex: 1 }}>

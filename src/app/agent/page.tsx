@@ -31,7 +31,7 @@ export default function AgentDashboard() {
     fetchData();
   }, []);
 
-  if (loading || !stats) {
+  if (loading || !stats || !user) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-pulse">
         {[1, 2, 3, 4].map((i) => (

@@ -98,7 +98,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         <div className="sidebar-footer">
           <div className="user-pill">
-            <div className="user-avatar">{user.firstName[0]}</div>
+            <div className="user-avatar">{(user.firstName || 'U')[0]}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: '800', fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.firstName}</div>
               <div style={{ fontSize: '10px', opacity: 0.6 }}>{user.role}</div>
