@@ -48,6 +48,11 @@ function GameContent() {
 
   useEffect(() => {
     setMounted(true);
+    
+    // Load local sound preference
+    const savedSound = localStorage.getItem('game_sound');
+    if (savedSound !== null) setSoundOn(savedSound === 'true');
+
     if (!gameId) return;
 
     const loadData = () => {
@@ -241,7 +246,11 @@ function GameContent() {
           <div style={{ background: game?.status === 'RUNNING' ? '#27AE60' : '#E67E22', color: 'white', fontSize: '10px', fontWeight: '900', padding: '3px 10px', borderRadius: '20px' }}>
             {game?.status || 'LOADING'}
           </div>
-          <div onClick={() => setSoundOn(!soundOn)} style={{ color: soundOn ? T.gold : T.brown, cursor: 'pointer' }}>
+          <div onClick={() => {
+            const next = !soundOn;
+            setSoundOn(next);
+            localStorage.setItem('game_sound', String(next));
+          }} style={{ color: soundOn ? T.gold : T.brown, cursor: 'pointer' }}>
             {soundOn ? <Volume2 size={22} /> : <VolumeX size={22} />}
           </div>
         </div>
