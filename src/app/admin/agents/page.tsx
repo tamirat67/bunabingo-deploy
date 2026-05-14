@@ -26,9 +26,19 @@ export default function AgentsPage() {
   }
 
   const filteredAgents = agents.filter(agent => 
-    agent.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    agent.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     agent.telegramUsername?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleDemote = async (userId: string) => {
+    if (!confirm('Are you sure you want to remove this agent from the network?')) return;
+    try {
+      await api.post(`/admin/users/${userId}/demote`);
+      fetchAgents();
+    } catch (err) {
+      alert('Demotion failed.');
+    }
+  };
 
   return (
     <div className="admin-page">
@@ -37,7 +47,11 @@ export default function AgentsPage() {
           <h1 style={{ fontSize: '36px', fontWeight: '900', margin: 0 }}>Agents Network</h1>
           <p style={{ color: 'var(--admin-text-muted)', marginTop: '4px' }}>Manage your branch managers and track their performance.</p>
         </div>
-        <button className="login-button" style={{ width: 'auto', padding: '12px 24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <button 
+          className="login-button" 
+          onClick={() => window.location.href = '/admin/users'}
+          style={{ width: 'auto', padding: '12px 24px', display: 'flex', alignItems: 'center', gap: '8px' }}
+        >
           <FiUserPlus /> Promote New Agent
         </button>
       </div>
@@ -49,11 +63,11 @@ export default function AgentsPage() {
         </div>
         <div className="stat-card-m">
           <p className="stat-label">Network Players</p>
-          <h2 className="stat-value">{agents.reduce((acc, a) => acc + (a._count?.players || 0), 0)}</h2>
+          <h2 className="stat-value">{agents.reduce((acc, a) => acc + (a.referrals?.length || 0), 0)}</h2>
         </div>
         <div className="stat-card-m">
           <p className="stat-label">Network Growth</p>
-          <h2 className="stat-value" style={{ color: '#4ade80' }}>+14.2%</h2>
+          <h2 className="stat-value" style={{ color: '#4ade80' }}>+100%</h2>
         </div>
       </div>
 
@@ -84,11 +98,11 @@ export default function AgentsPage() {
           </thead>
           <tbody>
             {loading ? (
-               [1,2,3].map(i => (
-                  <tr key={i}>
-                     <td colSpan={6} style={{ padding: '24px', textAlign: 'center', opacity: 0.5 }}>Loading...</td>
-                  </tr>
-               ))
+               <tr>
+                  <td colSpan={6} style={{ padding: '40px', textAlign: 'center' }}>
+                    <div className="animate-spin" style={{ width: '32px', height: '32px', border: '3px solid #d4af37', borderTopColor: 'transparent', borderRadius: '50%', margin: '0 auto' }}></div>
+                  </td>
+               </tr>
             ) : filteredAgents.length === 0 ? (
                <tr>
                   <td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: 'var(--admin-text-muted)' }}>No agents matching your search.</td>
@@ -97,7 +111,7 @@ export default function AgentsPage() {
               <tr key={agent.id}>
                 <td>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div className="user-avatar" style={{ width: '32px', height: '32px', fontSize: '12px' }}>{agent.firstName[0]}</div>
+                    <div className="user-avatar" style={{ width: '32px', height: '32px', fontSize: '12px' }}>{agent.firstName?.[0] || 'A'}</div>
                     <span style={{ fontWeight: '700' }}>{agent.firstName}</span>
                   </div>
                 </td>
@@ -105,20 +119,29 @@ export default function AgentsPage() {
                    {agent.telegramUsername ? `@${agent.telegramUsername}` : '—'}
                 </td>
                 <td>
-                   <span className="badge badge-blue">{agent._count?.players || 0} Players</span>
+                   <span className="badge badge-blue">{agent.referrals?.length || 0} Players</span>
                 </td>
                 <td style={{ fontWeight: '600' }}>
                    {Number(agent.wallet?.totalDeposited || 0).toLocaleString()} ETB
                 </td>
                 <td>
                    <div style={{ color: '#4ade80', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <FiTrendingUp /> {Number(agent.wallet?.commissionBalance || 0).toLocaleString()} ETB
+                      <FiTrendingUp /> {Number(agent.wallet?.referralBalance || 0).toLocaleString()} ETB
                    </div>
                 </td>
                 <td style={{ textAlign: 'right' }}>
-                   <button style={{ background: 'none', border: 'none', color: 'var(--admin-text-muted)', cursor: 'pointer' }}>
-                      <FiExternalLink />
-                   </button>
+                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                     <button 
+                       onClick={() => handleDemote(agent.id)}
+                       style={{ background: '#fef2f2', border: 'none', color: '#ef4444', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+                       title="Demote from Agent"
+                     >
+                        <FiUserX />
+                     </button>
+                     <button style={{ background: '#f8fafc', border: 'none', color: 'var(--admin-text-muted)', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}>
+                        <FiExternalLink />
+                     </button>
+                   </div>
                 </td>
               </tr>
             ))}

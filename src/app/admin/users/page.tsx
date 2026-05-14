@@ -154,7 +154,7 @@ export default function UsersPage() {
                         </button>
                       )}
                       
-                      {user.role !== 'AGENT' && user.role !== 'ADMIN' && (
+                      {user.role !== 'AGENT' && user.role !== 'ADMIN' ? (
                         <button 
                           onClick={() => handleAction(user.id, 'promote')}
                           className="login-button" 
@@ -163,7 +163,16 @@ export default function UsersPage() {
                         >
                           <FiShield />
                         </button>
-                      )}
+                      ) : user.role === 'AGENT' ? (
+                        <button 
+                          onClick={() => handleAction(user.id, 'demote')}
+                          className="login-button" 
+                          style={{ padding: '8px', background: '#fff7ed', color: '#f97316' }}
+                          title="Demote from Agent"
+                        >
+                          <FiShield style={{ opacity: 0.5 }} />
+                        </button>
+                      ) : null}
                     </div>
                   </td>
                 </tr>
