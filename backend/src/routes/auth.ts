@@ -89,8 +89,8 @@ router.post('/setup-password', async (req: Request, res: Response) => {
   const user = (req as any).user;
 
   if (!user) return res.status(401).json({ error: 'Telegram authentication required' });
-  if (user.role !== 'ADMIN' && !user.isAdmin) {
-    return res.status(403).json({ error: 'Only admins can set passwords' });
+  if (user.role !== 'ADMIN' && user.role !== 'AGENT' && !user.isAdmin) {
+    return res.status(403).json({ error: 'Only staff can set passwords' });
   }
 
   if (!password || password.length < 6) {
