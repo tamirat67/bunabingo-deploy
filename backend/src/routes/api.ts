@@ -233,7 +233,9 @@ router.get('/me/profile', async (req: Request, res: Response) => {
       balance: fullUser.wallet?.balance || 0,
       bonusBalance: fullUser.wallet?.bonusBalance || 0,
       gamesWon: fullUser._count.winners,
-      totalCoins: totalEarnings._sum.amount || 0
+      totalCoins: totalEarnings._sum.amount || 0,
+      role: fullUser.role,
+      isAdmin: fullUser.isAdmin
     });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch profile' });
