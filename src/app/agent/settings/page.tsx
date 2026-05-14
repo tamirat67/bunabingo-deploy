@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { FiSettings, FiUser, FiLock, FiBell, FiShield, FiLogOut } from 'react-icons/fi';
+import { FiUser, FiShield, FiLogOut } from 'react-icons/fi';
 import api from '@/lib/api';
 import { useRouter } from 'next/navigation';
 
@@ -29,91 +29,95 @@ export default function SettingsPage() {
     router.push('/admin/login');
   };
 
-  if (loading) return <div className="p-8 animate-pulse space-y-4">
-    <div className="h-10 bg-white/5 w-1/4 rounded-lg"></div>
-    <div className="h-64 bg-white/5 rounded-2xl"></div>
-    <div className="h-32 bg-white/5 rounded-2xl"></div>
-  </div>;
+  if (loading || !user) return (
+    <div className="agent-space-y-6">
+      <div className="agent-skeleton" style={{ height: '2.5rem', width: '25%', borderRadius: '0.5rem' }} />
+      <div className="agent-skeleton" style={{ height: '16rem', borderRadius: '1rem' }} />
+      <div className="agent-skeleton" style={{ height: '8rem', borderRadius: '1rem' }} />
+    </div>
+  );
 
   return (
-    <div className="max-w-4xl mx-auto space-y-10">
+    <div className="agent-max-w agent-space-y-10">
+
       <div>
-        <h1 className="text-3xl font-black text-white tracking-tight uppercase">Settings</h1>
-        <p className="text-gray-400 mt-1">Manage your agent profile and account security.</p>
+        <h1 className="agent-h1">Settings</h1>
+        <p className="agent-subtitle">Manage your agent profile and account security.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="agent-settings-grid">
+
         {/* Left: Profile Card */}
-        <div className="md:col-span-1 space-y-6">
-          <div className="bg-coffee border border-white/5 rounded-3xl p-8 text-center shadow-2xl relative overflow-hidden">
-            <div className="relative z-10">
-              <div className="w-24 h-24 bg-gold/10 rounded-full mx-auto flex items-center justify-center text-3xl font-black text-gold border-2 border-gold/20 mb-6">
-                {(user.firstName || 'U')[0]}
+        <div className="agent-space-y-6">
+          <div className="agent-card-3xl">
+            <div className="agent-gold-stripe" />
+            <div className="agent-profile-avatar">
+              {(user.firstName || 'U')[0]}
+            </div>
+            <h2 className="agent-h2">{user.firstName} {user.lastName}</h2>
+            <p className="agent-text-gold agent-mt-1" style={{ fontSize:'0.75rem', fontWeight:900, letterSpacing:'0.15em', textTransform:'uppercase' }}>
+              Official Agent
+            </p>
+            <hr className="agent-divider" />
+            <div className="agent-space-y-6">
+              <div className="agent-info-row">
+                <span className="agent-text-muted2" style={{ fontWeight:700, fontSize:'0.875rem' }}>Role</span>
+                <span className="agent-text-white" style={{ fontWeight:900, fontSize:'0.875rem' }}>{user.role}</span>
               </div>
-              <h2 className="text-xl font-bold text-white">{user.firstName} {user.lastName}</h2>
-              <p className="text-gold text-xs font-black tracking-widest mt-1 uppercase">Official Agent</p>
-              
-              <div className="mt-8 pt-8 border-t border-white/5 flex flex-col gap-3">
-                 <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-500 font-bold">Role</span>
-                    <span className="text-white font-black">{user.role}</span>
-                 </div>
-                 <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-500 font-bold">Status</span>
-                    <span className="text-green-500 font-black">ACTIVE</span>
-                 </div>
+              <div className="agent-info-row">
+                <span className="agent-text-muted2" style={{ fontWeight:700, fontSize:'0.875rem' }}>Status</span>
+                <span className="agent-text-green" style={{ fontWeight:900, fontSize:'0.875rem' }}>ACTIVE</span>
               </div>
             </div>
-            <div className="absolute top-0 left-0 w-full h-1 bg-gold" />
           </div>
 
-          <button 
-            onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-3 bg-red-500/10 hover:bg-red-500/20 text-red-500 font-black py-4 rounded-2xl transition-all border border-red-500/20"
-          >
+          <button onClick={handleLogout} className="agent-btn-danger">
             <FiLogOut /> LOGOUT SESSION
           </button>
         </div>
 
-        {/* Right: Detailed Settings */}
-        <div className="md:col-span-2 space-y-6">
-          <div className="bg-coffee border border-white/5 rounded-3xl p-8 shadow-2xl">
-            <h3 className="text-lg font-black text-white mb-8 flex items-center gap-3">
-              <FiUser className="text-gold" /> PERSONAL INFORMATION
+        {/* Right: Detail Settings */}
+        <div className="agent-space-y-6">
+          <div className="agent-card-lg">
+            <h3 className="agent-h3" style={{ display:'flex', alignItems:'center', gap:'0.75rem', marginBottom:'2rem' }}>
+              <FiUser style={{ color:'var(--agent-gold)' }} /> PERSONAL INFORMATION
             </h3>
-            
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-6">
+            <div className="agent-space-y-6">
+              <div className="agent-grid-2eq">
                 <div>
-                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 block">First Name</label>
-                  <div className="bg-black/40 border border-white/10 p-4 rounded-xl text-white font-bold">{user.firstName}</div>
+                  <label className="agent-field-label">First Name</label>
+                  <div className="agent-field-value">{user.firstName}</div>
                 </div>
                 <div>
-                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 block">Last Name</label>
-                  <div className="bg-black/40 border border-white/10 p-4 rounded-xl text-white font-bold">{user.lastName}</div>
+                  <label className="agent-field-label">Last Name</label>
+                  <div className="agent-field-value">{user.lastName}</div>
                 </div>
               </div>
-              
               <div>
-                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 block">Phone Number</label>
-                <div className="bg-black/40 border border-white/10 p-4 rounded-xl text-white font-bold flex items-center justify-between">
+                <label className="agent-field-label">Phone Number</label>
+                <div className="agent-field-value">
                   {user.phoneNumber}
-                  <span className="text-[10px] bg-green-500/20 text-green-500 px-2 py-0.5 rounded font-black">VERIFIED</span>
+                  <span className="agent-verified-tag">VERIFIED</span>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="bg-gold/5 border border-gold/10 rounded-2xl p-6 flex items-start gap-4">
-             <div className="p-2 bg-gold/20 rounded-lg text-gold">
-                <FiShield size={20} />
-             </div>
-             <div>
-                <h4 className="font-bold text-gold text-sm uppercase tracking-widest">Agent Verification</h4>
-                <p className="text-xs text-gray-400 mt-1">Your account is fully verified. You have access to all referral and withdrawal processing features.</p>
-             </div>
+          <div className="agent-card-gold-sm">
+            <div style={{ padding:'0.5rem', background:'rgba(212,175,55,0.2)', borderRadius:'0.5rem', color:'var(--agent-gold)', flexShrink:0 }}>
+              <FiShield size={20} />
+            </div>
+            <div>
+              <h4 className="agent-text-gold" style={{ fontWeight:700, fontSize:'0.875rem', textTransform:'uppercase', letterSpacing:'0.1em' }}>
+                Agent Verification
+              </h4>
+              <p className="agent-text-muted2 agent-mt-1" style={{ fontSize:'0.75rem', lineHeight:1.6 }}>
+                Your account is fully verified. You have access to all referral and withdrawal processing features.
+              </p>
+            </div>
           </div>
         </div>
+
       </div>
     </div>
   );

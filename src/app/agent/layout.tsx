@@ -10,6 +10,7 @@ import {
 import api from '@/lib/api';
 import '../admin.css';
 import '../globals.css';
+import '../agent.css';
 
 export default function AgentLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setSidebarOpen] = useState(true);

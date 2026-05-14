@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { FiUsers, FiSearch, FiExternalLink, FiDollarSign } from 'react-icons/fi';
+import { FiUsers, FiSearch } from 'react-icons/fi';
 import api from '@/lib/api';
 
 export default function PlayersPage() {
@@ -25,31 +25,33 @@ export default function PlayersPage() {
     fetchPlayers();
   }, []);
 
-  const filteredPlayers = players.filter(p => 
+  const filteredPlayers = players.filter(p =>
     p.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.firstName?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (loading) return <div className="p-8 animate-pulse space-y-4">
-    <div className="h-10 bg-white/5 w-1/4 rounded-lg"></div>
-    <div className="h-12 bg-white/5 rounded-xl"></div>
-    <div className="h-96 bg-white/5 rounded-2xl"></div>
-  </div>;
+  if (loading) return (
+    <div className="agent-space-y-6">
+      <div className="agent-skeleton" style={{ height: '2.5rem', width: '25%', borderRadius: '0.5rem' }} />
+      <div className="agent-skeleton" style={{ height: '3rem', borderRadius: '0.75rem' }} />
+      <div className="agent-skeleton" style={{ height: '24rem', borderRadius: '1rem' }} />
+    </div>
+  );
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+    <div className="agent-space-y-8">
+
+      <div className="agent-page-header" style={{ marginBottom: '2rem' }}>
         <div>
-          <h1 className="text-3xl font-black text-white tracking-tight">My Players</h1>
-          <p className="text-gray-400 mt-1">Manage and track players in your branch.</p>
+          <h1 className="agent-h1">My Players</h1>
+          <p className="agent-subtitle">Manage and track players in your branch.</p>
         </div>
-        
-        <div className="relative group">
-          <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-gold transition-colors" />
-          <input 
+        <div className="agent-search-wrap">
+          <FiSearch size={16} />
+          <input
             type="text"
             placeholder="Search players..."
-            className="bg-coffee border border-white/10 rounded-xl pl-12 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-gold/30 w-full md:w-80 text-white transition-all shadow-lg"
+            className="agent-search-input"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -57,46 +59,42 @@ export default function PlayersPage() {
       </div>
 
       {/* Players Table */}
-      <div className="bg-coffee border border-white/5 rounded-2xl overflow-hidden shadow-2xl">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+      <div className="agent-table-wrap">
+        <div className="agent-table-scroll">
+          <table className="agent-table">
             <thead>
-              <tr className="border-bottom border-white/5 bg-white/2">
-                <th className="px-6 py-5 text-xs font-black text-gray-400 uppercase tracking-widest">Player</th>
-                <th className="px-6 py-5 text-xs font-black text-gray-400 uppercase tracking-widest">Phone</th>
-                <th className="px-6 py-5 text-xs font-black text-gray-400 uppercase tracking-widest">Joined</th>
-                <th className="px-6 py-5 text-xs font-black text-gray-400 uppercase tracking-widest text-right">Total Deposited</th>
+              <tr>
+                <th>Player</th>
+                <th>Phone</th>
+                <th>Joined</th>
+                <th className="right">Total Deposited</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody>
               {filteredPlayers.length > 0 ? filteredPlayers.map((player: any) => (
-                <tr key={player.id} className="hover:bg-white/2 transition-colors group">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gold/10 flex items-center justify-center text-gold font-bold">
+                <tr key={player.id}>
+                  <td>
+                    <div className="agent-player-cell">
+                      <div className="agent-avatar-sm">
                         {(player.firstName || 'P')[0]}
                       </div>
                       <div>
-                        <div className="font-bold text-white group-hover:text-gold transition-colors">{player.firstName} {player.lastName}</div>
-                        <div className="text-xs text-gray-500">ID: {player.id.split('-')[0]}</div>
+                        <div className="agent-player-name">{player.firstName} {player.lastName}</div>
+                        <div className="agent-player-sub">ID: {player.id?.split('-')[0]}</div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-300 font-medium">
-                    {player.phoneNumber}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">
+                  <td style={{ color: '#d1d5db' }}>{player.phoneNumber}</td>
+                  <td style={{ color: 'var(--agent-muted)' }}>
                     {new Date(player.createdAt).toLocaleDateString()}
                   </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="text-sm font-black text-gold">
-                      {Number(player._count?.deposits * 100 || 0).toLocaleString()} ETB
-                    </div>
+                  <td className="right agent-text-gold" style={{ fontWeight: 900 }}>
+                    {Number(player._count?.deposits * 100 || 0).toLocaleString()} ETB
                   </td>
                 </tr>
               )) : (
-                <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-gray-500 text-sm italic">
+                <tr className="agent-table-empty">
+                  <td colSpan={4}>
                     {searchTerm ? 'No players match your search.' : 'No players joined your branch yet.'}
                   </td>
                 </tr>
