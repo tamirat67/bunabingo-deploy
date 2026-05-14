@@ -682,21 +682,32 @@ router.post('/pusher/auth', async (req: Request, res: Response) => {
   res.json(auth);
 });
 
-// ─── Admin Routes ─────────────────────────────────────────────
-const adminRouter = Router();
-adminRouter.use(adminMiddleware);
+// ─── Staff Routes (Admin & Agent) ─────────────────────────────
+const staffRouter = Router();
+staffRouter.use(async (req, res, next) => {
+  const { agentMiddleware } = await import('../middleware/auth');
+  agentMiddleware(req, res, next);
+});
 
-adminRouter.get('/deposits/pending', async (_req, res) => {
+router.use('/admin', staffRouter);
+
+// ─── Specific Admin-Only Routes ─────────────────────────────
+const restrictToAdmin = async (req: Request, res: Response, next: any) => {
+  const { adminMiddleware } = await import('../middleware/auth');
+  adminMiddleware(req, res, next);
+};
+
+staffRouter.get('/deposits/pending', async (_req, res) => {
   res.json(await getPendingDeposits());
 });
-adminRouter.post('/deposits/:id/approve', async (req, res) => {
+staffRouter.post('/deposits/:id/approve', async (req, res) => {
   const admin = (req as any).user;
   try {
     await approveDeposit(req.params.id, admin.id);
     res.json({ success: true });
   } catch (e: any) { res.status(400).json({ error: e.message }); }
 });
-adminRouter.post('/deposits/:id/reject', async (req, res) => {
+staffRouter.post('/deposits/:id/reject', async (req, res) => {
   const admin = (req as any).user;
   try {
     await rejectDeposit(req.params.id, admin.id, req.body.reason || 'Rejected');
@@ -704,17 +715,17 @@ adminRouter.post('/deposits/:id/reject', async (req, res) => {
   } catch (e: any) { res.status(400).json({ error: e.message }); }
 });
 
-adminRouter.get('/withdrawals/pending', async (_req, res) => {
+staffRouter.get('/withdrawals/pending', async (_req, res) => {
   res.json(await getPendingWithdrawals());
 });
-adminRouter.post('/withdrawals/:id/approve', async (req, res) => {
+staffRouter.post('/withdrawals/:id/approve', async (req, res) => {
   const admin = (req as any).user;
   try {
     await approveWithdrawal(req.params.id, admin.id);
     res.json({ success: true });
   } catch (e: any) { res.status(400).json({ error: e.message }); }
 });
-adminRouter.post('/withdrawals/:id/reject', async (req, res) => {
+staffRouter.post('/withdrawals/:id/reject', async (req, res) => {
   const admin = (req as any).user;
   try {
     await rejectWithdrawal(req.params.id, admin.id, req.body.reason || 'Rejected');
@@ -722,29 +733,29 @@ adminRouter.post('/withdrawals/:id/reject', async (req, res) => {
   } catch (e: any) { res.status(400).json({ error: e.message }); }
 });
 
-adminRouter.get('/users', async (req, res) => {
+staffRouter.get('/users', async (req, res) => {
   const page = parseInt(req.query.page as string) || 1;
   res.json(await getAllUsers(page));
 });
-adminRouter.post('/users/:id/suspend', async (req, res) => {
+staffRouter.post('/users/:id/suspend', async (req, res) => {
   const admin = (req as any).user;
   await suspendUser(req.params.id, admin.id, req.body.reason || '');
   res.json({ success: true });
 });
-adminRouter.post('/users/:id/ban', async (req, res) => {
+staffRouter.post('/users/:id/ban', async (req, res) => {
   const admin = (req as any).user;
   await banUser(req.params.id, admin.id, req.body.reason || '');
   res.json({ success: true });
 });
 
-// ─── Agent Management (Admin Only) ──────────────────────────
-adminRouter.get('/agents', async (req, res) => {
+// ─── Admin-Only Management ──────────────────────────────────
+staffRouter.get('/agents', restrictToAdmin, async (req, res) => {
   const page = parseInt(req.query.page as string) || 1;
   const { getAgents } = await import('../services/user.service');
   res.json(await getAgents(page));
 });
 
-adminRouter.post('/users/:id/promote', async (req, res) => {
+staffRouter.post('/users/:id/promote', restrictToAdmin, async (req, res) => {
   const admin = (req as any).user;
   const { promoteToAgent } = await import('../services/user.service');
   try {
@@ -755,7 +766,7 @@ adminRouter.post('/users/:id/promote', async (req, res) => {
   }
 });
 
-adminRouter.post('/users/:id/demote', async (req, res) => {
+staffRouter.post('/users/:id/demote', restrictToAdmin, async (req, res) => {
   const admin = (req as any).user;
   const { demoteFromAgent } = await import('../services/user.service');
   try {
@@ -766,7 +777,7 @@ adminRouter.post('/users/:id/demote', async (req, res) => {
   }
 });
 
-adminRouter.get('/analytics', async (_req, res) => {
+staffRouter.get('/analytics', restrictToAdmin, async (_req, res) => {
   const [
     totalUsers, totalGames, totalDeposits, totalWithdrawals,
     pendingDeposits, pendingWithdrawals, activeGames
@@ -787,7 +798,7 @@ adminRouter.get('/analytics', async (_req, res) => {
   });
 });
 
-adminRouter.get('/games/active', async (_req, res) => {
+staffRouter.get('/games/active', restrictToAdmin, async (_req, res) => {
   const games = await prisma.game.findMany({
     where: { status: { in: ['RUNNING', 'COUNTDOWN', 'WAITING'] } },
     include: {
