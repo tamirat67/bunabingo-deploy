@@ -126,7 +126,7 @@ export async function handleDepositMessage(ctx: Context): Promise<boolean> {
     const smsText = (msg as Message.TextMessage)?.text?.trim();
     if (!smsText || smsText.length < 20) {
       await ctx.reply(
-        `⚠️ Please paste the *full* Telebirr SMS you received.\n_(Starting with "Dear...")_`,
+        `⚠️ Please paste the *full* Telebirr SMS you received.\n_(Starting with "Dear..." or "ውድ...")_`,
         { parse_mode: 'Markdown', ...Markup.inlineKeyboard(CANCEL_BTN) }
       );
       return true;
