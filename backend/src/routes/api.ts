@@ -810,12 +810,12 @@ staffRouter.get('/games/active', restrictToAdmin, async (_req, res) => {
   res.json(games);
 });
 
-adminRouter.get('/rooms', async (_req, res) => {
+staffRouter.get('/rooms', restrictToAdmin, async (_req, res) => {
   const rooms = await prisma.room.findMany({ orderBy: { ticketPrice: 'asc' } });
   res.json(rooms);
 });
 
-adminRouter.patch('/rooms/:id', async (req, res) => {
+staffRouter.patch('/rooms/:id', restrictToAdmin, async (req, res) => {
   const { ticketPrice, minPlayers, isActive } = req.body;
   try {
     const updated = await prisma.room.update({
@@ -831,8 +831,6 @@ adminRouter.patch('/rooms/:id', async (req, res) => {
     res.status(500).json({ error: 'Failed to update room' });
   }
 });
-
-router.use('/admin', adminRouter);
 
 // ─── Agent Routes ─────────────────────────────────────────────
 import agentRouter from './agent';
