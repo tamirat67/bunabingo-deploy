@@ -4,6 +4,7 @@ import { triggerAdminEvent, triggerUserEvent } from '../lib/pusher';
 import { logger } from '../lib/logger';
 import { notifyAgent } from '../bot/notifier';
 import { Decimal } from '@prisma/client/runtime/library';
+import { Markup } from 'telegraf';
 
 export async function createWithdrawalRequest(
   userId: string,
@@ -42,35 +43,52 @@ export async function createWithdrawalRequest(
     include: { user: { select: { username: true, referredBy: true } } },
   });
 
-  // Notify Admin
-  await triggerAdminEvent('new-withdrawal', {
-    withdrawalId: withdrawal.id,
-    userId,
-    amount,
-    userName: (withdrawal as any).user?.username || 'User',
-    bankName,
-    accountNumber,
-  });
-
   // Notify Agent if applicable
-  if ((withdrawal as any).user?.referredBy) {
-    await triggerUserEvent((withdrawal as any).user.referredBy, 'agent-new-withdrawal', {
+  if (withdrawal.user?.referredBy) {
+    const agent = await prisma.user.findUnique({
+      where: { id: withdrawal.user.referredBy },
+      select: { role: true, id: true, firstName: true }
+    });
+
+    if (agent && (agent.role === 'AGENT' || agent.role === 'ADMIN')) {
+      const agentMsg = 
+        `💸 <b>New Withdrawal Request</b>\n\n` +
+        `👤 <b>Player:</b> ${withdrawal.user?.username || 'Unknown'}\n` +
+        `💰 <b>Amount:</b> ${amount} ETB\n` +
+        `🏦 <b>Bank:</b> ${bankName}\n` +
+        `💳 <b>Account:</b> ${accountNumber}\n` +
+        `👤 <b>Holder:</b> ${accountName}\n\n` +
+        `Please approve or reject this request manually.`;
+
+      const agentButtons = Markup.inlineKeyboard([
+        [
+          Markup.button.callback('✅ Approve', `approve_wd_${withdrawal.id}`),
+          Markup.button.callback('❌ Reject',  `reject_wd_${withdrawal.id}`),
+        ],
+      ]);
+
+      await notifyAgent(agent.id, agentMsg, agentButtons);
+    } else {
+      // Fallback: Notify main admins if no valid agent is found
+      await triggerAdminEvent('new-withdrawal', {
+        withdrawalId: withdrawal.id,
+        userId,
+        amount,
+        userName: withdrawal.user?.username || 'User',
+        bankName,
+        accountNumber,
+      });
+    }
+  } else {
+    // No referrer: Notify main admins
+    await triggerAdminEvent('new-withdrawal', {
       withdrawalId: withdrawal.id,
       userId,
       amount,
       userName: (withdrawal as any).user?.username || 'User',
+      bankName,
+      accountNumber,
     });
-
-    // Notify agent on Telegram
-    await notifyAgent(
-      (withdrawal as any).user.referredBy,
-      `💸 <b>New Withdrawal Request</b>\n\n` +
-      `👤 <b>Player:</b> ${withdrawal.user?.username || 'Unknown'}\n` +
-      `💰 <b>Amount:</b> ${amount} ETB\n` +
-      `🏦 <b>Bank:</b> ${bankName}\n` +
-      `💳 <b>Account:</b> ${accountNumber}\n\n` +
-      `Please check your agent portal to approve/reject.`
-    );
   }
 
   logger.info(`Withdrawal request: user ${userId}, amount ${amount}, bank ${bankName}`);

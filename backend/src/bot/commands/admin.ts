@@ -6,14 +6,19 @@ import { getUserByTelegramId } from '../../services/user.service';
 import prisma from '../../lib/prisma';
 import { config } from '../../config';
 
-async function requireAdmin(ctx: Context): Promise<string | null> {
+/**
+ * Helper to ensure the user is either an Admin or an Agent.
+ * Returns the DB user ID if authorized.
+ */
+async function requireStaff(ctx: Context): Promise<string | null> {
   const tgUser = ctx.from!;
-  if (!isAdmin(tgUser.id)) {
-    await ctx.reply('❌ Admin only command.');
+  const user = await getUserByTelegramId(tgUser.id);
+  
+  if (!user || (user.role !== 'ADMIN' && user.role !== 'AGENT')) {
+    await ctx.reply('❌ Unauthorized. Staff only.');
     return null;
   }
-  const user = await getUserByTelegramId(tgUser.id);
-  return user?.id ?? null;
+  return user.id;
 }
 
 export async function handleAdminPanel(ctx: Context) {
@@ -47,8 +52,8 @@ export async function handleAdminPanel(ctx: Context) {
 }
 
 export async function handleAdminDeposits(ctx: Context) {
-  const adminId = await requireAdmin(ctx);
-  if (!adminId) return;
+  const staffId = await requireStaff(ctx);
+  if (!staffId) return;
 
   const deposits = await getPendingDeposits();
   if (!deposits.length) {
@@ -77,8 +82,8 @@ export async function handleAdminDeposits(ctx: Context) {
 }
 
 export async function handleAdminWithdrawals(ctx: Context) {
-  const adminId = await requireAdmin(ctx);
-  if (!adminId) return;
+  const staffId = await requireStaff(ctx);
+  if (!staffId) return;
 
   const withdrawals = await getPendingWithdrawals();
   if (!withdrawals.length) {
@@ -109,10 +114,10 @@ export async function handleAdminWithdrawals(ctx: Context) {
 }
 
 export async function handleApproveDeposit(ctx: Context, depositId: string) {
-  const adminId = await requireAdmin(ctx);
-  if (!adminId) return;
+  const staffId = await requireStaff(ctx);
+  if (!staffId) return;
   try {
-    await approveDeposit(depositId, adminId);
+    await approveDeposit(depositId, staffId);
     await ctx.answerCbQuery('✅ Deposit approved!');
     await ctx.editMessageText(`✅ *Deposit Approved*\nID: \`${depositId}\``, { parse_mode: 'Markdown' });
   } catch (e: any) {
@@ -121,10 +126,10 @@ export async function handleApproveDeposit(ctx: Context, depositId: string) {
 }
 
 export async function handleRejectDeposit(ctx: Context, depositId: string) {
-  const adminId = await requireAdmin(ctx);
-  if (!adminId) return;
+  const staffId = await requireStaff(ctx);
+  if (!staffId) return;
   try {
-    await rejectDeposit(depositId, adminId, 'Rejected by admin');
+    await rejectDeposit(depositId, staffId, 'Rejected by staff');
     await ctx.answerCbQuery('❌ Deposit rejected');
     await ctx.editMessageText(`❌ *Deposit Rejected*\nID: \`${depositId}\``, { parse_mode: 'Markdown' });
   } catch (e: any) {
@@ -133,10 +138,10 @@ export async function handleRejectDeposit(ctx: Context, depositId: string) {
 }
 
 export async function handleApproveWithdrawal(ctx: Context, withdrawalId: string) {
-  const adminId = await requireAdmin(ctx);
-  if (!adminId) return;
+  const staffId = await requireStaff(ctx);
+  if (!staffId) return;
   try {
-    await approveWithdrawal(withdrawalId, adminId);
+    await approveWithdrawal(withdrawalId, staffId);
     await ctx.answerCbQuery('✅ Withdrawal approved!');
     await ctx.editMessageText(`✅ *Withdrawal Approved*\nID: \`${withdrawalId}\``, { parse_mode: 'Markdown' });
   } catch (e: any) {
@@ -145,10 +150,10 @@ export async function handleApproveWithdrawal(ctx: Context, withdrawalId: string
 }
 
 export async function handleRejectWithdrawal(ctx: Context, withdrawalId: string) {
-  const adminId = await requireAdmin(ctx);
-  if (!adminId) return;
+  const staffId = await requireStaff(ctx);
+  if (!staffId) return;
   try {
-    await rejectWithdrawal(withdrawalId, adminId, 'Rejected by admin');
+    await rejectWithdrawal(withdrawalId, staffId, 'Rejected by staff');
     await ctx.answerCbQuery('❌ Withdrawal rejected');
     await ctx.editMessageText(`❌ *Withdrawal Rejected*\nID: \`${withdrawalId}\``, { parse_mode: 'Markdown' });
   } catch (e: any) {
