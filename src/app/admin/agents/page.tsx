@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { FiSearch, FiExternalLink, FiUserPlus, FiTrendingUp } from 'react-icons/fi';
+import { FiSearch, FiExternalLink, FiUserPlus, FiTrendingUp, FiUserX } from 'react-icons/fi';
 import api from '@/lib/api';
 import '@/app/admin.css';
 
