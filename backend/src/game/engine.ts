@@ -496,12 +496,13 @@ async function processWinner(
   // ─── CHECK JACKPOT ───
   try {
     const jackpotWin = await checkJackpotWin(userId, ticketId, winMode, drawnNumbers.length);
-      if (jackpotWin) {
-        logger.info(`🔥 JACKPOT! User ${userId} won ${jackpotWin} ETB!`);
-        // Notify user specifically
-        await triggerUserEvent(userId, 'jackpot-alert', { amount: jackpotWin.toFixed(2) });
-      }
-    } catch (e) { logger.error(`[Jackpot] Win check failed:`, e); }
+    if (jackpotWin) {
+      logger.info(`🔥 JACKPOT! User ${userId} won ${jackpotWin} ETB!`);
+      // Notify user specifically
+      await triggerUserEvent(userId, 'jackpot-alert', { amount: jackpotWin.toFixed(2) });
+    }
+  } catch (e) { 
+    logger.error(`[Jackpot] Win check failed:`, e); 
   }
 
   await triggerGameEvent(gameId, 'winner-announced', {
