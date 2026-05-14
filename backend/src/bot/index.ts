@@ -5,7 +5,6 @@ import { config } from '../config';
 import { handleStart }                          from './commands/start';
 import { handleBalance }                        from './commands/balance';
 import { handleDeposit,
-         handleDepositStars,
          handleDepositManual }                  from './commands/deposit';
 import { handleBuyTicket, handleJoinRoom }      from './commands/buyticket';
 import { handleMyCards, handleResults }         from './commands/mycards';
@@ -96,7 +95,6 @@ export function createBot(): Telegraf {
   // ─── Wallet ───────────────────────────────────────────────────────────────
   bot.action('cmd_balance',        ctx => handleBalance(ctx));
   bot.action('cmd_deposit',        ctx => handleDeposit(ctx));
-  bot.action('cmd_deposit_stars',  ctx => handleDepositStars(ctx));
   bot.action('cmd_deposit_manual', ctx => handleDepositManual(ctx));
   bot.action('cmd_deposit_cancel', ctx => handleDepositCancel(ctx));
   bot.action('cmd_deposit_submit', ctx => handleDepositSubmit(ctx));
