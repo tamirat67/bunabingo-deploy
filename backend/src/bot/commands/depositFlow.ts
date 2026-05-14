@@ -132,9 +132,8 @@ export async function handleDepositMessage(ctx: Context): Promise<boolean> {
       return true;
     }
 
-    // ── Validate ──
+    // ── 1. Validate SMS Content ──
     await ctx.reply(`🔍 Validating your Telebirr receipt...`);
-
     const { validateTelebirrSms } = await import('../../services/bunafrankValidator');
     const result = await validateTelebirrSms(
       smsText,
@@ -144,9 +143,21 @@ export async function handleDepositMessage(ctx: Context): Promise<boolean> {
 
     if (!result.valid) {
       await ctx.reply(
-        result.error! + `\n\nPlease try again or contact support.`,
+        `❌ *ERROR: Invalid or Fake Receipt!*\n\n` +
+        (result.error || "The receipt content is not recognized.") + `\n\nPlease enter a real Telebirr SMS.`,
         { parse_mode: 'Markdown', ...Markup.inlineKeyboard(CANCEL_BTN) }
       );
+      return true;
+    }
+
+    // ── 2. Check for Duplicate Transaction ID ──
+    const d = result.data!;
+    const existing = await prisma.deposit.findUnique({
+      where: { txnId: d.transactionId }
+    });
+
+    if (existing) {
+      await ctx.reply(`❌ *ERROR: Duplicate Receipt Detected!*\n\nThis transaction (\`${d.transactionId}\`) has already been used. Please do not submit duplicate receipts.`, { parse_mode: 'Markdown' });
       return true;
     }
 
@@ -340,12 +351,11 @@ async function submitDeposit(
       );
     } else {
       await ctx.reply(
-        `✅ *Deposit Submitted Successfully!*\n\n` +
+        `⏳ *Verifying with Bank...*\n\n` +
         `💵 Amount: *${amount.toFixed(2)} ETB*\n` +
         `💳 Method: *${methodLabel}*\n` +
-        `📋 Status: *Pending Review*\n\n` +
-        `⏱ Our system is verifying your payment with the bank. This usually takes less than 30 minutes.\n` +
-        `You will be notified once credited. 🙏`,
+        `📋 Status: *Awaiting Confirmation*\n\n` +
+        `⏱ Please wait *2-5 minutes* while our system verifies your payment with the bank. You will be notified automatically once your wallet is credited. 🙏`,
         { parse_mode: 'Markdown' }
       );
     }
