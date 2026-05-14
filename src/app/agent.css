@@ -310,22 +310,36 @@
 .agent-referral-box {
   margin-top: 1.5rem;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   background: #eff6ff;          /* light blue */
   border: 1px solid #bfdbfe;    /* blue-200 */
   border-radius: 0.75rem;
-  padding: 0.75rem;
-  gap: 0.75rem;
+  padding: 1rem;
+  gap: 1rem;
+}
+@media (min-width: 640px) {
+  .agent-referral-box {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+  }
 }
 .agent-referral-box code {
   flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  word-break: break-all;
+  white-space: normal;
   color: #1d4ed8;               /* blue-700 — readable on light blue */
   font-size: 0.8rem;
   font-family: 'Courier New', monospace;
   font-weight: 600;
+}
+@media (min-width: 640px) {
+  .agent-referral-box code {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 }
 
 /* ────────────────────────────────────────────
@@ -334,14 +348,26 @@
 .agent-rate-display {
   margin-top: 1rem;
   display: flex;
-  align-items: center;
-  gap: 1rem;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+@media (min-width: 640px) {
+  .agent-rate-display {
+    flex-direction: row;
+    align-items: center;
+    gap: 1rem;
+  }
 }
 .agent-rate-big {
-  font-size: 2.5rem;
+  font-size: 2.25rem;
   font-weight: 900;
   color: var(--agent-gold);
   line-height: 1;
+}
+@media (min-width: 640px) {
+  .agent-rate-big {
+    font-size: 2.5rem;
+  }
 }
 .agent-rate-meta p {
   margin: 0;
@@ -409,6 +435,12 @@
   transition: background 0.2s, transform 0.15s;
   flex-shrink: 0;
   letter-spacing: 0.05em;
+  width: 100%;
+}
+@media (min-width: 640px) {
+  .agent-btn-copy {
+    width: auto;
+  }
 }
 .agent-btn-copy:hover {
   background: #15803d;          /* green-700 */
