@@ -19,7 +19,10 @@ import {
   Coffee,
   ChevronDown,
   MoreVertical,
-  Check
+  Check,
+  Copy,
+  ExternalLink,
+  ShieldCheck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -32,6 +35,8 @@ export default function ProfilePage() {
   const [mounted, setMounted] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [showThemePicker, setShowThemePicker] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setMounted(true);
@@ -46,9 +51,21 @@ export default function ProfilePage() {
 
   const refreshData = async () => {
     try {
+      setLoading(true);
       const data = await getProfile();
       setProfile(data);
-    } catch (e) {}
+    } catch (e) {
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCopyLink = () => {
+    if (!profile?.id) return;
+    const link = `https://t.me/buna_bingobot?start=${profile.id}`;
+    navigator.clipboard.writeText(link);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const toggleSound = () => {
@@ -97,8 +114,10 @@ export default function ProfilePage() {
            <div style={{ width: '80px', height: '80px', background: T.header, borderRadius: '50%', margin: '0 auto 15px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `3px solid ${T.gold}`, boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }}>
               <User size={40} color={T.gold} />
            </div>
-           <div style={{ fontSize: '24px', fontWeight: '900' }}>{profile?.username || 'Buna Player'}</div>
-           <div style={{ fontSize: '13px', opacity: 0.6, marginTop: '4px' }}>Member since 2024</div>
+           <div style={{ fontSize: '24px', fontWeight: '900' }}>{profile?.username || profile?.firstName || 'Buna Player'}</div>
+           <div style={{ fontSize: '12px', color: T.gold, fontWeight: '900', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '4px' }}>
+              {profile?.role === 'AGENT' ? '🌟 Official Agent' : 'Member since 2024'}
+           </div>
         </div>
 
         {/* ── Stats Grid ── */}
@@ -179,15 +198,105 @@ export default function ProfilePage() {
                  </div>
                  <div style={{ background: T.gold, color: T.header, fontSize: '10px', padding: '4px 10px', borderRadius: '20px', fontWeight: '900' }}>EARN 5 ETB</div>
               </div>
-
            </div>
         </div>
 
-        {/* ── Logout/Support ── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-           <button style={{ width: '100%', padding: '14px', borderRadius: '12px', background: 'transparent', border: `1px solid ${T.border}`, color: T.text, fontWeight: '900', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-              <Coffee size={18} /> Support Channel
+        {/* ── Referral Link Box (Smart & Premium) ── */}
+        <div style={{ marginBottom: '30px' }}>
+           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', padding: '0 5px' }}>
+              <div style={{ fontSize: '12px', fontWeight: '900', opacity: 0.5, textTransform: 'uppercase', letterSpacing: '1px' }}>Your Referral Link</div>
+              <div style={{ fontSize: '10px', color: '#16a34a', fontWeight: '900' }}>{profile?.referralsCount || 0} REFERRED</div>
+           </div>
+           
+           <div style={{ 
+              background: '#f0f7ff', 
+              border: '2px solid #bfdbfe', 
+              borderRadius: '20px', 
+              padding: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
+           }}>
+              <div style={{ flex: 1, paddingLeft: '12px', overflow: 'hidden' }}>
+                 <div style={{ fontSize: '10px', opacity: 0.4, fontWeight: '900', marginBottom: '2px' }}>SHARE & EARN 5 ETB</div>
+                 <code style={{ display: 'block', fontSize: '12px', color: '#1d4ed8', fontWeight: '800', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    t.me/buna_bingobot?start={profile?.id?.split('-')[0]}
+                 </code>
+              </div>
+              <button 
+                 onClick={handleCopyLink}
+                 style={{ 
+                    background: copied ? '#10b981' : '#1d4ed8', 
+                    color: 'white', 
+                    border: 'none', 
+                    height: '44px',
+                    padding: '0 20px', 
+                    borderRadius: '16px', 
+                    fontSize: '12px', 
+                    fontWeight: '900',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    transition: 'all 0.2s',
+                    boxShadow: copied ? '0 4px 10px rgba(16,185,129,0.3)' : '0 4px 10px rgba(29,78,216,0.3)'
+                 }}
+              >
+                 {copied ? <Check size={16} /> : <Copy size={16} />}
+                 {copied ? 'DONE' : 'COPY'}
+              </button>
+           </div>
+        </div>
+
+        {/* ── Action Buttons ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+           
+           {/* Agent Dashboard Link - ONLY FOR AGENTS */}
+           {(profile?.role === 'AGENT' || profile?.isAdmin) && (
+              <button 
+                 onClick={() => router.push('/agent')}
+                 style={{ 
+                    width: '100%', 
+                    padding: '16px', 
+                    borderRadius: '16px', 
+                    background: 'linear-gradient(135deg, #d4af37, #b8962e)', 
+                    border: 'none', 
+                    color: 'black', 
+                    fontWeight: '900', 
+                    fontSize: '14px', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    gap: '10px',
+                    boxShadow: '0 8px 20px rgba(212,175,55,0.25)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '1px'
+                 }}
+              >
+                 <ShieldCheck size={20} /> Agent Portal
+              </button>
+           )}
+
+           <button 
+              onClick={() => window.open('https://t.me/bunabingosupport', '_blank')}
+              style={{ 
+                 width: '100%', 
+                 padding: '16px', 
+                 borderRadius: '16px', 
+                 background: T.card, 
+                 border: `1px solid ${T.border}`, 
+                 color: T.text, 
+                 fontWeight: '900', 
+                 fontSize: '14px', 
+                 display: 'flex', 
+                 alignItems: 'center', 
+                 justifyContent: 'center', 
+                 gap: '10px',
+                 boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+              }}
+           >
+              <Coffee size={20} /> Support Channel
            </button>
+
            <div style={{ textAlign: 'center', fontSize: '10px', opacity: 0.3, marginTop: '20px' }}>
               BUNA BINGO v2.4.0 • ROYAL EDITION
            </div>

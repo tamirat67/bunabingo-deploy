@@ -20,9 +20,11 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     async function loadUser() {
-      // Pre-check token for web users
+      // Pre-check token for web users or Telegram Mini App
       const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
-      if (!token) {
+      const tgInitData = typeof window !== 'undefined' ? (window as any).Telegram?.WebApp?.initData : null;
+      
+      if (!token && !tgInitData) {
         router.push('/admin/login');
         return;
       }
