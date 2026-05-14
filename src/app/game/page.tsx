@@ -372,6 +372,8 @@ function GameContent() {
                       const isFree = cell === 'FREE' || cell === 0 || cell === null;
                       const userMarked = !isFree && marked.has(numVal);
                       const callMarked = !isFree && isCalled(numVal);
+                      const isHinted   = callMarked && !userMarked;
+                      const colKey     = colLabel(numVal);
                       
                       return (
                         <div 
@@ -385,14 +387,34 @@ function GameContent() {
                             borderRadius: '4px', 
                             fontSize: '11px', 
                             fontWeight: '900', 
-                            background: isFree ? '#27AE60' : userMarked ? T.gold : T.statBg, 
-                            color: isFree ? 'white' : (userMarked ? T.header : T.text), 
-                            border: userMarked ? `1px solid ${T.gold}` : 'none',
+                            background: isFree ? '#27AE60' : userMarked ? T.gold : (isHinted ? `${COL_COLOR[colKey]}44` : T.statBg), 
+                            color: isFree ? 'white' : userMarked ? T.header : (isHinted ? T.header : T.text), 
+                            border: userMarked ? `1px solid ${T.gold}` : (isHinted ? `1px dashed ${COL_COLOR[colKey]}` : 'none'),
                             position: 'relative',
-                            overflow: 'hidden'
+                            overflow: 'hidden',
+                            boxShadow: isHinted ? `inset 0 0 6px ${COL_COLOR[colKey]}33` : 'none',
+                            transition: 'all 0.3s ease'
                           }}
                         >
                           {isFree ? '★' : cell}
+                          
+                          {/* Animated hint indicator for new balls */}
+                          {isHinted && lastBall === numVal && (
+                            <motion.div 
+                              initial={{ scale: 0, opacity: 0 }} 
+                              animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }} 
+                              transition={{ repeat: Infinity, duration: 1.5 }}
+                              style={{ 
+                                position: 'absolute', 
+                                width: '100%', 
+                                height: '100%', 
+                                background: COL_COLOR[colKey], 
+                                borderRadius: '4px',
+                                zIndex: 0
+                              }} 
+                            />
+                          )}
+
                           {userMarked && (
                              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} style={{ position: 'absolute', width: '80%', height: '80%', border: `2px solid ${T.header}`, borderRadius: '50%', opacity: 0.5 }} />
                           )}
