@@ -411,11 +411,10 @@ export async function claimBingoWin(gameId: string, userId: string): Promise<{ w
         if (result.modes.includes(mode as any) && !existingWinModes.has(mode as any)) {
           await processWinner(gameId, userId, ticket.id, mode as any, drawnNumbers);
           
-          if (mode === 'FULL_HOUSE') {
-             const state = activeGames.get(gameId);
-             if (state?.drawInterval) clearInterval(state.drawInterval);
-             await finishGame(gameId, 'Full House claimed');
-          }
+          // Finish the game immediately after ANY successful claim
+          const state = activeGames.get(gameId);
+          if (state?.drawInterval) clearInterval(state.drawInterval);
+          await finishGame(gameId, `Bingo claimed: ${mode}`);
           
           const prizeAmount = await calculatePrize(game, mode);
           return { won: true, mode, prize: Number(prizeAmount) };
@@ -431,11 +430,8 @@ export async function claimBingoWin(gameId: string, userId: string): Promise<{ w
 }
 
 async function calculatePrize(game: any, winMode: string): Promise<Decimal> {
-  const prizePercents: Record<string, number> = {
-    ROW: 10, COLUMN: 10, DIAGONAL: 15, FOUR_CORNERS: 15, FULL_HOUSE: 50,
-  };
-  const percent = prizePercents[winMode] ?? 10;
-  return new Decimal(game.totalPrize).mul(percent).div(100);
+  // Now that the game ends after the first claim, the winner gets the entire prize pool
+  return new Decimal(game.totalPrize);
 }
 
 // ─── Process Winner ───────────────────────────────────────────
@@ -452,16 +448,8 @@ async function processWinner(
   });
   if (!game) return;
 
-  // Prize logic: partial prizes per mode
-  const prizePercents: Record<string, number> = {
-    ROW: 10,
-    COLUMN: 10,
-    DIAGONAL: 15,
-    FOUR_CORNERS: 15,
-    FULL_HOUSE: 50,
-  };
-  const percent = prizePercents[winMode] ?? 10;
-  const prizeAmount = new Decimal(game.totalPrize).mul(percent).div(100);
+  // Winner takes all (totalPrize already has house edge deducted)
+  const prizeAmount = new Decimal(game.totalPrize);
 
   // Record winner
   await prisma.winner.create({
