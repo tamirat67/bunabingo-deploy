@@ -2,8 +2,7 @@
 FROM node:18-alpine AS builder
 
 WORKDIR /app
-
-# Install dependencies
+RUN apk add --no-cache openssl
 COPY package*.json ./
 RUN npm install
 
