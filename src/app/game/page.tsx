@@ -1,8 +1,7 @@
 'use client';
 import { useEffect, useState, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { getGame, getMyCard, pusherAuth, claimBingo } from '../../lib/api';
-import Pusher from 'pusher-js';
+import { getGame, getMyCard, claimBingo } from '../../lib/api';
 import { useSocket } from '../../context/SocketContext';
 import { Volume2, VolumeX, RefreshCw, LogOut, Plus, X, Bell, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';

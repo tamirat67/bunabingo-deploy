@@ -3,8 +3,8 @@ import React, { useState, useRef, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RefreshCw, LogOut, Volume2, VolumeX, ShieldCheck, Trophy } from 'lucide-react';
-import { getMe, getGame, pusherAuth, getMyCard } from '../../../lib/api';
-import Pusher from 'pusher-js';
+import { getMe, getGame, getMyCard } from '../../../lib/api';
+import { useSocket } from '../../../context/SocketContext';
 
 import { useTheme } from '../../../context/ThemeContext';
 
@@ -65,6 +65,7 @@ function SpinContent() {
   const { T } = useTheme();
   const sp = useSearchParams();
   const gameId = sp.get('id');
+  const { socket } = useSocket();
 
   const [game, setGame] = useState<any>(null);
   const [tickets, setTickets] = useState<any[]>([]);
@@ -97,39 +98,33 @@ function SpinContent() {
       }
     });
 
-    const pk = process.env.NEXT_PUBLIC_PUSHER_KEY, pc = process.env.NEXT_PUBLIC_PUSHER_CLUSTER;
-    if (!pk || !pc) return;
-    const pusher = new Pusher(pk, {
-      cluster: pc,
-      authorizer: ch => ({ authorize: (sid, cb) => pusherAuth(sid, ch.name).then(d => cb(null, d)).catch(e => cb(e, null)) }),
-    });
-    const ch = pusher.subscribe(`private-game-${gameId}`);
-    ch.bind('countdown-start', (d: any) => {
-      if (d.endTime && d.serverTime) {
-        setServerOff(d.serverTime - Date.now());
-        setEndTime(d.endTime);
+    // ─── Socket.io (VPS) ───
+    if (socket) {
+      socket.emit('join-game', gameId);
+      socket.on('countdown-start', (d: any) => {
+        if (d.endTime && d.serverTime) {
+          setServerOff(d.serverTime - Date.now());
+          setEndTime(d.endTime);
+        }
+        setCountdown(d.seconds);
+      });
+      socket.on('countdown-tick', (d: any) => {
+        setCountdown(d.secondsRemaining);
+      });
+      socket.on('spin-result', (d: any) => {
+        setCountdown(null);
+        handleRaffleResult(d);
+      });
+    }
+
+    return () => { 
+      if (socket) {
+        socket.emit('leave-game', gameId);
+        socket.off('countdown-start');
+        socket.off('countdown-tick');
+        socket.off('spin-result');
       }
-      setCountdown(d.seconds);
-      if (d.playerCount !== undefined) setGame((p: any) => p ? { ...p, currentPlayers: d.playerCount } : p);
-    });
-    ch.bind('countdown-tick', (d: any) => {
-      if (d.endTime && d.serverTime) {
-        setServerOff(d.serverTime - Date.now());
-        setEndTime(d.endTime);
-      }
-      setCountdown(d.secondsRemaining);
-      setGame((p: any) => p ? { ...p, currentPlayers: d.playerCount } : p);
-    });
-    ch.bind('player-joined', (d: any) => {
-      if (d.endTime && d.serverTime) {
-        setServerOff(d.serverTime - Date.now());
-        setEndTime(d.endTime);
-      }
-      setGame((p: any) => p ? { ...p, currentPlayers: d.playerCount } : p);
-      if (d.secondsRemaining !== undefined) setCountdown(d.secondsRemaining);
-    });
-    ch.bind('spin-result', (d: any) => { setCountdown(null); handleRaffleResult(d); });
-    return () => { ch.unbind_all(); pusher.disconnect(); };
+    };
   }, [gameId, mounted]);
 
   // Local countdown fallback for smoothness

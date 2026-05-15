@@ -1,10 +1,8 @@
 'use client';
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { getMe, joinGame, getOccupiedCards, pusherAuth } from '../../../lib/api';
-import { PREDEFINED_CARDS } from '../../../lib/predefinedCards';
-import { ChevronLeft, RefreshCw, Zap, X, Play, ShieldCheck } from 'lucide-react';
-import Pusher from 'pusher-js';
+import { getMe, joinGame, getOccupiedCards } from '../../../lib/api';
+import { useSocket } from '../../../context/SocketContext';
 
 function SelectionContent() {
   const router = useRouter();
@@ -17,6 +15,7 @@ function SelectionContent() {
   const [occupied, setOccupied] = useState<number[]>([]);
   const [joining, setJoining] = useState(false);
   const [playerCount, setPlayerCount] = useState(0);
+  const { socket } = useSocket();
 
   useEffect(() => {
     getMe().then(setUser).catch(() => {});
@@ -26,26 +25,25 @@ function SelectionContent() {
       setOccupied(res.occupiedIds || []);
       setPlayerCount(res.playerCount || 0);
       
-      // Subscribe to real-time updates
-      const pk = process.env.NEXT_PUBLIC_PUSHER_KEY, pc = process.env.NEXT_PUBLIC_PUSHER_CLUSTER;
-      if (!pk || !pc || !res.roomId) return;
-      const pusher = new Pusher(pk, { 
-        cluster: pc,
-        authorizer: ch => ({ authorize: (sid, cb) => pusherAuth(sid, ch.name).then(d => cb(null, d)).catch(e => cb(e, null)) }),
-      });
-      const ch = pusher.subscribe(`private-game-${res.roomId}`); 
-      
-      ch.bind('card-occupied', (data: { occupiedIds: number[] }) => {
-        setOccupied(data.occupiedIds);
-      });
-
-      ch.bind('player-count-update', (data: { playerCount: number }) => {
-        setPlayerCount(data.playerCount);
-      });
-
-      return () => { ch.unbind_all(); pusher.disconnect(); };
+      // Socket.io updates (VPS)
+      if (socket && res.roomId) {
+        socket.emit('join-game', res.roomId);
+        socket.on('card-occupied', (data: { occupiedIds: number[] }) => {
+          setOccupied(data.occupiedIds);
+        });
+        socket.on('player-joined', (data: { playerCount: number }) => {
+          setPlayerCount(data.playerCount);
+        });
+      }
     }).catch(() => {});
-  }, [roomType]);
+
+    return () => {
+      if (socket) {
+        socket.off('card-occupied');
+        socket.off('player-joined');
+      }
+    };
+  }, [roomType, socket]);
 
   // Auto-deselect if someone else buys your card
   useEffect(() => {
