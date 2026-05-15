@@ -2,7 +2,9 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getMe, joinGame, getOccupiedCards } from '../../../lib/api';
+import { PREDEFINED_CARDS } from '../../../lib/predefinedCards';
 import { useSocket } from '../../../context/SocketContext';
+import { ChevronLeft, RefreshCw, Zap, X, Play, ShieldCheck } from 'lucide-react';
 
 function SelectionContent() {
   const router = useRouter();
