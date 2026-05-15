@@ -664,24 +664,7 @@ router.get('/leaderboard', async (req: Request, res: Response) => {
   }
 });
 
-// ─── Pusher Auth (private channels) ──────────────────────────
-router.post('/pusher/auth', async (req: Request, res: Response) => {
-  const user = (req as any).user;
-  const { pusher } = await import('../lib/pusher');
-  const { socket_id, channel_name } = req.body;
-
-  // Only allow auth for user's own channel or game channels
-  const isUserChannel = channel_name === `private-user-${user.id}`;
-  const isGameChannel = channel_name.startsWith('private-game-');
-  const isAdminChannel = channel_name === 'private-admin-channel' && user.isAdmin;
-
-  if (!isUserChannel && !isGameChannel && !isAdminChannel) {
-    return res.status(403).json({ error: 'Unauthorized channel' });
-  }
-
-  const auth = pusher.authorizeChannel(socket_id, channel_name);
-  res.json(auth);
-});
+// ─── Socket.io (No legacy auth needed) ──────────────────────
 
 // ─── Staff Routes (Admin & Agent) ─────────────────────────────
 const staffRouter = Router();
