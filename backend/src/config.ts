@@ -14,12 +14,6 @@ export const config = {
     nodeEnv: process.env.NODE_ENV || 'development',
     jwtSecret: process.env.JWT_SECRET || 'dev_secret_change_in_prod',
   },
-  pusher: {
-    appId:   process.env.PUSHER_APP_ID   ?? '2150741',
-    key:     process.env.PUSHER_KEY      ?? 'd4ef280cd11492e660ee',
-    secret:  process.env.PUSHER_SECRET   ?? '479d0857765a59754594',
-    cluster: process.env.PUSHER_CLUSTER  ?? 'ap2',
-  },
   game: {
     ticketPrice: {
       DEMO: 0,

@@ -76,102 +76,6 @@ function GameContent() {
 
     loadData();
 
-    const pk = process.env.NEXT_PUBLIC_PUSHER_KEY, pc = process.env.NEXT_PUBLIC_PUSHER_CLUSTER;
-    if (!pk || !pc) return;
-    const pusher = new Pusher(pk, {
-      cluster: pc,
-      authorizer: ch => ({ authorize: (sid, cb) => pusherAuth(sid, ch.name).then(d => cb(null, d)).catch(e => cb(e, null)) }),
-    });
-    const ch = pusher.subscribe(`private-game-${gameId}`);
-    
-    ch.bind('number-drawn', (d: { number: number }) => {
-      const num = Number(d.number);
-      setLastBall(num);
-      setDrawn(p => [...p, num]);
-      setCountdown(null);
-      setToast(`${colLabel(num)} ${num}`);
-      if (toastTimer.current) clearTimeout(toastTimer.current);
-      toastTimer.current = setTimeout(() => setToast(null), 2500);
-
-      // Audio trigger with user interaction unlock
-      if (localStorage.getItem('game_sound') !== 'false') {
-        const ballLabel = colLabel(num);
-        const audio = new Audio(`/audio/${ballLabel}${num}.mp3`);
-        audio.play().catch(e => console.warn('Ball audio play failed:', e));
-      }
-    });
-
-    ch.bind('countdown-start', (d: { seconds: number, playerCount?: number, endTime?: number, serverTime?: number }) => {
-      console.log('Pusher: countdown-start', d);
-      if (d.endTime && d.serverTime) {
-        setServerOff(d.serverTime - Date.now());
-        setEndTime(d.endTime);
-      }
-      setCountdown(d.seconds);
-      if (d.playerCount !== undefined) setGame((p: any) => p ? { ...p, currentPlayers: d.playerCount } : p);
-    });
-
-    ch.bind('countdown-tick', (d: { secondsRemaining: number, playerCount: number, endTime?: number, serverTime?: number }) => {
-      console.log('Pusher: countdown-tick', d);
-      if (d.endTime && d.serverTime) {
-        setServerOff(d.serverTime - Date.now());
-        setEndTime(d.endTime);
-      }
-      setCountdown(d.secondsRemaining);
-      setGame((p: any) => p ? { ...p, currentPlayers: d.playerCount } : p);
-    });
-
-    // Prime audio on first interaction to unlock for mobile browsers/Telegram
-    const primeAudio = () => {
-      const silent = new Audio('/audio/start.mp3');
-      silent.volume = 0;
-      silent.play().then(() => {
-        console.log('Audio primed');
-        window.removeEventListener('click', primeAudio);
-        window.removeEventListener('touchstart', primeAudio);
-      }).catch(() => {});
-    };
-    window.addEventListener('click', primeAudio);
-    window.addEventListener('touchstart', primeAudio);
-
-    ch.bind('player-joined', (d: { playerCount: number, totalPrize?: string, secondsRemaining?: number, endTime?: number, serverTime?: number }) => {
-      console.log('Pusher: player-joined', d);
-      if (d.endTime && d.serverTime) {
-        setServerOff(d.serverTime - Date.now());
-        setEndTime(d.endTime);
-      }
-      if (d.totalPrize) {
-        setGame((p: any) => p ? { ...p, currentPlayers: d.playerCount, totalPrize: d.totalPrize } : p);
-      } else {
-        setGame((p: any) => p ? { ...p, currentPlayers: d.playerCount } : p);
-      }
-      if (d.secondsRemaining !== undefined) setCountdown(d.secondsRemaining);
-    });
-
-    ch.bind('game-update', (d: any) => {
-      if (d.status === 'FINISHED') {
-        const winner = d.winners?.[0];
-        setWinMsg(winner ? `Card #${(winner.ticket?.card as any)?.id} WON! 🏆` : 'Game Over');
-        
-        if (localStorage.getItem('game_sound') !== 'false') {
-          const audio = new Audio('/audio/stop.mp3');
-          audio.play().catch(e => console.warn('Stop audio play failed:', e));
-        }
-
-        // Auto-redirect to lobby after 8 seconds
-        setTimeout(() => router.push('/'), 8000);
-      }
-
-      if (d.status === 'RUNNING') {
-        if (localStorage.getItem('game_sound') !== 'false') {
-          const audio = new Audio('/audio/start.mp3');
-          audio.play().catch(e => console.warn('Start audio play failed:', e));
-        }
-      }
-
-      setGame((p: any) => p ? { ...p, ...d } : p);
-    });
-
     // ─── Socket.io Handlers (VPS) ───
     if (socket) {
       socket.emit('join-game', gameId);
@@ -206,8 +110,6 @@ function GameContent() {
     }
 
     return () => { 
-      ch.unbind_all(); 
-      pusher.disconnect(); 
       if (socket) {
         socket.emit('leave-game', gameId);
         socket.off('number-drawn');
