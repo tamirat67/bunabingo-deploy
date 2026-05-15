@@ -30,7 +30,9 @@ You need to create/copy your `.env` files into each service directory:
 - **Scraper**: `scraper/.env`
 
 > [!IMPORTANT]
-> Ensure your `DATABASE_URL` is correct and that the `BUNA_ENGINE_HOST` in your backend config points to `http://scraper:3000` (Docker internal network).
+> Ensure your `DATABASE_URL` is correct. The `BUNA_ENGINE_HOST` is pre-configured to use your production scraper at `https://rexhetmfgnf.aabte.com.et`. 
+> 
+> If you decide to use the local Docker scraper instead, update this to `http://scraper:3000`.
 
 ## 4. Launch with Docker Compose
 Build and start all services in the background:
