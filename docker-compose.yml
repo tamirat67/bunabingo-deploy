@@ -28,7 +28,7 @@ services:
     container_name: buna-scraper
     restart: always
     ports:
-      - "3002:3000"
+      - "3002:3005"
     env_file:
       - ./scraper/.env
     networks:
