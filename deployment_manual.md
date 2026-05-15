@@ -27,7 +27,30 @@ You need to create/copy your `.env` files into each service directory:
 
 - **Backend**: `backend/.env`
 - **Frontend**: `.env.local`
-- **Scraper**: `scraper/.env`
+
+#### **Backend Example (`backend/.env`)**
+```env
+DATABASE_URL="postgresql://neondb_owner:npg_5c3hPqXvEnUM@ep-square-frog-alg2vwbr-pooler.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require"
+DIRECT_URL="postgresql://neondb_owner:npg_5c3hPqXvEnUM@ep-square-frog-alg2vwbr.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require"
+
+PORT=3001
+NODE_ENV=production
+
+BOT_TOKEN=8263717692:AAGOMupsaToz9jXoXanTA0VgBJN_qC7igxo
+WEBHOOK_URL=https://api.bunatechhub.net
+MINI_APP_URL=https://app.bunatechhub.net
+
+BUNA_ENGINE_HOST=https://rexhetmfgnf.aabte.com.et
+BUNA_ENGINE_KEY=9f7a2d8e4c6b1a0f9e8d7c6b5a43210fe9
+
+# Security
+JWT_SECRET="something_very_secret"
+```
+
+#### **Frontend Example (`.env.local`)**
+```env
+NEXT_PUBLIC_API_URL=https://api.bunatechhub.net
+```
 
 > [!IMPORTANT]
 > Ensure your `DATABASE_URL` is correct. The `BUNA_ENGINE_HOST` is pre-configured to use your production scraper at `https://rexhetmfgnf.aabte.com.et`. 
