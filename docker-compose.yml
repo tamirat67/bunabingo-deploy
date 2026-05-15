@@ -23,14 +23,6 @@ services:
     networks:
       - buna-network
 
-  scraper:
-    build: ./scraper
-    container_name: buna-scraper
-    restart: always
-    ports:
-      - "3002:3005"
-    env_file:
-      - ./scraper/.env
     networks:
       - buna-network
 
