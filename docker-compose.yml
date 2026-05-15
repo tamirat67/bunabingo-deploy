@@ -1,28 +1,39 @@
+version: '3.8'
+
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: buna_bingo_db
-    environment:
-      POSTGRES_USER: buna
-      POSTGRES_PASSWORD: bingo2024
-      POSTGRES_DB: buna_bingo
+  backend:
+    build: ./backend
+    container_name: buna-backend
+    restart: always
     ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    restart: unless-stopped
+      - "3001:3001"
+    env_file:
+      - ./backend/.env
+    networks:
+      - buna-network
 
-  pgadmin:
-    image: dpage/pgadmin4
-    container_name: buna_bingo_pgadmin
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@bunabingo.com
-      PGADMIN_DEFAULT_PASSWORD: admin123
+  frontend:
+    build: .
+    container_name: buna-frontend
+    restart: always
     ports:
-      - "5050:80"
-    depends_on:
-      - postgres
-    restart: unless-stopped
+      - "3000:3000"
+    env_file:
+      - .env.local
+    networks:
+      - buna-network
 
-volumes:
-  postgres_data:
+  scraper:
+    build: ./scraper
+    container_name: buna-scraper
+    restart: always
+    ports:
+      - "3002:3000"
+    env_file:
+      - ./scraper/.env
+    networks:
+      - buna-network
+
+networks:
+  buna-network:
+    driver: bridge

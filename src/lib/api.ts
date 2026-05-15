@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { getTgInitData } from './telegram';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://bunabingo.onrender.com';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.bunatechhub.net';
 
 const api = axios.create({
   baseURL: `${API_URL}/api`,

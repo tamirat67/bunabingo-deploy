@@ -3,6 +3,7 @@ import { useEffect, useState, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { getGame, getMyCard, pusherAuth, claimBingo } from '../../lib/api';
 import Pusher from 'pusher-js';
+import { useSocket } from '../../context/SocketContext';
 import { Volume2, VolumeX, RefreshCw, LogOut, Plus, X, Bell, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -28,6 +29,7 @@ function GameContent() {
   const { T, activeThemeKey } = useTheme();
   const sp      = useSearchParams();
   const gameId  = sp.get('id');
+  const { socket } = useSocket();
 
   const [game,      setGame]      = useState<any>(null);
   const [tickets,   setTickets]   = useState<any[]>([]);
@@ -170,7 +172,51 @@ function GameContent() {
       setGame((p: any) => p ? { ...p, ...d } : p);
     });
 
-    return () => { ch.unbind_all(); pusher.disconnect(); if (toastTimer.current) clearTimeout(toastTimer.current); };
+    // ─── Socket.io Handlers (VPS) ───
+    if (socket) {
+      socket.emit('join-game', gameId);
+      
+      socket.on('number-drawn', (d: { number: number }) => {
+        const num = Number(d.number);
+        setDrawn(p => p.includes(num) ? p : [...p, num]);
+        setLastBall(num);
+        setToast(`${colLabel(num)} ${num}`);
+        if (toastTimer.current) clearTimeout(toastTimer.current);
+        toastTimer.current = setTimeout(() => setToast(null), 2500);
+        if (localStorage.getItem('game_sound') !== 'false') {
+          new Audio(`/audio/${colLabel(num)}${num}.mp3`).play().catch(() => {});
+        }
+      });
+
+      socket.on('countdown-start', (d: any) => {
+        setCountdown(d.seconds);
+        if (d.endTime && d.serverTime) {
+          setServerOff(d.serverTime - Date.now());
+          setEndTime(d.endTime);
+        }
+      });
+
+      socket.on('countdown-tick', (d: any) => {
+        setCountdown(d.secondsRemaining);
+      });
+
+      socket.on('game-update', (d: any) => {
+        setGame((p: any) => p ? { ...p, ...d } : p);
+      });
+    }
+
+    return () => { 
+      ch.unbind_all(); 
+      pusher.disconnect(); 
+      if (socket) {
+        socket.emit('leave-game', gameId);
+        socket.off('number-drawn');
+        socket.off('countdown-start');
+        socket.off('countdown-tick');
+        socket.off('game-update');
+      }
+      if (toastTimer.current) clearTimeout(toastTimer.current); 
+    };
   }, [gameId, mounted, soundOn]);
 
   // Local countdown fallback for smoothness

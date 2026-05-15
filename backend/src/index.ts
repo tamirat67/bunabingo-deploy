@@ -49,8 +49,15 @@ async function main() {
 
   const host = '0.0.0.0';
   const port = config.server.port;
-  app.listen(port, host, () => {
-    logger.info(`🚀 API server running on ${host}:${port}`);
+  
+  // ─── HTTP Server & Socket.io ─────────────────────────────
+  const { createServer } = await import('http');
+  const { initSocket } = await import('./lib/socket');
+  const httpServer = createServer(app);
+  initSocket(httpServer);
+
+  httpServer.listen(port, host, () => {
+    logger.info(`🚀 API server running on ${host}:${port} (HTTP + Socket.io)`);
   });
 
   // ─── Database ────────────────────────────────────────────

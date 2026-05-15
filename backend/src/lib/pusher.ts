@@ -9,26 +9,41 @@ export const pusher = new Pusher({
   useTLS: true,
 });
 
+import { 
+  triggerSocketGameEvent, 
+  triggerSocketUserEvent, 
+  triggerSocketGlobalEvent 
+} from './socket';
+
 export const triggerGameEvent = async (gameId: string, event: string, data: unknown) => {
   try {
+    // 1. Pusher (External)
     await pusher.trigger(`private-game-${gameId}`, event, data);
+    // 2. Socket.io (Internal - VPS)
+    triggerSocketGameEvent(gameId, event, data);
   } catch (err) {
-    console.error('[Pusher] Failed to trigger event:', err);
+    console.error('[EventBus] Failed to trigger game event:', err);
   }
 };
 
 export const triggerUserEvent = async (userId: string, event: string, data: unknown) => {
   try {
+    // 1. Pusher
     await pusher.trigger(`private-user-${userId}`, event, data);
+    // 2. Socket.io
+    triggerSocketUserEvent(userId, event, data);
   } catch (err) {
-    console.error('[Pusher] Failed to trigger user event:', err);
+    console.error('[EventBus] Failed to trigger user event:', err);
   }
 };
 
 export const triggerAdminEvent = async (event: string, data: unknown) => {
   try {
+    // 1. Pusher
     await pusher.trigger('admin-channel', event, data);
+    // 2. Socket.io
+    triggerSocketGlobalEvent(event, data);
   } catch (err) {
-    console.error('[Pusher] Failed to trigger admin event:', err);
+    console.error('[EventBus] Failed to trigger admin event:', err);
   }
 };

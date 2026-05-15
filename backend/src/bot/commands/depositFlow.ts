@@ -109,7 +109,6 @@ export async function handleDepositMessage(ctx: Context): Promise<boolean> {
         {
           parse_mode: 'Markdown',
           ...Markup.inlineKeyboard([
-            [Markup.button.callback('⏭ Skip Screenshot', 'cmd_deposit_submit')],
             [Markup.button.callback('❌ Cancel', 'cmd_deposit_cancel')],
           ]),
         }
@@ -208,7 +207,6 @@ export async function handlePayCbeBirr(ctx: Context) {
     {
       parse_mode: 'Markdown',
       ...Markup.inlineKeyboard([
-        [Markup.button.callback('⏭ Skip Screenshot', 'cmd_deposit_submit')],
         [Markup.button.callback('❌ Cancel', 'cmd_deposit_cancel')],
       ]),
     }
@@ -236,7 +234,6 @@ export async function handlePayCbeBank(ctx: Context) {
     {
       parse_mode: 'Markdown',
       ...Markup.inlineKeyboard([
-        [Markup.button.callback('⏭ Skip Screenshot', 'cmd_deposit_submit')],
         [Markup.button.callback('❌ Cancel', 'cmd_deposit_cancel')],
       ]),
     }
@@ -264,7 +261,6 @@ export async function handlePayMpesa(ctx: Context) {
     {
       parse_mode: 'Markdown',
       ...Markup.inlineKeyboard([
-        [Markup.button.callback('⏭ Skip Screenshot', 'cmd_deposit_submit')],
         [Markup.button.callback('❌ Cancel', 'cmd_deposit_cancel')],
       ]),
     }

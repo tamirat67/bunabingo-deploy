@@ -110,7 +110,7 @@ export default function TransactionsPage() {
                     <th>Reference</th>
                     <th>Proof</th>
                     <th>Time</th>
-                    <th>Status</th>
+                    <th style={{ textAlign: 'right' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -130,10 +130,11 @@ export default function TransactionsPage() {
                         ) : 'No Proof'}
                       </td>
                       <td style={{ color: '#78716c', fontSize: '13px' }}>{new Date(d.createdAt).toLocaleString()}</td>
-                      <td>
-                        <span className="badge badge-gold" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                          <FiClock size={12} /> VERIFYING...
-                        </span>
+                      <td style={{ textAlign: 'right' }}>
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                          <button onClick={() => handleApprove(d.id, 'deposit')} className="login-button" style={{ padding: '8px', background: '#f0fdf4', color: '#22c55e', width: 'auto', minWidth: '40px' }} title="Approve Deposit"><FiCheck /></button>
+                          <button onClick={() => handleReject(d.id, 'deposit')} className="login-button" style={{ padding: '8px', background: '#fef2f2', color: '#ef4444', width: 'auto', minWidth: '40px' }} title="Reject Deposit"><FiX /></button>
+                        </div>
                       </td>
                     </tr>
                   ))}

@@ -17,6 +17,7 @@ export const metadata: Metadata = {
 };
 
 import { ThemeProvider } from '../context/ThemeContext';
+import { SocketProvider } from '../context/SocketContext';
 
 export default function RootLayout({
   children,
@@ -33,13 +34,15 @@ export default function RootLayout({
         />
       </head>
       <body>
-        <ThemeProvider>
-          <Suspense fallback={null}>
-            {children}
-          </Suspense>
-          <Navbar />
-          <DebugOverlay />
-        </ThemeProvider>
+        <SocketProvider>
+          <ThemeProvider>
+            <Suspense fallback={null}>
+              {children}
+            </Suspense>
+            <Navbar />
+            <DebugOverlay />
+          </ThemeProvider>
+        </SocketProvider>
       </body>
     </html>
   );
