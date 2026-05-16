@@ -1,6 +1,7 @@
 import { Context } from 'telegraf';
 import { getUserByTelegramId } from '../../services/user.service';
 import { getOrCreateWallet } from '../../services/wallet.service';
+import prisma from '../../lib/prisma';
 
 export async function handleBalance(ctx: Context) {
   const tgUser = ctx.from!;

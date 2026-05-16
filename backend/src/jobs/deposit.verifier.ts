@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { approveDeposit } from '../services/deposit.service';
-import { validateTelebirrSms } from '../services/bunafrankValidator';
+import { validateTelebirrSms, verifyReceiptOnline } from '../services/bunafrankValidator';
 import { logger } from '../lib/logger';
 import { config } from '../config';
 
@@ -28,10 +28,6 @@ export async function processAutomatedDeposits() {
       
       if (isTelebirrId) {
         logger.info(`[AutoDeposit] Attempting auto-verify for Telebirr txn: ${d.txnId}`);
-        
-        // Construct a dummy SMS text for the validator or just call the scraper directly
-        // The validator expects the full SMS text, but we can bypass and use verifyReceiptOnline
-        const { verifyReceiptOnline } = await import('../services/bunafrankValidator') as any;
         
         const receiptUrl = `https://transactioninfo.ethiotelecom.et/receipt/${d.txnId}`;
         const verified = await verifyReceiptOnline(receiptUrl, d.txnId);
