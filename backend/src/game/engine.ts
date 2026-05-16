@@ -719,7 +719,12 @@ export async function joinGame(
   const totalPrice = new Decimal(unitPrice).mul(numTickets);
 
   if (new Decimal(wallet.balance).lessThan(totalPrice)) {
-    throw new Error(`Insufficient balance. You need ${totalPrice} ETB.`);
+    const currentBalance = Number(wallet.balance);
+    if (currentBalance === 0) {
+      throw new Error(`❌ Your wallet is empty (0 ETB). Please deposit via Telebirr to join the game!`);
+    } else {
+      throw new Error(`❌ Insufficient balance. You need ${totalPrice} ETB for ${numTickets} card(s), but you have ${currentBalance} ETB.`);
+    }
   }
 
   // Create tickets only (no wallet changes)
