@@ -6,21 +6,19 @@ async function resetForProduction() {
   console.log('🚀 Starting Production Database Reset...');
 
   try {
-    // 1. Delete transactional data (Order is important for foreign keys)
     console.log('🗑️ Clearing games, tickets, and winners...');
     await prisma.winner.deleteMany({});
     await prisma.drawHistory.deleteMany({});
     await prisma.ticket.deleteMany({});
     await prisma.game.deleteMany({});
 
-    console.log('🗑️ Clearing financial history (deposits, withdrawals, commissions)...');
+    console.log('🗑️ Clearing financial history...');
     await prisma.deposit.deleteMany({});
     await prisma.withdrawal.deleteMany({});
     await prisma.agentCommissionLog.deleteMany({});
     await prisma.transaction.deleteMany({});
 
-    // 2. Reset Wallets to 0
-    console.log('💰 Resetting all wallet balances to 0 ETB...');
+    console.log('💰 Resetting wallet balances...');
     await prisma.wallet.updateMany({
       data: {
         balance: 0,
@@ -33,8 +31,7 @@ async function resetForProduction() {
       }
     });
 
-    // 3. Reset Agent Pre-Deposit Wallets to 0
-    console.log('🏦 Resetting Agent Pre-Deposit Wallets...');
+    console.log('🏦 Resetting Agent wallets...');
     await prisma.agentPreDepositWallet.updateMany({
       data: {
         balance: 0,
@@ -43,15 +40,14 @@ async function resetForProduction() {
       }
     });
 
-    // 4. Initialize Global Jackpot to 0
-    console.log('🎰 Resetting Global Jackpot...');
+    console.log('🎰 Resetting Jackpot...');
     await prisma.jackpot.upsert({
       where: { id: 'GLOBAL' },
       update: { currentAmount: 0, targetAmount: 1000 },
       create: { id: 'GLOBAL', currentAmount: 0, targetAmount: 1000 }
     });
 
-    console.log('✅ DATABASE RESET COMPLETE. Your platform is now a clean slate! 🚀');
+    console.log('✅ DATABASE RESET COMPLETE. 🚀');
   } catch (error) {
     console.error('❌ Reset failed:', error);
   } finally {
