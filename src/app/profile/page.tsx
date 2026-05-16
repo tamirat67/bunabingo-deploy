@@ -76,9 +76,32 @@ export default function ProfilePage() {
     if (!profile?.id) return;
     const link = `https://t.me/buna_bingobot?start=${profile.id}`;
     const text = `🎰 Join me on Buna Bingo! ☕️ Get 5 ETB bonus when you join! Play here: ${link}`;
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    
+    // Attempt to copy using the standard API
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }).catch(() => {
+        // Fallback if blocked by browser
+        copyFallback(text);
+      });
+    } else {
+      copyFallback(text);
+    }
+  };
+
+  const copyFallback = (text: string) => {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    document.body.appendChild(textArea);
+    textArea.select();
+    try {
+      document.execCommand('copy');
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {}
+    document.body.removeChild(textArea);
   };
 
   const toggleSound = () => {
@@ -342,8 +365,8 @@ export default function ProfilePage() {
            <div style={{ background: '#f0f7ff', border: '2px solid #bfdbfe', borderRadius: '20px', padding: '8px', display: 'flex', alignItems: 'center' }}>
               <div style={{ flex: 1, paddingLeft: '12px', overflow: 'hidden' }}>
                  <div style={{ fontSize: '10px', opacity: 0.4, fontWeight: '900', marginBottom: '2px' }}>SHARE & EARN 5 ETB</div>
-                 <code style={{ display: 'block', fontSize: '12px', color: '#1d4ed8', fontWeight: '800', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    t.me/buna_bingobot?start={profile?.id?.split('-')[0]}
+                 <code style={{ display: 'block', fontSize: '10px', color: '#1d4ed8', fontWeight: '800', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    t.me/buna_bingobot?start={profile?.id}
                  </code>
               </div>
               <button onClick={handleCopyLink} style={{ background: copied ? '#10b981' : '#1d4ed8', color: 'white', border: 'none', height: '44px', padding: '0 20px', borderRadius: '16px', fontSize: '12px', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '8px' }}>
