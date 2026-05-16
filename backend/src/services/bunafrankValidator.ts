@@ -7,6 +7,7 @@
  */
 
 import axios from 'axios';
+import https from 'https';
 import { logger } from '../lib/logger';
 import prisma from '../lib/prisma';
 import { config } from '../config';
@@ -141,11 +142,15 @@ export async function verifyReceiptOnline(receiptUrl: string, transactionId: str
           let res = await axios.get(scraperUrl, { 
             timeout: 10000,
             headers: { 'x-api-key': config.payment.bunaEngineKey },
+            httpsAgent: new https.Agent({ rejectUnauthorized: false })
           }).catch(() => null);
 
           if (!res || !res.data) {
             logger.info(`[BunaFrankValidator] Primary scraper failed, trying alt: ${altScraperUrl}`);
-            res = await axios.get(altScraperUrl, { timeout: 10000 }).catch(() => null);
+            res = await axios.get(altScraperUrl, { 
+              timeout: 10000,
+              httpsAgent: new https.Agent({ rejectUnauthorized: false })
+            }).catch(() => null);
           }
           
           const responseData = res?.data;
@@ -169,7 +174,8 @@ export async function verifyReceiptOnline(receiptUrl: string, transactionId: str
       // Direct fallback to official site
       try {
         const res = await axios.get(receiptUrl, {
-          timeout: 10000,
+          timeout: 15000,
+          httpsAgent: new https.Agent({ rejectUnauthorized: false }),
           headers: { 
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
           },
