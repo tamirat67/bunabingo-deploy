@@ -178,7 +178,7 @@ export async function handleStart(ctx: Context) {
             ),
           ],
         ])
-      );
+      });
     });
 
     logger.info(`[Start] Main menu sent to ${user.id}`);
