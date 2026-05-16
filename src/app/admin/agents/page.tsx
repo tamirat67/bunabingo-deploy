@@ -14,6 +14,11 @@ export default function AgentsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
 
+  const [selectedAgent, setSelectedAgent] = useState<any>(null);
+  const [rechargeAmount, setRechargeAmount] = useState('');
+  const [showRechargeModal, setShowRechargeModal] = useState(false);
+  const [rechargeLoading, setRechargeLoading] = useState(false);
+
   useEffect(() => {
     fetchAgents();
   }, [page]);
@@ -32,10 +37,21 @@ export default function AgentsPage() {
     }
   }
 
-  const filteredAgents = agents.filter(agent => 
-    agent.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    agent.telegramUsername?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const handleRecharge = async () => {
+    if (!selectedAgent || !rechargeAmount) return;
+    try {
+      setRechargeLoading(true);
+      await api.post(`/admin/agents/${selectedAgent.id}/recharge`, { amount: rechargeAmount });
+      setShowRechargeModal(false);
+      setRechargeAmount('');
+      fetchAgents();
+      alert(`Successfully refilled ${selectedAgent.firstName}'s wallet!`);
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Recharge failed.');
+    } finally {
+      setRechargeLoading(false);
+    }
+  };
 
   const handleDemote = async (userId: string) => {
     if (!confirm('Are you sure you want to remove this agent from the network?')) return;
@@ -47,12 +63,17 @@ export default function AgentsPage() {
     }
   };
 
+  const filteredAgents = agents.filter(agent => 
+    agent.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    agent.telegramUsername?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="admin-page">
       <div style={{ marginBottom: '40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h1 style={{ fontSize: '36px', fontWeight: '900', margin: 0 }}>Agents Network</h1>
-          <p style={{ color: 'var(--admin-text-muted)', marginTop: '4px' }}>Manage your branch managers and track their performance.</p>
+          <p style={{ color: 'var(--admin-text-muted)', marginTop: '4px' }}>Manage your branch managers and refill their pre-deposit liquidity.</p>
         </div>
         <button 
           className="login-button" 
@@ -70,8 +91,8 @@ export default function AgentsPage() {
         </div>
         <div className="stat-card-m">
           <p className="stat-label">Total Pre-Deposit Liquidity</p>
-          <h2 className="stat-value" style={{ color: '#4ade80' }}>
-            {agents.reduce((acc, a) => acc + Number(a.agentPreDepositWallet?.balance || 0), 0).toLocaleString()} ETB
+          <h2 className="stat-value" style={{ color: '#d4af37' }}>
+            {agents.reduce((acc, a) => acc + Number(a.agentPreDepositWallet?.balance || 0), 0).toLocaleString()} <span style={{ fontSize: '14px', opacity: 0.5 }}>ETB</span>
           </h2>
         </div>
         <div className="stat-card-m">
@@ -145,14 +166,18 @@ export default function AgentsPage() {
                 <td style={{ textAlign: 'right' }}>
                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
                      <button 
+                       onClick={() => { setSelectedAgent(agent); setShowRechargeModal(true); }}
+                       className="action-button"
+                       style={{ background: '#fef3c7', color: '#b45309', padding: '6px 12px', borderRadius: '8px', border: 'none', fontSize: '11px', fontWeight: '900', cursor: 'pointer' }}
+                     >
+                        REFILL
+                     </button>
+                     <button 
                        onClick={() => handleDemote(agent.id)}
                        style={{ background: '#fef2f2', border: 'none', color: '#ef4444', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
                        title="Demote from Agent"
                      >
                         <FiUserX />
-                     </button>
-                     <button style={{ background: '#f8fafc', border: 'none', color: 'var(--admin-text-muted)', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}>
-                        <FiExternalLink />
                      </button>
                    </div>
                 </td>
@@ -168,6 +193,46 @@ export default function AgentsPage() {
         onPageChange={setPage} 
         loading={loading}
       />
+
+      {/* ── Recharge Modal ── */}
+      {showRechargeModal && (
+        <div className="modal-overlay">
+           <div className="modal-content" style={{ maxWidth: '400px', background: 'white', color: 'black' }}>
+              <h2 style={{ fontWeight: '900', fontSize: '24px', marginBottom: '10px' }}>Refill Agent Wallet</h2>
+              <p style={{ fontSize: '14px', opacity: 0.7, marginBottom: '20px' }}>
+                 Recharging <b>{selectedAgent?.firstName}</b>'s pre-deposit balance.
+              </p>
+              
+              <div className="login-input-wrapper" style={{ border: '2px solid #eee', marginBottom: '20px' }}>
+                 <input 
+                    type="number" 
+                    placeholder="Enter amount in ETB..." 
+                    className="login-input" 
+                    style={{ color: 'black' }}
+                    value={rechargeAmount}
+                    onChange={(e) => setRechargeAmount(e.target.value)}
+                 />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px' }}>
+                 <button 
+                    className="login-button" 
+                    onClick={handleRecharge}
+                    disabled={rechargeLoading}
+                    style={{ flex: 1, padding: '15px' }}
+                 >
+                    {rechargeLoading ? 'Refilling...' : 'Confirm Refill'}
+                 </button>
+                 <button 
+                    onClick={() => setShowRechargeModal(false)}
+                    style={{ flex: 1, background: '#eee', border: 'none', borderRadius: '12px', fontWeight: '900', cursor: 'pointer' }}
+                 >
+                    Cancel
+                 </button>
+              </div>
+           </div>
+        </div>
+      )}
     </div>
   );
 }
