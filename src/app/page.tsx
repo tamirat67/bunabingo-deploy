@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 import { useTheme } from '../context/ThemeContext';
 import JackpotModal from '../components/JackpotModal';
+import BunaModal from '../components/BunaModal';
 
 export default function LobbyPage() {
   const router = useRouter();
@@ -18,6 +19,7 @@ export default function LobbyPage() {
   const [activeGame, setActiveGame] = useState<any>(null);
   const [mounted, setMounted] = useState(false);
   const [showJackpot, setShowJackpot] = useState(false);
+  const [modalConfig, setModalConfig] = useState({ isOpen: false, title: '', message: '' });
 
   useEffect(() => {
     setMounted(true);
@@ -52,7 +54,11 @@ export default function LobbyPage() {
 
   const handleJoinRoom = (room: any) => {
     if (room.type.startsWith('SPIN_')) {
-      alert("☕ Buna Spin Games are currently under maintenance for upgrades! Coming soon...");
+      setModalConfig({
+        isOpen: true,
+        title: 'COMING SOON!',
+        message: '☕ Buna Spin Games are currently under maintenance for upgrades. Get ready for something big!'
+      });
       return;
     }
     router.push(`/tickets/select?type=${room.type}&price=${room.price}`);
@@ -342,6 +348,13 @@ export default function LobbyPage() {
         show={showJackpot} 
         onClose={() => setShowJackpot(false)} 
         jackpotAmount={Number(user?.jackpot?.amount || 0).toFixed(2)} 
+      />
+
+      <BunaModal
+        isOpen={modalConfig.isOpen}
+        onClose={() => setModalConfig({ ...modalConfig, isOpen: false })}
+        title={modalConfig.title}
+        message={modalConfig.message}
       />
 
       <style jsx global>{`

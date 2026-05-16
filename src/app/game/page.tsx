@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState, useRef, Suspense } from 'react';
+import { useEffect, useState, useRef, Suspense, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { getGame, getMyCard, claimBingo } from '../../lib/api';
 import { useSocket } from '../../context/SocketContext';
@@ -48,6 +48,28 @@ function GameContent() {
 
   const toastTimer = useRef<any>(null);
 
+  const loadData = useCallback(() => {
+    if (!gameId) return;
+    Promise.all([getGame(gameId), getMyCard(gameId)]).then(([g, t]) => {
+      setGame(g);
+      if (g.endTime && g.serverTime) {
+        const offset = g.serverTime - Date.now();
+        setServerOff(offset);
+        setEndTime(g.endTime);
+      } else if (g.status === 'COUNTDOWN' && g.countdownSeconds) {
+        const estimatedEnd = Date.now() + (g.countdownSeconds * 1000);
+        setEndTime(estimatedEnd);
+        setServerOff(0);
+      }
+      const sorted = (t.tickets || []).sort((a: any, b: any) => (a.card?.id || 0) - (b.card?.id || 0));
+      setTickets(sorted);
+      const hist = (g.drawHistory || []).map((d: any) => d.number);
+      setDrawn(hist);
+      setLastBall(hist.at(-1) ?? null);
+      if (g.status === 'COUNTDOWN' && !g.endTime) setCountdown(g.countdownSeconds);
+    }).catch(console.error);
+  }, [gameId]);
+
   useEffect(() => {
     setMounted(true);
     
@@ -56,29 +78,6 @@ function GameContent() {
     if (savedSound !== null) setSoundOn(savedSound === 'true');
 
     if (!gameId) return;
-
-    const loadData = () => {
-      Promise.all([getGame(gameId), getMyCard(gameId)]).then(([g, t]) => {
-        setGame(g);
-        if (g.endTime && g.serverTime) {
-          const offset = g.serverTime - Date.now();
-          setServerOff(offset);
-          setEndTime(g.endTime);
-        } else if (g.status === 'COUNTDOWN' && g.countdownSeconds) {
-          // If no endTime, fallback to countdownSeconds but calculate an estimated endTime
-          const estimatedEnd = Date.now() + (g.countdownSeconds * 1000);
-          setEndTime(estimatedEnd);
-          setServerOff(0);
-        }
-        // Sort tickets by card ID for better UX
-        const sorted = (t.tickets || []).sort((a: any, b: any) => (a.card?.id || 0) - (b.card?.id || 0));
-        setTickets(sorted);
-        const hist = (g.drawHistory || []).map((d: any) => d.number);
-        setDrawn(hist);
-        setLastBall(hist.at(-1) ?? null);
-        if (g.status === 'COUNTDOWN' && !g.endTime) setCountdown(g.countdownSeconds);
-      }).catch(console.error);
-    };
 
     loadData();
 
@@ -110,6 +109,14 @@ function GameContent() {
         setCountdown(d.secondsRemaining);
       });
 
+      socket.on('game-started', () => {
+        loadData();
+      });
+
+      socket.on('game-finished', () => {
+        loadData();
+      });
+
       socket.on('game-update', (d: any) => {
         setGame((p: any) => p ? { ...p, ...d } : p);
       });
@@ -121,11 +128,13 @@ function GameContent() {
         socket.off('number-drawn');
         socket.off('countdown-start');
         socket.off('countdown-tick');
+        socket.off('game-started');
+        socket.off('game-finished');
         socket.off('game-update');
       }
       if (toastTimer.current) clearTimeout(toastTimer.current); 
     };
-  }, [gameId, mounted, soundOn]);
+  }, [gameId, mounted, soundOn, loadData, socket]);
 
   // Local countdown fallback for smoothness
   useEffect(() => {
@@ -134,10 +143,14 @@ function GameContent() {
       const now = Date.now() + serverOff;
       const rem = Math.max(0, Math.ceil((endTime - now) / 1000));
       setCountdown(rem);
-      if (rem <= 0) setEndTime(null);
+      if (rem <= 0) {
+        setEndTime(null);
+        // Force a data refresh if game hasn't started yet
+        setTimeout(loadData, 500); 
+      }
     }, 1000);
     return () => clearInterval(timer);
-  }, [endTime, serverOff]);
+  }, [endTime, serverOff, loadData]);
 
   const isCalled   = (n: number) => drawn.includes(n);
   const isMarkedLocal = (n: number) => marked.has(n);
