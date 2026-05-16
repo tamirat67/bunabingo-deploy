@@ -122,6 +122,14 @@ export async function getUserByTelegramId(telegramId: number) {
     where: { telegramId: BigInt(telegramId) },
     include: { 
       wallet: true,
+      referrer: {
+        select: {
+          id: true,
+          telegramId: true,
+          telegramUsername: true,
+          firstName: true,
+        }
+      },
       _count: { select: { referrals: true } }
     },
   });

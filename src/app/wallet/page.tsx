@@ -134,13 +134,13 @@ export default function WalletPage() {
                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '25px' }}>
                   <button 
                     onClick={() => {
-                      // Redirect to Telegram bot deposit command
                       const tg = (window as any).Telegram?.WebApp;
+                      const botUsername = 'buna_bingobot';
                       if (tg) {
+                        tg.openTelegramLink(`https://t.me/${botUsername}?start=deposit`);
                         tg.close();
-                        window.location.href = `https://t.me/buna_bingobot?start=deposit`;
                       } else {
-                        showAlert('Telegram Required', 'Please use the official Telegram bot to deposit funds safely.', 'info');
+                        window.open(`https://t.me/${botUsername}?start=deposit`, '_blank');
                       }
                     }}
                     style={{ padding: '12px', borderRadius: '12px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: 'white', fontWeight: '900', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
@@ -148,7 +148,21 @@ export default function WalletPage() {
                     <ArrowDownLeft size={18} /> Deposit
                   </button>
                   <button 
-                    onClick={() => router.push('/withdraw')}
+                    onClick={() => {
+                      const tg = (window as any).Telegram?.WebApp;
+                      const agentUsername = user?.referrer?.telegramUsername;
+                      const supportLink = 'https://t.me/bunabingosupport';
+                      
+                      const link = agentUsername 
+                        ? `https://t.me/${agentUsername.replace('@', '')}` 
+                        : supportLink;
+
+                      if (tg) {
+                        tg.openTelegramLink(link);
+                      } else {
+                        window.open(link, '_blank');
+                      }
+                    }}
                     style={{ padding: '12px', borderRadius: '12px', background: T.gold, border: 'none', color: T.header, fontWeight: '900', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                   >
                     <ArrowUpRight size={18} /> Withdraw

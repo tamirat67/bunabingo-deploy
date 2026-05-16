@@ -13,7 +13,12 @@ export async function handleStart(ctx: Context) {
     let referrerName: string | null = null;
     let validReferrerId: string | undefined;
 
-    if (startPayload && startPayload.length > 20) {
+    if (startPayload === 'deposit') {
+    const { handleDeposit } = await import('./deposit');
+    return handleDeposit(ctx);
+  }
+
+  if (startPayload && startPayload.length > 20) {
       // UUIDs are 36 chars — quick sanity check
       try {
         const referrer = await getUserById(startPayload);
