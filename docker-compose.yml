@@ -23,9 +23,6 @@ services:
     networks:
       - buna-network
 
-    networks:
-      - buna-network
-
 networks:
   buna-network:
     driver: bridge
