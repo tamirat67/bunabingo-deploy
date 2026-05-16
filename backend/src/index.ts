@@ -130,11 +130,18 @@ async function main() {
 
       if (config.server.nodeEnv === 'production') {
         const webhookUrl = `${process.env.WEBHOOK_URL}/bot${config.bot.token}`;
-        await bot.telegram.setWebhook(webhookUrl);
-        app.use(`/bot${config.bot.token}`, (req: any, res: any) => {
-          bot.handleUpdate(req.body, res);
-        });
-        logger.info(`🤖 Bot running via webhook: ${webhookUrl}`);
+        try {
+          await bot.telegram.setWebhook(webhookUrl);
+          app.use(`/bot${config.bot.token}`, (req: any, res: any) => {
+            bot.handleUpdate(req.body, res);
+          });
+          logger.info(`🤖 Bot running via webhook: ${webhookUrl}`);
+        } catch (webhookErr: any) {
+          logger.error('⚠️ Webhook setup failed, falling back to Long Polling:', webhookErr.message);
+          await bot.telegram.deleteWebhook();
+          bot.launch();
+          logger.info('🤖 Bot running via long polling (Production Fallback)');
+        }
       } else {
         await bot.telegram.deleteWebhook();
         bot.launch();
