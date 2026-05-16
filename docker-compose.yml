@@ -16,12 +16,6 @@ services:
     volumes:
       - ./backend/uploads:/app/uploads   # persist uploaded receipts/banners
       - ./backend/logs:/app/logs         # persist logs
-    healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/health', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1))"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 20s
     networks:
       - buna-network
 
@@ -39,8 +33,7 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      backend:
-        condition: service_healthy
+      - backend
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3000/"]
       interval: 30s
