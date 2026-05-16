@@ -222,6 +222,21 @@ export async function rechargeAgentPreDepositWallet(
     });
   });
 
+  // Notify agent on Telegram (non-blocking)
+  try {
+    const { notifyAgent } = await import('../bot/notifier');
+    await notifyAgent(
+      agentId,
+      `💰 <b>Wallet Refilled!</b>\n\n` +
+      `Your branch pre-deposit wallet has been refilled by the administrator.\n\n` +
+      `➕ <b>Amount:</b> ${amount.toLocaleString()} ETB\n` +
+      `🏦 <b>New Balance:</b> ${after.toFixed(2)} ETB\n\n` +
+      `☕️ <i>Keep the games running!</i>`
+    );
+  } catch (err) {
+    logger.warn(`[Commission] Could not notify agent ${agentId} of recharge.`);
+  }
+
   logger.info(`[Commission] Agent ${agentId} wallet recharged +${amount} ETB by admin ${adminId}. New balance: ${after.toFixed(2)}`);
   return after;
 }
