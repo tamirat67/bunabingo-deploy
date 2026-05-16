@@ -60,7 +60,7 @@ export async function findOrCreateUser(
       logger.info(`[Auth] Initializing wallet for user ${user.id}...`);
       await prisma.wallet.upsert({
         where: { userId: user.id },
-        create: { userId: user.id, balance: 1000 },
+        create: { userId: user.id, balance: 0 },
         update: {},
       });
       logger.info(`[Auth] Wallet initialized for user ${user.id}`);
@@ -88,10 +88,10 @@ export async function findOrCreateUser(
       if (!wallet || Number(wallet.balance) < 100) {
         await prisma.wallet.upsert({
           where: { userId: user.id },
-          create: { userId: user.id, balance: 1000 },
-          update: { balance: 1000 },
+          create: { userId: user.id, balance: 0 },
+          update: { balance: 0 },
         });
-        logger.info(`[Auth] Refilled existing user ${user.id} to 1000 ETB`);
+        logger.info(`[Auth] Initialized existing user ${user.id} with 0 ETB`);
       }
     }
 
