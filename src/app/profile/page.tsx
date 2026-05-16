@@ -215,17 +215,17 @@ export default function ProfilePage() {
            <div style={{ background: T.card, padding: '15px', borderRadius: '16px', border: `1px solid ${T.border}`, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#2196F3', marginBottom: '8px' }}>
                  <Users size={18} />
-                 <span style={{ fontSize: '11px', fontWeight: '900', textTransform: 'uppercase' }}>Commission</span>
+                 <span style={{ fontSize: '11px', fontWeight: '900', textTransform: 'uppercase' }}>Bonus Wallet</span>
               </div>
-              <div style={{ fontSize: '20px', fontWeight: '900', color: T.cardTxt }}>{Number(profile?.wallet?.referralBalance || 0).toFixed(2)} <span style={{ fontSize: '12px', opacity: 0.5 }}>ETB</span></div>
+              <div style={{ fontSize: '20px', fontWeight: '900', color: T.cardTxt }}>{Number(profile?.wallet?.bonusBalance || 0).toFixed(2)} <span style={{ fontSize: '12px', opacity: 0.5 }}>ETB</span></div>
            </div>
         </div>
         <div style={{ background: T.card, padding: '15px', borderRadius: '16px', border: `1px solid ${T.border}`, boxShadow: '0 2px 8px rgba(0,0,0,0.05)', marginBottom: '30px' }}>
            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: T.gold, marginBottom: '8px' }}>
               <Gift size={18} />
-              <span style={{ fontSize: '11px', fontWeight: '900', textTransform: 'uppercase' }}>Experience (XP)</span>
+              <span style={{ fontSize: '11px', fontWeight: '900', textTransform: 'uppercase' }}>Total Commission</span>
            </div>
-           <div style={{ fontSize: '20px', fontWeight: '900', color: T.cardTxt }}>{Number(profile?.wallet?.coins || 0)} <span style={{ fontSize: '12px', opacity: 0.5 }}>XP</span></div>
+           <div style={{ fontSize: '20px', fontWeight: '900', color: T.cardTxt }}>{Number(profile?.wallet?.referralBalance || 0).toFixed(2)} <span style={{ fontSize: '12px', opacity: 0.5 }}>ETB</span></div>
         </div>
 
         {/* ── Admin Platform Performance (if Admin) ── */}
