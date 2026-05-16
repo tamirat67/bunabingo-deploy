@@ -208,6 +208,31 @@ export async function validateTelebirrSms(
     };
   }
 
+  // ─── Time Expiry Check (3 Hours) ───
+  if (data.dateTime) {
+    try {
+      // Expected format: "DD/MM/YYYY HH:mm:ss"
+      const [datePart, timePart] = data.dateTime.split(' ');
+      const [d, m, y] = datePart.split('/').map(Number);
+      const [hh, mm, ss] = timePart.split(':').map(Number);
+      
+      const receiptDate = new Date(y, m - 1, d, hh, mm, ss);
+      const now = new Date();
+      const diffMs = now.getTime() - receiptDate.getTime();
+      const diffHours = diffMs / (1000 * 60 * 60);
+
+      if (diffHours > 3) {
+        logger.warn(`[BunaFrankValidator] Receipt expired: ${data.transactionId} (Age: ${diffHours.toFixed(1)}h)`);
+        return {
+          valid: false,
+          error: `❌ Receipt expired. Transactions must be verified within 3 hours. (Found: ${data.dateTime})`,
+        };
+      }
+    } catch (err) {
+      logger.warn('[BunaFrankValidator] Could not parse receipt date for expiry check');
+    }
+  }
+
   const onlineVerified = await verifyReceiptOnline(data.receiptUrl, data.transactionId);
 
   return { valid: true, data, onlineVerified };
