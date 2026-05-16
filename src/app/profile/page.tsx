@@ -75,7 +75,8 @@ export default function ProfilePage() {
   const handleCopyLink = () => {
     if (!profile?.id) return;
     const link = `https://t.me/buna_bingobot?start=${profile.id}`;
-    navigator.clipboard.writeText(link);
+    const text = `🎰 Join me on Buna Bingo! ☕️ Get 5 ETB bonus when you join! Play here: ${link}`;
+    navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -95,8 +96,8 @@ export default function ProfilePage() {
     const tg = (window as any).Telegram?.WebApp;
     if (tg) {
       const inviteUrl = `https://t.me/buna_bingobot?start=${profile?.id || ''}`;
-      const text = `🎰 Join me on Buna Bingo! ☕️ We both get 5 ETB bonus!`;
-      tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(inviteUrl)}&text=${encodeURIComponent(text)}&text=${encodeURIComponent(text)}`);
+      const text = `🎰 Join me on Buna Bingo! ☕️ Get 5 ETB bonus when you join!`;
+      tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(inviteUrl)}&text=${encodeURIComponent(text)}`);
     }
   };
 
