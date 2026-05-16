@@ -204,21 +204,28 @@ export default function ProfilePage() {
         </div>
 
         {/* ── Stats Grid ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '30px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
            <div style={{ background: T.card, padding: '15px', borderRadius: '16px', border: `1px solid ${T.border}`, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#4CAF50', marginBottom: '8px' }}>
                  <Wallet size={18} />
                  <span style={{ fontSize: '11px', fontWeight: '900', textTransform: 'uppercase' }}>Main Wallet</span>
               </div>
-              <div style={{ fontSize: '20px', fontWeight: '900', color: T.cardTxt }}>{Number(profile?.balance || 0).toFixed(2)} <span style={{ fontSize: '12px', opacity: 0.5 }}>ETB</span></div>
+              <div style={{ fontSize: '20px', fontWeight: '900', color: T.cardTxt }}>{Number(profile?.wallet?.balance || 0).toFixed(2)} <span style={{ fontSize: '12px', opacity: 0.5 }}>ETB</span></div>
            </div>
            <div style={{ background: T.card, padding: '15px', borderRadius: '16px', border: `1px solid ${T.border}`, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: T.gold, marginBottom: '8px' }}>
-                 <Gift size={18} />
-                 <span style={{ fontSize: '11px', fontWeight: '900', textTransform: 'uppercase' }}>Bonus</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#2196F3', marginBottom: '8px' }}>
+                 <Users size={18} />
+                 <span style={{ fontSize: '11px', fontWeight: '900', textTransform: 'uppercase' }}>Commission</span>
               </div>
-              <div style={{ fontSize: '20px', fontWeight: '900', color: T.cardTxt }}>{Number(profile?.bonusBalance || 0).toFixed(0)} <span style={{ fontSize: '12px', opacity: 0.5 }}>XP</span></div>
+              <div style={{ fontSize: '20px', fontWeight: '900', color: T.cardTxt }}>{Number(profile?.wallet?.referralBalance || 0).toFixed(2)} <span style={{ fontSize: '12px', opacity: 0.5 }}>ETB</span></div>
            </div>
+        </div>
+        <div style={{ background: T.card, padding: '15px', borderRadius: '16px', border: `1px solid ${T.border}`, boxShadow: '0 2px 8px rgba(0,0,0,0.05)', marginBottom: '30px' }}>
+           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: T.gold, marginBottom: '8px' }}>
+              <Gift size={18} />
+              <span style={{ fontSize: '11px', fontWeight: '900', textTransform: 'uppercase' }}>Experience (XP)</span>
+           </div>
+           <div style={{ fontSize: '20px', fontWeight: '900', color: T.cardTxt }}>{Number(profile?.wallet?.coins || 0)} <span style={{ fontSize: '12px', opacity: 0.5 }}>XP</span></div>
         </div>
 
         {/* ── Admin Platform Performance (if Admin) ── */}

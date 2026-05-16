@@ -6,7 +6,7 @@ import { generateBingoCard, checkWin, BingoCard } from './card.generator';
 import { Decimal } from '@prisma/client/runtime/library';
 import { RoomType, GameStatus } from '@prisma/client';
 import { PREDEFINED_CARDS } from '../lib/predefinedCards';
-import { awardCoins, XP_REWARDS } from '../services/wallet.service';
+import { awardCoins, XP_REWARDS, REFERRAL_COMMISSION_PERCENT, creditReferralCommission } from '../services/wallet.service';
 import { contributeToJackpot, checkJackpotWin } from '../services/jackpot.service';
 import { debitAgentCommissionForGame } from '../services/agentPreDeposit.service';
 
@@ -197,6 +197,27 @@ async function runGame(gameId: string): Promise<void> {
     try {
       await awardCoins(userId, XP_REWARDS.JOIN_GAME * numTickets, `Joined game ${gameId} with ${numTickets} card(s)`);
     } catch (e) { logger.warn(`[Coins] Failed to award join XP to ${userId}:`, e); }
+
+    // ── Referral Commission ──────────────────────────────────────────────────
+    const userObj = await prisma.user.findUnique({ where: { id: userId }, select: { referredBy: true, firstName: true } });
+    if (userObj?.referredBy) {
+      const commission = totalCharge.mul(REFERRAL_COMMISSION_PERCENT).div(100);
+      if (commission.greaterThan(0)) {
+        try {
+          await creditReferralCommission(
+            userObj.referredBy, 
+            commission, 
+            `Commission from ${userObj.firstName}'s tickets in ${game.room.type}`,
+            userId
+          );
+          // Deduct from house edge so total prize pool remains fair
+          totalHouseEdge = totalHouseEdge.sub(commission);
+          logger.info(`[Referral] Credited ${commission} ETB commission to referrer of ${userId}`);
+        } catch (e) {
+          logger.error(`[Referral] Failed to credit commission to referrer of ${userId}:`, e);
+        }
+      }
+    }
   }
 
   // ─── Three-Way Revenue Split ───────────────────────────────────────────────

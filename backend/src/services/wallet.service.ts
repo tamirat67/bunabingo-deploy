@@ -18,6 +18,8 @@ export const XP_REWARDS = {
   FIRST_DEPOSIT:  30,
 };
 
+export const REFERRAL_COMMISSION_PERCENT = 2; // 2% of spend
+
 export async function getOrCreateWallet(userId: string) {
   return prisma.wallet.upsert({
     where: { userId: userId },
@@ -89,6 +91,46 @@ export async function creditBonus(
 
   logger.info(`[Bonus] +${amt} ETB bonus → user ${userId}: ${description}`);
   await triggerUserEvent(userId, 'bonus-updated', { bonusBalance: newBonus.toFixed(2) });
+}
+
+/** Credit referral commission balance (earned from friend activity) */
+export async function creditReferralCommission(
+  userId: string,
+  amount: number | Decimal,
+  description: string,
+  fromUserId: string
+): Promise<void> {
+  const wallet = await getOrCreateWallet(userId);
+  const amt = new Decimal(amount.toString());
+  const newRefBalance = new Decimal(wallet.referralBalance.toString()).add(amt);
+  const newMainBalance = new Decimal(wallet.balance.toString()).add(amt);
+
+  // We add it to main balance so it's withdrawable, 
+  // but also track it in referralBalance for statistics.
+  await prisma.wallet.update({
+    where: { userId: userId },
+    data: { 
+      balance: newMainBalance,
+      referralBalance: newRefBalance,
+      totalWon: new Decimal(wallet.totalWon.toString()).add(amt)
+    },
+  });
+
+  await prisma.transaction.create({
+    data: {
+      userId: userId,
+      type: 'REFERRAL_COMMISSION',
+      amount: amt,
+      balanceBefore: wallet.balance,
+      balanceAfter: newMainBalance,
+      status: 'completed',
+      referenceId: fromUserId,
+      description,
+    },
+  });
+
+  logger.info(`[Referral] +${amt} ETB commission → user ${userId} from player ${fromUserId}`);
+  await triggerUserEvent(userId, 'balance-updated', { newBalance: newMainBalance.toFixed(2) });
 }
 
 /** Award XP coins to a user */
