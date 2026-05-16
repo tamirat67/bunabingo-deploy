@@ -197,7 +197,7 @@ export default function AgentsPage() {
       {/* ── Recharge Modal ── */}
       {showRechargeModal && (
         <div className="modal-overlay">
-           <div className="modal-content" style={{ maxWidth: '400px', background: 'white', color: 'black' }}>
+           <div className="modal-content">
               <h2 style={{ fontWeight: '900', fontSize: '24px', marginBottom: '10px' }}>Refill Agent Wallet</h2>
               <p style={{ fontSize: '14px', opacity: 0.7, marginBottom: '20px' }}>
                  Recharging <b>{selectedAgent?.firstName}</b>'s pre-deposit balance.
