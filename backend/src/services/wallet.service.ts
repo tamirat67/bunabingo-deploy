@@ -41,37 +41,50 @@ export async function creditWallet(
   referenceId?: string,
   description?: string
 ): Promise<void> {
-  const wallet = await getOrCreateWallet(userId);
   const amt = new Decimal(amount.toString());
-  const newBalance = new Decimal(wallet.balance.toString()).add(amt);
 
-  await prisma.wallet.update({
-    where: { userId: userId },
-    data: {
-      balance: newBalance,
-      totalDeposited: type === 'DEPOSIT'
-        ? new Decimal(wallet.totalDeposited.toString()).add(amt)
-        : wallet.totalDeposited,
-      totalWon: (type === 'PRIZE_WIN' || type === 'REFERRAL_BONUS')
-        ? new Decimal(wallet.totalWon.toString()).add(amt)
-        : wallet.totalWon,
-    },
+  await prisma.$transaction(async (tx) => {
+    // 1. Get current wallet inside transaction for fresh data
+    const wallet = await tx.wallet.upsert({
+      where: { userId },
+      create: { userId, balance: 0 },
+      update: {},
+    });
+
+    const currentBalance = new Decimal(wallet.balance.toString());
+    const newBalance = currentBalance.add(amt);
+
+    // 2. Update balance
+    await tx.wallet.update({
+      where: { userId },
+      data: {
+        balance: newBalance,
+        totalDeposited: type === 'DEPOSIT'
+          ? new Decimal(wallet.totalDeposited.toString()).add(amt)
+          : wallet.totalDeposited,
+        totalWon: (type === 'PRIZE_WIN' || type === 'REFERRAL_BONUS')
+          ? new Decimal(wallet.totalWon.toString()).add(amt)
+          : wallet.totalWon,
+      },
+    });
+
+    // 3. Create transaction log
+    await tx.transaction.create({
+      data: {
+        userId,
+        type,
+        amount: amt,
+        balanceBefore: currentBalance,
+        balanceAfter: newBalance,
+        status: 'completed',
+        referenceId,
+        description,
+      },
+    });
+
+    // Push update (non-blocking)
+    triggerUserEvent(userId, 'balance-updated', { newBalance: newBalance.toFixed(2) }).catch(() => {});
   });
-
-  await prisma.transaction.create({
-    data: {
-      userId: userId,
-      type,
-      amount: amt,
-      balanceBefore: wallet.balance,
-      balanceAfter: newBalance,
-      status: 'completed',
-      referenceId: referenceId,
-      description,
-    },
-  });
-
-  await triggerUserEvent(userId, 'balance-updated', { newBalance: newBalance.toFixed(2) });
 }
 
 /** Credit bonusBalance only — used for referral bonus, promos (not withdrawable) */
@@ -201,72 +214,77 @@ export async function debitWallet(
   referenceId?: string,
   description?: string
 ): Promise<void> {
-  const wallet = await getOrCreateWallet(userId);
   const amt = new Decimal(amount.toString());
-  const balance = new Decimal(wallet.balance.toString());
-  const bonus = new Decimal(wallet.bonusBalance.toString());
-  const totalAvailable = type === 'TICKET_PURCHASE' ? balance.add(bonus) : balance;
 
-  if (totalAvailable.lessThan(amt)) {
-    throw new Error(`Insufficient funds. Required: ${amt.toFixed(2)} ETB`);
-  }
+  await prisma.$transaction(async (tx) => {
+    // 1. Get current state inside transaction
+    const wallet = await tx.wallet.upsert({
+      where: { userId },
+      create: { userId, balance: 0 },
+      update: {},
+    });
 
-  let remainingToDebit = amt;
-  let newBalance = balance;
-  let newBonus = bonus;
+    const balance = new Decimal(wallet.balance.toString());
+    const bonus = new Decimal(wallet.bonusBalance.toString());
+    const totalAvailable = type === 'TICKET_PURCHASE' ? balance.add(bonus) : balance;
 
-  if (type === 'TICKET_PURCHASE') {
-    // Use main balance first
-    if (balance.greaterThan(0)) {
-      const balanceToUse = Decimal.min(balance, remainingToDebit);
-      newBalance = balance.sub(balanceToUse);
-      remainingToDebit = remainingToDebit.sub(balanceToUse);
+    if (totalAvailable.lessThan(amt)) {
+      throw new Error(`Insufficient funds. Required: ${amt.toFixed(2)} ETB`);
     }
-    
-    // Use bonus for the remainder
-    if (remainingToDebit.greaterThan(0)) {
-      if (bonus.greaterThanOrEqualTo(remainingToDebit)) {
+
+    let remainingToDebit = amt;
+    let newBalance = balance;
+    let newBonus = bonus;
+
+    if (type === 'TICKET_PURCHASE') {
+      // Use main balance first
+      if (balance.greaterThan(0)) {
+        const balanceToUse = Decimal.min(balance, remainingToDebit);
+        newBalance = balance.sub(balanceToUse);
+        remainingToDebit = remainingToDebit.sub(balanceToUse);
+      }
+      
+      // Use bonus for the remainder
+      if (remainingToDebit.greaterThan(0)) {
         newBonus = bonus.sub(remainingToDebit);
         remainingToDebit = new Decimal(0);
-      } else {
-        // This case should ideally not be reached because of the totalAvailable check above,
-        // but it's good for safety.
-        throw new Error('Insufficient total funds');
       }
+    } else {
+      // Withdrawal: ONLY use main balance
+      newBalance = balance.sub(remainingToDebit);
     }
-  } else {
-    // Withdrawal: ONLY use main balance
-    newBalance = balance.sub(remainingToDebit);
-  }
 
-  await prisma.wallet.update({
-    where: { userId: userId },
-    data: {
-      balance: newBalance,
-      bonusBalance: newBonus,
-      totalWithdrawn: type === 'WITHDRAWAL'
-        ? new Decimal(wallet.totalWithdrawn.toString()).add(amt)
-        : wallet.totalWithdrawn,
-      totalSpent: type === 'TICKET_PURCHASE'
-        ? new Decimal(wallet.totalSpent.toString()).add(amt)
-        : wallet.totalSpent,
-    },
+    // 2. Update wallet
+    await tx.wallet.update({
+      where: { userId },
+      data: {
+        balance: newBalance,
+        bonusBalance: newBonus,
+        totalWithdrawn: type === 'WITHDRAWAL'
+          ? new Decimal(wallet.totalWithdrawn.toString()).add(amt)
+          : wallet.totalWithdrawn,
+        totalSpent: type === 'TICKET_PURCHASE'
+          ? new Decimal(wallet.totalSpent.toString()).add(amt)
+          : wallet.totalSpent,
+      },
+    });
+
+    // 3. Create log
+    await tx.transaction.create({
+      data: {
+        userId,
+        type,
+        amount: amt,
+        balanceBefore: balance,
+        balanceAfter: newBalance,
+        status: 'completed',
+        referenceId,
+        description,
+      },
+    });
+
+    triggerUserEvent(userId, 'balance-updated', { newBalance: newBalance.toFixed(2) }).catch(() => {});
   });
-
-  await prisma.transaction.create({
-    data: {
-      userId: userId,
-      type,
-      amount: amt,
-      balanceBefore: wallet.balance,
-      balanceAfter: newBalance,
-      status: 'completed',
-      referenceId: referenceId,
-      description,
-    },
-  });
-
-  await triggerUserEvent(userId, 'balance-updated', { newBalance: newBalance.toFixed(2) });
 }
 
 

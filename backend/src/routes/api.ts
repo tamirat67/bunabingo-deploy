@@ -857,6 +857,23 @@ staffRouter.patch('/rooms/:id', restrictToAdmin, async (req, res) => {
   }
 });
 
+staffRouter.get('/audit', restrictToAdmin, async (_req, res) => {
+  const { auditAllWallets } = await import('../services/audit.service');
+  const results = await auditAllWallets();
+  res.json(results);
+});
+
+staffRouter.post('/users/:id/sync', restrictToAdmin, async (req, res) => {
+  const admin = (req as any).user;
+  const { syncUserWallet } = await import('../services/audit.service');
+  try {
+    await syncUserWallet(req.params.id, admin.id);
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 // ─── Agent Routes ─────────────────────────────────────────────
 import agentRouter from './agent';
 router.use('/agent', agentRouter);
