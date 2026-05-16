@@ -376,18 +376,30 @@ export default function ProfilePage() {
            </div>
         </div>
 
-        {/* ── Action Buttons ── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-           {(profile?.role === 'AGENT' || profile?.isAdmin) && (
-              <button onClick={() => router.push('/agent')} style={{ width: '100%', padding: '16px', borderRadius: '16px', background: 'linear-gradient(135deg, #d4af37, #b8962e)', border: 'none', color: 'black', fontWeight: '900', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-                 <ShieldCheck size={20} /> {profile?.isAdmin ? 'Administrator Portal' : 'Agent Portal'}
-              </button>
-           )}
+        {/* ── Action Buttons (Admin & Agent) ── */}
+         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
+            {profile?.isAdmin && (
+               <button 
+                  onClick={() => router.push('/admin')} 
+                  style={{ width: '100%', padding: '16px', borderRadius: '16px', background: 'linear-gradient(135deg, #1a1a1a, #333333)', border: `2px solid ${T.gold}`, color: T.gold, fontWeight: '900', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', boxShadow: '0 4px 15px rgba(0,0,0,0.3)' }}
+               >
+                  <ShieldCheck size={20} /> Web Admin Portal
+               </button>
+            )}
 
-           <button onClick={() => window.open('https://t.me/bunabingosupport', '_blank')} style={{ width: '100%', padding: '16px', borderRadius: '16px', background: T.card, border: `1px solid ${T.border}`, color: T.text, fontWeight: '900', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-              <Coffee size={20} /> Support Channel
-           </button>
-        </div>
+            {(profile?.role === 'AGENT' || profile?.role === 'agent') && (
+               <button 
+                  onClick={() => router.push('/agent')} 
+                  style={{ width: '100%', padding: '16px', borderRadius: '16px', background: 'linear-gradient(135deg, #d4af37, #b8962e)', border: 'none', color: 'black', fontWeight: '900', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}
+               >
+                  <Users size={20} /> Web Agent Portal
+               </button>
+            )}
+
+            <button onClick={() => window.open('https://t.me/bunabingosupport', '_blank')} style={{ width: '100%', padding: '16px', borderRadius: '16px', background: T.card, border: `1px solid ${T.border}`, color: T.text, fontWeight: '900', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+               <Coffee size={20} /> Support Channel
+            </button>
+         </div>
       </div>
 
       {/* ── Navbar ── */}
