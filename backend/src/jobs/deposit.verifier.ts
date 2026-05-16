@@ -11,8 +11,7 @@ export async function processAutomatedDeposits() {
   
   const pending = await prisma.deposit.findMany({
     where: { 
-      status: 'pending',
-      txnId: { not: null } 
+      status: 'pending'
     },
     include: { user: true }
   });
