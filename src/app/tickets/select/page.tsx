@@ -67,6 +67,16 @@ function SelectionContent() {
   const handleStart = async () => {
     if (selected.length === 0 || joining) return;
     setJoining(true);
+
+    const totalCost = stake * selected.length;
+    if (balance < totalCost && roomType !== 'DEMO') {
+      if (confirm(`Insufficient balance! You need ${totalCost} ETB to play. Would you like to deposit now?`)) {
+        router.push('/wallet');
+      }
+      setJoining(false);
+      return;
+    }
+
     try {
       const res = await joinGame(roomType, selected);
       

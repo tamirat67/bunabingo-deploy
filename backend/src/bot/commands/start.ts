@@ -155,8 +155,9 @@ export async function handleStart(ctx: Context) {
       ])
     }).catch(() => {
       // Fallback if image fails
-      return ctx.reply(mainMenuText, 
-        Markup.inlineKeyboard([
+      return ctx.reply(mainMenuText, {
+        parse_mode: 'HTML',
+        ...Markup.inlineKeyboard([
           [
             Markup.button.callback('Play Bingo 🎮', 'cmd_play_bingo'),
             Markup.button.callback('Play Spin 🎮',  'cmd_play_spin'),

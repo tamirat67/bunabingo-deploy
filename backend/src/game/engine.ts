@@ -284,6 +284,8 @@ async function runGame(gameId: string): Promise<void> {
   logger.info(`[Game ${gameId}] Game RUNNING with ${game.tickets.length} tickets. Prize pool: ${totalPrizePool} ETB`);
 
   // Start draw loop
+  // Ensure we don't have multiple intervals for the same game
+  if (state.drawInterval) clearInterval(state.drawInterval);
   state.drawInterval = setInterval(() => drawNumber(gameId), config.game.drawIntervalMs);
 }
 
@@ -468,7 +470,10 @@ export async function claimBingoWin(gameId: string, userId: string): Promise<{ w
           
           // Finish the game immediately after ANY successful claim
           const state = activeGames.get(gameId);
-          if (state?.drawInterval) clearInterval(state.drawInterval);
+          if (state?.drawInterval) {
+            clearInterval(state.drawInterval);
+            state.drawInterval = undefined;
+          }
           await finishGame(gameId, `Bingo claimed: ${mode}`);
           
           const prizeAmount = await calculatePrize(game, mode);
@@ -824,7 +829,12 @@ export async function joinGame(
     }
   }
 
-  return { tickets: results.tickets, cards: preparedCards.map(c => c.pattern) };
+  return { 
+    tickets: results.tickets, 
+    cards: preparedCards.map(c => c.pattern),
+    countdownSeconds: currentState?.secondsRemaining,
+    endTime: currentState?.secondsRemaining ? (Date.now() + currentState.secondsRemaining * 1000) : undefined
+  };
 }
 
 export function getActiveGames(): Map<string, ActiveGame> {

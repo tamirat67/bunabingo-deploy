@@ -44,6 +44,7 @@ function GameContent() {
   const [serverOff, setServerOff] = useState(0);
   const [marked,    setMarked]    = useState<Set<number>>(new Set());
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
+  const [audioUnlocked, setAudioUnlocked] = useState(false);
 
   const toastTimer = useRef<any>(null);
 
@@ -60,8 +61,14 @@ function GameContent() {
       Promise.all([getGame(gameId), getMyCard(gameId)]).then(([g, t]) => {
         setGame(g);
         if (g.endTime && g.serverTime) {
-          setServerOff(g.serverTime - Date.now());
+          const offset = g.serverTime - Date.now();
+          setServerOff(offset);
           setEndTime(g.endTime);
+        } else if (g.status === 'COUNTDOWN' && g.countdownSeconds) {
+          // If no endTime, fallback to countdownSeconds but calculate an estimated endTime
+          const estimatedEnd = Date.now() + (g.countdownSeconds * 1000);
+          setEndTime(estimatedEnd);
+          setServerOff(0);
         }
         // Sort tickets by card ID for better UX
         const sorted = (t.tickets || []).sort((a: any, b: any) => (a.card?.id || 0) - (b.card?.id || 0));
@@ -69,7 +76,7 @@ function GameContent() {
         const hist = (g.drawHistory || []).map((d: any) => d.number);
         setDrawn(hist);
         setLastBall(hist.at(-1) ?? null);
-        if (g.status === 'COUNTDOWN') setCountdown(g.countdownSeconds);
+        if (g.status === 'COUNTDOWN' && !g.endTime) setCountdown(g.countdownSeconds);
       }).catch(console.error);
     };
 
@@ -86,7 +93,7 @@ function GameContent() {
         setToast(`${colLabel(num)} ${num}`);
         if (toastTimer.current) clearTimeout(toastTimer.current);
         toastTimer.current = setTimeout(() => setToast(null), 2500);
-        if (localStorage.getItem('game_sound') !== 'false') {
+        if (soundOn) {
           new Audio(`/audio/${colLabel(num)}${num}.mp3`).play().catch(() => {});
         }
       });
@@ -136,6 +143,7 @@ function GameContent() {
   const isMarkedLocal = (n: number) => marked.has(n);
   
   const toggleMark = (n: number) => {
+    if (!audioUnlocked) unlockAudio();
     if (typeof n !== 'number' || n === 0) return;
     setMarked(prev => {
       const next = new Set(prev);
@@ -143,6 +151,16 @@ function GameContent() {
       else next.add(n);
       return next;
     });
+  };
+
+  const unlockAudio = () => {
+    if (audioUnlocked) return;
+    const silent = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3');
+    silent.volume = 0;
+    silent.play().then(() => {
+      setAudioUnlocked(true);
+      console.log('Audio unlocked for mobile');
+    }).catch(e => console.warn('Audio unlock failed:', e));
   };
 
   const hideCard   = (id: string) => setHidden(p => new Set([...p, id]));
@@ -203,7 +221,10 @@ function GameContent() {
   const hasBingo = checkAnyBingo();
 
   return (
-    <div style={{ background: T.bg, minHeight: '100vh', paddingBottom: '180px', fontFamily: "'Segoe UI', sans-serif", overflowX: 'hidden' }}>
+    <div 
+      onClick={unlockAudio}
+      style={{ background: T.bg, minHeight: '100vh', paddingBottom: '180px', fontFamily: "'Segoe UI', sans-serif", overflowX: 'hidden' }}
+    >
 
       {/* ── Buna Game Zone Header ── */}
       <div style={{ background: T.header, padding: '12px 15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `3px solid ${T.gold}`, position: 'sticky', top: 0, zIndex: 100 }}>
@@ -214,13 +235,30 @@ function GameContent() {
           <div style={{ background: game?.status === 'RUNNING' ? '#27AE60' : '#E67E22', color: 'white', fontSize: '10px', fontWeight: '900', padding: '3px 10px', borderRadius: '20px' }}>
             {game?.status || 'LOADING'}
           </div>
-          <div onClick={() => {
-            const next = !soundOn;
-            setSoundOn(next);
-            localStorage.setItem('game_sound', String(next));
-          }} style={{ color: soundOn ? T.gold : T.brown, cursor: 'pointer' }}>
-            {soundOn ? <Volume2 size={22} /> : <VolumeX size={22} />}
-          </div>
+          <motion.div 
+            whileTap={{ scale: 0.9 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              const next = !soundOn;
+              setSoundOn(next);
+              localStorage.setItem('game_sound', String(next));
+              if (!audioUnlocked) unlockAudio();
+            }} 
+            style={{ 
+              background: 'rgba(0,0,0,0.2)', 
+              width: '32px', 
+              height: '32px', 
+              borderRadius: '50%', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              color: soundOn ? T.gold : '#7F8C8D', 
+              cursor: 'pointer',
+              border: `1px solid ${soundOn ? T.gold : '#7F8C8D'}44`
+            }}
+          >
+            {soundOn ? <Volume2 size={18} /> : <VolumeX size={18} />}
+          </motion.div>
         </div>
       </div>
 

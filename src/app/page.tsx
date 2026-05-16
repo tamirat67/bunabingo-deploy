@@ -51,6 +51,10 @@ export default function LobbyPage() {
   };
 
   const handleJoinRoom = (room: any) => {
+    if (room.type.startsWith('SPIN_')) {
+      alert("☕ Buna Spin Games are currently under maintenance for upgrades! Coming soon...");
+      return;
+    }
     router.push(`/tickets/select?type=${room.type}&price=${room.price}`);
   };
 
@@ -289,7 +293,16 @@ export default function LobbyPage() {
                         <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
                             <div style={{ border: '1px solid #4CAF50', color: '#4CAF50', fontSize: '9px', padding: '2px 6px', borderRadius: '4px', fontWeight: '900' }}>READY</div>
                             <div style={{ position: 'relative' }}>
-                                <button style={{ background: 'transparent', color: '#27AE60', border: '2px solid #27AE60', padding: '7px 14px', borderRadius: '6px', fontWeight: '900', fontSize: '13px' }}>JOIN</button>
+                                <button style={{ 
+                                  background: 'transparent', 
+                                  color: '#E67E22', 
+                                  border: '2px solid #E67E22', 
+                                  padding: '7px 14px', 
+                                  borderRadius: '6px', 
+                                  fontWeight: '900', 
+                                  fontSize: '11px',
+                                  opacity: 0.7
+                                }}>SOON</button>
                                 {room.isBonus && (
                                     <div style={{ position: 'absolute', top: '-10px', right: '-5px', background: T.gold, color: T.header, fontSize: '7px', padding: '1px 4px', borderRadius: '4px', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '2px', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
                                         BONUS
