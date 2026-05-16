@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
 
@@ -33,7 +33,7 @@ async function resetForProduction() {
       }
     });
 
-    // 3. Reset Agent Pre-Deposit Wallets to 0 (Optional: keep or reset)
+    // 3. Reset Agent Pre-Deposit Wallets to 0
     console.log('🏦 Resetting Agent Pre-Deposit Wallets...');
     await prisma.agentPreDepositWallet.updateMany({
       data: {
