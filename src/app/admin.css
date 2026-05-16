@@ -713,6 +713,13 @@
   animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+@media (max-width: 640px) {
+  .modal-content {
+    padding: 24px;
+    border-radius: 24px;
+  }
+}
+
 @keyframes modalPop {
   from { opacity: 0; transform: scale(0.9); }
   to { opacity: 1; transform: scale(1); }

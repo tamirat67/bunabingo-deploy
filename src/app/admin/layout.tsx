@@ -17,6 +17,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const router = useRouter();
 
+  useEffect(() => {
+    // Mobile optimization: Close sidebar by default on small screens
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+      setSidebarOpen(false);
+    }
+  }, []);
+
   const handleLogout = () => {
     localStorage.removeItem('admin_token');
     router.push('/admin/login');
