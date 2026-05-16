@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { getMe, joinGame, getOccupiedCards } from '../../../lib/api';
 import { PREDEFINED_CARDS } from '../../../lib/predefinedCards';
 import { useSocket } from '../../../context/SocketContext';
+import BunaModal from '../../../components/BunaModal';
 import { ChevronLeft, RefreshCw, Zap, X, Play, ShieldCheck } from 'lucide-react';
 
 function SelectionContent() {
@@ -18,6 +19,24 @@ function SelectionContent() {
   const [joining, setJoining] = useState(false);
   const [playerCount, setPlayerCount] = useState(0);
   const { socket } = useSocket();
+
+  // Modal State
+  const [modal, setModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: 'info' | 'error' | 'success' | 'confirm' | 'balance';
+    onConfirm?: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info'
+  });
+
+  const showAlert = (title: string, message: string, type: any = 'info') => {
+    setModal({ isOpen: true, title, message, type });
+  };
 
   useEffect(() => {
     getMe().then(setUser).catch(() => {});
@@ -57,7 +76,7 @@ function SelectionContent() {
       if (prev.includes(num)) return prev.filter(n => n !== num);
       if (occupied.includes(num)) return prev; // Cannot select occupied
       if (prev.length >= 5) {
-        alert('Maximum of 5 cards allowed per player');
+        showAlert('Limit Reached', 'Maximum of 5 cards allowed per player', 'info');
         return prev;
       }
       return [...prev, num];
@@ -70,9 +89,13 @@ function SelectionContent() {
 
     const totalCost = stake * selected.length;
     if (balance < totalCost && roomType !== 'DEMO') {
-      if (confirm(`Insufficient balance! You need ${totalCost} ETB to play. Would you like to deposit now?`)) {
-        router.push('/wallet');
-      }
+      setModal({
+        isOpen: true,
+        title: 'Insufficient Balance',
+        message: `You need ${totalCost} ETB to play these ${selected.length} cards. You currently have ${Number(balance).toFixed(2)} ETB.`,
+        type: 'balance',
+        onConfirm: () => router.push('/wallet')
+      });
       setJoining(false);
       return;
     }
@@ -87,7 +110,7 @@ function SelectionContent() {
       }
     } catch (err: any) {
       const msg = err.response?.data?.error || err.message || 'Failed to join';
-      alert(`ERROR: ${msg}`);
+      showAlert('Join Failed', msg, 'error');
     } finally {
       setJoining(false);
     }
@@ -192,6 +215,16 @@ function SelectionContent() {
           </button>
         </div>
       </div>
+
+      <BunaModal 
+        isOpen={modal.isOpen}
+        onClose={() => setModal(p => ({ ...p, isOpen: false }))}
+        onConfirm={modal.onConfirm}
+        title={modal.title}
+        message={modal.message}
+        type={modal.type}
+        confirmText={modal.type === 'balance' ? 'Deposit Now' : 'Confirm'}
+      />
     </div>
   );
 }

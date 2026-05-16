@@ -541,7 +541,7 @@ router.get('/games/:gameId', async (req: Request, res: Response) => {
       room: true,
       drawHistory: { orderBy: { sequence: 'asc' } },
       winners: { include: { user: { select: { firstName: true, telegramUsername: true } } } },
-      tickets: { select: { userId: true, markedNumbers: true, isWinner: true } },
+      tickets: { select: { userId: true, isWinner: true } },
     },
   });
   if (!game) return res.status(404).json({ error: 'Game not found' });

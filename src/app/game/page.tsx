@@ -3,6 +3,7 @@ import { useEffect, useState, useRef, Suspense, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { getGame, getMyCard, claimBingo } from '../../lib/api';
 import { useSocket } from '../../context/SocketContext';
+import BunaModal from '../../components/BunaModal';
 import { Volume2, VolumeX, RefreshCw, LogOut, Plus, X, Bell, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -47,6 +48,23 @@ function GameContent() {
   const [audioUnlocked, setAudioUnlocked] = useState(false);
 
   const toastTimer = useRef<any>(null);
+
+  // Modal State
+  const [modal, setModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: 'info' | 'error' | 'success' | 'confirm' | 'balance';
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info'
+  });
+
+  const showAlert = (title: string, message: string, type: any = 'info') => {
+    setModal({ isOpen: true, title, message, type });
+  };
 
   const loadData = useCallback(() => {
     if (!gameId) return;
@@ -113,8 +131,13 @@ function GameContent() {
         loadData();
       });
 
-      socket.on('game-finished', () => {
+      socket.on('game-finished', (d: any) => {
         loadData();
+        if (d.winners && d.winners.length > 0) {
+          const w = d.winners[0];
+          const name = w.user?.firstName || w.user?.telegramUsername || 'A player';
+          setWinMsg(`${name} won ${w.prizeAmount} ETB! (${w.winMode})`);
+        }
       });
 
       socket.on('game-update', (d: any) => {
@@ -190,11 +213,11 @@ function GameContent() {
         if (toastTimer.current) clearTimeout(toastTimer.current);
         toastTimer.current = setTimeout(() => setToast(null), 4000);
       } else {
-        alert(res.error || 'No Bingo detected yet! Check your patterns.');
+        showAlert('Bingo Claim', res.error || 'No Bingo detected yet! Check your patterns.', 'info');
       }
     }
     catch (e: any) { 
-      alert(e.response?.data?.error || 'No Bingo yet! Keep playing.'); 
+      showAlert('Error', e.response?.data?.error || 'No Bingo yet! Keep playing.', 'error'); 
     }
   };
 
@@ -470,9 +493,30 @@ function GameContent() {
         </div>
       )}
 
-      {/* ── Add Board FAB (Shifted up to avoid footer) ── */}
-      <motion.div whileTap={{ scale: 0.9 }} onClick={() => router.push(`/tickets/select?type=${game?.room?.type || 'STANDARD'}&price=${stake}`)} style={{ position: 'fixed', bottom: '100px', right: '15px', background: T.header, color: T.gold, padding: '12px 18px', borderRadius: '30px', fontWeight: '900', fontSize: '13px', boxShadow: '0 8px 20px rgba(0,0,0,0.2)', zIndex: 200, cursor: 'pointer', border: `2px solid ${T.gold}` }}>
-        <Plus size={18} style={{ display: 'inline', marginRight: '5px' }} /> ADD BOARD
+      {/* ── Simplified '+' FAB ── */}
+      <motion.div 
+        whileTap={{ scale: 0.8 }} 
+        whileHover={{ scale: 1.1 }}
+        onClick={() => router.push(`/tickets/select?type=${game?.room?.type || 'STANDARD'}&price=${stake}`)} 
+        style={{ 
+          position: 'fixed', 
+          bottom: '100px', 
+          right: '20px', 
+          width: '56px',
+          height: '56px',
+          background: `linear-gradient(135deg, ${T.header}, #000)`, 
+          color: T.gold, 
+          borderRadius: '50%', 
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: `0 10px 25px rgba(0,0,0,0.5), 0 0 15px ${T.gold}44`, 
+          zIndex: 200, 
+          cursor: 'pointer', 
+          border: `2px solid ${T.gold}` 
+        }}
+      >
+        <Plus size={32} strokeWidth={3} />
       </motion.div>
 
       <AnimatePresence>
@@ -492,6 +536,14 @@ function GameContent() {
         .custom-scroll::-webkit-scrollbar { width: 4px; }
         .custom-scroll::-webkit-scrollbar-thumb { background: #D4AF3744; border-radius: 10px; }
       `}} />
+
+      <BunaModal 
+        isOpen={modal.isOpen}
+        onClose={() => setModal(p => ({ ...p, isOpen: false }))}
+        title={modal.title}
+        message={modal.message}
+        type={modal.type}
+      />
     </div>
   );
 }

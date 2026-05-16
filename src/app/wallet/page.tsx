@@ -4,6 +4,7 @@ import { getMe, getWallet } from '../../lib/api';
 import api from '../../lib/api';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '../../context/ThemeContext';
+import BunaModal from '../../components/BunaModal';
 import { 
   RefreshCw, 
   User as UserIcon, 
@@ -29,6 +30,23 @@ export default function WalletPage() {
   const [adminStats, setAdminStats] = useState<any>(null);
   const [tab, setTab] = useState('balance');
   const [mounted, setMounted] = useState(false);
+
+  // Modal State
+  const [modal, setModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: 'info' | 'error' | 'success' | 'confirm' | 'balance';
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info'
+  });
+
+  const showAlert = (title: string, message: string, type: any = 'info') => {
+    setModal({ isOpen: true, title, message, type });
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -122,7 +140,7 @@ export default function WalletPage() {
                         tg.close();
                         window.location.href = `https://t.me/buna_bingobot?start=deposit`;
                       } else {
-                        alert('Please use the Telegram bot to deposit');
+                        showAlert('Telegram Required', 'Please use the official Telegram bot to deposit funds safely.', 'info');
                       }
                     }}
                     style={{ padding: '12px', borderRadius: '12px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: 'white', fontWeight: '900', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
@@ -143,11 +161,11 @@ export default function WalletPage() {
                       const { convertCoins } = await import('../../lib/api');
                       const res = await convertCoins();
                       if (res.success) {
-                        alert(`Successfully converted ${res.coinsSpent} XP into ${res.bonusEarned} ETB Bonus!`);
-                        window.location.reload();
+                        showAlert('Conversion Success', `Successfully converted ${res.coinsSpent} XP into ${res.bonusEarned} ETB Bonus!`, 'success');
+                        setTimeout(() => window.location.reload(), 2000);
                       }
                     } catch (e: any) {
-                      alert(e.response?.data?.error || 'Failed to convert coins. Minimum 100 XP required.');
+                      showAlert('Conversion Failed', e.response?.data?.error || 'Minimum 100 XP required to convert.', 'error');
                     }
                   }}
                   style={{ width: '100%', marginTop: '15px', padding: '12px', borderRadius: '12px', background: 'transparent', border: `1px solid ${T.gold}`, color: T.gold, fontWeight: '900', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
@@ -249,6 +267,14 @@ export default function WalletPage() {
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;900&display=swap');
         body { background: ${T.bg} !important; margin: 0; padding: 0; transition: background 0.3s ease; }
       `}</style>
+
+      <BunaModal 
+        isOpen={modal.isOpen}
+        onClose={() => setModal(p => ({ ...p, isOpen: false }))}
+        title={modal.title}
+        message={modal.message}
+        type={modal.type}
+      />
     </div>
   );
 }

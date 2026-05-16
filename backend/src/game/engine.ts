@@ -409,83 +409,92 @@ async function drawNumber(gameId: string): Promise<void> {
   await checkAllTickets(gameId, state.drawnNumbers);
 }
 
-// ─── Check All Tickets ────────────────────────────────────────
+// ─── Check All Tickets (Lightweight) ──────────────────────────
+// This no longer updates the DB for every ticket on every draw.
+// It only logs detections for server-side debugging.
 async function checkAllTickets(gameId: string, drawnNumbers: number[]): Promise<void> {
   const tickets = await prisma.ticket.findMany({
     where: { gameId, isWinner: false },
-    include: { user: true },
+    select: { id: true, card: true }
   });
-
-  const existingWinners = await prisma.winner.findMany({ where: { gameId } });
-  const existingWinModes = new Set(existingWinners.map(w => w.winMode));
 
   for (const ticket of tickets) {
     const cardData = ticket.card as any;
     const rows = Array.isArray(cardData) ? cardData : cardData.rows;
-    // We still check for won status to log it or update DB, but we do NOT auto-claim anymore.
-    // The user MUST click the "BINGO" button in the UI to claim the prize.
     const result = checkWin(rows as BingoCard, drawnNumbers);
-
-    // Update marked numbers (Auto-daub in DB for verification)
-    await prisma.ticket.update({
-      where: { id: ticket.id },
-      data: { markedNumbers: drawnNumbers },
-    });
     
     if (result.won) {
-        logger.debug(`[Game ${gameId}] Ticket ${ticket.id} has ${result.modes.join(', ')} but waiting for manual claim.`);
+        logger.debug(`[Game ${gameId}] Ticket ${ticket.id} HAS ${result.modes.join(', ')}. Waiting for claim.`);
     }
   }
 }
 
-// ─── Claim Bingo Win (Manual) ─────────────────────────────────
+// ─── Claim Bingo Win (Optimized) ─────────────────────────────────
 export async function claimBingoWin(gameId: string, userId: string): Promise<{ won: boolean; mode?: string; prize?: number; error?: string }> {
+  // Use a targeted query to get game and user tickets in one go if possible, or just optimize the game fetch
   const game = await prisma.game.findUnique({
     where: { id: gameId },
-    include: { drawHistory: true, room: true }
+    include: { 
+      drawHistory: { select: { number: true } }, 
+      room: { select: { ticketPrice: true } },
+      winners: { select: { winMode: true } }
+    }
   });
-  if (!game || game.status !== GameStatus.RUNNING) throw new Error('Game is not running');
+
+  if (!game || game.status !== GameStatus.RUNNING) {
+    return { won: false, error: 'Game is not running or already finished' };
+  }
 
   const tickets = await prisma.ticket.findMany({
-    where: { gameId, userId }
+    where: { gameId, userId },
+    select: { id: true, card: true }
   });
 
   const drawnNumbers = game.drawHistory.map(d => d.number);
-  const existingWinners = await prisma.winner.findMany({ where: { gameId } });
-  const existingWinModes = new Set(existingWinners.map(w => w.winMode));
+  const existingWinModes = new Set(game.winners.map(w => w.winMode));
 
-  let hasPattern = false;
+  let eligibleClaim: { ticketId: string, mode: any } | null = null;
+  const priority = ['FULL_HOUSE', 'FOUR_CORNERS', 'DIAGONAL', 'COLUMN', 'ROW'] as const;
+
   for (const ticket of tickets) {
     const cardData = ticket.card as any;
     const rows = Array.isArray(cardData) ? cardData : cardData.rows;
     const result = checkWin(rows as BingoCard, drawnNumbers);
 
     if (result.won) {
-      hasPattern = true;
-      // Find the best available win mode that hasn't been claimed yet
-      const priority = ['FULL_HOUSE', 'FOUR_CORNERS', 'DIAGONAL', 'COLUMN', 'ROW'] as const;
       for (const mode of priority) {
         if (result.modes.includes(mode as any) && !existingWinModes.has(mode as any)) {
-          await processWinner(gameId, userId, ticket.id, mode as any, drawnNumbers);
-          
-          // Finish the game immediately after ANY successful claim
-          const state = activeGames.get(gameId);
-          if (state?.drawInterval) {
-            clearInterval(state.drawInterval);
-            state.drawInterval = undefined;
-          }
-          await finishGame(gameId, `Bingo claimed: ${mode}`);
-          
-          const prizeAmount = await calculatePrize(game, mode);
-          return { won: true, mode, prize: Number(prizeAmount) };
+          eligibleClaim = { ticketId: ticket.id, mode: mode as any };
+          break;
         }
       }
     }
+    if (eligibleClaim) break;
+  }
+
+  if (eligibleClaim) {
+    const { mode, ticketId } = eligibleClaim;
+    
+    // Process everything fast!
+    await processWinner(gameId, userId, ticketId, mode, drawnNumbers);
+    
+    // Stop the draw loop immediately
+    const state = activeGames.get(gameId);
+    if (state?.drawInterval) {
+      clearInterval(state.drawInterval);
+      state.drawInterval = undefined;
+    }
+    
+    // Finalize game
+    await finishGame(gameId, `Bingo claimed: ${mode}`);
+    
+    const prizeAmount = new Decimal(game.totalPrize);
+    return { won: true, mode, prize: Number(prizeAmount) };
   }
 
   return { 
     won: false, 
-    error: hasPattern ? 'This prize has already been claimed by another player!' : 'No Bingo detected yet! Check your patterns.' 
+    error: 'No valid Bingo detected yet! Check your patterns or wait for more balls.' 
   };
 }
 
@@ -504,71 +513,81 @@ async function processWinner(
 ): Promise<void> {
   const game = await prisma.game.findUnique({
     where: { id: gameId },
-    include: { tickets: true },
+    include: { room: true },
   });
   if (!game) return;
 
   const prizeAmount = new Decimal(game.totalPrize);
 
-  await prisma.winner.create({
-    data: { gameId, userId, ticketId, winMode, prizeAmount },
+  // ─── Perform all winner logic in ONE TRANSACTION ───
+  await prisma.$transaction(async (tx) => {
+    // 1. Create winner record
+    await tx.winner.create({
+      data: { gameId, userId, ticketId, winMode, prizeAmount },
+    });
+
+    // 2. Update player wallet
+    const wallet = await tx.wallet.findUnique({ where: { userId } });
+    if (wallet) {
+      const before = wallet.balance;
+      const after = new Decimal(wallet.balance).add(prizeAmount);
+
+      await tx.wallet.update({
+        where: { userId },
+        data: {
+          balance: after,
+          totalWon: new Decimal(wallet.totalWon).add(prizeAmount),
+        },
+      });
+
+      await tx.transaction.create({
+        data: {
+          userId,
+          type: 'PRIZE_WIN',
+          amount: prizeAmount,
+          balanceBefore: before,
+          balanceAfter: after,
+          status: 'COMPLETED',
+          referenceId: gameId,
+          description: `Bingo WIN: ${winMode}`,
+        },
+      });
+    }
+
+    // 3. Mark ticket as winner
+    await tx.ticket.update({ where: { id: ticketId }, data: { isWinner: true } });
+
+    // 4. Award XP (inline update to avoid separate query)
+    const xpKey = `WIN_${winMode}` as keyof typeof XP_REWARDS;
+    const xpAmount = XP_REWARDS[xpKey] ?? XP_REWARDS.WIN_ROW;
+    if (wallet) {
+       await tx.wallet.update({
+         where: { userId },
+         data: { coins: { increment: xpAmount } }
+       });
+    }
   });
 
-  const wallet = await prisma.wallet.findUnique({ where: { userId } });
-  if (wallet) {
-    const before = wallet.balance;
-    const after = new Decimal(wallet.balance).add(prizeAmount);
-
-    await prisma.wallet.update({
-      where: { userId },
-      data: {
-        balance: after,
-        totalWon: new Decimal(wallet.totalWon).add(prizeAmount),
-      },
-    });
-
-    await prisma.transaction.create({
-      data: {
-        userId,
-        type: 'PRIZE_WIN',
-        amount: prizeAmount,
-        balanceBefore: before,
-        balanceAfter: after,
-        status: 'COMPLETED',
-        referenceId: gameId,
-        description: `Bingo WIN: ${winMode}`,
-      },
-    });
-  }
-
-  await prisma.ticket.update({ where: { id: ticketId }, data: { isWinner: true } });
-
-  const xpKey = `WIN_${winMode}` as keyof typeof XP_REWARDS;
-  const xpAmount = XP_REWARDS[xpKey] ?? XP_REWARDS.WIN_ROW;
+  // ─── Notifications (Outside Transaction - Async) ───
   try {
-    await awardCoins(userId, xpAmount, `Bingo WIN: ${winMode} in game ${gameId}`);
-  } catch (e) { 
-    logger.warn(`[Coins] Failed to award win XP to ${userId}:`, e); 
-  }
-
-  try {
+    // Check jackpot win (This has its own transaction internally)
     const jackpotWin = await checkJackpotWin(userId, ticketId, winMode, drawnNumbers.length);
     if (jackpotWin) {
       logger.info(`🔥 JACKPOT! User ${userId} won ${jackpotWin} ETB!`);
-      await triggerUserEvent(userId, 'jackpot-alert', { amount: jackpotWin.toFixed(2) });
+      triggerUserEvent(userId, 'jackpot-alert', { amount: jackpotWin.toFixed(2) });
     }
   } catch (e) { 
     logger.error(`[Jackpot] Win check failed:`, e); 
   }
 
-  await triggerGameEvent(gameId, 'winner-announced', {
+  triggerGameEvent(gameId, 'winner-announced', {
     userId,
     winMode,
     prizeAmount: prizeAmount.toFixed(2),
     drawnNumbers,
   });
 
-  await triggerUserEvent(userId, 'prize-received', {
+  triggerUserEvent(userId, 'prize-received', {
     gameId,
     winMode,
     amount: prizeAmount.toFixed(2),
@@ -667,7 +686,7 @@ export async function joinGame(
 ): Promise<{ tickets: any[]; cards: BingoCard[] }> {
   const game = await prisma.game.findUnique({
     where: { id: gameId },
-    include: { room: true, tickets: true },
+    include: { room: true },
   });
 
   if (!game) throw new Error('Game not found');
@@ -693,14 +712,6 @@ export async function joinGame(
     throw new Error(`Cartela(s) #${duplicates.join(', #')} are already taken by another player!`);
   }
 
-  // Clear any existing tickets for this user in this game before adding new ones
-  // This prevents 'garbage' or old selections from persisting if the user re-joins
-  if (game.status === GameStatus.WAITING || game.status === GameStatus.COUNTDOWN) {
-    await prisma.ticket.deleteMany({
-      where: { userId, gameId }
-    });
-  }
-
   // Validate and prepare cards
   const preparedCards: { id: number, pattern: BingoCard }[] = [];
   for (const cardId of cardIds) {
@@ -715,8 +726,6 @@ export async function joinGame(
   }
 
   // ── Balance check only — do NOT deduct here ─────────────────────────────────
-  // Deduction happens in runGame() when the game actually starts.
-  // This way users are never charged for games that get cancelled.
   const wallet = await prisma.wallet.findUnique({ where: { userId } });
   if (!wallet) throw new Error('Wallet not found');
 
@@ -732,10 +741,13 @@ export async function joinGame(
     }
   }
 
-  // Create tickets only (no wallet changes)
-  const results = await prisma.$transaction(async (tx) => {
-    // 1. Create Tickets
-    const tickets = await Promise.all(preparedCards.map(c =>
+  // ─── Perform everything in a SINGLE transaction for speed and atomicity ───
+  const { tickets, playerCount, totalPrize, currentTicketCount } = await prisma.$transaction(async (tx) => {
+    // 1. Clear existing tickets for this user in this game
+    await tx.ticket.deleteMany({ where: { userId, gameId } });
+
+    // 2. Create NEW Tickets
+    const createdTickets = await Promise.all(preparedCards.map(c =>
       tx.ticket.create({
         data: {
           userId,
@@ -746,94 +758,80 @@ export async function joinGame(
       })
     ));
 
-    // 2. Update Room player count (for lobby display)
+    // 3. Update Room player count (for lobby display)
     await tx.room.update({
       where: { id: game.roomId },
       data: { currentPlayers: { increment: numTickets } }
     });
 
-    return { tickets };
-  });
+    // 4. Fetch all tickets for this game to update prize and count
+    const allTickets = await tx.ticket.findMany({ where: { gameId } });
+    const uniqueUsers = new Set(allTickets.map(t => t.userId));
+    const pCount = uniqueUsers.size;
+    const tCount = allTickets.length;
 
-  // ─── Update Pool Balance Display ───────────────────────────
-  // Recalculate projected prize pool (Total Tickets * Price * (1 - HouseEdge))
-  // This ensures players see the pool growing in real-time before start.
-  const updatedGameWithRoom = await prisma.game.findUnique({
-    where: { id: gameId },
-    include: { tickets: true, room: true },
-  });
-  
-  let displayPrize = '0';
-  if (updatedGameWithRoom) {
-    const totalTicketsCount = updatedGameWithRoom.tickets.length;
-    const unitPrice = updatedGameWithRoom.room.ticketPrice;
+    // 5. Calculate & Update prize pool
     const houseEdgePercent = config.game.houseEdgePercent;
-    
-    const totalCharge = new Decimal(unitPrice).mul(totalTicketsCount);
-    const houseEdge = totalCharge.mul(houseEdgePercent).div(100);
-    const totalPrizePool = totalCharge.sub(houseEdge);
-    displayPrize = totalPrizePool.toString();
+    const totalSales = new Decimal(unitPrice).mul(tCount);
+    const houseEdge = totalSales.mul(houseEdgePercent).div(100);
+    const prizePool = totalSales.sub(houseEdge);
 
-    await prisma.game.update({
+    await tx.game.update({
       where: { id: gameId },
-      data: { totalPrize: totalPrizePool }
+      data: { totalPrize: prizePool }
     });
-  }
 
-  // Update room player count logic
-  const updatedGame = await prisma.game.findUnique({
-    where: { id: gameId },
-    include: { tickets: true },
+    return { 
+      tickets: createdTickets, 
+      playerCount: pCount, 
+      totalPrize: prizePool,
+      currentTicketCount: tCount 
+    };
   });
-  const uniqueUsers = new Set(updatedGame?.tickets.map(t => t.userId) || []);
-  const playerCount = uniqueUsers.size; 
-  
+
+  // ─── Broadcast Updates (Outside Transaction) ───────────────────────────
+  const currentState = activeGames.get(gameId);
   try {
-    const currentState = activeGames.get(gameId);
     const endTime = currentState?.secondsRemaining ? (Date.now() + currentState.secondsRemaining * 1000) : undefined;
+    
     await triggerGameEvent(gameId, 'player-joined', { 
       userId, 
       playerCount, 
       numTickets,
-      totalPrize: displayPrize,
+      totalPrize: totalPrize.toString(),
       secondsRemaining: currentState?.secondsRemaining,
       endTime,
       serverTime: Date.now()
     });
-    await triggerGameEvent(game.roomId, 'player-count-update', { playerCount });
-    await triggerGameEvent(game.roomId, 'card-occupied', { 
-      occupiedIds: (await prisma.ticket.findMany({ where: { gameId }, select: { card: true } })).map(t => (t.card as any).id) 
-    });
-    await triggerAdminEvent('player-joined', { gameId, userId, playerCount });
-  } catch (e) {
-    logger.error('Pusher notification failed but join succeeded:', e);
-  }
 
-  // Auto-start countdown if enough unique players join
-  const minPlayers = 2; 
-  const currentUniquePlayers = uniqueUsers.size;
-  const uniquePlayers = await prisma.ticket.groupBy({
-    where: { gameId },
-    by: ['userId']
-  });
-  
-  // Start countdown as soon as 2 unique players are in
-  const currentState = activeGames.get(gameId);
-  if (uniquePlayers.length >= 2) {
-    if (!currentState?.countdownTimer) {
-      try {
-        await startCountdown(gameId, uniquePlayers.length);
-      } catch (e) {
-        logger.error('Countdown start failed:', e);
-      }
+    await triggerUserEvent(userId, 'join-success', { gameId, numTickets });
+    
+    // Update lobby/room subscribers
+    await triggerGameEvent(game.roomId, 'player-count-update', { playerCount });
+    
+    await triggerAdminEvent('player-joined', {
+      gameId,
+      userId,
+      room: game.room.type,
+      totalTickets: numTickets,
+      pool: totalPrize.toString()
+    });
+
+    // ─── Auto-Start Countdown ──────────────────────────────────────────
+    const minTickets = game.room.minPlayers;
+    
+    if (game.status === GameStatus.WAITING && currentTicketCount >= minTickets && playerCount >= 2) {
+      await startCountdown(gameId, currentTicketCount);
+    } else if (game.status === GameStatus.COUNTDOWN) {
+      await triggerGameEvent(gameId, 'game-update', { playerCount });
     }
+  } catch (e) {
+    logger.error('JOIN POST-PROCESS ERROR:', e);
   }
 
   return { 
-    tickets: results.tickets, 
-    cards: preparedCards.map(c => c.pattern),
-    countdownSeconds: currentState?.secondsRemaining,
-    endTime: currentState?.secondsRemaining ? (Date.now() + currentState.secondsRemaining * 1000) : undefined
+    tickets, 
+    cards: preparedCards.map(c => c.pattern) 
   } as any;
 }
 
