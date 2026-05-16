@@ -7,9 +7,7 @@ build/
 .DS_Store
 
 # Secret env files — never commit these
+.env
 .env.local
 .env*.local
 backend/.env
-
-# The root .env only has public NEXT_PUBLIC_* build args — safe to commit
-# .env   <-- intentionally NOT ignored
