@@ -63,8 +63,8 @@ export function startJobs(bot: Telegraf): void {
     }
   });
 
-  // Automated Deposit Verification every 5 minutes
-  cron.schedule('*/5 * * * *', async () => {
+  // Automated Deposit Verification every 1 minute (Fast & Fair)
+  cron.schedule('*/1 * * * *', async () => {
     try {
       const { processAutomatedDeposits } = await import('./deposit.verifier');
       await processAutomatedDeposits();
@@ -73,5 +73,5 @@ export function startJobs(bot: Telegraf): void {
     }
   });
 
-  logger.info('✅ Background jobs started (Auto-Deposit Scan every 5min, fraud scan every 30min, description update every 1h, cleanup every 1h, DB ping every 4min)');
+  logger.info('✅ Background jobs started (Auto-Deposit Scan every 1min, fraud scan every 30min, description update every 1h, cleanup every 1h, DB ping every 4min)');
 }
