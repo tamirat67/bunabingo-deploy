@@ -2,9 +2,11 @@ import prisma from '../lib/prisma';
 import { debitWallet } from './wallet.service';
 import { triggerAdminEvent, triggerUserEvent } from '../lib/pusher';
 import { logger } from '../lib/logger';
-import { notifyAgent } from '../bot/notifier';
+import { notifyAgent, notifyUser } from '../bot/notifier';
 import { Decimal } from '@prisma/client/runtime/library';
 import { Markup } from 'telegraf';
+
+import { config } from '../config';
 
 export async function createWithdrawalRequest(
   userId: string,
@@ -13,7 +15,7 @@ export async function createWithdrawalRequest(
   accountNumber: string,
   accountName: string
 ) {
-  if (amount < 200) throw new Error('Minimum withdrawal is 200 ETB');
+  if (amount < config.withdrawal.minAmount) throw new Error(`Minimum withdrawal is ${config.withdrawal.minAmount} ETB`);
 
   // Check balance first
   const wallet = await prisma.wallet.findUnique({ where: { userId } });
@@ -47,6 +49,9 @@ export async function createWithdrawalRequest(
     include: { user: { select: { username: true, referredBy: true } } },
   });
 
+  // Deduct from wallet immediately to prevent double-spending
+  await debitWallet(userId, amount, 'WITHDRAWAL', withdrawal.id, `Withdrawal request: ${bankName}`);
+
   // Notify Agent if applicable
   if (withdrawal.user?.referredBy) {
     const agent = await prisma.user.findUnique({
@@ -56,13 +61,13 @@ export async function createWithdrawalRequest(
 
     if (agent && (agent.role === 'AGENT' || agent.role === 'ADMIN')) {
       const agentMsg = 
-        `💸 <b>New Withdrawal Request</b>\n\n` +
-        `👤 <b>Player:</b> ${withdrawal.user?.username || 'Unknown'}\n` +
-        `💰 <b>Amount:</b> ${amount} ETB\n` +
-        `🏦 <b>Bank:</b> ${bankName}\n` +
-        `💳 <b>Account:</b> ${accountNumber}\n` +
-        `👤 <b>Holder:</b> ${accountName}\n\n` +
-        `Please approve or reject this request manually.`;
+        `💸 <b>አዲስ የገንዘብ ማውጫ ጥያቄ (New Withdrawal)</b>\n\n` +
+        `👤 <b>ተጫዋች (Player):</b> ${withdrawal.user?.username || 'Unknown'}\n` +
+        `💰 <b>መጠን (Amount):</b> ${amount} ETB\n` +
+        `🏦 <b>ባንክ (Bank):</b> ${bankName}\n` +
+        `💳 <b>ሂሳብ (Account):</b> ${accountNumber}\n` +
+        `👤 <b>ስም (Holder):</b> ${accountName}\n\n` +
+        `እባክዎ መረጃውን አረጋግጠው ይክፈሉ ወይም ውድቅ ያድርጉ።`;
 
       const agentButtons = Markup.inlineKeyboard([
         [
@@ -110,8 +115,7 @@ export async function approveWithdrawal(withdrawalId: string, adminId: string) {
   });
 
   if (withdrawal.userId) {
-    await debitWallet(withdrawal.userId, withdrawal.amount, 'WITHDRAWAL', withdrawalId, 'Withdrawal approved');
-
+    // Already debited on creation, just log the approval
     await prisma.adminLog.create({
       data: { adminId: adminId, targetUserId: withdrawal.userId, action: 'APPROVE_WITHDRAWAL', details: { withdrawalId, amount: withdrawal.amount } },
     });
@@ -120,6 +124,15 @@ export async function approveWithdrawal(withdrawalId: string, adminId: string) {
       withdrawalId,
       amount: withdrawal.amount.toString(),
     });
+
+    // Notify User on Telegram
+    await notifyUser(
+      withdrawal.userId,
+      `✅ <b>የገንዘብ ማውጫ ጥያቄዎ ተረጋግጧል! (Withdrawal Approved)</b>\n\n` +
+      `💵 መጠን (Amount): <b>${Number(withdrawal.amount).toFixed(2)} ETB</b>\n` +
+      `🏦 ባንክ (Bank): ${withdrawal.bankName}\n\n` +
+      `ክፍያው ተፈጽሟል። ስላሸነፉ እንኳን ደስ አለዎት! 🏆`
+    );
   }
 
   logger.info(`Withdrawal approved: ${withdrawalId} by admin ${adminId}`);
@@ -136,11 +149,24 @@ export async function rejectWithdrawal(withdrawalId: string, adminId: string, re
   });
 
   if (withdrawal.userId) {
+    // Refund the amount
+    const { creditWallet } = await import('./wallet.service');
+    await creditWallet(withdrawal.userId, withdrawal.amount, 'REFUND', withdrawalId, `Withdrawal rejected: ${reason}`);
+
     await prisma.adminLog.create({
       data: { adminId: adminId, targetUserId: withdrawal.userId, action: 'REJECT_WITHDRAWAL', details: { withdrawalId, reason } },
     });
 
     await triggerUserEvent(withdrawal.userId, 'withdrawal-rejected', { withdrawalId, reason });
+
+    // Notify User on Telegram
+    await notifyUser(
+      withdrawal.userId,
+      `❌ <b>የገንዘብ ማውጫ ጥያቄዎ አልተሳካም (Withdrawal Rejected)</b>\n\n` +
+      `💵 መጠን (Amount): <b>${Number(withdrawal.amount).toFixed(2)} ETB</b>\n` +
+      `📝 ምክንያት (Reason): ${reason}\n\n` +
+      `ያወጡት ብር ወደ ዋና ሂሳብዎ ተመልሷል። (The amount has been refunded to your main balance.) 🙏`
+    );
   }
 
   logger.info(`Withdrawal rejected: ${withdrawalId} — ${reason}`);
@@ -159,6 +185,7 @@ export async function getPendingWithdrawals(agentId?: string) {
 
 export async function getUserWithdrawals(userId: string) {
   return prisma.withdrawal.findMany({
+    where: { userId },
     orderBy: { createdAt: 'desc' },
     take: 20,
   });

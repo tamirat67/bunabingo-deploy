@@ -30,3 +30,29 @@ export async function notifyAgent(agentId: string, message: string, buttons?: an
     logger.error(`[Notifier] Failed to notify agent ${agentId}:`, err);
   }
 }
+
+/**
+ * Notifies a specific user on Telegram.
+ */
+export async function notifyUser(userId: string, message: string, buttons?: any) {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { telegramId: true }
+    });
+
+    if (!user || !user.telegramId) {
+      logger.warn(`[Notifier] Could not find user ${userId} or their Telegram ID.`);
+      return;
+    }
+
+    await bot.telegram.sendMessage(Number(user.telegramId), message, {
+      parse_mode: 'HTML',
+      ...(buttons ? buttons : {})
+    });
+
+    logger.info(`[Notifier] Sent Telegram notification to user ${userId}`);
+  } catch (err) {
+    logger.error(`[Notifier] Failed to notify user ${userId}:`, err);
+  }
+}

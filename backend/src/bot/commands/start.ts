@@ -3,6 +3,7 @@ import { findOrCreateUser, getUserById } from '../../services/user.service';
 import { getOrCreateWallet } from '../../services/wallet.service';
 import { config } from '../../config';
 import { logger } from '../../lib/logger';
+import { getJackpot } from '../../services/jackpot.service';
 
 export async function handleStart(ctx: Context) {
   const tgUser     = ctx.from!;
@@ -14,9 +15,14 @@ export async function handleStart(ctx: Context) {
     let validReferrerId: string | undefined;
 
     if (startPayload === 'deposit') {
-    const { handleDeposit } = await import('./deposit');
-    return handleDeposit(ctx);
-  }
+      const { handleDeposit } = await import('./deposit');
+      return handleDeposit(ctx);
+    }
+
+    if (startPayload === 'withdraw') {
+      const { handleWithdraw } = await import('./withdraw');
+      return handleWithdraw(ctx);
+    }
 
   if (startPayload && startPayload.length > 20) {
       // UUIDs are 36 chars — quick sanity check
@@ -95,29 +101,51 @@ export async function handleStart(ctx: Context) {
 
     logger.info(`[Start] Showing main menu to ${tgUser.id} (${tgUser.first_name})`);
 
-    const bannerUrl = `${process.env.WEBHOOK_URL}/uploads/banner.png`;
-    
-    // ── 4. Promotional Pinned Notice ──────────────────────────────────────────
-    const promoText = 
-      `☕️ <b>እንኳን ወደ ቡና ቢንጎ በሰላም መጡ!</b>\n\n` +
-      `የቡና ጣዕም ከወርቃማ ድሎች ጋር የሚገናኝበት፣ የዕድል እና የቅንጦት ፍጹም ውህደት።\n` +
-      `ይጎንጩ፣ ይጫወቱ፣ ያሸንፉ! በቡና ቢንጎ ሁሌም ከጃክፖት ጋር ይንቁ።\n\n` +
+    const jackpot = await getJackpot();
+    const jackpotAmount = Number(jackpot.currentAmount).toFixed(2);
+    const targetAmount = Number(jackpot.targetAmount).toFixed(2);
+
+    // ── 4. Jackpot Splash Notice ─────────────────────────────────────────────
+    const jackpotSplashText = 
+      `🏆 <b>የደራሽ ጃክፖት (Derash Jackpot)</b> 🏆\n\n` +
+      `🎉 <b>ታላቅ ዜና!</b>\n` +
+      `የጃክፖት ሽልማት አሁን ተጀምሯል! 💰\n\n` +
+      `🔥 <b>CURRENT JACKPOT: ${jackpotAmount} ETB</b> 🔥\n` +
+      `🎯 <b>TARGET: ${targetAmount} ETB</b>\n\n` +
+      `በመጫወት የጃክፖት ሽልማት አሸናፊ ይሁኑ! መልካም እድል! 🍀\n\n` +
+      `👉👉 <b>የደራሽ ጃክፖት አሰራር!</b>\n\n` +
+      `💰 1️⃣ በእያንዳንዱ ጨዋታ የሚሰበሰበው መደብ ከ100 ሲበልጥ ከደራሹ ላይ የተወሰነ ፐርሰንት ወደ ጃክፖቱ ይተላለፋል።\n` +
+      `📈 2️⃣ ጃክፖቱ የታለመለትን መጠን (Target Amount) እስኪሞላ ድረስ መጠኑ ይጨምራል። 💥\n` +
+      `🎯 3️⃣ ልክ ታርጌቱ ሲሞላ፣ ጃክፖቱ ይፈነዳል!\n` +
+      `🔓 4️⃣ በዛ ሰዓት ያሸነፈው እድለኛ ተጫዋች ጠቅላላውን ጃክፖት + መደበኛውን ሽልማት ይወስዳል! 🏆\n\n` +
+      `🏆 እድሉን ይሞክሩ! መልካም እድል! 🍀\n\n` +
       `📌 <i>Tip: Pin this bot to your chat list for quick access!</i>`;
 
+    const jackpotSplashUrl = `${process.env.WEBHOOK_URL}/uploads/jackpot_splash.png`;
+
     try {
-      const promoMsg = await ctx.replyWithPhoto(bannerUrl, {
-        caption: promoText,
+      const splashMsg = await ctx.replyWithPhoto(jackpotSplashUrl, {
+        caption: jackpotSplashText,
         parse_mode: 'HTML',
+      }).catch(() => {
+        // Fallback to text if image fails
+        return ctx.reply(jackpotSplashText, { parse_mode: 'HTML' });
       });
-      // Pin the message to the "header" of the bot page
-      await ctx.telegram.pinChatMessage(ctx.chat!.id, promoMsg.message_id);
+      
+      // Pin the jackpot notice
+      if (splashMsg && 'message_id' in splashMsg) {
+        await ctx.telegram.pinChatMessage(ctx.chat!.id, splashMsg.message_id);
+      }
     } catch (e) {
-      // Non-fatal if pinning fails
+      // Non-fatal
     }
 
+    const bannerUrl = `${process.env.WEBHOOK_URL}/uploads/banner.png`;
     const mainMenuText = 
       `<b>Welcome to Buna Bingo!</b> ☕️💰\n` +
       `<b>እንኳን ደና መጡ!</b>\n\n` +
+      `🔥 <b>CURRENT JACKPOT: ${jackpotAmount} ETB</b> 🔥\n` +
+      `🔥 <b>ያሁኑ ጃክፖት፡ ${jackpotAmount} ብር</b> 🔥\n\n` +
       `✨ "Rich Flavor, Golden Wins."\n` +
       `☕️ "የቡና ጣዕም፣ ወርቃማ ድሎች።"\n\n` +
       `🎰 "The Perfect Blend of Luck and Luxury."\n` +
@@ -128,7 +156,7 @@ export async function handleStart(ctx: Context) {
       `💳🏆 "ቡና ቢንጎ — ከጃክፖት ጋር ይንቁ!"\n\n` +
       `Choose an option below:\n` +
       `ከታች አንድ አማራጭ ይምረጡ፡-\n\n` +
-      `✉️ <a href="${shareUrl}">Share Invite Link & Earn 5 ETB!</a>`;
+      `✉️ <a href="${shareUrl}">Share Invite Link & Earn 5 ETB! (የግብዣ ሊንክዎን ያጋሩ)</a>`;
 
     await ctx.replyWithPhoto(bannerUrl, {
       caption: mainMenuText,
@@ -136,24 +164,28 @@ export async function handleStart(ctx: Context) {
       ...Markup.inlineKeyboard([
         // ── Row 1: Games ─────────────────────────────────────────────────────
         [
-          Markup.button.callback('Play Bingo 🎮', 'cmd_play_bingo'),
-          Markup.button.callback('Play Spin 🎮',  'cmd_play_spin'),
+          Markup.button.callback('Bingo ይጫወቱ 🎮', 'cmd_play_bingo'),
+          Markup.button.callback('Spin ይጫወቱ 🎮',  'cmd_play_spin'),
         ],
-        // ── Row 2: Account ───────────────────────────────────────────────────
+        // ── Row 2: Jackpot ───────────────────────────────────────────────────
         [
-          Markup.button.callback('Register 📝',  'cmd_register'),
-          Markup.button.callback('Deposit 💵',   'cmd_deposit'),
+          Markup.button.webApp('🔥 WIN JACKPOT (ጃክፖት) 🔥', `${config.bot.miniAppUrl}/`),
         ],
-        // ── Row 3: Wallet & Support ──────────────────────────────────────────
+        // ── Row 3: Account ───────────────────────────────────────────────────
         [
-          Markup.button.callback('Check Balance 💰', 'cmd_balance'),
-          Markup.button.url('Contact support 📞', 'https://t.me/bunabingosupport'),
+          Markup.button.callback('ይመዝገቡ Register 📝',  'cmd_register'),
+          Markup.button.callback('ብር ያስገቡ Deposit 💵',   'cmd_deposit'),
         ],
-        // ── Row 4: Help & Referral ────────────────────────────────────────────
+        // ── Row 4: Wallet & Support ──────────────────────────────────────────
         [
-          Markup.button.callback('Instruction 📖', 'cmd_instructions'),
+          Markup.button.callback('ሂሳብ Balance 💰', 'cmd_balance'),
+          Markup.button.url('ድጋፍ Support 📞', 'https://t.me/bunabingosupport'),
+        ],
+        // ── Row 5: Help & Referral ────────────────────────────────────────────
+        [
+          Markup.button.callback('መመሪያ Instruction 📖', 'cmd_instructions'),
           Markup.button.url(
-            'Invite ✉️',
+            'ጋብዝ Invite ✉️',
             shareUrl
           ),
         ],
@@ -164,21 +196,24 @@ export async function handleStart(ctx: Context) {
         parse_mode: 'HTML',
         ...Markup.inlineKeyboard([
           [
-            Markup.button.callback('Play Bingo 🎮', 'cmd_play_bingo'),
-            Markup.button.callback('Play Spin 🎮',  'cmd_play_spin'),
+            Markup.button.callback('Bingo ይጫወቱ 🎮', 'cmd_play_bingo'),
+            Markup.button.callback('Spin ይጫወቱ 🎮',  'cmd_play_spin'),
           ],
           [
-            Markup.button.callback('Register 📝',  'cmd_register'),
-            Markup.button.callback('Deposit 💵',   'cmd_deposit'),
+            Markup.button.webApp('🔥 WIN JACKPOT (ጃክፖት) 🔥', `${config.bot.miniAppUrl}/`),
           ],
           [
-            Markup.button.callback('Check Balance 💰', 'cmd_balance'),
-            Markup.button.url('Contact support 📞', 'https://t.me/bunabingosupport'),
+            Markup.button.callback('ይመዝገቡ Register 📝',  'cmd_register'),
+            Markup.button.callback('ብር ያስገቡ Deposit 💵',   'cmd_deposit'),
           ],
           [
-            Markup.button.callback('Instruction 📖', 'cmd_instructions'),
+            Markup.button.callback('ሂሳብ Check Balance 💰', 'cmd_balance'),
+            Markup.button.url('ድጋፍ Support 📞', 'https://t.me/bunabingosupport'),
+          ],
+          [
+            Markup.button.callback('መመሪያ Instruction 📖', 'cmd_instructions'),
             Markup.button.url(
-              'Invite ✉️',
+              'ጋብዝ Invite ✉️',
               shareUrl
             ),
           ],

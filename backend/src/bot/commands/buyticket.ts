@@ -5,9 +5,9 @@ import { joinGame } from '../../game/engine';
 import { config } from '../../config';
 
 const ROOM_LABELS: Record<string, string> = {
-  CASUAL: '🟢 Casual Room',
-  STANDARD: '🔵 Standard Room',
-  JACKPOT: '💎 Jackpot Room',
+  CASUAL: '🟢 Casual (መደበኛ)',
+  STANDARD: '🔵 Standard (ከፍተኛ)',
+  JACKPOT: '💎 Jackpot (ጃክፖት)',
 };
 
 export async function handleBuyTicket(ctx: Context) {
@@ -19,11 +19,11 @@ export async function handleBuyTicket(ctx: Context) {
     
     if (!user.phoneNumber) {
       return ctx.reply(
-        `📱 <b>Phone Verification Required</b>\n\nPlease share your phone number using the button below before you can join a game.`,
+        `📱 <b>የስልክ ማረጋገጫ ያስፈልጋል (Phone Verification Required)</b>\n\nጨዋታ ለመቀላቀል እባክዎ ከታች ያለውን ቁልፍ በመጫን ስልክዎን ያጋሩ።`,
         {
           parse_mode: 'HTML',
           ...Markup.keyboard([
-            [Markup.button.contactRequest('📱 Share Phone Number')]
+            [Markup.button.contactRequest('📱 ስልክ ያጋሩ (Share Phone Number)')]
           ]).oneTime().resize()
         }
       );
@@ -37,23 +37,23 @@ export async function handleBuyTicket(ctx: Context) {
       const label = ROOM_LABELS[room.type] || room.type;
       const price = Number(room.ticketPrice).toFixed(0);
       return [Markup.button.callback(
-        `${label} — ${price} ETB (${players} players)`,
+        `${label} — ${price} ብር (${players} ተጫዋቾች)`,
         `join_${room.type}`
       )];
     });
 
     await ctx.reply(
-      `🎫 *Buy Bingo Ticket*\n\n` +
-      `Choose a room to join:\n\n` +
-      `🟢 *Casual* — 2+ players · 10 ETB · 30s countdown\n` +
-      `🔵 *Standard* — 5+ players · 25 ETB · 15s countdown\n` +
-      `💎 *Jackpot* — 20+ players · 100 ETB · 5s countdown\n\n` +
-      `Game starts automatically when minimum players join!`,
+      `🎫 *Bingo Ticket ይግዙ*\n\n` +
+      `ለመቀላቀል የሚፈልጉትን ክፍል ይምረጡ፡-\n\n` +
+      `🟢 *Casual* — 10 ብር · 30 ሴኮንድ\n` +
+      `🔵 *Standard* — 25 ብር · 15 ሴኮንድ\n` +
+      `💎 *Jackpot* — 100 ብር · 5 ሴኮንድ\n\n` +
+      `አነስተኛው የተጫዋች ቁጥር ሲሞላ ጨዋታው በራሱ ይጀምራል!`,
       {
         parse_mode: 'Markdown',
         ...Markup.inlineKeyboard([
           ...roomButtons,
-          [Markup.button.webApp('🎮 Open in Mini App', `${config.bot.miniAppUrl}/tickets`) as any],
+          [Markup.button.webApp('🎮 በ Mini App ይጫወቱ', `${config.bot.miniAppUrl}/tickets`) as any],
         ]),
       }
     );
@@ -72,13 +72,13 @@ export async function handleJoinRoom(ctx: Context, roomType: string) {
     if (user.status === 'SUSPENDED') return ctx.answerCbQuery('❌ Account suspended.');
     
     if (!user.phoneNumber) {
-      await ctx.answerCbQuery('❌ Phone verification required!');
+      await ctx.answerCbQuery('❌ የስልክ ማረጋገጫ ያስፈልጋል!');
       return ctx.reply(
-        `📱 <b>Phone Verification Required</b>\n\nPlease share your phone number to join games.`,
+        `📱 <b>የስልክ ማረጋገጫ ያስፈልጋል</b>\n\nጨዋታ ለመቀላቀል እባክዎ ስልክዎን ያጋሩ።`,
         {
           parse_mode: 'HTML',
           ...Markup.keyboard([
-            [Markup.button.contactRequest('📱 Share Phone Number')]
+            [Markup.button.contactRequest('📱 ስልክ ያጋሩ (Share Phone Number)')]
           ]).oneTime().resize()
         }
       );
@@ -108,18 +108,18 @@ export async function handleJoinRoom(ctx: Context, roomType: string) {
       }).join(' | ')
     ).join('\n');
 
-    await ctx.answerCbQuery('🎫 Joined! Good luck!');
+    await ctx.answerCbQuery('🎫 ተቀላቅለዋል! መልካም እድል!');
     await ctx.reply(
-      `✅ *Joined ${ROOM_LABELS[roomType]}!*\n\n` +
-      `🃏 Your Bingo Card:\n` +
+      `✅ *${ROOM_LABELS[roomType]} ተቀላቅለዋል!*\n\n` +
+      `🃏 የእርስዎ የቢንጎ ካርድ (Card):\n` +
       `\`B  | I  | N  | G  | O\n` +
       `${cardDisplay}\`\n\n` +
-      `⏳ Waiting for more players...\n` +
-      `📱 Open Mini App to play live!`,
+      `⏳ ሌሎች ተጫዋቾችን እየጠበቅን ነው...\n` +
+      `📱 በ Mini App በቀጥታ ይጫወቱ!`,
       {
         parse_mode: 'Markdown',
         ...Markup.inlineKeyboard([
-          [Markup.button.webApp('🎮 Play Live', `${config.bot.miniAppUrl}/game?id=${activeGame.id}`)],
+          [Markup.button.webApp('🎮 በቀጥታ ይጫወቱ (Play Live)', `${config.bot.miniAppUrl}/game?id=${activeGame.id}`)],
         ]),
       }
     );

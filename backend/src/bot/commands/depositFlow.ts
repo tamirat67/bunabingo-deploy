@@ -12,7 +12,7 @@ function generateReference(length = 10): string {
   return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
 }
 
-const CANCEL_BTN = [[Markup.button.callback('❌ Cancel', 'cmd_deposit_cancel')]];
+const CANCEL_BTN = [[Markup.button.callback('❌ ሰርዝ (Cancel)', 'cmd_deposit_cancel')]];
 
 // ─── Step 1: Ask for amount ────────────────────────────────────────────────────
 export async function handleDepositManualStart(ctx: Context) {
@@ -20,15 +20,15 @@ export async function handleDepositManualStart(ctx: Context) {
 
   const tgUser = ctx.from!;
   const user = await getUserByTelegramId(tgUser.id);
-  if (!user) return ctx.reply('❌ Please /start first to register.');
+  if (!user) return ctx.reply('❌ እባክዎ መጀመሪያ /start ይበሉ። (Please /start first.)');
 
   setSession(tgUser.id, { type: 'MANUAL_DEPOSIT', step: 'AWAITING_AMOUNT' });
 
   await ctx.reply(
-    `💳 *Manual Deposit*\n\n` +
+    `💳 *Manual Deposit / ብር ማስገቢያ*\n\n` +
     `እንዲሞላልዎት የሚፈልጉትን የገንዘብ መጠን ያስገቡ:\n` +
     `_(Enter the amount you want to deposit in ETB)_\n\n` +
-    `_Minimum: 10 ETB_`,
+    `ዝቅተኛው መጠን (Minimum): 10 ETB`,
     {
       parse_mode: 'Markdown',
       ...Markup.inlineKeyboard(CANCEL_BTN),
@@ -40,7 +40,7 @@ export async function handleDepositManualStart(ctx: Context) {
 export async function handleDepositCancel(ctx: Context) {
   if (ctx.callbackQuery) await ctx.answerCbQuery();
   clearSession(ctx.from!.id);
-  await ctx.reply('❌ Deposit cancelled.');
+  await ctx.reply('❌ ብር ማስገቢያው ተሰርዟል። (Deposit cancelled.)');
 }
 
 // ─── Skip screenshot → submit ──────────────────────────────────────────────────
@@ -66,7 +66,7 @@ export async function handleDepositMessage(ctx: Context): Promise<boolean> {
 
     if (!raw || isNaN(amount) || amount < 10) {
       await ctx.reply(
-        `⚠️ Invalid amount. Please enter a number ≥ 10 ETB.\n\nእባክዎ ትክክለኛ የገንዘብ መጠን ያስገቡ:`,
+        `⚠️ የተሳሳተ መጠን። እባክዎ ከ 10 ብር በላይ ያስገቡ። (Invalid amount. Minimum: 10 ETB.)`,
         { parse_mode: 'Markdown', ...Markup.inlineKeyboard(CANCEL_BTN) }
       );
       return true;
@@ -82,18 +82,18 @@ export async function handleDepositMessage(ctx: Context): Promise<boolean> {
 
     const { receiverName, receiverPhone } = config.payment;
 
-    await ctx.reply(`Payment details`, { parse_mode: 'Markdown' });
+    await ctx.reply(`የክፍያ ዝርዝሮች (Payment details):`, { parse_mode: 'Markdown' });
 
     await ctx.reply(
-      `\`\`\`\nName:      ${receiverName}\nPhone:     ${receiverPhone}\nAmount:    ${amount}ETB\nreference: ${reference}\n\`\`\``,
+      `\`\`\`\nስም (Name):      ${receiverName}\nስልክ (Phone):     ${receiverPhone}\nመጠን (Amount):    ${amount} ETB\nማጣቀሻ (Ref):      ${reference}\n\`\`\``,
       {
         parse_mode: 'Markdown',
         ...Markup.inlineKeyboard([
-          [Markup.button.callback('Pay from  CBE-Birr to MPESA',         'cmd_pay_cbe_birr')],
-          [Markup.button.callback('Pay from  CBEBANK to MPESA',          'cmd_pay_cbe_bank')],
-          [Markup.button.callback('Pay from  MPESA to MPESA only',       'cmd_pay_mpesa')],
-          [Markup.button.callback('Pay from  telebirr to telebirr only', 'cmd_pay_telebirr')],
-          [Markup.button.callback('❌ Cancel', 'cmd_deposit_cancel')],
+          [Markup.button.callback('ከ CBE-Birr ወደ MPESA ይክፈሉ',         'cmd_pay_cbe_birr')],
+          [Markup.button.callback('ከ CBE Bank ወደ MPESA ይክፈሉ',          'cmd_pay_cbe_bank')],
+          [Markup.button.callback('ከ MPESA ወደ MPESA ይክፈሉ',       'cmd_pay_mpesa')],
+          [Markup.button.callback('ከ Telebirr ወደ Telebirr ይክፈሉ', 'cmd_pay_telebirr')],
+          [Markup.button.callback('❌ ሰርዝ (Cancel)', 'cmd_deposit_cancel')],
         ]),
       }
     );
@@ -105,11 +105,11 @@ export async function handleDepositMessage(ctx: Context): Promise<boolean> {
     const photoMsg = msg as Message.PhotoMessage;
     if (!photoMsg.photo?.length) {
       await ctx.reply(
-        `📸 Please send your payment *screenshot*, or click Skip.\n_(ያለዎትን ደረሰኝ ፎቶ ይላኩ)_`,
+        `📸 እባክዎ የከፈሉበትን ደረሰኝ ፎቶ (screenshot) ይላኩ።\n(Please send your payment screenshot.)`,
         {
           parse_mode: 'Markdown',
           ...Markup.inlineKeyboard([
-            [Markup.button.callback('❌ Cancel', 'cmd_deposit_cancel')],
+            [Markup.button.callback('❌ ሰርዝ (Cancel)', 'cmd_deposit_cancel')],
           ]),
         }
       );
@@ -125,14 +125,14 @@ export async function handleDepositMessage(ctx: Context): Promise<boolean> {
     const smsText = (msg as Message.TextMessage)?.text?.trim();
     if (!smsText || smsText.length < 20) {
       await ctx.reply(
-        `⚠️ Please paste the *full* Telebirr SMS you received.\n_(Starting with "Dear..." or "ውድ...")_`,
+        `⚠️ እባክዎ የቴሌብር አጭር መልዕክቱን (SMS) ሙሉ በሙሉ ኮፒ አድርገው ይለጥፉ።\n(Please paste the full Telebirr SMS.)`,
         { parse_mode: 'Markdown', ...Markup.inlineKeyboard(CANCEL_BTN) }
       );
       return true;
     }
 
     // ── 1. Validate SMS Content ──
-    await ctx.reply(`🔍 Validating your Telebirr receipt...`);
+    await ctx.reply(`🔍 የቴሌብር ደረሰኝዎን እያረጋገጥን ነው... (Validating...)`);
     const { validateTelebirrSms } = await import('../../services/bunafrankValidator');
     const result = await validateTelebirrSms(
       smsText,
@@ -142,8 +142,8 @@ export async function handleDepositMessage(ctx: Context): Promise<boolean> {
 
     if (!result.valid) {
       await ctx.reply(
-        `❌ *ERROR: Invalid or Fake Receipt!*\n\n` +
-        (result.error || "The receipt content is not recognized.") + `\n\nPlease enter a real Telebirr SMS.`,
+        `❌ *ስህተት፡ ደረሰኙ ትክክል አይደለም! (Invalid Receipt)*\n\n` +
+        (result.error || "ደረሰኙ ሊታወቅ አልቻለም።") + `\n\nእባክዎ ትክክለኛ የቴሌብር SMS ያስገቡ።`,
         { parse_mode: 'Markdown', ...Markup.inlineKeyboard(CANCEL_BTN) }
       );
       return true;
@@ -156,25 +156,27 @@ export async function handleDepositMessage(ctx: Context): Promise<boolean> {
     });
 
     if (existing) {
-      await ctx.reply(`❌ *ERROR: Duplicate Receipt Detected!*\n\nThis transaction (\`${d.transactionId}\`) has already been used. Please do not submit duplicate receipts.`, { parse_mode: 'Markdown' });
+      await ctx.reply(`❌ *ስህተት፡ ይህ ደረሰኝ ቀድሞ ጥቅም ላይ ውሏል! (Duplicate Receipt)*\n\nይህ የግብይት መለያ (\`${d.transactionId}\`) ቀድሞ ገቢ ሆኗል። እባክዎ አንድ ደረሰኝ ከአንድ ጊዜ በላይ አይላኩ።`, { parse_mode: 'Markdown' });
       return true;
     }
 
     // ── Valid — show parsed confirmation ──
-    const verifiedBadge = result.onlineVerified ? '✅ INSTANTLY VERIFIED' : '🔗 Performing automated verification...';
+    const verifiedBadge = result.onlineVerified 
+      ? '✅ በቅጽበት ተረጋግጧል (INSTANTLY VERIFIED)' 
+      : '🔗 አውቶማቲክ ማረጋገጫ እየተከናወነ ነው... (Verifying...)';
 
     await ctx.reply(
-      `✅ *Receipt Validated!*\n\n` +
+      `✅ *ደረሰኙ ተረጋግጧል! (Validated)*\n\n` +
       `\`\`\`\n` +
-      `Transaction ID : ${d.transactionId}\n` +
-      `Amount         : ETB ${d.amount.toFixed(2)}\n` +
-      `Recipient      : ${d.recipientName}\n` +
-      `Phone          : ${d.recipientPhoneMasked}\n` +
-      `Date/Time      : ${d.dateTime}\n` +
-      `Service Fee    : ETB ${d.serviceFee.toFixed(2)}\n` +
+      `የግብይት መለያ (ID)  : ${d.transactionId}\n` +
+      `መጠን (Amount)      : ETB ${d.amount.toFixed(2)}\n` +
+      `ተቀባይ (Recipient)   : ${d.recipientName}\n` +
+      `ስልክ (Phone)        : ${d.recipientPhoneMasked}\n` +
+      `ቀን (Date)           : ${d.dateTime}\n` +
+      `የአገልግሎት ክፍያ (Fee): ETB ${d.serviceFee.toFixed(2)}\n` +
       `\`\`\`\n` +
       ` ${verifiedBadge}\n\n` +
-      `Finalizing your deposit...`,
+      `ገቢውን እያጠናቀቅን ነው... (Finalizing...)`,
       { parse_mode: 'Markdown' }
     );
 
@@ -323,11 +325,22 @@ async function submitDeposit(
     });
 
     if (autoComplete) {
-      const { creditWallet, creditBonus } = await import('../../services/wallet.service');
-      await creditWallet(user.id, amount, 'DEPOSIT', deposit.id, `Automatic Telebirr Deposit: ${referenceOrSms}`);
-      
-      const bonusAmount = amount * 0.5;
-      await creditBonus(user.id, bonusAmount, `Telebirr Deposit Bonus (50%) for deposit #${deposit.id}`);
+      try {
+        const { creditWallet, creditBonus } = await import('../../services/wallet.service');
+        logger.info(`[Deposit] Auto-completing deposit ${deposit.id} for user ${user.id}`);
+        
+        await creditWallet(user.id, amount, 'DEPOSIT', deposit.id, `Automatic Telebirr Deposit: ${referenceOrSms}`);
+        
+        const bonusAmount = amount * 0.5;
+        await creditBonus(user.id, bonusAmount, `Telebirr Deposit Bonus (50%) for deposit #${deposit.id}`);
+        
+        logger.info(`[Deposit] Successfully credited user ${user.id} for deposit ${deposit.id}`);
+      } catch (creditErr) {
+        logger.error(`[Deposit] Failed to auto-credit user ${user.id} for deposit ${deposit.id}:`, creditErr);
+        // Fallback: set back to pending so admin can fix it
+        await prisma.deposit.update({ where: { id: deposit.id }, data: { status: 'pending', details: 'Auto-credit failed, needs manual review' } });
+        autoComplete = false; 
+      }
     }
 
     logger.info(`[Deposit] ${deposit.id} — ${amount} ETB — method: ${paymentMethod ?? 'unknown'} — auto: ${autoComplete}`);
@@ -340,22 +353,33 @@ async function submitDeposit(
 
     if (autoComplete) {
       await ctx.reply(
-        `✅ *Deposit Successful!*\n\n` +
-        `💵 Amount: *${amount.toFixed(2)} ETB*\n` +
-        `🎁 Bonus: *${(amount * 0.5).toFixed(2)} ETB (50%)*\n` +
-        `💳 Method: *${methodLabel}*\n` +
-        `📋 Status: *SUCCESS*\n\n` +
-        `💰 Your wallet has been credited with both your deposit and your bonus. Good luck! 🎰`,
-        { parse_mode: 'Markdown' }
+        `✅ *ገቢዎ ተሳክቷል! (Deposit Successful)*\n\n` +
+        `💵 መጠን (Amount): *${amount.toFixed(2)} ETB*\n` +
+        `🎁 ቦነስ (Bonus): *${(amount * 0.5).toFixed(2)} ETB (50%)*\n` +
+        `💳 መንገድ (Method): *${methodLabel}*\n` +
+        `📋 ሁኔታ (Status): *ተጠናቋል (SUCCESS)*\n\n` +
+        `💰 ሂሳብዎ ገቢ ሆኗል። መልካም እድል! 🎰`,
+        { 
+          parse_mode: 'Markdown',
+          ...Markup.inlineKeyboard([
+            [Markup.button.callback('💰 ሂሳብ ይመልከቱ (Check Balance)', 'cmd_balance')],
+            [Markup.button.callback('🏠 ወደ ዋና ማውጫ (Main Menu)', 'cmd_start_main')],
+          ])
+        }
       );
     } else {
       await ctx.reply(
-        `⏳ *Performing Final Bank Check...*\n\n` +
-        `💵 Amount: *${amount.toFixed(2)} ETB*\n` +
-        `💳 Method: *${methodLabel}*\n` +
-        `📋 Status: *Awaiting Confirmation*\n\n` +
-        `⏱ Our system is performing multiple automated checks with the bank portal. Please wait **2-5 minutes**. You will receive an automated notification as soon as the credit is confirmed. 🙏`,
-        { parse_mode: 'Markdown' }
+        `⏳ *ደረሰኙን እያረጋገጥን ነው... (Processing)*\n\n` +
+        `💵 መጠን (Amount): *${amount.toFixed(2)} ETB*\n` +
+        `💳 መንገድ (Method): *${methodLabel}*\n` +
+        `📋 ሁኔታ (Status): *በሂደት ላይ (Pending)*\n\n` +
+        `⏱ ይህ ክፍያ በሰው መረጋገጥ ስላለበት እባክዎ ለ **2-5 ደቂቃዎች** ይጠብቁ። ሲረጋገጥ መልዕክት ይደርስዎታል። 🙏`,
+        { 
+          parse_mode: 'Markdown',
+          ...Markup.inlineKeyboard([
+            [Markup.button.callback('🏠 ወደ ዋና ማውጫ (Main Menu)', 'cmd_start_main')],
+          ])
+        }
       );
     }
 

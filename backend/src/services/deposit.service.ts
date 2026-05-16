@@ -2,7 +2,7 @@ import prisma from '../lib/prisma';
 import { creditWallet } from './wallet.service';
 import { triggerAdminEvent, triggerUserEvent } from '../lib/pusher';
 import { logger } from '../lib/logger';
-import { notifyAgent } from '../bot/notifier';
+import { notifyAgent, notifyUser } from '../bot/notifier';
 
 export async function createDepositRequest(
   userId: string,
@@ -44,11 +44,11 @@ export async function createDepositRequest(
     // Notify agent on Telegram
     await notifyAgent(
       deposit.user.referredBy,
-      `🔔 <b>New Deposit Request</b>\n\n` +
-      `👤 <b>Player:</b> ${deposit.user?.username || 'Unknown'}\n` +
-      `💰 <b>Amount:</b> ${amount} ETB\n` +
-      `🔖 <b>Ref:</b> ${reference || 'N/A'}\n\n` +
-      `Please check your agent portal to approve/reject.`
+      `🔔 <b>አዲስ የብር ገቢ ጥያቄ (New Deposit Request)</b>\n\n` +
+      `👤 <b>ተጫዋች (Player):</b> ${deposit.user?.username || 'Unknown'}\n` +
+      `💰 <b>መጠን (Amount):</b> ${amount} ETB\n` +
+      `🔖 <b>ማጣቀሻ (Ref):</b> ${reference || 'N/A'}\n\n` +
+      `እባክዎ ወደ ኤጀንት ፖርታልዎ በመግባት ያረጋግጡ።`
     );
   }
 
@@ -86,6 +86,15 @@ export async function approveDeposit(depositId: string, adminId: string) {
         amount: deposit.amount.toString(),
         bonus: bonusAmount.toFixed(2),
       });
+
+      // Notify User on Telegram
+      await notifyUser(
+        deposit.userId,
+        `✅ <b>የብር ገቢ ተረጋግጧል! (Deposit Approved)</b>\n\n` +
+        `💵 መጠን (Amount): <b>${Number(deposit.amount).toFixed(2)} ETB</b>\n` +
+        `🎁 ቦነስ (Bonus): <b>${bonusAmount.toFixed(2)} ETB (50%)</b>\n\n` +
+        `ሂሳብዎ ገቢ ሆኗል። አሁኑኑ ተጫውተው ያሸንፉ! 🎰`
+      );
   }
 
   logger.info(`Deposit approved: ${depositId} by admin/agent ${adminId}`);
@@ -107,6 +116,15 @@ export async function rejectDeposit(depositId: string, adminId: string, reason: 
     });
 
     await triggerUserEvent(deposit.userId, 'deposit-rejected', { depositId, reason });
+
+    // Notify User on Telegram
+    await notifyUser(
+      deposit.userId,
+      `❌ <b>የብር ገቢ አልተሳካም (Deposit Rejected)</b>\n\n` +
+      `💵 መጠን (Amount): <b>${Number(deposit.amount).toFixed(2)} ETB</b>\n` +
+      `📝 ምክንያት (Reason): ${reason}\n\n` +
+      `እባክዎ መረጃውን አረጋግጠው በድጋሚ ይሞክሩ ወይም ድጋፍ ሰጪን ያነጋግሩ። 🙏`
+    );
   }
   logger.info(`Deposit rejected: ${depositId} — ${reason}`);
 }

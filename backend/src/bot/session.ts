@@ -43,9 +43,25 @@ export interface ChangeNameSession {
   step: 'AWAITING_NAME';
 }
 
+// ─── Withdrawal ───────────────────────────────────────────────────────────────
+
+export type WithdrawalStep =
+  | 'AWAITING_AMOUNT'
+  | 'AWAITING_BANK'
+  | 'AWAITING_ACCOUNT'
+  | 'AWAITING_NAME';
+
+export interface WithdrawalSession {
+  type: 'WITHDRAWAL';
+  step: WithdrawalStep;
+  amount?: number;
+  bankName?: string;
+  accountNumber?: string;
+}
+
 // ─── Union ────────────────────────────────────────────────────────────────────
 
-export type Session = DepositSession | TransferSession | ChangeNameSession;
+export type Session = DepositSession | TransferSession | ChangeNameSession | WithdrawalSession;
 
 const sessions = new Map<number, Session>();
 

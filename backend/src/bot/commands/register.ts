@@ -39,14 +39,14 @@ export async function handleRegister(ctx: Context) {
 
       return ctx.reply(
         `👋 Welcome to <b>Buna Bingo</b>, ${tgUser.first_name}!\n\n` +
-        `To complete your registration, we need your phone number.\n\n` +
-        `📱 Tap the button below — Telegram will ask for your confirmation before sharing anything.`,
+        `ምዝገባውን ለመጨረስ እባክዎ ስልክ ቁጥርዎን ያጋሩ።\n` +
+        `(To complete your registration, we need your phone number.)\n\n` +
+        `📱 ከታች ያለውን ቁልፍ በመጫን ስልክዎን ያጋሩ — ቴሌግራም ከማጋራቱ በፊት ማረጋገጫ ይጠይቅዎታል።\n` +
+        `(Tap the button below — Telegram will ask for confirmation.)`,
         {
           parse_mode: 'HTML',
-          // This reply-keyboard button is what triggers the
-          // native "Share your phone number?" system popup shown in the screenshot.
           ...Markup.keyboard([
-            [Markup.button.contactRequest('📱 Share Phone Number')],
+            [Markup.button.contactRequest('📱 ስልክ ቁጥር ያጋሩ (Share Phone Number)')],
           ]).oneTime().resize(),
         }
       );
@@ -62,23 +62,23 @@ export async function handleRegister(ctx: Context) {
     logger.info(`[Register] Returning user ${tgUser.id} — showing profile`);
 
     return ctx.reply(
-      `✅ <b>Account Profile</b>\n\n` +
-      `👤 <b>Name:</b> ${user.firstName}${user.lastName ? ` ${user.lastName}` : ''}\n` +
-      `📱 <b>Phone:</b> ${user.phone || user.phoneNumber}\n` +
+      `✅ <b>Account Profile / የሂሳብ መረጃ</b>\n\n` +
+      `👤 <b>ስም (Name):</b> ${user.firstName}${user.lastName ? ` ${user.lastName}` : ''}\n` +
+      `📱 <b>ስልክ (Phone):</b> ${user.phone || user.phoneNumber}\n` +
       `🆔 <b>Username:</b> ${user.telegramUsername ? `@${user.telegramUsername}` : 'N/A'}\n` +
-      `📅 <b>Member Since:</b> ${memberSince}\n` +
-      `💰 <b>Balance:</b> ${Number(wallet.balance).toFixed(2)} ETB\n` +
-      `👥 <b>Referrals:</b> ${user._count?.referrals || 0}`,
+      `📅 <b>የተመዘገቡበት (Member Since):</b> ${memberSince}\n` +
+      `💰 <b>ሂሳብ (Balance):</b> ${Number(wallet.balance).toFixed(2)} ETB\n` +
+      `👥 <b>ሪፈራል (Referrals):</b> ${user._count?.referrals || 0}`,
       {
         parse_mode: 'HTML',
         ...Markup.inlineKeyboard([
           [
-            Markup.button.callback('💰 Balance',  'cmd_balance'),
-            Markup.button.callback('💵 Deposit',  'cmd_deposit'),
+            Markup.button.callback('💰 ሂሳብ (Balance)',  'cmd_balance'),
+            Markup.button.callback('💵 ብር ያስገቡ (Deposit)',  'cmd_deposit'),
           ],
           [
-            Markup.button.callback('✏️ Change Name', 'cmd_change_name'),
-            Markup.button.callback('✉️ Invite',       'cmd_invite'),
+            Markup.button.callback('✏️ ስም ይቀይሩ (Change Name)', 'cmd_change_name'),
+            Markup.button.callback('✉️ ጋብዝ (Invite)',       'cmd_invite'),
           ],
         ]),
       }

@@ -54,6 +54,8 @@ export async function creditWallet(
     const currentBalance = new Decimal(wallet.balance.toString());
     const newBalance = currentBalance.add(amt);
 
+    logger.info(`[Wallet] Crediting user ${userId}: +${amt} ETB (${type}). Balance: ${currentBalance} -> ${newBalance}`);
+
     // 2. Update balance
     await tx.wallet.update({
       where: { userId },
@@ -268,6 +270,8 @@ export async function debitWallet(
           : wallet.totalSpent,
       },
     });
+
+    logger.info(`[Wallet] Debiting user ${userId}: -${amt} ETB (${type}). Balance: ${balance} -> ${newBalance}, Bonus: ${bonus} -> ${newBonus}`);
 
     // 3. Create log
     await tx.transaction.create({

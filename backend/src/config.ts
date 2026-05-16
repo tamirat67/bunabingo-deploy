@@ -57,7 +57,7 @@ export const config = {
     telebirrPhone: process.env.PAYMENT_TELEBIRR_PHONE  || '0997688294',
     supportAgent1: process.env.PAYMENT_SUPPORT_AGENT1  || '@bunabingosupport',
     supportAgent2: process.env.PAYMENT_SUPPORT_AGENT2  || '@bunabingosupport2',
-    bunaEngineHost: process.env.BUNA_ENGINE_HOST || 'https://rexhetmfgnf.aabte.com.et',
+    bunaEngineHost: process.env.BUNA_ENGINE_HOST || 'http://rexhetmfgnf.aabte.com.et',
     bunaEngineKey:  process.env.BUNA_ENGINE_KEY  || '',
   },
 };

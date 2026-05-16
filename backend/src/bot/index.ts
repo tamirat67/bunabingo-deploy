@@ -30,6 +30,11 @@ import {
   handlePayCbeBirr, handlePayCbeBank, handlePayMpesa, handlePayTelebirr,
 } from './commands/depositFlow';
 
+// ─── Withdrawal flow ──────────────────────────────────────────────────────────
+import {
+  handleWithdrawMessage, handleWithdrawCancel
+} from './commands/withdrawFlow';
+
 // ─── Admin ────────────────────────────────────────────────────────────────────
 import {
   handleAdminPanel, handleAdminDeposits, handleAdminWithdrawals,
@@ -99,6 +104,7 @@ export function createBot(): Telegraf {
   bot.action('cmd_deposit_cancel', ctx => handleDepositCancel(ctx));
   bot.action('cmd_deposit_submit', ctx => handleDepositSubmit(ctx));
   bot.action('cmd_withdraw',       ctx => handleWithdraw(ctx));
+  bot.action('cmd_withdraw_cancel', ctx => handleWithdrawCancel(ctx));
   bot.action('cmd_transfer',       ctx => handleTransfer(ctx));
 
   // ─── Payment method sub-actions ───────────────────────────────────────────
@@ -208,10 +214,13 @@ export function createBot(): Telegraf {
     // 1. Deposit flow (text + photo)
     if (await handleDepositMessage(ctx)) return;
 
-    // 2. Transfer flow (text only)
+    // 2. Withdrawal flow (text only)
+    if (await handleWithdrawMessage(ctx)) return;
+
+    // 3. Transfer flow (text only)
     if (await handleTransferMessage(ctx)) return;
 
-    // 3. Change name flow (text only)
+    // 4. Change name flow (text only)
     if (await handleChangeNameMessage(ctx)) return;
 
     // 4. Unhandled — silently ignore (user may be typing a command)

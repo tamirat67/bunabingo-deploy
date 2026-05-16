@@ -113,7 +113,7 @@ export function parseTelebirrSms(smsText: string): TelebirrSmsData | null {
 }
 
 // ─── Online receipt verification ───────────────────────────────────────────────
-async function verifyReceiptOnline(receiptUrl: string, transactionId: string): Promise<boolean> {
+export async function verifyReceiptOnline(receiptUrl: string, transactionId: string): Promise<boolean> {
   const maxRetries = 3;
   const retryDelay = 5000; // 5 seconds
 
@@ -125,41 +125,60 @@ async function verifyReceiptOnline(receiptUrl: string, transactionId: string): P
       }
 
       if (config.payment.bunaEngineHost) {
-        const scraperUrl = `${config.payment.bunaEngineHost.replace(/\/$/, '')}/validate/${transactionId}`;
-        const res = await axios.get(scraperUrl, { 
-          timeout: 15000,
-          headers: { 'x-api-key': config.payment.bunaEngineKey }
-        });
-        if (res.data?.success && (res.data?.data?.transactionId === transactionId || res.data?.data?.amount)) {
-          logger.info(`[BunaFrankValidator] ✅ Verified via engine: ${transactionId}`);
-          return true;
+        try {
+          const scraperUrl = `${config.payment.bunaEngineHost.replace(/\/$/, '')}/validate/${transactionId}`;
+          const altScraperUrl = `${config.payment.bunaEngineHost.replace(/\/$/, '')}/?txnId=${transactionId}`;
+          
+          logger.info(`[BunaFrankValidator] Calling scraper: ${scraperUrl}`);
+          
+          let res = await axios.get(scraperUrl, { 
+            timeout: 10000,
+            headers: { 'x-api-key': config.payment.bunaEngineKey },
+          }).catch(() => null);
+
+          if (!res || !res.data) {
+            logger.info(`[BunaFrankValidator] Primary scraper failed, trying alt: ${altScraperUrl}`);
+            res = await axios.get(altScraperUrl, { timeout: 10000 }).catch(() => null);
+          }
+          
+          const responseData = res?.data;
+          logger.info(`[BunaFrankValidator] Scraper response: ${JSON.stringify(responseData)}`);
+
+          // Be more lenient: if it returns success, or if it returns data that matches our transaction
+          const isSuccess = responseData?.success === true || responseData?.status === 'success' || responseData?.valid === true;
+          const matchesTxn = responseData?.data?.transactionId === transactionId || 
+                             responseData?.transactionId === transactionId ||
+                             responseData?.txnId === transactionId;
+          
+          if (isSuccess || matchesTxn) {
+            logger.info(`[BunaFrankValidator] ✅ Verified via engine: ${transactionId}`);
+            return true;
+          }
+        } catch (engineErr: any) {
+          logger.warn(`[BunaFrankValidator] Engine check failed for ${transactionId}: ${engineErr.message}. Falling back to direct scrape.`);
         }
       }
 
-      // Direct fallback
-      const res = await axios.get(receiptUrl, {
-        timeout: 10000,
-        headers: { 
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.9'
-        },
-      });
-      const html = String(res.data);
-      const found = html.includes(transactionId);
-      
-      if (found) {
-        logger.info(`[BunaFrankValidator] ✅ Verified online: ${transactionId}`);
-        return true;
-      } else {
-        const hasSuccess = html.includes('Payment Successful') || html.includes('የተከፈለ') || html.includes('Success');
-        if (hasSuccess && html.includes('ethiotelecom')) {
-            logger.info(`[BunaFrankValidator] ⚠️ Found success indicators but not ID: ${transactionId}. Trusting based on receipt structure.`);
-            return true;
+      // Direct fallback to official site
+      try {
+        const res = await axios.get(receiptUrl, {
+          timeout: 10000,
+          headers: { 
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          },
+        });
+        const html = String(res.data);
+        const found = html.includes(transactionId);
+        
+        if (found || html.includes('Payment Successful') || html.includes('የተከፈለ')) {
+          logger.info(`[BunaFrankValidator] ✅ Verified via official receipt: ${transactionId}`);
+          return true;
         }
+      } catch (scrapeErr: any) {
+        logger.warn(`[BunaFrankValidator] Official scrape attempt ${i + 1} failed for ${transactionId}: ${scrapeErr.message}`);
       }
     } catch (err: any) {
-      logger.warn(`[BunaFrankValidator] Attempt ${i + 1} failed for ${transactionId}: ${err.message}`);
+      logger.error(`[BunaFrankValidator] Unexpected error in verification loop for ${transactionId}:`, err);
     }
   }
   

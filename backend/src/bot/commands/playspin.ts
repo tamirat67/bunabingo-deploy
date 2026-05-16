@@ -5,21 +5,22 @@ export async function handlePlaySpinMenu(ctx: Context) {
   if (ctx.callbackQuery) await ctx.answerCbQuery();
 
   await ctx.reply(
-    `🍀 Best of luck on your Spin game adventure! 🎮`,
+    `🍀 Best of luck on your Spin game adventure! 🎮\n` +
+    `🍀 ለስፒን ጨዋታዎ መልካም እድል! 🎮`,
     Markup.inlineKeyboard([
       // ── Row 1 ────────────────────────────────────────────────────────────────
       [
-        Markup.button.webApp('🎮 Play Spin 10',   `${config.bot.miniAppUrl}/`),
-        Markup.button.webApp('🎮 Play Spin 20',   `${config.bot.miniAppUrl}/`),
+        Markup.button.webApp('🎮 Spin 10 ይጫወቱ',   `${config.bot.miniAppUrl}/`),
+        Markup.button.webApp('🎮 Spin 20 ይጫወቱ',   `${config.bot.miniAppUrl}/`),
       ],
       // ── Row 2 ────────────────────────────────────────────────────────────────
       [
-        Markup.button.webApp('🎮 Play Spin 50',   `${config.bot.miniAppUrl}/`),
-        Markup.button.webApp('🎮 Play Spin 100',  `${config.bot.miniAppUrl}/`),
+        Markup.button.webApp('🎮 Spin 50 ይጫወቱ',   `${config.bot.miniAppUrl}/`),
+        Markup.button.webApp('🎮 Spin 100 ይጫወቱ',  `${config.bot.miniAppUrl}/`),
       ],
       // ── Row 3: Demo (full-width) ──────────────────────────────────────────────
       [
-        Markup.button.webApp('🎮 Play Spin Demo', `${config.bot.miniAppUrl}/`),
+        Markup.button.webApp('🎮 በነጻ ይሞክሩ (Demo)', `${config.bot.miniAppUrl}/`),
       ],
     ])
   );
