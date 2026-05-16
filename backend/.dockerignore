@@ -4,4 +4,4 @@ dist
 .DS_Store
 scratch/
 logs/
-uploads/
+# uploads/  <-- Removed from ignore so Docker can see the default banners

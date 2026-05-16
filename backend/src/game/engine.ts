@@ -19,6 +19,7 @@ interface ActiveGame {
   countdownInterval?: NodeJS.Timeout;
   secondsRemaining?: number;
   numberPool: number[];
+  tickets?: any[];
 }
 
 const activeGames = new Map<string, ActiveGame>();
@@ -304,8 +305,10 @@ async function runGame(gameId: string): Promise<void> {
   await triggerGameEvent(gameId, 'game-started', { gameId, playerCount: game.tickets.length });
   logger.info(`[Game ${gameId}] Game RUNNING with ${game.tickets.length} tickets. Prize pool: ${totalPrizePool} ETB`);
 
+  // Load tickets into memory for the draw loop
+  state.tickets = game.tickets;
+
   // Start draw loop
-  // Ensure we don't have multiple intervals for the same game
   if (state.drawInterval) clearInterval(state.drawInterval);
   state.drawInterval = setInterval(() => drawNumber(gameId), config.game.drawIntervalMs);
 }
@@ -430,22 +433,19 @@ async function drawNumber(gameId: string): Promise<void> {
   await checkAllTickets(gameId, state.drawnNumbers);
 }
 
-// ─── Check All Tickets (Lightweight) ──────────────────────────
-// This no longer updates the DB for every ticket on every draw.
-// It only logs detections for server-side debugging.
+// This is now purely in-memory and very fast
 async function checkAllTickets(gameId: string, drawnNumbers: number[]): Promise<void> {
-  const tickets = await prisma.ticket.findMany({
-    where: { gameId, isWinner: false },
-    select: { id: true, card: true }
-  });
+  const state = activeGames.get(gameId);
+  if (!state || !state.tickets) return;
 
-  for (const ticket of tickets) {
+  for (const ticket of state.tickets) {
     const cardData = ticket.card as any;
     const rows = Array.isArray(cardData) ? cardData : cardData.rows;
-    const result = checkWin(rows as BingoCard, drawnNumbers);
+    if (!rows) continue;
     
+    const result = checkWin(rows as BingoCard, drawnNumbers);
     if (result.won) {
-        logger.debug(`[Game ${gameId}] Ticket ${ticket.id} HAS ${result.modes.join(', ')}. Waiting for claim.`);
+        logger.debug(`[Game ${gameId}] Ticket ${ticket.id} HAS ${result.modes.join(', ')}.`);
     }
   }
 }
