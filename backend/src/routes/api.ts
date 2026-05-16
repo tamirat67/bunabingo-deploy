@@ -681,8 +681,10 @@ const restrictToAdmin = async (req: Request, res: Response, next: any) => {
   adminMiddleware(req, res, next);
 };
 
-staffRouter.get('/deposits/pending', async (_req, res) => {
-  res.json(await getPendingDeposits());
+staffRouter.get('/deposits/pending', async (req, res) => {
+  const admin = (req as any).user;
+  const agentId = admin.isAdmin ? undefined : admin.id;
+  res.json(await getPendingDeposits(agentId));
 });
 staffRouter.post('/deposits/:id/approve', async (req, res) => {
   const admin = (req as any).user;
@@ -720,8 +722,18 @@ staffRouter.post('/withdrawals/:id/reject', async (req, res) => {
 });
 
 staffRouter.get('/users', async (req, res) => {
+  const user = (req as any).user;
   const page = parseInt(req.query.page as string) || 1;
-  res.json(await getAllUsers(page));
+  const limit = 20;
+
+  if (user.isAdmin) {
+    // Admins see everyone
+    res.json(await getAllUsers(page, limit));
+  } else {
+    // Agents only see their own referred players
+    const { getPlayersUnderAgent } = await import('../services/user.service');
+    res.json(await getPlayersUnderAgent(user.id, page, limit));
+  }
 });
 staffRouter.post('/users/:id/suspend', async (req, res) => {
   const admin = (req as any).user;

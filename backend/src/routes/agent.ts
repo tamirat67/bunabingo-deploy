@@ -231,6 +231,43 @@ router.get('/withdrawals/pending', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/agent/transactions
+ * Returns a detailed log of all transactions for players under this agent
+ */
+router.get('/transactions', async (req: Request, res: Response) => {
+  const agent = (req as any).user;
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 20;
+
+  try {
+    const transactions = await prisma.transaction.findMany({
+      where: { 
+        user: { referredBy: agent.id }
+      },
+      include: { 
+        user: { select: { firstName: true, telegramUsername: true } }
+      },
+      skip: (page - 1) * limit,
+      take: limit,
+      orderBy: { createdAt: 'desc' }
+    });
+
+    const total = await prisma.transaction.count({
+      where: { user: { referredBy: agent.id } }
+    });
+
+    res.json({
+      transactions,
+      total,
+      pages: Math.ceil(total / limit)
+    });
+  } catch (err) {
+    logger.error(`[AgentAPI] Failed to fetch branch transactions:`, err);
+    res.status(500).json({ error: 'Failed to fetch detailed transactions' });
+  }
+});
+
 router.post('/withdrawals/:id/approve', async (req, res) => {
   const agent = (req as any).user;
   try {
