@@ -39,7 +39,7 @@ async function resetForProduction() {
       data: {
         balance: 0,
         totalRecharged: 0,
-        totalCommissionDebited: 0
+        totalDebited: 0
       }
     });
 
