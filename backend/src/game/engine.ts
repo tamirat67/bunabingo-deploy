@@ -818,8 +818,8 @@ export async function joinGame(
   });
   
   // Start countdown as soon as 2 unique players are in
+  const currentState = activeGames.get(gameId);
   if (uniquePlayers.length >= 2) {
-    const currentState = activeGames.get(gameId);
     if (!currentState?.countdownTimer) {
       try {
         await startCountdown(gameId, uniquePlayers.length);
@@ -834,7 +834,7 @@ export async function joinGame(
     cards: preparedCards.map(c => c.pattern),
     countdownSeconds: currentState?.secondsRemaining,
     endTime: currentState?.secondsRemaining ? (Date.now() + currentState.secondsRemaining * 1000) : undefined
-  };
+  } as any;
 }
 
 export function getActiveGames(): Map<string, ActiveGame> {
