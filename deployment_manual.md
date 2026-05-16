@@ -1,133 +1,231 @@
 # 🚀 BunaBingo Deployment Manual (Ubuntu VPS)
 
-Congratulations on your new VPS! This guide will walk you through deploying your containerized platform using Docker and Nginx.
+## Architecture Overview
+```
+VPS (Ubuntu)
+ ├── Nginx (reverse proxy + SSL)
+ │    ├── api.bunatechhub.net  → Docker: buna-backend  (port 3001)
+ │    └── bunatechhub.net      → Docker: buna-frontend (port 3000)
+ ├── Docker: buna-backend   (Node.js API + Telegram Bot)
+ └── Docker: buna-frontend  (Next.js Mini App)
+```
+
+Database: **Neon PostgreSQL** (external — no local DB container needed)
+
+---
 
 ## 1. System Preparation
-Login to your VPS and update the system:
+
+SSH into your VPS, then:
+
 ```bash
 sudo apt update && sudo apt upgrade -y
-```
 
-Install Docker and Docker Compose:
-```bash
+# Install Docker
 sudo apt install docker.io docker-compose -y
-sudo systemctl start docker
-sudo systemctl enable docker
+sudo systemctl enable --now docker
+sudo usermod -aG docker $USER   # allow running docker without sudo (re-login after)
 ```
 
-## 2. Code Deployment
-Clone your repository:
+---
+
+## 2. Clone the Repository
+
 ```bash
 git clone https://github.com/tamirat67/bunabingo-deploy.git
 cd bunabingo-deploy
 ```
 
-## 3. Environment Configuration
-You need to create/copy your `.env` files into each service directory:
+---
 
-- **Backend**: `backend/.env`
-- **Frontend**: `.env.local`
+## 3. Create Environment Files
 
-#### **Backend Example (`backend/.env`)**
+### Backend: `backend/.env`
+
 ```env
-DATABASE_URL="postgresql://neondb_owner:npg_5c3hPqXvEnUM@ep-square-frog-alg2vwbr-pooler.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require"
-DIRECT_URL="postgresql://neondb_owner:npg_5c3hPqXvEnUM@ep-square-frog-alg2vwbr.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require"
+DATABASE_URL="postgresql://neondb_owner:<PASSWORD>@ep-blue-violet-ap6k9k4v-pooler.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require"
+DIRECT_URL="postgresql://neondb_owner:<PASSWORD>@ep-blue-violet-ap6k9k4v-pooler.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require"
 
 PORT=3001
 NODE_ENV=production
 
 BOT_TOKEN=8263717692:AAGOMupsaToz9jXoXanTA0VgBJN_qC7igxo
+TELEGRAM_BOT_TOKEN=8263717692:AAGOMupsaToz9jXoXanTA0VgBJN_qC7igxo
 WEBHOOK_URL=https://api.bunatechhub.net
-MINI_APP_URL=https://app.bunatechhub.net
+MINI_APP_URL=https://bunatechhub.net
+
+HOUSE_EDGE_PERCENT=25
+MIN_WITHDRAWAL=200
+MAX_WITHDRAWAL=10000
 
 BUNA_ENGINE_HOST=https://rexhetmfgnf.aabte.com.et
 BUNA_ENGINE_KEY=9f7a2d8e4c6b1a0f9e8d7c6b5a43210fe9
 
-# Security
-JWT_SECRET="something_very_secret"
+JWT_SECRET=change_this_to_a_long_random_secret
 ```
 
-#### **Frontend Example (`.env.local`)**
+### Frontend: `.env` (root of project)
+
 ```env
 NEXT_PUBLIC_API_URL=https://api.bunatechhub.net
+NEXT_PUBLIC_PUSHER_KEY=13890cf18bf6ba41dc0d
+NEXT_PUBLIC_PUSHER_CLUSTER=ap2
 ```
 
 > [!IMPORTANT]
-> Ensure your `DATABASE_URL` is correct. The `BUNA_ENGINE_HOST` is pre-configured to use your production scraper at `https://rexhetmfgnf.aabte.com.et`. 
-> 
-> If you decide to use the local Docker scraper instead, update this to `http://scraper:3000`.
+> The frontend `.env` values are baked into the Next.js bundle at **build time**.
+> If you change `NEXT_PUBLIC_API_URL` later, you must rebuild: `bash deploy.sh update`
 
-## 4. Launch with Docker Compose
-Build and start all services in the background:
+---
+
+## 4. Deploy (One Command)
+
 ```bash
-docker-compose up --build -d
+bash deploy.sh
 ```
 
-Check logs to ensure everything is running:
+This will:
+1. Build both Docker images
+2. Start all containers in the background
+3. Wait for the backend to be healthy
+4. Run Prisma DB migrations automatically
+
+For future updates after `git pull`:
 ```bash
-docker-compose logs -f
-```
-
-## 5. Nginx Reverse Proxy (Exposing to the Web)
-Install Nginx:
-```bash
-sudo apt install nginx -y
-```
-
-Create a site configuration:
-```bash
-sudo nano /etc/nginx/sites-available/bunabingo
-```
-
-Paste this configuration (Tailored for **bunatechhub.net**):
-```nginx
-server {
-    listen 80;
-    server_name api.bunatechhub.net;
-
-    location / {
-        proxy_pass http://localhost:3001;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-}
-
-server {
-    listen 80;
-    server_name app.bunatechhub.net;
-
-    location / {
-        proxy_pass http://localhost:3000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-}
-```
-
-Enable the site and restart Nginx:
-```bash
-sudo ln -s /etc/nginx/sites-available/bunabingo /etc/nginx/sites-enabled/
-sudo nginx -t
-sudo systemctl restart nginx
-```
-
-## 6. SSL Security (Certbot)
-Secure your domains with Let's Encrypt:
-```bash
-sudo apt install certbot python3-certbot-nginx -y
-sudo certbot --nginx -d api.bunatechhub.net -d app.bunatechhub.net
-```
-
-## 7. Database Migrations
-Run your Prisma migrations inside the container:
-```bash
-docker-compose exec backend npx prisma migrate deploy
+bash deploy.sh update
 ```
 
 ---
 
-### 🛠️ Useful Commands
-- **Stop App**: `docker-compose down`
-- **Restart App**: `docker-compose restart`
-- **View Logs**: `docker-compose logs -f`
-- **Update Code**: `git pull && docker-compose up --build -d`
+## 5. Nginx Reverse Proxy
+
+```bash
+sudo apt install nginx -y
+sudo nano /etc/nginx/sites-available/bunabingo
+```
+
+Paste this configuration:
+
+```nginx
+# ── Backend API ───────────────────────────────────────────
+server {
+    listen 80;
+    server_name api.bunatechhub.net;
+
+    client_max_body_size 20M;
+
+    location / {
+        proxy_pass http://localhost:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 86400;
+    }
+}
+
+# ── Frontend Mini App ─────────────────────────────────────
+server {
+    listen 80;
+    server_name bunatechhub.net www.bunatechhub.net;
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+Enable and reload:
+
+```bash
+sudo ln -sf /etc/nginx/sites-available/bunabingo /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+---
+
+## 6. SSL (Let's Encrypt)
+
+```bash
+sudo apt install certbot python3-certbot-nginx -y
+sudo certbot --nginx -d api.bunatechhub.net -d bunatechhub.net -d www.bunatechhub.net
+```
+
+Certbot will auto-renew. Test renewal with:
+```bash
+sudo certbot renew --dry-run
+```
+
+---
+
+## 7. Verify Everything is Running
+
+```bash
+# Check container status
+docker-compose ps
+
+# Check backend health
+curl https://api.bunatechhub.net/health
+
+# Live logs
+docker-compose logs -f
+
+# Only backend logs
+docker-compose logs -f backend
+```
+
+---
+
+## 🛠️ Useful Commands
+
+| Task | Command |
+|---|---|
+| Full deploy | `bash deploy.sh` |
+| Update after git pull | `bash deploy.sh update` |
+| Stop all | `docker-compose down` |
+| Restart backend only | `docker-compose restart backend` |
+| View live logs | `docker-compose logs -f` |
+| Run DB migration | `docker-compose exec backend npx prisma migrate deploy` |
+| Open backend shell | `docker-compose exec backend sh` |
+| Force rebuild | `docker-compose up --build -d` |
+
+---
+
+## 🔁 Auto-Restart on VPS Reboot
+
+Docker containers already have `restart: always` set. To ensure Docker itself starts on boot:
+
+```bash
+sudo systemctl enable docker
+```
+
+---
+
+## ⚠️ Troubleshooting
+
+**Backend not starting?**
+```bash
+docker-compose logs backend
+```
+Check for missing `backend/.env` variables.
+
+**Frontend shows blank page?**
+```bash
+docker-compose logs frontend
+```
+Ensure `NEXT_PUBLIC_API_URL` points to `https://api.bunatechhub.net` (with HTTPS).
+
+**Bot not responding?**
+- Verify `WEBHOOK_URL` in `backend/.env` matches `https://api.bunatechhub.net`
+- Check the Telegram webhook is set: `curl https://api.bunatechhub.net/health`
+- Restart backend: `docker-compose restart backend`

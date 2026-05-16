@@ -7,7 +7,7 @@ import { Trophy, Gift, Wallet as WalletIcon, Target, Play, Dices, ExternalLink, 
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { useTheme } from '../context/ThemeContext';
-import JackpotModal from '../components/JackpotModal';
+import JackpotSplash from '../components/JackpotSplash';
 import BunaModal from '../components/BunaModal';
 
 export default function LobbyPage() {
@@ -344,10 +344,10 @@ export default function LobbyPage() {
          ))}
       </div>
 
-      <JackpotModal 
-        show={showJackpot} 
-        onClose={() => setShowJackpot(false)} 
-        jackpotAmount={Number(user?.jackpot?.amount || 0).toFixed(2)} 
+      <JackpotSplash
+        show={showJackpot}
+        onClose={() => setShowJackpot(false)}
+        jackpotAmount={Number(user?.jackpot?.amount || 0).toFixed(2)}
       />
 
       <BunaModal

@@ -1,6 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: false,
+
+  // Required for Docker standalone output (smaller production image)
+  output: 'standalone',
+
   async headers() {
     return [
       {
@@ -18,8 +22,6 @@ const nextConfig = {
       },
     ];
   },
-  // DO NOT hardcode env vars here — use Vercel Dashboard environment variables
-  // so they can be updated without a code change.
 };
 
 module.exports = nextConfig;

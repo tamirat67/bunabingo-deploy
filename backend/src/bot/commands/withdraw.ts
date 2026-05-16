@@ -28,6 +28,13 @@ export async function handleWithdraw(ctx: Context) {
       ...Markup.inlineKeyboard([
         [Markup.button.webApp('💸 Request Withdrawal', `${config.bot.miniAppUrl}/withdraw`)],
       ]),
+    }).catch(() => {
+      return ctx.reply(text, {
+        parse_mode: 'Markdown',
+        ...Markup.inlineKeyboard([
+          [Markup.button.webApp('💸 Request Withdrawal', `${config.bot.miniAppUrl}/withdraw`)],
+        ]),
+      });
     });
   } catch {
     await ctx.reply('❌ Error. Please try again.');
@@ -47,5 +54,12 @@ export async function handleSupport(ctx: Context) {
     ...Markup.inlineKeyboard([
       [Markup.button.webApp('🆘 Open Support', `${config.bot.miniAppUrl}/support`)],
     ]),
+  }).catch(() => {
+    return ctx.reply(text, {
+      parse_mode: 'HTML',
+      ...Markup.inlineKeyboard([
+        [Markup.button.webApp('🆘 Open Support', `${config.bot.miniAppUrl}/support`)],
+      ]),
+    });
   });
 }

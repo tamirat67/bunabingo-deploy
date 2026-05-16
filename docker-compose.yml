@@ -1,25 +1,52 @@
 version: '3.8'
 
 services:
+
+  # ─── Backend API + Telegram Bot ────────────────────────────────────────────
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: buna-backend
     restart: always
     ports:
       - "3001:3001"
     env_file:
       - ./backend/.env
+    volumes:
+      - ./backend/uploads:/app/uploads   # persist uploaded receipts/banners
+      - ./backend/logs:/app/logs         # persist logs
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
     networks:
       - buna-network
 
+  # ─── Frontend (Next.js Mini App) ───────────────────────────────────────────
   frontend:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.bunatechhub.net}
+        NEXT_PUBLIC_PUSHER_KEY: ${NEXT_PUBLIC_PUSHER_KEY:-13890cf18bf6ba41dc0d}
+        NEXT_PUBLIC_PUSHER_CLUSTER: ${NEXT_PUBLIC_PUSHER_CLUSTER:-ap2}
     container_name: buna-frontend
     restart: always
     ports:
       - "3000:3000"
-    env_file:
-      - .env.local
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     networks:
       - buna-network
 

@@ -31,5 +31,7 @@ export async function handleInstructions(ctx: Context) {
   await ctx.replyWithPhoto(bannerUrl, {
     caption: text,
     parse_mode: 'HTML'
+  }).catch(() => {
+    return ctx.reply(text, { parse_mode: 'HTML' });
   });
 }

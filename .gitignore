@@ -1,9 +1,15 @@
 node_modules/
 .next/
 .vercel/
-.env
-.env*.local
 dist/
 build/
 *.log
 .DS_Store
+
+# Secret env files — never commit these
+.env.local
+.env*.local
+backend/.env
+
+# The root .env only has public NEXT_PUBLIC_* build args — safe to commit
+# .env   <-- intentionally NOT ignored
