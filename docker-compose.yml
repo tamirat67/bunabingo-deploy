@@ -16,6 +16,10 @@ services:
     volumes:
       - ./backend/uploads:/app/uploads   # persist uploaded receipts/banners
       - ./backend/logs:/app/logs         # persist logs
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
     networks:
       - buna-network
 
