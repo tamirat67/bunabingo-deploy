@@ -140,9 +140,6 @@ function GameContent() {
         const num = Number(d.number);
         setDrawn(p => p.includes(num) ? p : [...p, num]);
         setLastBall(num);
-        setToast(`${colLabel(num)} ${num}`);
-        if (toastTimer.current) clearTimeout(toastTimer.current);
-        toastTimer.current = setTimeout(() => setToast(null), 2500);
         if (soundOn) {
           new Audio(`/audio/${colLabel(num)}${num}.mp3`).play().catch(() => {});
         }
@@ -660,39 +657,33 @@ function GameContent() {
         </div>
       </div>
 
-      <AnimatePresence>
-        {toast && (
-          <motion.div initial={{ y: -50 }} animate={{ y: 20 }} exit={{ y: -50 }} style={{ position: 'fixed', top: '70px', left: '50%', transform: 'translateX(-50%)', background: T.header, color: T.gold, padding: '10px 25px', borderRadius: '30px', fontWeight: '900', fontSize: '20px', border: `2px solid ${T.gold}`, zIndex: 2000 }}>
-            <Bell size={20} style={{ display: 'inline', marginRight: '8px' }} /> {toast}
-          </motion.div>
-        )}
-      </AnimatePresence>
+
 
       {/* ── FAB 'Add Board' button with plus icon (+) ── */}
-      <motion.button 
-        whileTap={{ scale: 0.9 }} 
+      <motion.div 
+        whileTap={{ scale: 0.8 }} 
+        whileHover={{ scale: 1.1 }}
         onClick={() => router.push(`/tickets/select?type=${game?.room?.type || 'STANDARD'}&price=${stake}`)} 
         style={{ 
           position: 'fixed', 
           bottom: '30px', 
           right: '20px', 
-          background: 'linear-gradient(135deg, #F39C12, #E67E22)', 
-          color: 'white', 
-          borderRadius: '25px', 
-          padding: '10px 18px',
-          fontWeight: '900',
-          fontSize: '14px',
+          width: '56px',
+          height: '56px',
+          background: `linear-gradient(135deg, ${T.header}, #000)`, 
+          color: T.gold, 
+          borderRadius: '50%', 
           display: 'flex',
           alignItems: 'center',
-          gap: '6px',
-          boxShadow: '0 6px 15px rgba(0,0,0,0.25)', 
+          justifyContent: 'center',
+          boxShadow: `0 10px 25px rgba(0,0,0,0.5), 0 0 15px ${T.gold}44`, 
           zIndex: 200, 
           cursor: 'pointer', 
-          border: 'none'
+          border: `2px solid ${T.gold}` 
         }}
       >
-        <Plus size={16} strokeWidth={3} /> Add Board
-      </motion.button>
+        <Plus size={32} strokeWidth={3} />
+      </motion.div>
 
       <AnimatePresence>
         {winMsg && (

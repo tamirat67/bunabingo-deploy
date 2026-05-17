@@ -1,113 +1,156 @@
-# 🚀 BunaBingo Deployment Manual (Ubuntu VPS)
+# 🚀 BunaBingo Bot Deployment Manual (Ubuntu VPS)
 
-## Architecture Overview
-```
-VPS (Ubuntu)
- ├── Nginx (reverse proxy + SSL)
- │    ├── api.bunatechhub.net  → Docker: buna-backend  (port 3001)
- │    └── bunatechhub.net      → Docker: buna-frontend (port 3000)
- ├── Docker: buna-backend   (Node.js API + Telegram Bot)
- └── Docker: buna-frontend  (Next.js Mini App)
-```
-
-Database: **Neon PostgreSQL** (external — no local DB container needed)
+This comprehensive guide details the step-by-step instructions to configure, launch, and maintain the optimized, high-performance **Buna Bingo Bot** platform inside Docker containers on a live Ubuntu Virtual Private Server (VPS).
 
 ---
 
-## 1. System Preparation
+## 🏗️ Architecture Design Overview
 
-SSH into your VPS, then:
+```
+                   [ 🌎 Global Telegram & Web Clients ]
+                                  │
+                                  ▼
+                     [ 🛡️ Nginx Reverse Proxy (SSL) ]
+                     ├── api.bunatechhub.net  → Port 3001 (backend)
+                     └── bunatechhub.net      → Port 3000 (frontend)
+                                  │
+         ┌────────────────────────┴────────────────────────┐
+         ▼                                                 ▼
+[ 🐳 Docker: buna-backend ]                      [ 🐳 Docker: buna-frontend ]
+  Node.js API + Socket.io Server                   Next.js Web Client (Mini-App)
+  Active Telegram Bot Worker                       Ultra-fast sessionStorage caching
+  Auto CBE/Telebirr Scrapers                       Shared B-I-N-G-O columns
+  Prisma Client Generation                         Ergonomic FAB + Add Board
+         │
+         └───────────── [ 🛢️ Neon Serverless PostgreSQL ] (External Cloud DB)
+```
+
+---
+
+## 📋 1. System & Dependencies Preparation
+
+First, SSH into your Ubuntu VPS as a root or sudo privileged user, update package indices, and install the Docker engine:
 
 ```bash
+# 1. Update system packages
 sudo apt update && sudo apt upgrade -y
 
-# Install Docker
+# 2. Install Docker and Docker Compose
 sudo apt install docker.io docker-compose -y
+
+# 3. Enable and start Docker service automatically on system boot
 sudo systemctl enable --now docker
-sudo usermod -aG docker $USER   # allow running docker without sudo (re-login after)
+
+# 4. Add your current user to the docker group (to run commands without sudo)
+sudo usermod -aG docker $USER
 ```
+*Note: After adding yourself to the docker group, logout and log back in, or run `newgrp docker` to apply.*
 
 ---
 
-## 2. Clone the Repository
+## 📂 2. Get the Source Code
+
+Clone your repository branch directly into your server home directory:
 
 ```bash
+# Clone the repository
 git clone https://github.com/tamirat67/bunabingo-deploy.git
 cd bunabingo-deploy
 ```
 
 ---
 
-## 3. Create Environment Files
+## 🔑 3. Create Live Production Environment Files
 
-### Backend: `backend/.env`
+Create the two essential production environment files locally inside the project to connect your bot, payment validators, and database.
+
+### 📁 A. Backend Env: `backend/.env`
+Create this file at `~/bunabingo-deploy/backend/.env`:
 
 ```env
-DATABASE_URL="postgresql://neondb_owner:<PASSWORD>@ep-blue-violet-ap6k9k4v-pooler.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require"
-DIRECT_URL="postgresql://neondb_owner:<PASSWORD>@ep-blue-violet-ap6k9k4v-pooler.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require"
+# ── Neon Database Connection (Using Pooled Connection URL)
+DATABASE_URL="postgresql://neondb_owner:npg_gT4s6LNJFqhy@ep-blue-violet-ap6k9k4v-pooler.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require"
+DIRECT_URL="postgresql://neondb_owner:npg_gT4s6LNJFqhy@ep-blue-violet-ap6k9k4v.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require"
 
+# ── App Ports & Production Node Env
 PORT=3001
 NODE_ENV=production
 
-BOT_TOKEN=8263717692:AAGOMupsaToz9jXoXanTA0VgBJN_qC7igxo
-TELEGRAM_BOT_TOKEN=8263717692:AAGOMupsaToz9jXoXanTA0VgBJN_qC7igxo
-WEBHOOK_URL=https://api.bunatechhub.net
-MINI_APP_URL=https://bunatechhub.net
+# ── Telegram Bot Configurations (Bot Token + Live Host Webhook)
+BOT_TOKEN="8263717692:AAGOMupsaToz9jXoXanTA0VgBJN_qC7igxo"
+TELEGRAM_BOT_TOKEN="8263717692:AAGOMupsaToz9jXoXanTA0VgBJN_qC7igxo"
+WEBHOOK_URL="https://api.bunatechhub.net"
+MINI_APP_URL="https://bunatechhub.net"
 
+# ── Financial Limits & Engine Host (Automated Scraper)
 HOUSE_EDGE_PERCENT=25
 MIN_WITHDRAWAL=200
 MAX_WITHDRAWAL=10000
 
-BUNA_ENGINE_HOST=https://rexhetmfgnf.aabte.com.et
-BUNA_ENGINE_KEY=9f7a2d8e4c6b1a0f9e8d7c6b5a43210fe9
+# Scraper & Engine Configs (BUNA Engine Core Host)
+BUNA_ENGINE_HOST="http://rexhetmfgnf.aabte.com.et"
+BUNA_ENGINE_KEY="9f7a2d8e4c6b1a0f9e8d7c6b5a43210fe9"
 
-JWT_SECRET=change_this_to_a_long_random_secret
+# ── JWT Authentication Secret (Choose a long, random secure string)
+JWT_SECRET="dfd827f8a12bc85e718b52c0da473e16bfa87cc14db8b89e3a6c117f2e149a1d"
 ```
 
-### Frontend: `.env` (root of project)
+### 📁 B. Frontend Env: `.env`
+Create this file in the root project folder `~/bunabingo-deploy/.env`:
 
 ```env
-NEXT_PUBLIC_API_URL=https://api.bunatechhub.net
-NEXT_PUBLIC_PUSHER_KEY=13890cf18bf6ba41dc0d
-NEXT_PUBLIC_PUSHER_CLUSTER=ap2
+# ── WebClient Build Variables (Baked into the client build)
+NEXT_PUBLIC_API_URL="https://api.bunatechhub.net"
+NEXT_PUBLIC_PUSHER_KEY="13890cf18bf6ba41dc0d"
+NEXT_PUBLIC_PUSHER_CLUSTER="ap2"
 ```
 
 > [!IMPORTANT]
-> The frontend `.env` values are baked into the Next.js bundle at **build time**.
-> If you change `NEXT_PUBLIC_API_URL` later, you must rebuild: `bash deploy.sh update`
+> Because Next.js optimizes the frontend at compile time, environment variables prefixed with `NEXT_PUBLIC_` are baked into the static bundle during **`docker compose build`**. If you ever modify these values, you must rebuild the image with `--no-cache`.
 
 ---
 
-## 4. Deploy (One Command)
+## 🐳 4. Build and Spin Up Docker Containers
+
+To build your images cleanly and run the app in the background, run:
 
 ```bash
-bash deploy.sh
+# 1. Build backend and frontend images from scratch without using stale caching layers
+docker compose build --no-cache
+
+# 2. Run both containers in detached background mode
+docker compose up -d
 ```
 
-This will:
-1. Build both Docker images
-2. Start all containers in the background
-3. Wait for the backend to be healthy
-4. Run Prisma DB migrations automatically
+### 🗄️ 5. Run Database Migrations & Prisma Schema
+Once the containers have finished booting up successfully, compile your live Prisma client and sync the schema with your database:
 
-For future updates after `git pull`:
 ```bash
-bash deploy.sh update
+# Generate the Prisma Client internally in the container
+docker compose exec backend npx prisma generate
+
+# Sync structure, create indexes, and sync prisma mapping
+docker compose exec backend npx prisma db push
 ```
 
 ---
 
-## 5. Nginx Reverse Proxy
+## 🛡️ 6. Configure Nginx Reverse Proxy & SSL
+
+Install Nginx and route traffic securely from the web to your Docker containers.
 
 ```bash
+# 1. Install Nginx
 sudo apt install nginx -y
+
+# 2. Open a new configuration file for Buna Bingo
 sudo nano /etc/nginx/sites-available/bunabingo
 ```
 
-Paste this configuration:
+Paste the following configuration cleanly into Nano, then save (`Ctrl+O`) and exit (`Ctrl+X`):
 
 ```nginx
-# ── Backend API ───────────────────────────────────────────
+# ── Live Backend API & WebSocket Server
 server {
     listen 80;
     server_name api.bunatechhub.net;
@@ -127,7 +170,7 @@ server {
     }
 }
 
-# ── Frontend Mini App ─────────────────────────────────────
+# ── Live Next.js Web Client (Mini App)
 server {
     listen 80;
     server_name bunatechhub.net www.bunatechhub.net;
@@ -145,65 +188,66 @@ server {
 }
 ```
 
-Enable and reload:
+Enable your virtual host and reload Nginx to activate changes:
 
 ```bash
+# Symlink site configuration
 sudo ln -sf /etc/nginx/sites-available/bunabingo /etc/nginx/sites-enabled/
+
+# Test syntax validity and reload
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
----
-
-## 6. SSL (Let's Encrypt)
+### 🔒 7. Secure Connections with Let's Encrypt SSL
+Apply automatic Certbot HTTPS certificates for all subdomains:
 
 ```bash
+# 1. Install Certbot
 sudo apt install certbot python3-certbot-nginx -y
+
+# 2. Obtain and attach SSL certificates automatically
 sudo certbot --nginx -d api.bunatechhub.net -d bunatechhub.net -d www.bunatechhub.net
 ```
-
-Certbot will auto-renew. Test renewal with:
-```bash
-sudo certbot renew --dry-run
-```
+*Follow the on-screen steps. Select option `2` to automatically redirect all HTTP traffic to secure HTTPS!*
 
 ---
 
-## 7. Verify Everything is Running
+## 📈 8. Post-Deployment Verification & Diagnostics
+
+Use these diagnostic tools to check the status of your live system:
 
 ```bash
-# Check container status
-docker-compose ps
+# View active containers and healthcheck statuses
+docker compose ps
 
-# Check backend health
+# Check the live WebSockets connection and health endpoint
 curl https://api.bunatechhub.net/health
 
-# Live logs
-docker-compose logs -f
+# View live consolidated container logs in real time
+docker compose logs -f
 
-# Only backend logs
-docker-compose logs -f backend
+# View live logs for the Telegram Bot / API backend exclusively
+docker compose logs -f backend
 ```
 
 ---
 
-## 🛠️ Useful Commands
+## 🛠️ Essential Admin Operations & Commands
 
-| Task | Command |
+| Task Action | Command to Execute |
 |---|---|
-| Full deploy | `bash deploy.sh` |
-| Update after git pull | `bash deploy.sh update` |
-| Stop all | `docker-compose down` |
-| Restart backend only | `docker-compose restart backend` |
-| View live logs | `docker-compose logs -f` |
-| Run DB migration | `docker-compose exec backend npx prisma migrate deploy` |
-| Open backend shell | `docker-compose exec backend sh` |
-| Force rebuild | `docker-compose up --build -d` |
+| **Deploy a Fresh Update** | `git pull origin main && docker compose build --no-cache && docker compose up -d` |
+| **View Real-Time Backend Logs** | `docker compose logs -f backend` |
+| **View Live Frontend Logs** | `docker compose logs -f frontend` |
+| **Stop All Containers** | `docker compose down` |
+| **Restart Backend Container Only** | `docker compose restart backend` |
+| **Prisma Manual Sync** | `docker compose exec backend npx prisma db push` |
+| **Open Internals Container Shell** | `docker compose exec backend sh` |
 
 ---
 
-## 🔁 Auto-Restart on VPS Reboot
-
-Docker containers already have `restart: always` set. To ensure Docker itself starts on boot:
+## 🔁 Auto-Recovery Configuration
+Since we added `restart: always` directly into `docker-compose.yml`, your game app will recover instantly if a crash occurs. Ensure the Docker daemon auto-starts if your physical VPS undergoes a reboot:
 
 ```bash
 sudo systemctl enable docker
@@ -211,21 +255,6 @@ sudo systemctl enable docker
 
 ---
 
-## ⚠️ Troubleshooting
-
-**Backend not starting?**
-```bash
-docker-compose logs backend
-```
-Check for missing `backend/.env` variables.
-
-**Frontend shows blank page?**
-```bash
-docker-compose logs frontend
-```
-Ensure `NEXT_PUBLIC_API_URL` points to `https://api.bunatechhub.net` (with HTTPS).
-
-**Bot not responding?**
-- Verify `WEBHOOK_URL` in `backend/.env` matches `https://api.bunatechhub.net`
-- Check the Telegram webhook is set: `curl https://api.bunatechhub.net/health`
-- Restart backend: `docker-compose restart backend`
+> [!NOTE]
+> **Scrapers & Deposits Worker:** The CBE/Telebirr auto-deposit scraper runs as a non-blocking cron task every **60 seconds**.
+> **Performance Improvements:** The calling page uses client memory caches. Transitioning from the cards screen will display your boards instantly (0ms network request) with **zero loading indicators**!

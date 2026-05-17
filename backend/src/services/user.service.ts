@@ -93,13 +93,11 @@ export async function findOrCreateUser(
       });
 
       const wallet = await prisma.wallet.findUnique({ where: { userId: user.id } });
-      if (!wallet || Number(wallet.balance) < 100) {
-        await prisma.wallet.upsert({
-          where: { userId: user.id },
-          create: { userId: user.id, balance: 0 },
-          update: { balance: 0 },
+      if (!wallet) {
+        await prisma.wallet.create({
+          data: { userId: user.id, balance: 0 },
         });
-        logger.info(`[Auth] Initialized existing user ${user.id} with 0 ETB`);
+        logger.info(`[Auth] Initialized wallet for existing user ${user.id} with 0 ETB`);
       }
     }
 
