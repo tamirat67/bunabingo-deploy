@@ -14,9 +14,33 @@ import { useSocket } from '../context/SocketContext';
 export default function LobbyPage() {
   const router = useRouter();
   const { T } = useTheme();
-  const [user, setUser] = useState<any>(null);
-  const [wallet, setWallet] = useState<any>(null);
-  const [rooms, setRooms] = useState<any[]>([]);
+  const [user, setUser] = useState<any>(() => {
+    if (typeof window !== 'undefined') {
+      const cached = sessionStorage.getItem('lobby_user');
+      if (cached) {
+        try { return JSON.parse(cached); } catch (e) {}
+      }
+    }
+    return null;
+  });
+  const [wallet, setWallet] = useState<any>(() => {
+    if (typeof window !== 'undefined') {
+      const cached = sessionStorage.getItem('lobby_user');
+      if (cached) {
+        try { return JSON.parse(cached).wallet; } catch (e) {}
+      }
+    }
+    return null;
+  });
+  const [rooms, setRooms] = useState<any[]>(() => {
+    if (typeof window !== 'undefined') {
+      const cached = sessionStorage.getItem('lobby_rooms');
+      if (cached) {
+        try { return JSON.parse(cached); } catch (e) {}
+      }
+    }
+    return [];
+  });
   const [activeGame, setActiveGame] = useState<any>(null);
   const [mounted, setMounted] = useState(false);
   const [showJackpot, setShowJackpot] = useState(false);
@@ -79,6 +103,7 @@ export default function LobbyPage() {
       if (me) {
         setUser(me);
         setWallet(me.wallet); // me already includes wallet
+        sessionStorage.setItem('lobby_user', JSON.stringify(me));
         
         // Show jackpot splash if not seen
         if (!me.hasSeenJackpot) {
@@ -95,8 +120,9 @@ export default function LobbyPage() {
         }
       }
 
-      if (roomsData) {
+      if (roomsData && roomsData.length > 0) {
         setRooms(roomsData);
+        sessionStorage.setItem('lobby_rooms', JSON.stringify(roomsData));
       }
     } catch (e) {
       console.warn('Error refreshing lobby data:', e);

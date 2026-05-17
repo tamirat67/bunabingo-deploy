@@ -90,8 +90,17 @@ export async function initializeRooms(): Promise<void> {
   }
 }
 
+let cachedRooms: any[] | null = null;
+let lastCacheTime = 0;
+const CACHE_DURATION_MS = 1500; // 1.5 seconds memory cache
+
 export async function getRooms() {
-  return prisma.room.findMany({
+  const now = Date.now();
+  if (cachedRooms && (now - lastCacheTime < CACHE_DURATION_MS)) {
+    return cachedRooms;
+  }
+
+  const rooms = await prisma.room.findMany({
     where: { isActive: true },
     include: {
       games: {
@@ -106,6 +115,10 @@ export async function getRooms() {
       },
     },
   });
+
+  cachedRooms = rooms;
+  lastCacheTime = now;
+  return rooms;
 }
 
 export async function getRoomWithActiveGame(roomType: RoomType) {
