@@ -96,7 +96,11 @@ export async function getRooms() {
     include: {
       games: {
         where: { status: { in: ['WAITING', 'COUNTDOWN', 'RUNNING'] } },
-        include: { tickets: true },
+        include: { 
+          tickets: {
+            select: { id: true, userId: true }
+          }
+        },
         orderBy: { createdAt: 'desc' },
         take: 2, // Allow seeing the current running game and the next waiting game
       },

@@ -53,6 +53,28 @@ export async function createDepositRequest(
   }
 
   logger.info(`Deposit request: user ${userId}, amount ${amount}, ref ${reference}`);
+
+  // Attempt immediate automated scraping/verification
+  const isTelebirrId = /^[A-Z0-9]{10}$/.test(deposit.txnId || '');
+  if (isTelebirrId) {
+    // Run verification asynchronously in the background so it doesn't block the HTTP request response
+    (async () => {
+      try {
+        const { verifyReceiptOnline } = await import('./bunafrankValidator');
+        const receiptUrl = `https://transactioninfo.ethiotelecom.et/receipt/${deposit.txnId}`;
+        logger.info(`[AutoDeposit] Submitting background auto-verification for ${deposit.txnId}...`);
+        const verified = await verifyReceiptOnline(receiptUrl, deposit.txnId);
+        if (verified) {
+          logger.info(`[AutoDeposit] Background verified successfully! Auto-approving deposit #${deposit.id}`);
+          const adminId = 'ae913951-f2a1-40fd-bf4a-2cbd4b1811f0'; // System Admin
+          await approveDeposit(deposit.id, adminId);
+        }
+      } catch (err) {
+        logger.error(`[AutoDeposit] Background verifier failed for ${deposit.txnId}:`, err);
+      }
+    })();
+  }
+
   return deposit;
 }
 

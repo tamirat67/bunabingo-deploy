@@ -41,7 +41,7 @@ export default function AgentDashboard() {
   async function fetchWithdrawals() {
     try {
       setWithdrawalsLoading(true);
-      const res = await api.get('/admin/withdrawals/pending');
+      const res = await api.get('/agent/withdrawals/pending');
       setWithdrawals(res.data || []);
     } catch (err) {
       console.error('Failed to fetch withdrawals:', err);
@@ -55,7 +55,7 @@ export default function AgentDashboard() {
     
     try {
       setActionLoading(id);
-      await api.post(`/admin/withdrawals/${id}/${action}`, { reason: 'Processed by Branch Agent' });
+      await api.post(`/agent/withdrawals/${id}/${action}`, { reason: 'Processed by Branch Agent' });
       fetchWithdrawals();
       // Also refresh stats since balance might change
       const statsRes = await api.get('/agent/stats');
@@ -243,15 +243,31 @@ export default function AgentDashboard() {
                  </tr>
                ) : withdrawals.map((wd) => (
                  <tr key={wd.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                   <td style={{ padding: '1rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                         <div className="user-avatar" style={{ width: '32px', height: '32px', fontSize: '12px' }}>{wd.user?.firstName?.[0] || 'P'}</div>
-                         <div>
-                            <div style={{ color: '#fff', fontWeight: 700, fontSize: '0.9rem' }}>{wd.user?.firstName}</div>
-                            <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.75rem' }}>@{wd.user?.telegramUsername || 'no_user'}</div>
-                         </div>
-                      </div>
-                   </td>
+                    <td style={{ padding: '1rem' }}>
+                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div className="user-avatar" style={{ width: '32px', height: '32px', fontSize: '12px' }}>{wd.user?.firstName?.[0] || 'P'}</div>
+                          <div>
+                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <div style={{ color: '#fff', fontWeight: 700, fontSize: '0.9rem' }}>{wd.user?.firstName}</div>
+                                {wd.user?.wallet && (
+                                   <span 
+                                     style={{ 
+                                       fontSize: '10px', 
+                                       padding: '2px 6px', 
+                                       fontWeight: '800', 
+                                       background: wd.user.isBalanceLegit ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                                       color: wd.user.isBalanceLegit ? '#4ade80' : '#f87171',
+                                       borderRadius: '4px'
+                                     }}
+                                   >
+                                     Bal: {Number(wd.user.wallet.balance).toFixed(2)} ETB {wd.user.isBalanceLegit ? '✓' : '⚠️'}
+                                   </span>
+                                )}
+                             </div>
+                             <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.75rem' }}>@{wd.user?.telegramUsername || 'no_user'}</div>
+                          </div>
+                       </div>
+                    </td>
                    <td style={{ padding: '1rem', color: '#fff', fontWeight: 800 }}>
                       {Number(wd.amount).toLocaleString()} <span style={{ color: '#d4af37', fontSize: '0.7rem' }}>ETB</span>
                    </td>

@@ -85,6 +85,11 @@ export async function handleRegister(ctx: Context) {
     );
   } catch (err: any) {
     logger.error('[Register] Error:', err);
-    await ctx.reply('❌ Registration failed. Please try again or contact /support.');
+    if (err.message && err.message.includes('REGISTRATION_BLOCKED_NO_AGENT')) {
+      const userMsg = err.message.split('REGISTRATION_BLOCKED_NO_AGENT:')[1].trim();
+      await ctx.reply(userMsg);
+    } else {
+      await ctx.reply('❌ Registration failed. Please try again or contact /support.');
+    }
   }
 }

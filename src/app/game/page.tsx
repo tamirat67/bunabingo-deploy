@@ -32,7 +32,18 @@ function GameContent() {
   const { socket } = useSocket();
 
   const [game,      setGame]      = useState<any>(null);
-  const [tickets,   setTickets]   = useState<any[]>([]);
+  const [tickets,   setTickets]   = useState<any[]>(() => {
+    if (typeof window !== 'undefined' && gameId) {
+      const cached = sessionStorage.getItem(`game_tickets_${gameId}`);
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          return parsed.sort((a: any, b: any) => (a.card?.id || 0) - (b.card?.id || 0));
+        } catch (e) {}
+      }
+    }
+    return [];
+  });
   const [drawn,     setDrawn]     = useState<number[]>([]);
   const [lastBall,  setLastBall]  = useState<number | null>(null);
   const [countdown, setCountdown] = useState<number | null>(null);
@@ -392,6 +403,42 @@ function GameContent() {
             </motion.div>
           </div>
 
+          {/* Current Called Balls (Last 4 Recent Balls) Row - Placed Under Countdown / Last Ball and next to simulation */}
+          <div style={{ background: T.statBg, borderRadius: '12px', padding: '6px 10px', border: `1px solid ${T.gold}33`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ color: T.brown, fontSize: '9px', fontWeight: '900', letterSpacing: '0.5px' }}>RECENT BALLS</span>
+            <div style={{ display: 'flex', gap: '5px' }}>
+              {drawn.slice(-4).reverse().map((ball) => {
+                const label = colLabel(ball);
+                const color = COL_COLOR[label];
+                return (
+                  <motion.div
+                    key={ball}
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    style={{
+                      background: color,
+                      color: 'white',
+                      fontWeight: '900',
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: `1.5px solid white`,
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.15)'
+                    }}
+                  >
+                    <span style={{ fontSize: '6px', lineHeight: 1 }}>{label}</span>
+                    <span style={{ fontSize: '10px', lineHeight: 1 }}>{ball}</span>
+                  </motion.div>
+                );
+              })}
+              {drawn.length === 0 && <span style={{ color: T.brown, fontSize: '9px', fontWeight: '800', opacity: 0.6 }}>Waiting for draw...</span>}
+            </div>
+          </div>
+
           <div style={{ background: T.card, borderRadius: '14px', padding: '10px', border: `1px solid ${T.gold}44` }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '3px', marginBottom: '6px' }}>
               {['B','I','N','G','O'].map(l => (
@@ -411,12 +458,88 @@ function GameContent() {
               }))}
             </div>
           </div>
+
+          {/* Refresh and Leave buttons side-by-side right under calling grid */}
+          <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={() => window.location.reload()}
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                height: '42px',
+                background: '#00A8E8',
+                color: 'white',
+                border: 'none',
+                borderRadius: '16px',
+                fontWeight: '900',
+                fontSize: '13px',
+                cursor: 'pointer',
+                boxShadow: '0 4px 10px rgba(0,168,232,0.2)'
+              }}
+            >
+              <RefreshCw size={14} /> Refresh
+            </motion.button>
+
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={() => router.push('/')}
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                height: '42px',
+                background: '#E74C3C',
+                color: 'white',
+                border: 'none',
+                borderRadius: '16px',
+                fontWeight: '900',
+                fontSize: '13px',
+                cursor: 'pointer',
+                boxShadow: '0 4px 10px rgba(231,76,60,0.2)'
+              }}
+            >
+              <LogOut size={14} /> Leave
+            </motion.button>
+          </div>
         </div>
 
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          <div style={{ color: T.header, fontWeight: '900', fontSize: '13px', padding: '0 5px' }}>
-            🏆 YOUR CARTELAS ({visible.length})
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ color: T.header, fontWeight: '900', fontSize: '13px', padding: '0 5px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>🏆 YOUR CARTELAS ({visible.length})</span>
           </div>
+
+          {/* Single Shared B-I-N-G-O Header for all cards to save space */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '4px', padding: '0 5px' }}>
+            {['B','I','N','G','O'].map(l => (
+              <div 
+                key={l} 
+                style={{ 
+                  background: COL_COLOR[l], 
+                  color: 'white', 
+                  textAlign: 'center', 
+                  fontSize: '12px', 
+                  fontWeight: '900', 
+                  borderRadius: '50%', 
+                  width: '24px',
+                  height: '24px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto',
+                  boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+                }}
+              >
+                {l}
+              </div>
+            ))}
+          </div>
+
           {visible.map((t: any) => {
             const cardObj = t.card as { id: number; rows: any[][] };
             const rows = cardObj?.rows ?? [];
@@ -446,9 +569,6 @@ function GameContent() {
                    Cartela #{cardId} {isSelected ? '(SELECTED)' : ''}
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '2px', padding: '5px' }}>
-                  {['B','I','N','G','O'].map(l => (
-                    <div key={l} style={{ background: COL_COLOR[l], color: 'white', textAlign: 'center', fontSize: '10px', fontWeight: '900', padding: '2px 0', borderRadius: '4px' }}>{l}</div>
-                  ))}
                   {rows.map((row: any[], ri: number) => row.map((cell: any, ci: number) => {
                       const numVal = Number(cell);
                       const isFree = cell === 'FREE' || cell === 0 || cell === null;
@@ -504,6 +624,35 @@ function GameContent() {
                       );
                     }))}
                 </div>
+
+                {/* Per-card BINGO! Action Claim Button */}
+                <div style={{ padding: '0 5px 6px 5px' }}>
+                  <motion.button
+                    whileTap={game?.status === 'RUNNING' ? { scale: 0.96 } : {}}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (game?.status === 'RUNNING') handleBingo();
+                    }}
+                    disabled={game?.status !== 'RUNNING'}
+                    style={{
+                      width: '100%',
+                      background: game?.status === 'RUNNING' ? 'linear-gradient(135deg, #F39C12, #E67E22)' : 'rgba(150,150,150,0.1)',
+                      color: game?.status === 'RUNNING' ? 'white' : 'rgba(0,0,0,0.3)',
+                      border: 'none',
+                      borderRadius: '12px',
+                      height: '36px',
+                      fontWeight: '900',
+                      fontSize: '13px',
+                      cursor: game?.status === 'RUNNING' ? 'pointer' : 'not-allowed',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: game?.status === 'RUNNING' ? '0 4px 10px rgba(230,126,34,0.3)' : 'none'
+                    }}
+                  >
+                    ☕ BINGO! ({cardId})
+                  </motion.button>
+                </div>
               </motion.div>
             );
           })}
@@ -519,66 +668,31 @@ function GameContent() {
         )}
       </AnimatePresence>
 
-      {/* ── Fixed Footer Action Bar (Floating above Navbar) ── */}
-      {(game?.status === 'RUNNING' || game?.status === 'COUNTDOWN' || game?.status === 'WAITING') && (
-        <div style={{ position: 'fixed', bottom: '95px', left: '16px', right: '16px', background: T.card, padding: '10px', borderRadius: '24px', border: `1px solid ${T.gold}44`, zIndex: 1000, boxShadow: '0 10px 30px rgba(0,0,0,0.3)', display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <button onClick={() => window.location.reload()} style={{ width: '45px', height: '45px', background: T.header, color: T.gold, border: `1px solid ${T.gold}55`, borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><RefreshCw size={20} /></button>
-          
-          <motion.button
-            whileTap={game?.status === 'RUNNING' ? { scale: 0.95 } : {}}
-            animate={hasBingo ? { scale: [1, 1.03, 1], boxShadow: ['0 0 0px #FFD700', '0 0 20px #FFD700', '0 0 0px #FFD700'] } : {}}
-            transition={hasBingo ? { repeat: Infinity, duration: 1.5 } : {}}
-            onClick={handleBingo}
-            disabled={game?.status !== 'RUNNING'}
-            style={{ 
-              flex: 1,
-              background: game?.status === 'RUNNING' ? (hasBingo ? 'linear-gradient(135deg, #F1C40F, #E67E22)' : `linear-gradient(135deg, ${T.gold}, ${T.goldDk})`) : 'rgba(150,150,150,0.08)', 
-              color: game?.status === 'RUNNING' ? T.header : (activeThemeKey === 'GOLDEN' ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.25)'), 
-              height: '45px', 
-              borderRadius: '15px', 
-              fontWeight: '900', 
-              fontSize: '18px', 
-              textAlign: 'center', 
-              cursor: game?.status === 'RUNNING' ? 'pointer' : 'not-allowed', 
-              border: game?.status === 'RUNNING' ? `1px solid ${T.goldDk}` : 'none', 
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px'
-            }}
-          >
-            ☕ BINGO! <span style={{ fontSize: '11px', opacity: (activeThemeKey === 'GOLDEN' ? 0.3 : 0.5) }}>({prize} ETB)</span>
-          </motion.button>
-
-          <button onClick={() => router.push('/')} style={{ width: '45px', height: '45px', background: '#C0392B', color: 'white', border: 'none', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><LogOut size={20} /></button>
-        </div>
-      )}
-
-      {/* ── Simplified '+' FAB ── */}
-      <motion.div 
-        whileTap={{ scale: 0.8 }} 
-        whileHover={{ scale: 1.1 }}
+      {/* ── FAB 'Add Board' button with plus icon (+) ── */}
+      <motion.button 
+        whileTap={{ scale: 0.9 }} 
         onClick={() => router.push(`/tickets/select?type=${game?.room?.type || 'STANDARD'}&price=${stake}`)} 
         style={{ 
           position: 'fixed', 
-          bottom: '100px', 
+          bottom: '30px', 
           right: '20px', 
-          width: '56px',
-          height: '56px',
-          background: `linear-gradient(135deg, ${T.header}, #000)`, 
-          color: T.gold, 
-          borderRadius: '50%', 
+          background: 'linear-gradient(135deg, #F39C12, #E67E22)', 
+          color: 'white', 
+          borderRadius: '25px', 
+          padding: '10px 18px',
+          fontWeight: '900',
+          fontSize: '14px',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: `0 10px 25px rgba(0,0,0,0.5), 0 0 15px ${T.gold}44`, 
+          gap: '6px',
+          boxShadow: '0 6px 15px rgba(0,0,0,0.25)', 
           zIndex: 200, 
           cursor: 'pointer', 
-          border: `2px solid ${T.gold}` 
+          border: 'none'
         }}
       >
-        <Plus size={32} strokeWidth={3} />
-      </motion.div>
+        <Plus size={16} strokeWidth={3} /> Add Board
+      </motion.button>
 
       <AnimatePresence>
         {winMsg && (

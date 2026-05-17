@@ -67,8 +67,10 @@ router.post('/auth/register', async (req: Request, res: Response) => {
         telegramId: user.telegramId.toString()
       } 
     });
-  } catch (err) {
-    res.status(500).json({ error: 'Registration failed' });
+  } catch (err: any) {
+    const isNoAgent = err.message && err.message.includes('REGISTRATION_BLOCKED_NO_AGENT');
+    const userMessage = isNoAgent ? err.message.split('REGISTRATION_BLOCKED_NO_AGENT:')[1].trim() : 'Registration failed';
+    res.status(isNoAgent ? 400 : 500).json({ error: userMessage });
   }
 });
 
@@ -148,9 +150,11 @@ router.get('/me', async (req: Request, res: Response) => {
         totalSpent: wallet.totalSpent.toString(),
       }
     });
-  } catch (err) {
+  } catch (err: any) {
     logger.error('Wallet sync error:', err);
-    res.status(500).json({ error: 'Failed to sync wallet balance' });
+    const isNoAgent = err.message && err.message.includes('REGISTRATION_BLOCKED_NO_AGENT');
+    const userMessage = isNoAgent ? err.message.split('REGISTRATION_BLOCKED_NO_AGENT:')[1].trim() : 'Failed to sync wallet balance';
+    res.status(isNoAgent ? 400 : 500).json({ error: userMessage });
   }
 });
 
@@ -378,20 +382,32 @@ router.post('/games/:gameId/leave', async (req: Request, res: Response) => {
 // ─── Get Occupied Cards for Room ────────────────────────────
 router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
   const { type } = req.params;
+  const user = (req as any).user;
   try {
     const room = await getRoomWithActiveGame(type as any);
     const gameId = room?.games[0]?.id;
-    if (!gameId) return res.json({ occupiedIds: [] });
+    if (!gameId) return res.json({ occupiedIds: [], myCardIds: [] });
 
     const tickets = await prisma.ticket.findMany({
       where: { gameId },
       select: { card: true, userId: true }
     });
 
-    const occupiedIds = tickets.map(t => (t.card as any).id);
+    const myCardIds = user ? tickets.filter(t => t.userId === user.id).map(t => (t.card as any).id) : [];
+    const otherOccupiedIds = user 
+      ? tickets.filter(t => t.userId !== user.id).map(t => (t.card as any).id) 
+      : tickets.map(t => (t.card as any).id);
+
     const playerCount = new Set(tickets.map(t => t.userId)).size;
-    res.json({ occupiedIds, gameId, roomId: room.id, playerCount });
+    res.json({ 
+      occupiedIds: otherOccupiedIds, 
+      myCardIds, 
+      gameId, 
+      roomId: room.id, 
+      playerCount 
+    });
   } catch (e: any) {
+    logger.error('Failed to fetch occupied cards:', e);
     res.status(500).json({ error: 'Failed to fetch occupied cards' });
   }
 });

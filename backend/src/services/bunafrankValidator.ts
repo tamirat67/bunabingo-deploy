@@ -127,13 +127,7 @@ export async function verifyReceiptOnline(receiptUrl: string, transactionId: str
 
       if (config.payment.bunaEngineHost) {
         try {
-          // Safety Hack: Force http if it's the rexhetmfgnf host, as https has cert issues
-          let host = config.payment.bunaEngineHost.replace(/\/$/, '');
-          if (host.includes('rexhetmfgnf.aabte.com.et')) {
-            host = host.replace('https://', 'http://');
-            if (!host.startsWith('http://')) host = 'http://' + host;
-          }
-
+          const host = config.payment.bunaEngineHost.replace(/\/$/, '');
           const scraperUrl = `${host}/validate/${transactionId}`;
           const altScraperUrl = `${host}/?txnId=${transactionId}`;
           

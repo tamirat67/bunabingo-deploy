@@ -165,7 +165,23 @@ export default function TransactionsPage() {
                   {pendingWithdrawals.map(w => (
                     <tr key={w.id}>
                       <td>
-                        <div style={{ fontWeight: '700' }}>{w.user?.firstName}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ fontWeight: '700' }}>{w.user?.firstName}</div>
+                          {w.user?.wallet && (
+                            <span 
+                              style={{ 
+                                fontSize: '10px', 
+                                padding: '2px 6px', 
+                                fontWeight: '800',
+                                background: w.user.isBalanceLegit ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                                color: w.user.isBalanceLegit ? '#22c55e' : '#ef4444',
+                                borderRadius: '4px'
+                              }}
+                            >
+                              Bal: {Number(w.user.wallet.balance).toFixed(2)} ETB {w.user.isBalanceLegit ? '✓' : '⚠️'}
+                            </span>
+                          )}
+                        </div>
                         <div style={{ fontSize: '12px', color: '#78716c' }}>ID: {w.user?.telegramId?.toString()}</div>
                       </td>
                       <td style={{ fontWeight: '800', color: '#ef4444' }}>-{parseFloat(w.amount).toLocaleString()} ETB</td>

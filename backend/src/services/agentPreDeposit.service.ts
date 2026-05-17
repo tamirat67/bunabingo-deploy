@@ -107,11 +107,23 @@ export async function debitAgentCommissionForGame(
     include: { user: { select: { referredBy: true } } },
   });
 
-  const agentId = ticket?.user?.referredBy ?? null;
+  let agentId = ticket?.user?.referredBy ?? null;
 
   if (!agentId) {
-    // No agent linked — game proceeds without commission deduction
-    logger.info(`[Commission] Game ${gameId}: no linked agent, skipping pre-deposit debit.`);
+    // Fall back to the first administrator or agent in the system as the default agent
+    const defaultAgent = await prisma.user.findFirst({
+      where: { OR: [{ role: 'ADMIN' }, { isAdmin: true }, { role: 'AGENT' }] },
+      orderBy: { createdAt: 'asc' }
+    });
+    if (defaultAgent) {
+      agentId = defaultAgent.id;
+      logger.info(`[Commission] Game ${gameId}: no linked agent. Falling back to default agent/admin ${agentId}.`);
+    }
+  }
+
+  if (!agentId) {
+    // No agent linked and no default agent found — game proceeds without commission deduction
+    logger.info(`[Commission] Game ${gameId}: no agent and no fallback found, skipping pre-deposit debit.`);
     return null;
   }
 

@@ -287,5 +287,24 @@ router.post('/withdrawals/:id/approve', async (req, res) => {
   }
 });
 
+router.post('/withdrawals/:id/reject', async (req, res) => {
+  const agent = (req as any).user;
+  try {
+    const wd = await prisma.withdrawal.findUnique({
+      where: { id: req.params.id },
+      include: { user: true }
+    });
+
+    if (!wd || wd.user?.referredBy !== agent.id) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    await rejectWithdrawal(req.params.id, agent.id, req.body.reason || 'Rejected by Branch Agent');
+    res.json({ success: true });
+  } catch (e: any) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
 export default router;
 

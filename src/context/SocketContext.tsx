@@ -20,13 +20,25 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     const init = async () => {
       try {
-        const res = await api.get('/me');
-        const user = res.data;
-        s = getSocket(user.id);
-        setSocket(s);
+        // 1. Try to get Telegram user ID instantly from WebApp SDK for immediate connection
+        let userId = '';
+        if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.initDataUnsafe?.user?.id) {
+          userId = String((window as any).Telegram.WebApp.initDataUnsafe.user.id);
+        }
+        
+        // 2. Fallback to /me API only if not running inside Telegram
+        if (!userId) {
+          const res = await api.get('/me');
+          userId = res.data?.id;
+        }
 
-        s.on('connect', () => setIsConnected(true));
-        s.on('disconnect', () => setIsConnected(false));
+        if (userId) {
+          s = getSocket(userId);
+          setSocket(s);
+
+          s.on('connect', () => setIsConnected(true));
+          s.on('disconnect', () => setIsConnected(false));
+        }
       } catch (err) {
         console.error('Socket init failed:', err);
       }

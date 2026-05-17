@@ -70,25 +70,37 @@ export default function LobbyPage() {
 
   const refreshData = async () => {
     try {
-      const me = await getMe();
-      setUser(me);
-      setWallet(me.wallet); // me already includes wallet
-      getRooms().then(setRooms);
+      // Fetch both player info and room info in parallel for maximum loading speed
+      const [me, roomsData] = await Promise.all([
+        getMe().catch(() => null),
+        getRooms().catch(() => [])
+      ]);
 
-      // Show jackpot splash if not seen
-      if (me && !me.hasSeenJackpot) {
-        setShowJackpot(true);
+      if (me) {
+        setUser(me);
+        setWallet(me.wallet); // me already includes wallet
+        
+        // Show jackpot splash if not seen
+        if (!me.hasSeenJackpot) {
+          setShowJackpot(true);
+        }
+
+        if (me.tickets && me.tickets.length > 0) {
+           const latestTicket = me.tickets[0];
+           if (latestTicket.game.status !== 'FINISHED' && latestTicket.game.status !== 'CANCELLED') {
+              setActiveGame(latestTicket.game);
+           } else {
+              setActiveGame(latestTicket.game.status === 'FINISHED' ? null : activeGame);
+           }
+        }
       }
 
-      if (me.tickets && me.tickets.length > 0) {
-         const latestTicket = me.tickets[0];
-         if (latestTicket.game.status !== 'FINISHED' && latestTicket.game.status !== 'CANCELLED') {
-            setActiveGame(latestTicket.game);
-         } else {
-            setActiveGame(latestTicket.game.status === 'FINISHED' ? null : activeGame);
-         }
+      if (roomsData) {
+        setRooms(roomsData);
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Error refreshing lobby data:', e);
+    }
   };
 
   const handleJoinRoom = (room: any) => {

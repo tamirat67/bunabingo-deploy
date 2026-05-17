@@ -41,10 +41,13 @@ function SelectionContent() {
   useEffect(() => {
     getMe().then(setUser).catch(() => {});
     
-    // Fetch initial occupancy
+    // Fetch initial occupancy and own previous cards
     getOccupiedCards(roomType).then(res => {
       setOccupied(res.occupiedIds || []);
       setPlayerCount(res.playerCount || 0);
+      if (res.myCardIds && res.myCardIds.length > 0) {
+        setSelected(res.myCardIds);
+      }
       
       // Socket.io updates (VPS)
       if (socket && res.roomId) {
@@ -103,6 +106,10 @@ function SelectionContent() {
     try {
       const res = await joinGame(roomType, selected);
       
+      if (typeof window !== 'undefined' && res.gameId && res.tickets) {
+        sessionStorage.setItem(`game_tickets_${res.gameId}`, JSON.stringify(res.tickets));
+      }
+
       if (roomType.startsWith('SPIN_')) {
         router.push(`/play/spin?id=${res.gameId}&stake=${stake}`);
       } else {

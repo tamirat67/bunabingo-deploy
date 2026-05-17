@@ -129,6 +129,7 @@ model Game {
   winners          Winner[]
   drawHistory      DrawHistory[]
 
+  @@index([roomId])
   @@map("games")
 }
 
@@ -145,6 +146,9 @@ model Ticket {
   game          Game     @relation(fields: [gameId], references: [id])
   winners       Winner[]
 
+  @@index([userId])
+  @@index([gameId])
+  @@index([userId, gameId])
   @@map("tickets")
 }
 
@@ -161,6 +165,9 @@ model Winner {
   user        User     @relation(fields: [userId], references: [id])
   ticket      Ticket   @relation(fields: [ticketId], references: [id])
 
+  @@index([gameId])
+  @@index([userId])
+  @@index([ticketId])
   @@map("winners")
 }
 
@@ -173,6 +180,7 @@ model DrawHistory {
 
   game      Game     @relation(fields: [gameId], references: [id])
 
+  @@index([gameId])
   @@map("draw_history")
 }
 
@@ -188,6 +196,7 @@ model Deposit {
 
   user        User?    @relation(fields: [userId], references: [id])
 
+  @@index([userId])
   @@map("deposits")
 }
 
@@ -203,6 +212,7 @@ model Withdrawal {
 
   user          User?    @relation(fields: [userId], references: [id])
 
+  @@index([userId])
   @@map("withdrawals")
 }
 
@@ -220,6 +230,8 @@ model Transaction {
 
   user          User     @relation(fields: [userId], references: [id])
 
+  @@index([userId])
+  @@index([referenceId])
   @@map("transactions")
 }
 

@@ -173,14 +173,56 @@ export async function rejectWithdrawal(withdrawalId: string, adminId: string, re
 }
 
 export async function getPendingWithdrawals(agentId?: string) {
-  return prisma.withdrawal.findMany({
+  const withdrawals = await prisma.withdrawal.findMany({
     where: { 
       status: 'pending',
       user: agentId ? { referredBy: agentId } : undefined
     },
-    include: { user: { select: { username: true, telegramId: true, telegramUsername: true, firstName: true } } },
+    include: { 
+      user: { 
+        include: { 
+          wallet: true 
+        } 
+      } 
+    },
     orderBy: { createdAt: 'asc' },
   });
+
+  // Calculate transaction-ledger-based trueBalance for each user (Real Balance Checker!)
+  const enriched = await Promise.all(withdrawals.map(async (wd) => {
+    if (!wd.user) return wd;
+
+    // Sum all transactions by type
+    const txSums = await prisma.transaction.groupBy({
+      by: ['type'],
+      where: { userId: wd.userId, status: 'completed' },
+      _sum: { amount: true }
+    });
+
+    const sums: Record<string, number> = {};
+    txSums.forEach(group => {
+      sums[group.type] = Number(group._sum.amount || 0);
+    });
+
+    // True Balance = (Deposits + Prize Wins + Refunds + Referral Commissions + Referral Bonuses) - (Withdrawals + Ticket Purchases)
+    const deposits = sums['DEPOSIT'] || 0;
+    const wins = sums['PRIZE_WIN'] || 0;
+    const refunds = sums['REFUND'] || 0;
+    const commissions = sums['REFERRAL_COMMISSION'] || 0;
+    const bonuses = sums['REFERRAL_BONUS'] || 0;
+    
+    const spent = sums['TICKET_PURCHASE'] || 0;
+    const withdrawn = sums['WITHDRAWAL'] || 0;
+
+    const trueBalance = (deposits + wins + refunds + commissions + bonuses) - (spent + withdrawn);
+
+    (wd.user as any).trueBalance = trueBalance;
+    (wd.user as any).isBalanceLegit = Math.abs(trueBalance - Number(wd.user.wallet?.balance || 0)) < 0.01;
+
+    return wd;
+  }));
+
+  return enriched;
 }
 
 export async function getUserWithdrawals(userId: string) {

@@ -169,7 +169,7 @@ export async function handleStart(ctx: Context) {
         ],
         // ── Row 2: Jackpot ───────────────────────────────────────────────────
         [
-          Markup.button.webApp('🔥 WIN JACKPOT (ጃክፖት) 🔥', `${config.bot.miniAppUrl}/`),
+          Markup.button.webApp('🔥 WIN JACKPOT (ጃክፖት) 🔥', `${config.bot.miniAppUrl}/tickets/select?type=JACKPOT&price=100`),
         ],
         // ── Row 3: Account ───────────────────────────────────────────────────
         [
@@ -200,7 +200,7 @@ export async function handleStart(ctx: Context) {
             Markup.button.callback('Spin ይጫወቱ 🎮',  'cmd_play_spin'),
           ],
           [
-            Markup.button.webApp('🔥 WIN JACKPOT (ጃክፖት) 🔥', `${config.bot.miniAppUrl}/`),
+            Markup.button.webApp('🔥 WIN JACKPOT (ጃክፖት) 🔥', `${config.bot.miniAppUrl}/tickets/select?type=JACKPOT&price=100`),
           ],
           [
             Markup.button.callback('ይመዝገቡ Register 📝',  'cmd_register'),
@@ -224,6 +224,11 @@ export async function handleStart(ctx: Context) {
     logger.info(`[Start] Main menu sent to ${user.id}`);
   } catch (err: any) {
     logger.error('[Start] FATAL ERROR in handleStart:', err);
-    await ctx.reply('❌ Something went wrong. Please try again.');
+    if (err.message && err.message.includes('REGISTRATION_BLOCKED_NO_AGENT')) {
+      const userMsg = err.message.split('REGISTRATION_BLOCKED_NO_AGENT:')[1].trim();
+      await ctx.reply(userMsg);
+    } else {
+      await ctx.reply('❌ Something went wrong. Please try again.');
+    }
   }
 }
