@@ -827,17 +827,15 @@ export async function joinGame(
     // 1. Clear existing tickets for this user in this game
     await tx.ticket.deleteMany({ where: { userId, gameId } });
 
-    // 2. Create NEW Tickets
-    const createdTickets = await Promise.all(preparedCards.map(c =>
-      tx.ticket.create({
-        data: {
-          userId,
-          gameId,
-          card: { id: c.id, rows: c.pattern } as any,
-          markedNumbers: []
-        }
-      })
-    ));
+    // 2. Create NEW Tickets inside a single Bulk INSERT query for maximum latency optimization!
+    await tx.ticket.createMany({
+      data: preparedCards.map(c => ({
+        userId,
+        gameId,
+        card: { id: c.id, rows: c.pattern } as any,
+        markedNumbers: []
+      }))
+    });
 
     // 3. Update Room player count (for lobby display)
     await tx.room.update({
@@ -845,7 +843,7 @@ export async function joinGame(
       data: { currentPlayers: { increment: numTickets } }
     });
 
-    // 4. Fetch all tickets for this game to update prize and count
+    // 4. Fetch all tickets for this game in a single query
     const allTickets = await tx.ticket.findMany({ where: { gameId } });
     const uniqueUsers = new Set(allTickets.map(t => t.userId));
     const pCount = uniqueUsers.size;
@@ -862,8 +860,10 @@ export async function joinGame(
       data: { totalPrize: prizePool }
     });
 
+    const userCreatedTickets = allTickets.filter(t => t.userId === userId);
+
     return { 
-      tickets: createdTickets, 
+      tickets: userCreatedTickets, 
       playerCount: pCount, 
       totalPrize: prizePool,
       currentTicketCount: tCount 
