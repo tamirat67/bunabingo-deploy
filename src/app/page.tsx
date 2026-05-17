@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
 import JackpotSplash from '../components/JackpotSplash';
 import BunaModal from '../components/BunaModal';
+import { useSocket } from '../context/SocketContext';
 
 export default function LobbyPage() {
   const router = useRouter();
@@ -19,7 +20,8 @@ export default function LobbyPage() {
   const [activeGame, setActiveGame] = useState<any>(null);
   const [mounted, setMounted] = useState(false);
   const [showJackpot, setShowJackpot] = useState(false);
-  const [modalConfig, setModalConfig] = useState({ isOpen: false, title: '', message: '' });
+  const [modalConfig, setModalConfig] = useState({ isOpen: false, title: '', message: '', type: 'info' });
+  const { socket } = useSocket();
 
   useEffect(() => {
     setMounted(true);
@@ -28,6 +30,43 @@ export default function LobbyPage() {
     const interval = setInterval(refreshData, 10000);
     return () => clearInterval(interval);
   }, []);
+
+  // Real-time Updates
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.on('balance-updated', (data: { newBalance: string }) => {
+      setWallet((prev: any) => ({
+        ...prev,
+        balance: parseFloat(data.newBalance)
+      }));
+    });
+
+    socket.on('bonus-updated', (data: { bonusBalance: string }) => {
+      setUser((prev: any) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          wallet: { ...prev.wallet, bonusBalance: parseFloat(data.bonusBalance) }
+        };
+      });
+    });
+
+    socket.on('deposit-approved', (data: { amount: string, bonus: string }) => {
+      setModalConfig({
+        isOpen: true,
+        title: 'Deposit Confirmed!',
+        message: `Your deposit of ${data.amount} ETB has been approved. We've also added a ${data.bonus} ETB bonus to your wallet!`,
+        type: 'success' as any
+      });
+    });
+
+    return () => {
+      socket.off('balance-updated');
+      socket.off('bonus-updated');
+      socket.off('deposit-approved');
+    };
+  }, [socket]);
 
   const refreshData = async () => {
     try {
@@ -57,7 +96,8 @@ export default function LobbyPage() {
       setModalConfig({
         isOpen: true,
         title: 'COMING SOON!',
-        message: '☕ Buna Spin Games are currently under maintenance for upgrades. Get ready for something big!'
+        message: '☕ Buna Spin Games are currently under maintenance for upgrades. Get ready for something big!',
+        type: 'info'
       });
       return;
     }

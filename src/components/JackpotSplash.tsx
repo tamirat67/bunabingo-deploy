@@ -217,6 +217,23 @@ export default function JackpotSplash({ show, jackpotAmount, onClose }: JackpotS
           {/* ── Hero Section ── */}
           <div style={{ padding: '28px 24px 0', textAlign: 'center' }}>
 
+            {/* Welcome Greeting */}
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              style={{
+                fontSize: '14px',
+                color: 'rgba(255,255,255,0.6)',
+                fontWeight: '600',
+                marginBottom: '8px',
+                textTransform: 'uppercase',
+                letterSpacing: '2px'
+              }}
+            >
+              እንኳን ደህና መጡ! • WELCOME
+            </motion.div>
+
             {/* BINGO Letters */}
             <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', marginBottom: '16px' }}>
               {BINGO_LETTERS.map((letter, i) => (
@@ -233,12 +250,13 @@ export default function JackpotSplash({ show, jackpotAmount, onClose }: JackpotS
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '20px',
+                    fontSize: '22px',
                     fontWeight: '900',
                     color: 'white',
-                    boxShadow: `0 4px 12px ${LETTER_COLORS[i]}66`,
-                    border: `1px solid ${LETTER_COLORS[i]}44`,
+                    boxShadow: `0 6px 15px ${LETTER_COLORS[i]}44`,
+                    border: `1px solid rgba(255,255,255,0.2)`,
                     fontFamily: "'Outfit', sans-serif",
+                    textShadow: '0 2px 4px rgba(0,0,0,0.3)'
                   }}
                 >
                   {letter}
@@ -248,20 +266,20 @@ export default function JackpotSplash({ show, jackpotAmount, onClose }: JackpotS
 
             {/* Trophy icon with glow */}
             <motion.div
-              animate={{ y: [0, -6, 0] }}
+              animate={{ y: [0, -8, 0], scale: [1, 1.05, 1] }}
               transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
               style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}
             >
               <div style={{
-                width: '80px',
-                height: '80px',
+                width: '90px',
+                height: '90px',
                 borderRadius: '50%',
                 background: 'radial-gradient(circle, rgba(212,175,55,0.3) 0%, rgba(212,175,55,0) 70%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}>
-                <Trophy size={52} color="#FFD700" strokeWidth={1.5} />
+                <Trophy size={60} color="#FFD700" strokeWidth={1.5} />
               </div>
             </motion.div>
 
@@ -272,34 +290,35 @@ export default function JackpotSplash({ show, jackpotAmount, onClose }: JackpotS
               transition={{ delay: 0.4, type: 'spring', stiffness: 200 }}
             >
               <div style={{
-                fontSize: '13px',
-                letterSpacing: '4px',
-                color: '#D4AF37',
+                fontSize: '14px',
+                letterSpacing: '5px',
+                color: '#FFD700',
                 fontWeight: '900',
                 marginBottom: '4px',
                 textTransform: 'uppercase',
+                textShadow: '0 0 10px rgba(255,215,0,0.4)'
               }}>
                 ✨ ደራሽ ✨
               </div>
               <div style={{
-                fontSize: '40px',
+                fontSize: '44px',
                 fontWeight: '900',
                 color: 'white',
                 lineHeight: '1',
                 textShadow: '0 0 30px rgba(212,175,55,0.6)',
                 fontFamily: "'Outfit', sans-serif",
-                letterSpacing: '-1px',
+                letterSpacing: '-1.5px',
               }}>
                 JACKPOT
               </div>
               <div style={{
-                fontSize: '15px',
+                fontSize: '16px',
                 color: 'rgba(255,255,255,0.5)',
-                fontStyle: 'italic',
-                marginTop: '6px',
-                fontWeight: '400',
+                marginTop: '8px',
+                fontWeight: '500',
+                letterSpacing: '0.5px'
               }}>
-                Win Big — ትልቅ ሽልማት!
+                ትልቅ ሽልማት — BIG WIN AWAITS!
               </div>
             </motion.div>
 

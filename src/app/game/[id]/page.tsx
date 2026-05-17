@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Trophy, RefreshCw, LogOut, Star, Zap } from 'lucide-react';
 import Navbar from '../../../components/Navbar';
+import api from '../../../lib/api';
 
 export default function GamePage() {
   const params = useParams();
@@ -135,7 +136,16 @@ export default function GamePage() {
         <button className="btn-bingo-huge disabled">BINGO!</button>
         <div className="game-bottom-btns">
           <button className="btn-refresh-orange">Refresh</button>
-          <button className="btn-leave-pink" onClick={() => router.push('/')}>Leave</button>
+          <button className="btn-leave-pink" onClick={async () => {
+            try {
+              if (params.id) {
+                await api.post(`/games/${params.id}/leave`);
+              }
+            } catch (e) {
+              console.error('Failed to leave game on server', e);
+            }
+            router.push('/');
+          }}>Leave</button>
         </div>
       </div>
     </div>

@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RefreshCw, LogOut, Volume2, VolumeX, ShieldCheck, Trophy } from 'lucide-react';
 import { getMe, getGame, getMyCard } from '../../../lib/api';
+import api from '../../../lib/api';
 import { useSocket } from '../../../context/SocketContext';
 
 import { useTheme } from '../../../context/ThemeContext';
@@ -110,6 +111,10 @@ function SpinContent() {
       });
       socket.on('countdown-tick', (d: any) => {
         setCountdown(d.secondsRemaining);
+        if (d.secondsRemaining === 0 && localStorage.getItem('game_sound') !== 'false') {
+          const startAudio = document.getElementById('audio-start') as HTMLAudioElement;
+          if (startAudio) startAudio.play().catch(e => console.warn('Start sound blocked:', e));
+        }
       });
       socket.on('spin-result', (d: any) => {
         setCountdown(null);
@@ -134,7 +139,13 @@ function SpinContent() {
       const now = Date.now() + serverOff;
       const rem = Math.max(0, Math.ceil((endTime - now) / 1000));
       setCountdown(rem);
-      if (rem <= 0) setEndTime(null);
+      if (rem <= 0) {
+        if (localStorage.getItem('game_sound') !== 'false') {
+          const startAudio = document.getElementById('audio-start') as HTMLAudioElement;
+          if (startAudio) startAudio.play().catch(e => console.warn('Start sound blocked:', e));
+        }
+        setEndTime(null);
+      }
     }, 1000);
     return () => clearInterval(timer);
   }, [endTime, serverOff]);
@@ -158,6 +169,10 @@ function SpinContent() {
         setResult({ winnerCardId: data.winnerCardId, prizeAmount: data.prizeAmount });
         setSpinning(false);
         setShowResult(true);
+        if (localStorage.getItem('game_sound') !== 'false') {
+          const stopAudio = document.getElementById('audio-stop') as HTMLAudioElement;
+          if (stopAudio) stopAudio.play().catch(e => console.warn('Stop sound blocked:', e));
+        }
       }, 7500);
     }
   };
@@ -168,6 +183,9 @@ function SpinContent() {
 
   return (
     <div style={{ background: T.bg, minHeight: '100vh', paddingBottom: '90px', fontFamily: "'Segoe UI', sans-serif" }}>
+      <audio id="audio-start" src="/audio/start.mp3" preload="auto" />
+      <audio id="audio-stop" src="/audio/stop.mp3" preload="auto" />
+      
       <div style={{ background: T.header, padding: '12px 15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `3px solid ${T.gold}` }}>
         <div style={{ color: T.gold, fontWeight: '900', fontSize: '18px', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <ShieldCheck size={20} /> BUNA GAME ZONE
@@ -210,7 +228,16 @@ function SpinContent() {
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
             <button onClick={() => window.location.reload()} style={{ flex: 1, background: T.header, color: T.gold, border: `2px solid ${T.gold}`, padding: '12px', borderRadius: '12px', fontWeight: 'bold' }}>Refresh</button>
-            <button onClick={() => router.push('/')} style={{ flex: 1, background: '#C0392B', color: 'white', border: 'none', padding: '12px', borderRadius: '12px', fontWeight: 'bold' }}>Leave</button>
+            <button onClick={async () => {
+              try {
+                if (gameId) {
+                  await api.post(`/games/${gameId}/leave`);
+                }
+              } catch (e) {
+                console.error('Failed to leave game', e);
+              }
+              router.push('/');
+            }} style={{ flex: 1, background: '#C0392B', color: 'white', border: 'none', padding: '12px', borderRadius: '12px', fontWeight: 'bold' }}>Leave</button>
           </div>
         </div>
 

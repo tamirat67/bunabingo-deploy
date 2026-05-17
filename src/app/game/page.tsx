@@ -48,6 +48,20 @@ function GameContent() {
   const [audioUnlocked, setAudioUnlocked] = useState(false);
 
   const toastTimer = useRef<any>(null);
+  const lastStartAudioPlayed = useRef<number>(0);
+
+  const playStartAudio = useCallback(() => {
+    if (localStorage.getItem('game_sound') === 'false') return;
+    const now = Date.now();
+    if (now - lastStartAudioPlayed.current < 2500) return;
+    lastStartAudioPlayed.current = now;
+    
+    const startAudio = document.getElementById('audio-start') as HTMLAudioElement;
+    if (startAudio) {
+      startAudio.currentTime = 0;
+      startAudio.play().catch(e => console.warn('Start sound blocked:', e));
+    }
+  }, []);
 
   // Modal State
   const [modal, setModal] = useState<{
@@ -74,17 +88,22 @@ function GameContent() {
         const offset = g.serverTime - Date.now();
         setServerOff(offset);
         setEndTime(g.endTime);
+        // Also set a direct countdown as backup
+        if (g.status === 'COUNTDOWN') {
+          const rem = Math.max(0, Math.ceil((g.endTime - Date.now() - offset) / 1000));
+          if (rem > 0) setCountdown(rem);
+        }
       } else if (g.status === 'COUNTDOWN' && g.countdownSeconds) {
         const estimatedEnd = Date.now() + (g.countdownSeconds * 1000);
         setEndTime(estimatedEnd);
         setServerOff(0);
+        setCountdown(g.countdownSeconds);
       }
       const sorted = (t.tickets || []).sort((a: any, b: any) => (a.card?.id || 0) - (b.card?.id || 0));
       setTickets(sorted);
       const hist = (g.drawHistory || []).map((d: any) => d.number);
       setDrawn(hist);
       setLastBall(hist.at(-1) ?? null);
-      if (g.status === 'COUNTDOWN' && !g.endTime) setCountdown(g.countdownSeconds);
     }).catch(console.error);
   }, [gameId]);
 
@@ -98,6 +117,9 @@ function GameContent() {
     if (!gameId) return;
 
     loadData();
+    // Retry after 1.5s to catch countdown state that may not be set yet
+    // when the server's startCountdown() runs after joinGame() returns
+    const retryTimer = setTimeout(loadData, 1500);
 
     // ─── Socket.io Handlers (VPS) ───
     if (socket) {
@@ -125,10 +147,15 @@ function GameContent() {
 
       socket.on('countdown-tick', (d: any) => {
         setCountdown(d.secondsRemaining);
+        // Play start sound exactly when countdown hits 0
+        if (d.secondsRemaining === 0) {
+          playStartAudio();
+        }
       });
 
       socket.on('game-started', () => {
         loadData();
+        playStartAudio();
       });
 
       socket.on('game-finished', (d: any) => {
@@ -137,6 +164,10 @@ function GameContent() {
           const w = d.winners[0];
           const name = w.user?.firstName || w.user?.telegramUsername || 'A player';
           setWinMsg(`${name} won ${w.prizeAmount} ETB! (${w.winMode})`);
+          if (localStorage.getItem('game_sound') !== 'false') {
+            const stopAudio = document.getElementById('audio-stop') as HTMLAudioElement;
+            if (stopAudio) stopAudio.play().catch(e => console.warn('Stop sound blocked:', e));
+          }
         }
       });
 
@@ -155,7 +186,8 @@ function GameContent() {
         socket.off('game-finished');
         socket.off('game-update');
       }
-      if (toastTimer.current) clearTimeout(toastTimer.current); 
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+      clearTimeout(retryTimer);
     };
   }, [gameId, mounted, soundOn, loadData, socket]);
 
@@ -167,13 +199,26 @@ function GameContent() {
       const rem = Math.max(0, Math.ceil((endTime - now) / 1000));
       setCountdown(rem);
       if (rem <= 0) {
+        playStartAudio();
         setEndTime(null);
-        // Force a data refresh if game hasn't started yet
-        setTimeout(loadData, 500); 
+        setTimeout(loadData, 500);
       }
     }, 1000);
     return () => clearInterval(timer);
   }, [endTime, serverOff, loadData]);
+
+  // ─── Polling: re-fetch state while waiting for game to start ───────────────
+  // Catches countdown events missed due to race between joinGame() returning
+  // and startCountdown() completing on the backend.
+  useEffect(() => {
+    const status = game?.status;
+    if (status !== 'WAITING' && status !== 'COUNTDOWN') return;
+    // Poll every 2s until game is RUNNING
+    const poll = setInterval(() => {
+      loadData();
+    }, 2000);
+    return () => clearInterval(poll);
+  }, [game?.status, loadData]);
 
   const isCalled   = (n: number) => drawn.includes(n);
   const isMarkedLocal = (n: number) => marked.has(n);
@@ -191,12 +236,27 @@ function GameContent() {
 
   const unlockAudio = () => {
     if (audioUnlocked) return;
-    const silent = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3');
-    silent.volume = 0;
-    silent.play().then(() => {
+    try {
+      const startAudio = document.getElementById('audio-start') as HTMLAudioElement;
+      const stopAudio = document.getElementById('audio-stop') as HTMLAudioElement;
+      
+      if (startAudio) {
+        startAudio.play().then(() => {
+          startAudio.pause();
+          startAudio.currentTime = 0;
+        }).catch(() => {});
+      }
+      if (stopAudio) {
+        stopAudio.play().then(() => {
+          stopAudio.pause();
+          stopAudio.currentTime = 0;
+        }).catch(() => {});
+      }
       setAudioUnlocked(true);
-      console.log('Audio unlocked for mobile');
-    }).catch(e => console.warn('Audio unlock failed:', e));
+      console.log('DOM Audio explicitly unlocked for mobile');
+    } catch (e) {
+      console.warn('Audio unlock failed:', e);
+    }
   };
 
   const hideCard   = (id: string) => setHidden(p => new Set([...p, id]));
@@ -205,10 +265,6 @@ function GameContent() {
     try { 
       const res = await claimBingo(gameId);
       if (res.won) {
-        if (localStorage.getItem('game_sound') !== 'false') {
-          const audio = new Audio('/audio/stop.mp3');
-          audio.play().catch(e => console.warn('Bingo win audio play failed:', e));
-        }
         setToast(`🎊 BINGO! ${res.mode} (+${res.prize} ETB)`);
         if (toastTimer.current) clearTimeout(toastTimer.current);
         toastTimer.current = setTimeout(() => setToast(null), 4000);
@@ -223,11 +279,14 @@ function GameContent() {
 
   if (!mounted) return null;
 
+  const isDemo  = game?.room?.type === 'DEMO';
   const isSpin  = game?.room?.type?.startsWith('SPIN_');
-  const stake   = Number(game?.room?.ticketPrice || 10);
-  const prize   = (game?.totalPrize && Number(game.totalPrize) > 0) 
-                  ? Number(game.totalPrize) 
-                  : Math.max(80, (tickets.length || 1) * stake * 0.8);
+  const stake   = isDemo ? 0 : Number(game?.room?.ticketPrice || 10);
+  const prize   = isDemo 
+                  ? (game?.totalPrize ? Number(game.totalPrize) : 100) 
+                  : ((game?.totalPrize && Number(game.totalPrize) > 0) 
+                      ? Number(game.totalPrize) 
+                      : Math.max(80, (tickets.length || 1) * stake * 0.8));
   const cdText  = countdown !== null ? `${countdown}s` : (game?.status === 'WAITING' ? 'WAIT' : 'LIVE');
   const visible = tickets.filter(t => !hidden.has(t.id));
 
@@ -261,6 +320,8 @@ function GameContent() {
       onClick={unlockAudio}
       style={{ background: T.bg, minHeight: '100vh', paddingBottom: '180px', fontFamily: "'Segoe UI', sans-serif", overflowX: 'hidden' }}
     >
+      <audio id="audio-start" src="/audio/start.mp3" preload="auto" />
+      <audio id="audio-stop" src="/audio/stop.mp3" preload="auto" />
 
       {/* ── Buna Game Zone Header ── */}
       <div style={{ background: T.header, padding: '12px 15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `3px solid ${T.gold}`, position: 'sticky', top: 0, zIndex: 100 }}>

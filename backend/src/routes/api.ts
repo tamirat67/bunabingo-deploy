@@ -5,7 +5,7 @@ import { getOrCreateWallet, convertCoinsToBonus, COINS_PER_ETB } from '../servic
 import { getUserDeposits, createDepositRequest, getPendingDeposits, approveDeposit, rejectDeposit } from '../services/deposit.service';
 import { getUserWithdrawals, createWithdrawalRequest, getPendingWithdrawals, approveWithdrawal, rejectWithdrawal } from '../services/withdrawal.service';
 import { getRooms, getRoomWithActiveGame, initializeRooms } from '../game/room.manager';
-import { joinGame, createWaitingGame } from '../game/engine';
+import { joinGame, createWaitingGame, leaveGame } from '../game/engine';
 import { getAllUsers, suspendUser, banUser, findOrCreateUser } from '../services/user.service';
 import { withRetry } from '../lib/prisma';
 import { getJackpot } from '../services/jackpot.service';
@@ -325,18 +325,27 @@ router.post('/games/join', joinGameLimiter, async (req: Request, res: Response) 
   try {
     const { roomType, cardIds } = req.body;
     
-    // Self-healing: Ensure room exists and has a joinable game
-    let room = await getRoomWithActiveGame(roomType as any);
-    
+    let room = await prisma.room.findFirst({ where: { type: roomType as any, isActive: true } });
     if (!room) {
        await initializeRooms();
-       room = await getRoomWithActiveGame(roomType as any);
+       room = await prisma.room.findFirst({ where: { type: roomType as any, isActive: true } });
     }
 
-    let gameId = room?.games[0]?.id;
-    if (!gameId && room) {
-       // If no game is waiting, create one now!
-       gameId = await createWaitingGame(room.id);
+    if (!room) {
+      return res.status(404).json({ error: "Game room not available." });
+    }
+
+    let gameId;
+    if (room.type === 'DEMO') {
+      // Force an entirely new private game for every DEMO join
+      gameId = await createWaitingGame(room.id);
+    } else {
+      // Standard shared room logic
+      const roomWithGame = await getRoomWithActiveGame(roomType as any);
+      gameId = roomWithGame?.games[0]?.id;
+      if (!gameId) {
+        gameId = await createWaitingGame(room.id);
+      }
     }
 
     if (!gameId) {
@@ -351,6 +360,18 @@ router.post('/games/join', joinGameLimiter, async (req: Request, res: Response) 
       error: e.message || 'Server error during join',
       detail: e.stack
     });
+  }
+});
+
+router.post('/games/:gameId/leave', async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  if (!user) return res.status(401).json({ error: 'Not authorized' });
+  try {
+    await leaveGame(user.id, req.params.gameId);
+    res.json({ success: true });
+  } catch (e: any) {
+    logger.error('LEAVE GAME ERROR:', e);
+    res.status(400).json({ error: e.message });
   }
 });
 

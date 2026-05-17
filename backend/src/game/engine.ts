@@ -35,13 +35,17 @@ function buildNumberPool(): number[] {
 }
 
 // ─── Determine Countdown ──────────────────────────────────────
-function getCountdownSeconds(playerCount: number): number {
+function getCountdownSeconds(playerCount: number, roomType: string): number {
+  if (roomType === 'DEMO') return 10; // Fast 10s timer for practice mode
   return (config.game.countdown as any).default || 60;
 }
 
 // ─── Start Countdown ──────────────────────────────────────────
 export async function startCountdown(gameId: string, playerCount: number): Promise<void> {
-  const seconds = getCountdownSeconds(playerCount);
+  const game = await prisma.game.findUnique({ where: { id: gameId }, include: { room: true } });
+  if (!game) return;
+
+  const seconds = getCountdownSeconds(playerCount, game.room.type);
 
   await prisma.game.update({
     where: { id: gameId },
@@ -55,9 +59,10 @@ export async function startCountdown(gameId: string, playerCount: number): Promi
   if (!existing) {
     existing = {
       gameId,
-      roomType: 'CASUAL',
+      roomType: game.room.type as any,
       drawnNumbers: [],
       numberPool: buildNumberPool(),
+      secondsRemaining: seconds,
     };
     activeGames.set(gameId, existing);
   }
@@ -112,17 +117,8 @@ async function runGame(gameId: string): Promise<void> {
 
   if (!game || game.status === GameStatus.CANCELLED) return;
 
-  // Ensure 10+ TICKETS and 2+ UNIQUE players still in game
+  const isDemo = game.room.type === 'DEMO';
   const ticketCount = game.tickets.length;
-  const uniquePlayers = await prisma.ticket.groupBy({ where: { gameId }, by: ['userId'] });
-  
-  if (game.room.type !== 'DEMO') {
-    if (ticketCount < game.room.minPlayers || uniquePlayers.length < 2) {
-      logger.info(`[Game ${gameId}] Loop: Not enough players/tickets (${ticketCount}/${game.room.minPlayers}). Restarting countdown.`);
-      await startCountdown(gameId, ticketCount);
-      return;
-    }
-  }
 
   // ─── Special Handling for SPIN rooms (Raffle Draw) ──────────────────────────
   if (game.room.type.startsWith('SPIN_')) {
@@ -130,15 +126,29 @@ async function runGame(gameId: string): Promise<void> {
      return;
   }
 
-  // ─── CHARGE PLAYERS NOW (game is actually starting) ─────────────────────────
-  // Balance was only validated at join time — deduct here so users aren't charged
-  // for games that never start or get cancelled.
+  // ─── Player count validation (skip for DEMO) ─────────────────────────────
+  if (!isDemo) {
+    const uniquePlayerRows = await prisma.ticket.groupBy({ where: { gameId }, by: ['userId'] });
+    if (ticketCount < game.room.minPlayers || uniquePlayerRows.length < 2) {
+      logger.info(`[Game ${gameId}] Loop: Not enough players/tickets (${ticketCount}/${game.room.minPlayers}). Restarting countdown.`);
+      await startCountdown(gameId, ticketCount);
+      return;
+    }
+  }
+
+  // ─── CHARGE PLAYERS NOW (skip entirely for DEMO — no real money) ────────────
   const unitPrice = game.room.ticketPrice;
   const houseEdgePercent = config.game.houseEdgePercent;
   let totalPrizePool = new Decimal(0);
   let totalHouseEdge = new Decimal(0);
 
-  // Group tickets by user so we charge once per user for their total ticket count
+  const uniquePlayerIds = Array.from(new Set(game.tickets.map(t => t.userId)));
+  if (!isDemo && uniquePlayerIds.length < 2) {
+    logger.warn(`[Game ${gameId}] Loop Guard: Only ${uniquePlayerIds.length} unique players. Aborting.`);
+    await startCountdown(gameId, ticketCount);
+    return;
+  }
+
   const ticketsByUser = new Map<string, typeof game.tickets>();
   for (const ticket of game.tickets) {
     const existing = ticketsByUser.get(ticket.userId) || [];
@@ -146,147 +156,116 @@ async function runGame(gameId: string): Promise<void> {
     ticketsByUser.set(ticket.userId, existing);
   }
 
-  for (const [userId, userTickets] of ticketsByUser) {
-    const numTickets = userTickets.length;
-    const totalCharge = new Decimal(unitPrice).mul(numTickets);
-    const houseEdge = totalCharge.mul(houseEdgePercent).div(100);
-    const prizeContribution = totalCharge.sub(houseEdge);
-
-    const wallet = await prisma.wallet.findUnique({ where: { userId } });
-    if (!wallet) {
-      logger.error(`[Game ${gameId}] Wallet not found for user ${userId} — skipping charge`);
-      continue;
-    }
-
-    // Re-validate balance at game start (edge case: user spent balance elsewhere)
-    if (new Decimal(wallet.balance).lessThan(totalCharge)) {
-      logger.warn(`[Game ${gameId}] User ${userId} has insufficient balance at game start — removing tickets`);
-      await prisma.ticket.deleteMany({ where: { gameId, userId } });
-      continue;
-    }
-
-    const newBalance = new Decimal(wallet.balance).sub(totalCharge);
-
-    await prisma.$transaction(async (tx) => {
-      await tx.wallet.update({
-        where: { userId },
-        data: {
-          balance: newBalance,
-          totalSpent: new Decimal(wallet.totalSpent).add(totalCharge),
-        },
-      });
-
-      await tx.transaction.create({
-        data: {
-          userId,
-          type: 'TICKET_PURCHASE',
-          amount: totalCharge,
-          balanceBefore: wallet.balance,
-          balanceAfter: newBalance,
-          status: 'COMPLETED',
-          referenceId: gameId,
-          description: `Game started — ${numTickets} ticket(s) charged for ${game.room.type}`,
-        },
-      });
-    });
-
-    totalPrizePool = totalPrizePool.add(prizeContribution);
-    totalHouseEdge = totalHouseEdge.add(houseEdge);
-    logger.info(`[Game ${gameId}] Charged ${totalCharge} ETB from user ${userId} (${numTickets} ticket(s))`);
-
-    // Award XP for joining
-    try {
-      await awardCoins(userId, XP_REWARDS.JOIN_GAME * numTickets, `Joined game ${gameId} with ${numTickets} card(s)`);
-    } catch (e) { logger.warn(`[Coins] Failed to award join XP to ${userId}:`, e); }
-
-    // ── Referral Commission ──────────────────────────────────────────────────
-    const userObj = await prisma.user.findUnique({ where: { id: userId }, select: { referredBy: true, firstName: true } });
-    if (userObj?.referredBy) {
-      const commission = totalCharge.mul(REFERRAL_COMMISSION_PERCENT).div(100);
-      if (commission.greaterThan(0)) {
-        try {
-          await creditReferralCommission(
-            userObj.referredBy, 
-            commission, 
-            `Commission from ${userObj.firstName}'s tickets in ${game.room.type}`,
-            userId
-          );
-          // Deduct from house edge so total prize pool remains fair
-          totalHouseEdge = totalHouseEdge.sub(commission);
-          logger.info(`[Referral] Credited ${commission} ETB commission to referrer of ${userId}`);
-        } catch (e) {
-          logger.error(`[Referral] Failed to credit commission to referrer of ${userId}:`, e);
-        }
-      }
-    }
-  }
-
-  // ─── Three-Way Revenue Split ───────────────────────────────────────────────
-  // TOTAL_SALES = sum of all player buy-ins (before any house margin is taken)
-  // Company Commission (6.25%) is debited from the Agent Pre-Deposit Wallet.
-  // Agent Gross Profit (18.75%) is the remainder of the house margin.
-  // Player Prize Pool (75%) is paid out to the winner(s).
-  const totalSales = totalPrizePool.add(totalHouseEdge); // reconstruct gross sales
-  try {
-    await debitAgentCommissionForGame(gameId, totalSales);
-  } catch (commissionErr: any) {
-    // Hard block: cancel game and refund (nothing was deducted yet for prizes,
-    // but we already charged player wallets above — we must refund them here).
-    logger.error(`[Game ${gameId}] Commission debit FAILED — cancelling game:`, commissionErr);
-
-    // Refund every charged user
+  if (!isDemo) {
+    // ─── CHARGE PLAYERS (real game only) ───────────────────────────────────
     for (const [userId, userTickets] of ticketsByUser) {
       const numTickets = userTickets.length;
       const totalCharge = new Decimal(unitPrice).mul(numTickets);
-      await prisma.wallet.update({
-        where: { userId },
-        data: {
-          balance: { increment: totalCharge },
-          totalSpent: { decrement: totalCharge },
-        },
+      const houseEdge = totalCharge.mul(houseEdgePercent).div(100);
+      const prizeContribution = totalCharge.sub(houseEdge);
+
+      const wallet = await prisma.wallet.findUnique({ where: { userId } });
+      if (!wallet) {
+        logger.error(`[Game ${gameId}] Wallet not found for user ${userId} — skipping charge`);
+        continue;
+      }
+
+      if (new Decimal(wallet.balance).lessThan(totalCharge)) {
+        logger.warn(`[Game ${gameId}] User ${userId} has insufficient balance at game start — removing tickets`);
+        await prisma.ticket.deleteMany({ where: { gameId, userId } });
+        continue;
+      }
+
+      const newBalance = new Decimal(wallet.balance).sub(totalCharge);
+
+      await prisma.$transaction(async (tx) => {
+        await tx.wallet.update({
+          where: { userId },
+          data: {
+            balance: newBalance,
+            totalSpent: new Decimal(wallet.totalSpent).add(totalCharge),
+          },
+        });
+        await tx.transaction.create({
+          data: {
+            userId,
+            type: 'TICKET_PURCHASE',
+            amount: totalCharge,
+            balanceBefore: wallet.balance,
+            balanceAfter: newBalance,
+            status: 'COMPLETED',
+            referenceId: gameId,
+            description: `Game started — ${numTickets} ticket(s) charged for ${game.room.type}`,
+          },
+        });
       });
-      await prisma.transaction.create({
-        data: {
-          userId,
-          type: 'REFUND',
-          amount: totalCharge,
-          balanceBefore: new Decimal(0), // approximate — exact value not critical for refund log
-          balanceAfter: new Decimal(0),
-          status: 'COMPLETED',
-          referenceId: gameId,
-          description: `Refund: game cancelled — insufficient agent commission balance`,
-        },
-      });
-      await triggerUserEvent(userId, 'game-cancelled', {
-        gameId,
-        reason: 'Agent commission balance insufficient. Game cancelled and refunded.',
-      });
+
+      totalPrizePool = totalPrizePool.add(prizeContribution);
+      totalHouseEdge = totalHouseEdge.add(houseEdge);
+      logger.info(`[Game ${gameId}] Charged ${totalCharge} ETB from user ${userId} (${numTickets} ticket(s))`);
+
+      try {
+        await awardCoins(userId, XP_REWARDS.JOIN_GAME * numTickets, `Joined game ${gameId} with ${numTickets} card(s)`);
+      } catch (e) { logger.warn(`[Coins] Failed to award join XP to ${userId}:`, e); }
+
+      const userObj = await prisma.user.findUnique({ where: { id: userId }, select: { referredBy: true, firstName: true } });
+      if (userObj?.referredBy) {
+        const commission = totalCharge.mul(REFERRAL_COMMISSION_PERCENT).div(100);
+        if (commission.greaterThan(0)) {
+          try {
+            await creditReferralCommission(
+              userObj.referredBy,
+              commission,
+              `Commission from ${userObj.firstName}'s tickets in ${game.room.type}`,
+              userId
+            );
+            totalHouseEdge = totalHouseEdge.sub(commission);
+          } catch (e) {
+            logger.error(`[Referral] Failed to credit commission to referrer of ${userId}:`, e);
+          }
+        }
+      }
     }
 
-    await prisma.game.update({
-      where: { id: gameId },
-      data: {
-        status: GameStatus.CANCELLED,
-        cancelledAt: new Date(),
-        cancelReason: commissionErr.message,
-      },
-    });
-    await triggerGameEvent(gameId, 'game-cancelled', { gameId, reason: commissionErr.message });
-    return;
+    // ─── Agent Commission (real game only) ──────────────────────────────────
+    const totalSales = totalPrizePool.add(totalHouseEdge);
+    try {
+      await debitAgentCommissionForGame(gameId, totalSales);
+    } catch (commissionErr: any) {
+      logger.error(`[Game ${gameId}] Commission debit FAILED — cancelling game:`, commissionErr);
+      for (const [userId, userTickets] of ticketsByUser) {
+        const numTickets = userTickets.length;
+        const totalCharge = new Decimal(unitPrice).mul(numTickets);
+        await prisma.wallet.update({ where: { userId }, data: { balance: { increment: totalCharge }, totalSpent: { decrement: totalCharge } } });
+        await prisma.transaction.create({
+          data: {
+            userId, type: 'REFUND', amount: totalCharge,
+            balanceBefore: new Decimal(0), balanceAfter: new Decimal(0), status: 'COMPLETED',
+            referenceId: gameId, description: `Refund: game cancelled — insufficient agent commission balance`,
+          },
+        });
+        await triggerUserEvent(userId, 'game-cancelled', { gameId, reason: 'Agent commission balance insufficient. Game cancelled and refunded.' });
+      }
+      await prisma.game.update({ where: { id: gameId }, data: { status: GameStatus.CANCELLED, cancelledAt: new Date(), cancelReason: commissionErr.message } });
+      await triggerGameEvent(gameId, 'game-cancelled', { gameId, reason: commissionErr.message });
+      return;
+    }
+
+    try { await contributeToJackpot(game.tickets.length, unitPrice); }
+    catch (e) { logger.error(`[Jackpot] Contribution failed:`, e); }
+  } else {
+    logger.info(`[Game ${gameId}] DEMO game — skipping all financial logic.`);
   }
 
-  // Contribute to Global Jackpot
-  try {
-    await contributeToJackpot(game.tickets.length, unitPrice);
-  } catch (e) { logger.error(`[Jackpot] Contribution failed:`, e); }
+  // ─── Mark game as RUNNING (both real and DEMO) ────────────────────────────
+  const displayPrizePool = isDemo ? new Decimal(100) : totalPrizePool;
 
-  // Update game prize pool with actual collected amounts
   await prisma.game.update({
     where: { id: gameId },
     data: {
       status: GameStatus.RUNNING,
       startedAt: new Date(),
-      totalPrize: totalPrizePool,
+      totalPrize: displayPrizePool,
       houseEdge: totalHouseEdge,
     },
   });
@@ -323,7 +302,80 @@ async function runSpinRaffle(gameId: string): Promise<void> {
     include: { tickets: { include: { user: true } }, room: true }
   });
 
-  if (!game || game.tickets.length < game.room.minPlayers) return;
+  const uniqueUsers = new Set(game.tickets.map(t => t.userId));
+  if (!game || game.tickets.length < game.room.minPlayers || uniqueUsers.size < 2) {
+    logger.warn(`[Spin ${gameId}] Not enough unique players (${uniqueUsers.size}/2). Restarting countdown.`);
+    await startCountdown(gameId, game.tickets.length);
+    return;
+  }
+
+  // ─── Phase 1: Debit Players (Missing in original logic!) ───────────────
+  const ticketsByUser = new Map<string, any[]>();
+  game.tickets.forEach(t => {
+    const list = ticketsByUser.get(t.userId) || [];
+    list.push(t);
+    ticketsByUser.set(t.userId, list);
+  });
+
+  const unitPrice = game.room.ticketPrice;
+  const houseEdgePercent = config.game.houseEdgePercent;
+  let totalPrizePool = new Decimal(0);
+  let totalHouseEdge = new Decimal(0);
+
+  for (const [userId, userTickets] of ticketsByUser) {
+    const numTickets = userTickets.length;
+    const totalCharge = new Decimal(unitPrice).mul(numTickets);
+    const houseEdge = totalCharge.mul(houseEdgePercent).div(100);
+    const prizeContribution = totalCharge.sub(houseEdge);
+
+    const wallet = await prisma.wallet.findUnique({ where: { userId } });
+    if (!wallet || new Decimal(wallet.balance).lessThan(totalCharge)) {
+      logger.warn(`[Spin ${gameId}] User ${userId} has insufficient balance. Skipping.`);
+      continue;
+    }
+
+    const newBalance = new Decimal(wallet.balance).sub(totalCharge);
+
+    await prisma.$transaction(async (tx) => {
+      await tx.wallet.update({
+        where: { userId },
+        data: { 
+          balance: newBalance,
+          totalSpent: { increment: totalCharge }
+        }
+      });
+
+      await tx.transaction.create({
+        data: {
+          userId,
+          type: 'TICKET_PURCHASE',
+          amount: totalCharge,
+          balanceBefore: wallet.balance,
+          balanceAfter: newBalance,
+          status: 'COMPLETED',
+          referenceId: gameId,
+          description: `Spin Tournament Join: ${game.room.type} (Game #${gameId})`
+        }
+      });
+    });
+
+    totalPrizePool = totalPrizePool.add(prizeContribution);
+    totalHouseEdge = totalHouseEdge.add(houseEdge);
+    logger.info(`[Spin ${gameId}] Charged ${totalCharge} ETB from user ${userId}`);
+  }
+
+  // Update game prize with actual collected amounts
+  await prisma.game.update({
+    where: { id: gameId },
+    data: {
+      totalPrize: totalPrizePool,
+      houseEdge: totalHouseEdge,
+      status: GameStatus.RUNNING,
+      startedAt: new Date(),
+    }
+  });
+
+  // ─── Phase 2: Run Raffle ──────────────────────────────────────────────
 
   // 1. Pick a random ticket as the winner
   const winnerTicket = game.tickets[Math.floor(Math.random() * game.tickets.length)];
@@ -538,6 +590,7 @@ async function processWinner(
   });
   if (!game) return;
 
+  const isDemo = game.room.type === 'DEMO';
   const prizeAmount = new Decimal(game.totalPrize);
 
   // ─── Perform all winner logic in ONE TRANSACTION ───
@@ -547,45 +600,50 @@ async function processWinner(
       data: { gameId, userId, ticketId, winMode, prizeAmount },
     });
 
-    // 2. Update player wallet
-    const wallet = await tx.wallet.findUnique({ where: { userId } });
-    if (wallet) {
-      const before = wallet.balance;
-      const after = new Decimal(wallet.balance).add(prizeAmount);
+    // 2. Update player wallet (Only for REAL games)
+    if (!isDemo) {
+      const wallet = await tx.wallet.findUnique({ where: { userId } });
+      if (wallet) {
+        const before = wallet.balance;
+        const after = new Decimal(wallet.balance).add(prizeAmount);
 
-      await tx.wallet.update({
-        where: { userId },
-        data: {
-          balance: after,
-          totalWon: new Decimal(wallet.totalWon).add(prizeAmount),
-        },
-      });
+        await tx.wallet.update({
+          where: { userId },
+          data: {
+            balance: after,
+            totalWon: new Decimal(wallet.totalWon).add(prizeAmount),
+          },
+        });
 
-      await tx.transaction.create({
-        data: {
-          userId,
-          type: 'PRIZE_WIN',
-          amount: prizeAmount,
-          balanceBefore: before,
-          balanceAfter: after,
-          status: 'COMPLETED',
-          referenceId: gameId,
-          description: `Bingo WIN: ${winMode}`,
-        },
-      });
+        await tx.transaction.create({
+          data: {
+            userId,
+            type: 'PRIZE_WIN',
+            amount: prizeAmount,
+            balanceBefore: before,
+            balanceAfter: after,
+            status: 'COMPLETED',
+            referenceId: gameId,
+            description: `Bingo WIN: ${winMode}`,
+          },
+        });
+      }
     }
 
     // 3. Mark ticket as winner
     await tx.ticket.update({ where: { id: ticketId }, data: { isWinner: true } });
 
-    // 4. Award XP (inline update to avoid separate query)
-    const xpKey = `WIN_${winMode}` as keyof typeof XP_REWARDS;
-    const xpAmount = XP_REWARDS[xpKey] ?? XP_REWARDS.WIN_ROW;
-    if (wallet) {
-       await tx.wallet.update({
-         where: { userId },
-         data: { coins: { increment: xpAmount } }
-       });
+    // 4. Award XP (Only for REAL games)
+    if (!isDemo) {
+      const wallet = await tx.wallet.findUnique({ where: { userId } });
+      const xpKey = `WIN_${winMode}` as keyof typeof XP_REWARDS;
+      const xpAmount = XP_REWARDS[xpKey] ?? XP_REWARDS.WIN_ROW;
+      if (wallet) {
+         await tx.wallet.update({
+           where: { userId },
+           data: { coins: { increment: xpAmount } }
+         });
+      }
     }
   });
 
@@ -676,14 +734,16 @@ export async function cancelGame(gameId: string, reason: string): Promise<void> 
 
 // ─── Create Waiting Game ──────────────────────────────────────
 export async function createWaitingGame(roomId: string): Promise<string> {
-  // Check if there's already a waiting game for this room
-  const existing = await prisma.game.findFirst({
-    where: { roomId, status: GameStatus.WAITING },
-  });
-  if (existing) return existing.id;
-
   const room = await prisma.room.findUnique({ where: { id: roomId } });
   if (!room) throw new Error('Room not found');
+
+  // Check if there's already a waiting game for this room (SKIP THIS FOR DEMO so it's private)
+  if (room.type !== 'DEMO') {
+    const existing = await prisma.game.findFirst({
+      where: { roomId, status: GameStatus.WAITING },
+    });
+    if (existing) return existing.id;
+  }
 
   const game = await prisma.game.create({
     data: {
@@ -839,9 +899,9 @@ export async function joinGame(
     });
 
     // ─── Auto-Start Countdown ──────────────────────────────────────────
-    const minTickets = game.room.minPlayers;
+    const isDemo = game.room.type === 'DEMO';
     
-    if (game.status === GameStatus.WAITING && currentTicketCount >= minTickets && playerCount >= 2) {
+    if (game.status === GameStatus.WAITING && (isDemo || (currentTicketCount >= game.room.minPlayers && playerCount >= 2))) {
       await startCountdown(gameId, currentTicketCount);
     } else if (game.status === GameStatus.COUNTDOWN) {
       await triggerGameEvent(gameId, 'game-update', { playerCount });
@@ -854,6 +914,73 @@ export async function joinGame(
     tickets, 
     cards: preparedCards.map(c => c.pattern) 
   } as any;
+}
+
+// ─── Leave Game ────────────────────────────────────────────────
+export async function leaveGame(userId: string, gameId: string): Promise<void> {
+  const game = await prisma.game.findUnique({
+    where: { id: gameId },
+    include: { room: true },
+  });
+
+  if (!game) throw new Error('Game not found');
+  if (game.status !== GameStatus.WAITING && game.status !== GameStatus.COUNTDOWN) {
+    throw new Error('Cannot leave game that has already started');
+  }
+
+  await prisma.$transaction(async (tx) => {
+    // 1. Get user's tickets
+    const userTickets = await tx.ticket.findMany({ where: { userId, gameId } });
+    const numTickets = userTickets.length;
+    if (numTickets === 0) return; // Not in game
+
+    // 2. Delete them
+    await tx.ticket.deleteMany({ where: { userId, gameId } });
+
+    // 3. Update Room player count
+    await tx.room.update({
+      where: { id: game.roomId },
+      data: { currentPlayers: { decrement: numTickets } }
+    });
+
+    // 4. Recalculate Prize Pool
+    const allTickets = await tx.ticket.findMany({ where: { gameId } });
+    const tCount = allTickets.length;
+    const houseEdgePercent = config.game.houseEdgePercent;
+    const totalSales = new Decimal(game.room.ticketPrice).mul(tCount);
+    const houseEdge = totalSales.mul(houseEdgePercent).div(100);
+    const prizePool = totalSales.sub(houseEdge);
+
+    await tx.game.update({
+      where: { id: gameId },
+      data: { totalPrize: prizePool }
+    });
+  });
+
+  // 5. Check if countdown needs to be aborted
+  const allTicketsAfter = await prisma.ticket.findMany({ where: { gameId } });
+  const uniqueUsersAfter = new Set(allTicketsAfter.map(t => t.userId));
+  
+  if (uniqueUsersAfter.size < 2 && game.status === GameStatus.COUNTDOWN && game.room.type !== 'DEMO') {
+    const state = activeGames.get(gameId);
+    if (state?.countdownInterval) clearInterval(state.countdownInterval);
+    if (state?.countdownTimer) clearTimeout(state.countdownTimer);
+    
+    await prisma.game.update({
+      where: { id: gameId },
+      data: { status: GameStatus.WAITING, countdownSeconds: 0 }
+    });
+    
+    await triggerGameEvent(gameId, 'countdown-aborted', { reason: 'Not enough players' });
+    logger.info(`[Game ${gameId}] Countdown aborted due to player leaving.`);
+  }
+
+  await triggerGameEvent(gameId, 'player-left', { 
+    userId,
+    playerCount: uniqueUsersAfter.size
+  });
+  
+  logger.info(`[Game ${gameId}] User ${userId} left the game before start.`);
 }
 
 export function getActiveGames(): Map<string, ActiveGame> {

@@ -19,9 +19,52 @@ export function initSocket(server: HttpServer) {
       logger.info(`[Socket] User ${userId} connected and joined private room.`);
     }
 
-    socket.on('join-game', (gameId: string) => {
+    socket.on('join-game', async (gameId: string) => {
       socket.join(`game_${gameId}`);
       logger.info(`[Socket] Socket ${socket.id} joined game room: ${gameId}`);
+
+      // ── Sync mid-countdown state to reconnecting clients ──────────────────
+      // When a user refreshes mid-countdown they miss the 'countdown-start'
+      // event. We replay the live state immediately so the timer syncs.
+      try {
+        const { getActiveGames } = await import('../game/engine');
+        const state = getActiveGames().get(gameId);
+        if (state && state.secondsRemaining !== undefined && state.secondsRemaining > 0) {
+          const endTime = Date.now() + state.secondsRemaining * 1000;
+          socket.emit('countdown-start', {
+            seconds: state.secondsRemaining,
+            playerCount: 1,
+            endTime,
+            serverTime: Date.now(),
+          });
+          logger.info(`[Socket] Sent mid-countdown sync to ${socket.id}: ${state.secondsRemaining}s remaining`);
+        } else {
+          // ── DB Fallback: in-memory state lost (server restart) ────────────
+          // Check DB for COUNTDOWN status and send remaining time estimate
+          const { default: prisma } = await import('./prisma');
+          const game = await prisma.game.findUnique({
+            where: { id: gameId },
+            select: { status: true, countdownSeconds: true, createdAt: true }
+          });
+          if (game?.status === 'COUNTDOWN' && game.countdownSeconds && game.countdownSeconds > 0) {
+            // Estimate remaining seconds based on when created/started
+            const elapsedSec = Math.floor((Date.now() - new Date(game.createdAt).getTime()) / 1000);
+            const remaining = Math.max(0, game.countdownSeconds - elapsedSec);
+            if (remaining > 0) {
+              const endTime = Date.now() + remaining * 1000;
+              socket.emit('countdown-start', {
+                seconds: remaining,
+                playerCount: 1,
+                endTime,
+                serverTime: Date.now(),
+              });
+              logger.info(`[Socket] DB fallback countdown sync to ${socket.id}: ~${remaining}s remaining`);
+            }
+          }
+        }
+      } catch (e) {
+        logger.warn(`[Socket] Could not sync countdown state for game ${gameId}:`, e);
+      }
     });
 
     socket.on('leave-game', (gameId: string) => {

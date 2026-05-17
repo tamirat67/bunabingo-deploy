@@ -4,6 +4,7 @@ import { getMe, getWallet } from '../../lib/api';
 import api from '../../lib/api';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '../../context/ThemeContext';
+import { useSocket } from '../../context/SocketContext';
 import BunaModal from '../../components/BunaModal';
 import { 
   RefreshCw, 
@@ -28,6 +29,7 @@ export default function WalletPage() {
   const [user, setUser] = useState<any>(null);
   const [agentStats, setAgentStats] = useState<any>(null);
   const [adminStats, setAdminStats] = useState<any>(null);
+  const { socket } = useSocket();
   const [tab, setTab] = useState('balance');
   const [mounted, setMounted] = useState(false);
 
@@ -60,6 +62,46 @@ export default function WalletPage() {
       }
     }).catch(() => { });
   }, []);
+
+  // Real-time Updates
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.on('balance-updated', (data: { newBalance: string }) => {
+      setUser((prev: any) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          wallet: { ...prev.wallet, balance: parseFloat(data.newBalance) }
+        };
+      });
+    });
+
+    socket.on('bonus-updated', (data: { bonusBalance: string }) => {
+      setUser((prev: any) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          wallet: { ...prev.wallet, bonusBalance: parseFloat(data.bonusBalance) }
+        };
+      });
+    });
+
+    socket.on('deposit-approved', (data: { amount: string, bonus: string }) => {
+      setModal({
+        isOpen: true,
+        title: 'Deposit Confirmed!',
+        message: `Your deposit of ${data.amount} ETB has been approved. We've also added a ${data.bonus} ETB bonus to your wallet!`,
+        type: 'success'
+      });
+    });
+
+    return () => {
+      socket.off('balance-updated');
+      socket.off('bonus-updated');
+      socket.off('deposit-approved');
+    };
+  }, [socket]);
 
   if (!mounted) return null;
 
