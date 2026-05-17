@@ -679,10 +679,15 @@ function GameContent() {
           boxShadow: `0 10px 25px rgba(0,0,0,0.5), 0 0 15px ${T.gold}44`, 
           zIndex: 200, 
           cursor: 'pointer', 
-          border: `2px solid ${T.gold}` 
+          border: `2px solid ${T.gold}`,
+          fontSize: '38px',
+          fontWeight: '900',
+          lineHeight: '1',
+          paddingBottom: '6px',
+          userSelect: 'none'
         }}
       >
-        <Plus size={32} strokeWidth={3} />
+        +
       </motion.div>
 
       <AnimatePresence>
