@@ -50,7 +50,7 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://bunatechhub.net/api}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.bunatechhub.net}
     container_name: buna-frontend
     restart: always
     ports:
