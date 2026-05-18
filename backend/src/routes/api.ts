@@ -922,6 +922,44 @@ staffRouter.post('/users/:id/sync', restrictToAdmin, async (req, res) => {
   }
 });
 
+// ─── System Settings (Admin only) ────────────────────────────
+staffRouter.get('/settings', restrictToAdmin, async (_req, res) => {
+  const { getSystemSetting } = await import('../services/settings.service');
+  try {
+    const [companyCommissionRate, agentProfitRate, receiverPhone, receiverName, telebirrPhone] = await Promise.all([
+      getSystemSetting('COMPANY_COMMISSION_RATE'),
+      getSystemSetting('AGENT_PROFIT_RATE'),
+      getSystemSetting('PAYMENT_RECEIVER_PHONE'),
+      getSystemSetting('PAYMENT_RECEIVER_NAME'),
+      getSystemSetting('PAYMENT_TELEBIRR_PHONE'),
+    ]);
+    res.json({
+      COMPANY_COMMISSION_RATE: companyCommissionRate || '12.5',
+      AGENT_PROFIT_RATE: agentProfitRate || '12.5',
+      PAYMENT_RECEIVER_PHONE: receiverPhone || '',
+      PAYMENT_RECEIVER_NAME: receiverName || '',
+      PAYMENT_TELEBIRR_PHONE: telebirrPhone || '',
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch settings' });
+  }
+});
+
+staffRouter.put('/settings', restrictToAdmin, async (req, res) => {
+  const { setSystemSetting } = await import('../services/settings.service');
+  const allowed = ['COMPANY_COMMISSION_RATE', 'AGENT_PROFIT_RATE', 'PAYMENT_RECEIVER_PHONE', 'PAYMENT_RECEIVER_NAME', 'PAYMENT_TELEBIRR_PHONE'];
+  try {
+    for (const key of allowed) {
+      if (req.body[key] !== undefined) {
+        await setSystemSetting(key, String(req.body[key]));
+      }
+    }
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to save settings' });
+  }
+});
+
 // ─── Agent Routes ─────────────────────────────────────────────
 import agentRouter from './agent';
 router.use('/agent', agentRouter);

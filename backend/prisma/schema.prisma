@@ -299,3 +299,12 @@ model Jackpot {
 
   @@map("jackpots")
 }
+
+model SystemSetting {
+  key       String   @id
+  value     String
+  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt DateTime @default(now()) @db.Timestamptz(6) @map("updated_at")
+
+  @@map("system_settings")
+}

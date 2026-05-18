@@ -7,6 +7,7 @@ import { approveWithdrawal, rejectWithdrawal } from '../services/withdrawal.serv
 import { getAgentPreDepositStatus, getAgentCommissionHistory } from '../services/agentPreDeposit.service';
 import { Decimal } from '@prisma/client/runtime/library';
 import { config } from '../config';
+import { getAgentProfitRate } from '../services/settings.service';
 
 const router = Router();
 
@@ -52,9 +53,9 @@ router.get('/stats', async (req: Request, res: Response) => {
     const totalSales = totalSalesAgg._sum.amount || new Decimal(0);
     const netCommissionPaid = totalCommissionPaidAgg._sum.amount || new Decimal(0);
     
-    // Agent Take-Home = Total Sales * 18.75%
-    // In our system, the house margin is 25%. 6.25% goes to Admin, 18.75% is the Agent's part.
-    const agentTakeHome = totalSales.mul(config.game.agentProfitRate);
+    // Agent Take-Home = Total Sales * Agent Profit Rate
+    const rate = await getAgentProfitRate();
+    const agentTakeHome = totalSales.mul(rate);
 
     res.json({
       playerCount,

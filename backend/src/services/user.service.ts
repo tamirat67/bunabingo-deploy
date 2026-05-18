@@ -4,6 +4,7 @@ import { config } from '../config';
 import { Decimal } from '@prisma/client/runtime/library';
 import { creditWallet, creditBonus, awardCoins, XP_REWARDS } from './wallet.service';
 import { getOrCreateAgentPreDepositWallet } from './agentPreDeposit.service';
+import { getAgentProfitRate } from './settings.service';
 
 
 const REFERRAL_BONUS_ETB = 5;
@@ -36,9 +37,9 @@ export async function findOrCreateUser(
       let referredBy: string | undefined = undefined;
       if (referredById && referredById.length > 20) {
         const referrer = await prisma.user.findUnique({ where: { id: referredById } });
-        if (referrer?.role === 'AGENT' || referrer?.role === 'ADMIN' || referrer?.role === 'agent') {
+        if (referrer?.role === 'AGENT' || referrer?.role === 'agent') {
           referredBy = referrer.id;
-          logger.info(`[Auth] New user ${telegramUser.first_name} linked to Agent ${referrer.username}`);
+          logger.info(`[Auth] New user ${telegramUser.first_name} linked to Agent ${referrer.username || referrer.firstName}`);
         }
       }
 
@@ -341,8 +342,9 @@ export async function getAgents(page = 1, limit = 20) {
         }
       }
 
-      // 3. Net Profit = TOTAL_SALES × 18.75%
-      const netProfit = totalBranchSales.mul(new Decimal('0.1875'));
+      // 3. Net Profit = TOTAL_SALES × Agent Profit Rate
+      const rate = await getAgentProfitRate();
+      const netProfit = totalBranchSales.mul(new Decimal(rate.toString()));
 
       // Override the agent's wallet fields for the frontend
       if (agent.wallet) {

@@ -1,0 +1,71 @@
+import prisma from '../lib/prisma';
+import { config } from '../config';
+import { logger } from '../lib/logger';
+
+// Default values loaded from config
+const DEFAULT_SETTINGS: Record<string, string> = {
+  COMPANY_COMMISSION_RATE: '12.5',
+  AGENT_PROFIT_RATE: '12.5',
+};
+
+/**
+ * Get a system setting from the database. Falls back to config if not found.
+ */
+export async function getSystemSetting(key: string): Promise<string> {
+  try {
+    const setting = await prisma.systemSetting.findUnique({
+      where: { key },
+    });
+    if (setting) {
+      return setting.value;
+    }
+  } catch (err) {
+    logger.error(`[SettingsService] Failed to fetch setting ${key}:`, err);
+  }
+  return DEFAULT_SETTINGS[key] || '';
+}
+
+/**
+ * Get Company Commission Rate (as decimal, e.g. 0.125)
+ */
+export async function getCompanyCommissionRate(): Promise<number> {
+  const rateStr = await getSystemSetting('COMPANY_COMMISSION_RATE');
+  const rate = parseFloat(rateStr);
+  return isNaN(rate) ? config.game.companyCommissionRate : rate / 100;
+}
+
+/**
+ * Get Agent Profit Rate (as decimal, e.g. 0.125)
+ */
+export async function getAgentProfitRate(): Promise<number> {
+  const rateStr = await getSystemSetting('AGENT_PROFIT_RATE');
+  const rate = parseFloat(rateStr);
+  return isNaN(rate) ? config.game.agentProfitRate : rate / 100;
+}
+
+export async function getReceiverPhone(): Promise<string> {
+  const phone = await getSystemSetting('PAYMENT_RECEIVER_PHONE');
+  return phone || config.payment.receiverPhone;
+}
+
+export async function getReceiverName(): Promise<string> {
+  const name = await getSystemSetting('PAYMENT_RECEIVER_NAME');
+  return name || config.payment.receiverName;
+}
+
+export async function getTelebirrPhone(): Promise<string> {
+  const phone = await getSystemSetting('PAYMENT_TELEBIRR_PHONE');
+  return phone || config.payment.telebirrPhone;
+}
+
+/**
+ * Set a system setting in the database.
+ */
+export async function setSystemSetting(key: string, value: string): Promise<void> {
+  await prisma.systemSetting.upsert({
+    where: { key },
+    create: { key, value },
+    update: { value, updatedAt: new Date() },
+  });
+  logger.info(`[SettingsService] System setting updated: ${key} = ${value}`);
+}

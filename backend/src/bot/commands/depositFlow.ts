@@ -3,6 +3,7 @@ import { Message } from 'telegraf/types';
 import { getUserByTelegramId } from '../../services/user.service';
 import { setSession, getSession, clearSession, PaymentMethod } from '../session';
 import { config } from '../../config';
+import { getReceiverPhone, getReceiverName, getTelebirrPhone } from '../../services/settings.service';
 import prisma from '../../lib/prisma';
 import { logger } from '../../lib/logger';
 
@@ -80,7 +81,8 @@ export async function handleDepositMessage(ctx: Context): Promise<boolean> {
       reference,
     });
 
-    const { receiverName, receiverPhone } = config.payment;
+    const receiverName = await getReceiverName();
+    const receiverPhone = await getReceiverPhone();
 
     await ctx.reply(`የክፍያ ዝርዝሮች (Payment details):`, { parse_mode: 'Markdown' });
 
@@ -134,10 +136,11 @@ export async function handleDepositMessage(ctx: Context): Promise<boolean> {
     // ── 1. Validate SMS Content ──
     await ctx.reply(`🔍 የቴሌብር ደረሰኝዎን እያረጋገጥን ነው... (Validating...)`);
     const { validateTelebirrSms } = await import('../../services/bunafrankValidator');
+    const telebirrPhoneNum = await getTelebirrPhone();
     const result = await validateTelebirrSms(
       smsText,
       session.amount!,
-      config.payment.telebirrPhone
+      telebirrPhoneNum
     );
 
     if (!result.valid) {
@@ -195,7 +198,7 @@ export async function handlePayCbeBirr(ctx: Context) {
   if (!session || session.type !== 'MANUAL_DEPOSIT') return;
 
   setSession(ctx.from!.id, { ...session, paymentMethod: 'cbe_birr', step: 'AWAITING_SCREENSHOT' });
-  const { receiverPhone } = config.payment;
+  const receiverPhone = await getReceiverPhone();
 
   await ctx.reply(
     `🏦 *CBE-Birr → MPESA*\n\n` +
@@ -222,7 +225,7 @@ export async function handlePayCbeBank(ctx: Context) {
   if (!session || session.type !== 'MANUAL_DEPOSIT') return;
 
   setSession(ctx.from!.id, { ...session, paymentMethod: 'cbe_bank', step: 'AWAITING_SCREENSHOT' });
-  const { receiverPhone } = config.payment;
+  const receiverPhone = await getReceiverPhone();
 
   await ctx.reply(
     `🏦 *CBE Bank → MPESA*\n\n` +
@@ -249,7 +252,7 @@ export async function handlePayMpesa(ctx: Context) {
   if (!session || session.type !== 'MANUAL_DEPOSIT') return;
 
   setSession(ctx.from!.id, { ...session, paymentMethod: 'mpesa', step: 'AWAITING_SCREENSHOT' });
-  const { receiverPhone } = config.payment;
+  const receiverPhone = await getReceiverPhone();
 
   await ctx.reply(
     `📱 *MPESA → MPESA*\n\n` +
@@ -277,7 +280,8 @@ export async function handlePayTelebirr(ctx: Context) {
 
   setSession(ctx.from!.id, { ...session, paymentMethod: 'telebirr', step: 'AWAITING_SMS' });
 
-  const { telebirrPhone, supportAgent1, supportAgent2 } = config.payment;
+  const telebirrPhone = await getTelebirrPhone();
+  const { supportAgent1, supportAgent2 } = config.payment;
 
   await ctx.reply(
     `የቴሌብር አካውንት\n\n` +

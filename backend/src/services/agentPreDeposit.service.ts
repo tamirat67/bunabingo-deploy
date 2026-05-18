@@ -2,6 +2,7 @@ import prisma from '../lib/prisma';
 import { Decimal } from '@prisma/client/runtime/library';
 import { logger } from '../lib/logger';
 import { config } from '../config';
+import { getCompanyCommissionRate } from './settings.service';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Agent Pre-Deposit Commission Control System
@@ -73,7 +74,8 @@ export async function getAgentPreDepositStatus(
 ): Promise<AgentPreDepositStatus> {
   const wallet = await getOrCreateAgentPreDepositWallet(agentId);
   const balance = new Decimal(wallet.balance.toString());
-  const requiredCommission = totalSales.mul(config.game.companyCommissionRate);
+  const rate = await getCompanyCommissionRate();
+  const requiredCommission = totalSales.mul(rate);
   const state = classifyBalanceState(balance);
 
   return {
@@ -110,14 +112,14 @@ export async function debitAgentCommissionForGame(
   let agentId = ticket?.user?.referredBy ?? null;
 
   if (!agentId) {
-    // Fall back to the first administrator or agent in the system as the default agent
+    // Fall back to the first active agent in the system as the default agent
     const defaultAgent = await prisma.user.findFirst({
-      where: { OR: [{ role: 'ADMIN' }, { isAdmin: true }, { role: 'AGENT' }] },
+      where: { role: 'AGENT' },
       orderBy: { createdAt: 'asc' }
     });
     if (defaultAgent) {
       agentId = defaultAgent.id;
-      logger.info(`[Commission] Game ${gameId}: no linked agent. Falling back to default agent/admin ${agentId}.`);
+      logger.info(`[Commission] Game ${gameId}: no linked agent. Falling back to default agent ${agentId}.`);
     }
   }
 
@@ -129,7 +131,8 @@ export async function debitAgentCommissionForGame(
 
   const wallet = await getOrCreateAgentPreDepositWallet(agentId);
   const balance = new Decimal(wallet.balance.toString());
-  const commissionAmount = totalSales.mul(config.game.companyCommissionRate);
+  const rate = await getCompanyCommissionRate();
+  const commissionAmount = totalSales.mul(rate);
 
   // ── Hard block ──────────────────────────────────────────────────────────────
   if (balance.lessThan(commissionAmount)) {
@@ -163,7 +166,7 @@ export async function debitAgentCommissionForGame(
         amount: commissionAmount,
         gameId,
         totalSales,
-        description: `Company commission (${(config.game.companyCommissionRate * 100).toFixed(2)}%) for game ${gameId}`,
+        description: `Company commission (${(rate * 100).toFixed(2)}%) for game ${gameId}`,
         balanceBefore: balance,
         balanceAfter: newBalance,
       },

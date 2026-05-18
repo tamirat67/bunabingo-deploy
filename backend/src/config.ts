@@ -32,11 +32,11 @@ export const config = {
       VIP: 2,
     },
     // ── Revenue Split (total house margin = 25%) ─────────────────────────────
-    // companyCommissionRate: 6.25% of TOTAL SALES → deducted from Agent Pre-Deposit Wallet
-    // agentProfitRate:      18.75% of TOTAL SALES → stays with the agent (house margin minus company cut)
+    // companyCommissionRate: 12.5% of TOTAL SALES → deducted from Agent Pre-Deposit Wallet
+    // agentProfitRate:      12.5% of TOTAL SALES → stays with the agent (house margin minus company cut)
     // playerPrizeRate:      75%   of TOTAL SALES → paid out as prize pool
-    companyCommissionRate: parseFloat(process.env.COMPANY_COMMISSION_RATE || '6.25') / 100, // 0.0625
-    agentProfitRate:       parseFloat(process.env.AGENT_PROFIT_RATE || '18.75') / 100,       // 0.1875
+    companyCommissionRate: parseFloat(process.env.COMPANY_COMMISSION_RATE || '12.5') / 100, // 0.125
+    agentProfitRate:       parseFloat(process.env.AGENT_PROFIT_RATE || '12.5') / 100,       // 0.125
     playerPrizeRate:       parseFloat(process.env.PLAYER_PRIZE_RATE || '75') / 100,          // 0.75
     // Legacy alias — equals companyCommissionRate + agentProfitRate = 25% total
     commissionRate: 0.25,
