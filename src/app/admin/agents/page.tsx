@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { FiSearch, FiExternalLink, FiUserPlus, FiTrendingUp, FiUserX } from 'react-icons/fi';
+import { FiSearch, FiExternalLink, FiUserPlus, FiTrendingUp, FiUserX, FiX, FiLock, FiPhone, FiUser } from 'react-icons/fi';
 import api from '@/lib/api';
 import { Pagination } from '@/components/Pagination';
 import '@/app/admin.css';
@@ -18,6 +18,12 @@ export default function AgentsPage() {
   const [rechargeAmount, setRechargeAmount] = useState('');
   const [showRechargeModal, setShowRechargeModal] = useState(false);
   const [rechargeLoading, setRechargeLoading] = useState(false);
+
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createLoading, setCreateLoading] = useState(false);
+  const [createError, setCreateError] = useState('');
+  const [createSuccess, setCreateSuccess] = useState('');
+  const [newStaff, setNewStaff] = useState({ telegramId: '', username: '', firstName: '', role: 'AGENT', password: '' });
 
   useEffect(() => {
     fetchAgents();
@@ -63,6 +69,26 @@ export default function AgentsPage() {
     }
   };
 
+  const handleCreateStaff = async () => {
+    setCreateError('');
+    setCreateSuccess('');
+    if (!newStaff.telegramId || !newStaff.username || !newStaff.password) {
+      setCreateError('Telegram ID, username and password are required.');
+      return;
+    }
+    setCreateLoading(true);
+    try {
+      await api.post('/admin/staff/create', newStaff);
+      setCreateSuccess(`✅ @${newStaff.username} created successfully as ${newStaff.role}!`);
+      setNewStaff({ telegramId: '', username: '', firstName: '', role: 'AGENT', password: '' });
+      fetchAgents();
+    } catch (err: any) {
+      setCreateError(err.response?.data?.error || 'Failed to create staff member.');
+    } finally {
+      setCreateLoading(false);
+    }
+  };
+
   const filteredAgents = agents.filter(agent => 
     agent.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     agent.telegramUsername?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -77,10 +103,10 @@ export default function AgentsPage() {
         </div>
         <button 
           className="login-button" 
-          onClick={() => window.location.href = '/admin/users'}
+          onClick={() => setShowCreateModal(true)}
           style={{ width: 'auto', padding: '12px 24px', display: 'flex', alignItems: 'center', gap: '8px' }}
         >
-          <FiUserPlus /> Promote New Agent
+          <FiUserPlus /> Create Agent / Admin
         </button>
       </div>
 
@@ -231,6 +257,62 @@ export default function AgentsPage() {
                  </button>
               </div>
            </div>
+        </div>
+      )}
+      {/* ── Create Staff Modal ── */}
+      {showCreateModal && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '480px', width: '90%' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ fontWeight: '900', fontSize: '22px', margin: 0 }}>Create Agent / Admin</h2>
+              <button onClick={() => { setShowCreateModal(false); setCreateError(''); setCreateSuccess(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px' }}>
+                <FiX />
+              </button>
+            </div>
+            <p style={{ fontSize: '13px', color: '#78716c', marginBottom: '20px' }}>Create a staff member directly — no Telegram bot interaction needed.</p>
+
+            {createError && <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px', padding: '10px 14px', marginBottom: '14px', fontSize: '13px', color: '#dc2626', fontWeight: '600' }}>{createError}</div>}
+            {createSuccess && <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', padding: '10px 14px', marginBottom: '14px', fontSize: '13px', color: '#16a34a', fontWeight: '600' }}>{createSuccess}</div>}
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: '800', color: '#78716c', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}><FiPhone size={10} /> Telegram ID</label>
+                  <input type="number" className="login-input" placeholder="e.g. 5310030963" value={newStaff.telegramId} onChange={e => setNewStaff(s => ({ ...s, telegramId: e.target.value }))} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: '800', color: '#78716c', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}><FiUser size={10} /> Username</label>
+                  <input type="text" className="login-input" placeholder="e.g. agent_john" value={newStaff.username} onChange={e => setNewStaff(s => ({ ...s, username: e.target.value }))} />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '11px', fontWeight: '800', color: '#78716c', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}><FiUser size={10} /> Full Name (optional)</label>
+                <input type="text" className="login-input" placeholder="e.g. John Doe" value={newStaff.firstName} onChange={e => setNewStaff(s => ({ ...s, firstName: e.target.value }))} />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: '800', color: '#78716c', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Role</label>
+                  <select className="login-input" value={newStaff.role} onChange={e => setNewStaff(s => ({ ...s, role: e.target.value }))} style={{ cursor: 'pointer' }}>
+                    <option value="AGENT">Agent</option>
+                    <option value="ADMIN">Admin</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: '800', color: '#78716c', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}><FiLock size={10} /> Password</label>
+                  <input type="password" className="login-input" placeholder="Min 6 characters" value={newStaff.password} onChange={e => setNewStaff(s => ({ ...s, password: e.target.value }))} />
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', marginTop: '24px' }}>
+              <button className="login-button" onClick={handleCreateStaff} disabled={createLoading} style={{ flex: 1, padding: '14px' }}>
+                {createLoading ? 'Creating...' : 'Create Staff Member'}
+              </button>
+              <button onClick={() => { setShowCreateModal(false); setCreateError(''); setCreateSuccess(''); }} style={{ flex: 1, background: '#eee', border: 'none', borderRadius: '12px', fontWeight: '900', cursor: 'pointer' }}>Cancel</button>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -8,7 +8,7 @@ services:
       - "5432:5432"
     environment:
       POSTGRES_USER: bunabingo_user
-      POSTGRES_PASSWORD: admin123
+      POSTGRES_PASSWORD: SecurePasswordHere123!
       POSTGRES_DB: bunabingo
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -34,9 +34,6 @@ services:
         condition: service_healthy
     env_file:
       - ./backend/.env
-    environment:
-      DATABASE_URL: "postgresql://bunabingo_user:admin123@db:5432/bunabingo?schema=public"
-      DIRECT_URL: "postgresql://bunabingo_user:admin123@db:5432/bunabingo?schema=public"
     volumes:
       - ./backend/uploads:/app/uploads   # Persist receipt uploads & banners
       - ./backend/logs:/app/logs         # Persist debug logfiles

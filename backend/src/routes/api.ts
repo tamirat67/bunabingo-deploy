@@ -967,4 +967,52 @@ router.use('/agent', agentRouter);
 // ─── Auth Routes ──────────────────────────────────────────────
 
 
+// ─── Create Staff (Admin/Agent) without Telegram ─────────────
+staffRouter.post('/staff/create', restrictToAdmin, async (req, res) => {
+  const { telegramId, username, firstName, role, password } = req.body;
+  if (!telegramId || !username || !role || !password) {
+    return res.status(400).json({ error: 'telegramId, username, role and password are required.' });
+  }
+  if (!['ADMIN', 'AGENT'].includes(role)) {
+    return res.status(400).json({ error: 'Role must be ADMIN or AGENT.' });
+  }
+  if (password.length < 6) {
+    return res.status(400).json({ error: 'Password must be at least 6 characters.' });
+  }
+  try {
+    const bcrypt = await import('bcrypt');
+    const passwordHash = await bcrypt.default.hash(password, 10);
+    const user = await prisma.user.upsert({
+      where: { telegramId: BigInt(telegramId) },
+      create: {
+        telegramId: BigInt(telegramId),
+        telegramUsername: username.replace('@', ''),
+        firstName: firstName || username,
+        role,
+        isAdmin: role === 'ADMIN',
+        passwordHash,
+        status: 'ACTIVE',
+        wallet: { create: { balance: 0 } },
+      },
+      update: {
+        telegramUsername: username.replace('@', ''),
+        firstName: firstName || undefined,
+        role,
+        isAdmin: role === 'ADMIN',
+        passwordHash,
+        status: 'ACTIVE',
+      },
+    });
+    // Create pre-deposit wallet for agents
+    if (role === 'AGENT') {
+      const { getOrCreateAgentPreDepositWallet } = await import('../services/agentPreDeposit.service');
+      await getOrCreateAgentPreDepositWallet(user.id);
+    }
+    res.json({ success: true, user: { id: user.id, telegramUsername: user.telegramUsername, role: user.role } });
+  } catch (err: any) {
+    if (err.code === 'P2002') return res.status(409).json({ error: 'A user with this Telegram ID or username already exists.' });
+    res.status(500).json({ error: err.message || 'Failed to create staff member.' });
+  }
+});
+
 export default router;
