@@ -43,7 +43,8 @@ export const getHistory = () => api.get('/history').then(res => res.data);
 export const getGlobalHistory = () => api.get('/history/global').then(res => res.data);
 export const convertCoins = () => api.post('/me/coins/convert').then(res => res.data);
 export const markJackpotSeen = () => api.post('/me/jackpot/seen').then(res => res.data);
-export const getOccupiedCards = (roomType: string) => api.get(`/rooms/${roomType}/occupied`).then(res => res.data);
+export const getOccupiedCards = (roomType: string, gameId?: string) => 
+  api.get(`/rooms/${roomType}/occupied${gameId ? `?gameId=${gameId}` : ''}`).then(res => res.data);
 export const getAgentStats = () => api.get('/agent/stats').then(res => res.data).catch(() => null);
 
 export default api;

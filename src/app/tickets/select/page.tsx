@@ -12,9 +12,11 @@ function SelectionContent() {
   const searchParams = useSearchParams();
   const roomType = searchParams.get('type') || 'STANDARD';
   const stake = parseInt(searchParams.get('price') || '20');
+  const gameId = searchParams.get('gameId') || undefined;
 
   const [user, setUser] = useState<any>(null);
   const [selected, setSelected] = useState<number[]>([]);
+  const [ownedCardIds, setOwnedCardIds] = useState<number[]>([]);
   const [occupied, setOccupied] = useState<number[]>([]);
   const [joining, setJoining] = useState(false);
   const [playerCount, setPlayerCount] = useState(0);
@@ -42,11 +44,12 @@ function SelectionContent() {
     getMe().then(setUser).catch(() => {});
     
     // Fetch initial occupancy and own previous cards
-    getOccupiedCards(roomType).then(res => {
+    getOccupiedCards(roomType, gameId).then(res => {
       setOccupied(res.occupiedIds || []);
       setPlayerCount(res.playerCount || 0);
       if (res.myCardIds && res.myCardIds.length > 0) {
         setSelected(res.myCardIds);
+        setOwnedCardIds(res.myCardIds);
       }
       
       // Socket.io updates (VPS)
@@ -67,7 +70,7 @@ function SelectionContent() {
         socket.off('player-joined');
       }
     };
-  }, [roomType, socket]);
+  }, [roomType, gameId, socket]);
 
   // Auto-deselect if someone else buys your card
   useEffect(() => {
@@ -75,6 +78,10 @@ function SelectionContent() {
   }, [occupied]);
 
   const toggleSelect = (num: number) => {
+    if (ownedCardIds.includes(num)) {
+      showAlert('Already Owned', 'You have already purchased this cartela. You cannot deselect or re-purchase it.', 'info');
+      return;
+    }
     setSelected(prev => {
       if (prev.includes(num)) return prev.filter(n => n !== num);
       if (occupied.includes(num)) return prev; // Cannot select occupied
@@ -90,12 +97,25 @@ function SelectionContent() {
     if (selected.length === 0 || joining) return;
     setJoining(true);
 
-    const totalCost = stake * selected.length;
+    const newCardsToBuy = selected.filter(id => !ownedCardIds.includes(id));
+    const totalCost = stake * newCardsToBuy.length;
+
+    if (newCardsToBuy.length === 0) {
+      // No new cards selected, just go back to the lobby
+      if (roomType.startsWith('SPIN_')) {
+        router.push(`/play/spin?id=${gameId}&stake=${stake}`);
+      } else {
+        router.push(`/game?id=${gameId}`);
+      }
+      setJoining(false);
+      return;
+    }
+
     if (balance < totalCost && roomType !== 'DEMO') {
       setModal({
         isOpen: true,
         title: 'Insufficient Balance',
-        message: `You need ${totalCost} ETB to play these ${selected.length} cards. You currently have ${Number(balance).toFixed(2)} ETB.`,
+        message: `You need ${totalCost} ETB to purchase ${newCardsToBuy.length} new card(s). You currently have ${Number(balance).toFixed(2)} ETB.`,
         type: 'balance',
         onConfirm: () => router.push('/wallet')
       });
@@ -183,21 +203,41 @@ function SelectionContent() {
         {Array.from({ length: isVip ? 50 : 250 }, (_, i) => i + 1).map(num => {
           const isOccupied = occupied.includes(num);
           const isSelected = selected.includes(num);
+          const isOwned = ownedCardIds.includes(num);
           return (
             <div 
               key={num} 
-              className={`num-brown ${isSelected ? 'selected' : ''} ${isOccupied ? 'occupied' : ''}`}
+              className={`num-brown ${isSelected ? 'selected' : ''} ${isOccupied ? 'occupied' : ''} ${isOwned ? 'owned' : ''}`}
               style={{
-                backgroundColor: isOccupied ? '#2ECC71' : (isSelected ? '#D4AF37' : 'white'),
-                color: isOccupied || isSelected ? 'white' : '#3D2B1F',
+                background: isOwned 
+                  ? 'linear-gradient(135deg, #1C0A35, #D4AF37)'
+                  : (isOccupied ? '#BDC3C7' : (isSelected ? '#2ECC71' : 'white')),
+                color: isOccupied || isSelected || isOwned ? 'white' : '#3D2B1F',
                 cursor: isOccupied ? 'not-allowed' : 'pointer',
-                opacity: isOccupied ? 0.9 : 1,
-                border: isOccupied ? '2px solid #27AE60' : '1px solid rgba(0,0,0,0.1)',
-                boxShadow: isOccupied ? '0 0 10px rgba(46, 204, 113, 0.3)' : 'none'
+                opacity: isOccupied ? 0.5 : 1,
+                border: isOwned
+                  ? '2.5px solid #D4AF37'
+                  : (isOccupied ? '1px solid rgba(0,0,0,0.1)' : (isSelected ? '2px solid #27AE60' : '1px solid rgba(0,0,0,0.1)')),
+                boxShadow: isOwned 
+                  ? '0 0 12px rgba(212, 175, 55, 0.6)'
+                  : (isSelected ? '0 0 10px rgba(46, 204, 113, 0.4)' : 'none'),
+                position: 'relative',
+                overflow: 'hidden'
               }}
               onClick={() => !isOccupied && toggleSelect(num)}
             >
               {num}
+              {isOwned && (
+                <span style={{ 
+                  position: 'absolute', 
+                  top: '1px', 
+                  right: '2px', 
+                  fontSize: '8px', 
+                  lineHeight: 1 
+                }}>
+                  👑
+                </span>
+              )}
             </div>
           );
         })}

@@ -383,10 +383,19 @@ router.post('/games/:gameId/leave', async (req: Request, res: Response) => {
 router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
   const { type } = req.params;
   const user = (req as any).user;
-  try {
-    const room = await getRoomWithActiveGame(type as any);
-    const gameId = room?.games[0]?.id;
-    if (!gameId) return res.json({ occupiedIds: [], myCardIds: [] });
+    const gameIdFromQuery = req.query.gameId as string;
+    let gameId: string | undefined;
+    let room: any;
+
+    if (gameIdFromQuery) {
+      gameId = gameIdFromQuery;
+      room = await prisma.room.findFirst({ where: { type: type as any } });
+    } else {
+      room = await getRoomWithActiveGame(type as any);
+      gameId = room?.games[0]?.id;
+    }
+    
+    if (!gameId || !room) return res.json({ occupiedIds: [], myCardIds: [] });
 
     const tickets = await prisma.ticket.findMany({
       where: { gameId },

@@ -361,7 +361,7 @@ function GameContent() {
             }}
           >
             <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'white' }}></div>
-            <span>{isAutoMode ? 'AUTO' : 'MANUAL'}</span>
+            <span>{isAutoMode ? 'AUTO' : 'MAN'}</span>
           </motion.div>
           <motion.div 
             whileTap={{ scale: 0.9 }}
@@ -679,7 +679,7 @@ function GameContent() {
           {/* CARD ADD FAB / Button at the bottom of right column */}
           <motion.div 
             whileTap={{ scale: 0.95 }}
-            onClick={() => router.push(`/tickets/select?type=${game?.room?.type || 'STANDARD'}&price=${stake}`)}
+            onClick={() => router.push(`/tickets/select?type=${game?.room?.type || 'STANDARD'}&price=${stake}&gameId=${gameId || ''}`)}
             style={{
               background: 'linear-gradient(135deg, #1C0A35, #C471ED)',
               border: `2px solid ${T.gold}`,
@@ -709,27 +709,27 @@ function GameContent() {
       <motion.div 
         whileTap={{ scale: 0.8 }} 
         whileHover={{ scale: 1.1 }}
-        onClick={() => router.push(`/tickets/select?type=${game?.room?.type || 'STANDARD'}&price=${stake}`)} 
+        className="premium-fab"
+        onClick={() => router.push(`/tickets/select?type=${game?.room?.type || 'STANDARD'}&price=${stake}&gameId=${gameId || ''}`)} 
         style={{ 
           position: 'fixed', 
           bottom: '30px', 
           right: '20px', 
-          width: '56px',
-          height: '56px',
-          background: `linear-gradient(135deg, ${T.header}, #000)`, 
-          color: T.gold, 
+          width: '60px',
+          height: '60px',
+          background: 'linear-gradient(135deg, #1C0A35, #D4AF37)', 
+          color: 'white', 
           borderRadius: '50%', 
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          boxShadow: `0 10px 25px rgba(0,0,0,0.5), 0 0 15px ${T.gold}44`, 
           zIndex: 200, 
           cursor: 'pointer', 
-          border: `2px solid ${T.gold}`,
-          fontSize: '38px',
+          border: '2px solid #FFF',
+          fontSize: '36px',
           fontWeight: '900',
           lineHeight: '1',
-          paddingBottom: '6px',
+          paddingBottom: '4px',
           userSelect: 'none'
         }}
       >
@@ -752,6 +752,14 @@ function GameContent() {
       <style dangerouslySetInnerHTML={{ __html: `
         .custom-scroll::-webkit-scrollbar { width: 4px; }
         .custom-scroll::-webkit-scrollbar-thumb { background: #D4AF3744; border-radius: 10px; }
+        @keyframes pulse-fab {
+          0% { box-shadow: 0 10px 25px rgba(0,0,0,0.5), 0 0 10px rgba(212, 175, 55, 0.3); }
+          50% { box-shadow: 0 10px 30px rgba(0,0,0,0.6), 0 0 25px rgba(212, 175, 55, 0.8); }
+          100% { box-shadow: 0 10px 25px rgba(0,0,0,0.5), 0 0 10px rgba(212, 175, 55, 0.3); }
+        }
+        .premium-fab {
+          animation: pulse-fab 2s infinite ease-in-out;
+        }
       `}} />
 
       <BunaModal 

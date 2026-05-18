@@ -228,7 +228,7 @@ export async function handleStart(ctx: Context) {
         ['🎮 ይጫወቱ'],
         ['💰 ሂሳብ', '📥 ገቢ ለማድረግ'],
         ['📤 ወጪ ለማድረግ', '🔗 ጋብዝ & አግኝ'],
-        ['💎 VIP ክፍል', '⭐ Special Promoter'],
+        ['💎 VIP ክፍል'],
         ['🆘 እርዳታ', '📜 ደንቦች']
       ]).resize()
     );
