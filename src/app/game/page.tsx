@@ -707,33 +707,50 @@ function GameContent() {
 
       {/* ── FAB 'Add Board' button with plus icon (+) ── */}
       <motion.div 
-        whileTap={{ scale: 0.8 }} 
-        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.85 }} 
+        whileHover={{ scale: 1.05 }}
         className="premium-fab"
         onClick={() => router.push(`/tickets/select?type=${game?.room?.type || 'STANDARD'}&price=${stake}&gameId=${gameId || ''}`)} 
         style={{ 
           position: 'fixed', 
           bottom: '30px', 
           right: '20px', 
-          width: '60px',
-          height: '60px',
-          background: 'linear-gradient(135deg, #1C0A35, #D4AF37)', 
-          color: 'white', 
+          width: '64px',
+          height: '64px',
+          background: `radial-gradient(circle at 35% 35%, ${T.gold} 0%, ${T.goldDk || '#8B6B1D'} 100%)`, 
           borderRadius: '50%', 
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 200, 
           cursor: 'pointer', 
-          border: '2px solid #FFF',
-          fontSize: '36px',
-          fontWeight: '900',
-          lineHeight: '1',
-          paddingBottom: '4px',
+          border: `2px solid ${T.gold}`,
+          boxShadow: `0 8px 24px rgba(0, 0, 0, 0.35), inset 0 2px 5px rgba(255, 255, 255, 0.45), inset 0 -3px 8px rgba(0, 0, 0, 0.45)`,
           userSelect: 'none'
         }}
       >
-        +
+        {/* Inner concentric ring matching the image */}
+        <div style={{
+          width: '82%',
+          height: '82%',
+          borderRadius: '50%',
+          border: `1.5px solid ${T.goldDk || '#8B6B1D'}88`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: `inset 0 2.5px 3px rgba(255, 255, 255, 0.3), inset 0 -2.5px 3px rgba(0, 0, 0, 0.25)`,
+          position: 'relative'
+        }}>
+          {/* Central Plus Icon (using Lucide Plus) */}
+          <Plus 
+            size={28} 
+            strokeWidth={3.8} 
+            style={{ 
+              color: T.header, 
+              filter: 'drop-shadow(0px 2.5px 2px rgba(0,0,0,0.35))' 
+            }} 
+          />
+        </div>
       </motion.div>
 
       <AnimatePresence>
@@ -751,14 +768,20 @@ function GameContent() {
 
       <style dangerouslySetInnerHTML={{ __html: `
         .custom-scroll::-webkit-scrollbar { width: 4px; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: #D4AF3744; border-radius: 10px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: ${T.gold}44; border-radius: 10px; }
         @keyframes pulse-fab {
-          0% { box-shadow: 0 10px 25px rgba(0,0,0,0.5), 0 0 10px rgba(212, 175, 55, 0.3); }
-          50% { box-shadow: 0 10px 30px rgba(0,0,0,0.6), 0 0 25px rgba(212, 175, 55, 0.8); }
-          100% { box-shadow: 0 10px 25px rgba(0,0,0,0.5), 0 0 10px rgba(212, 175, 55, 0.3); }
+          0% { 
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), inset 0 2px 5px rgba(255, 255, 255, 0.45), inset 0 -3px 8px rgba(0, 0, 0, 0.45), 0 0 5px ${T.gold}44; 
+          }
+          50% { 
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45), inset 0 2px 5px rgba(255, 255, 255, 0.55), inset 0 -3px 8px rgba(0, 0, 0, 0.55), 0 0 22px ${T.gold}cc; 
+          }
+          100% { 
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), inset 0 2px 5px rgba(255, 255, 255, 0.45), inset 0 -3px 8px rgba(0, 0, 0, 0.45), 0 0 5px ${T.gold}44; 
+          }
         }
         .premium-fab {
-          animation: pulse-fab 2s infinite ease-in-out;
+          animation: pulse-fab 2.5s infinite ease-in-out;
         }
       `}} />
 

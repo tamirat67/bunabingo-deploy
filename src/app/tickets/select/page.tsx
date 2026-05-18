@@ -1,14 +1,17 @@
 'use client';
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, useRef, Suspense, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { getMe, joinGame, getOccupiedCards } from '../../../lib/api';
+import { getMe, joinGame, getOccupiedCards, getGame } from '../../../lib/api';
 import { PREDEFINED_CARDS } from '../../../lib/predefinedCards';
 import { useSocket } from '../../../context/SocketContext';
 import BunaModal from '../../../components/BunaModal';
-import { ChevronLeft, RefreshCw, Zap, X, Play, ShieldCheck } from 'lucide-react';
+import { ChevronLeft, RefreshCw, Play, ShieldCheck, Eye, Users, Trophy, Zap } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useTheme } from '../../../context/ThemeContext';
 
 function SelectionContent() {
   const router = useRouter();
+  const { T, activeThemeKey } = useTheme();
   const searchParams = useSearchParams();
   const roomType = searchParams.get('type') || 'STANDARD';
   const stake = parseInt(searchParams.get('price') || '20');
@@ -20,46 +23,95 @@ function SelectionContent() {
   const [occupied, setOccupied] = useState<number[]>([]);
   const [joining, setJoining] = useState(false);
   const [playerCount, setPlayerCount] = useState(0);
+  const [game, setGame] = useState<any>(null);
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const [endTime, setEndTime] = useState<number | null>(null);
+  const [serverOff, setServerOff] = useState(0);
+  const [newlyOccupied, setNewlyOccupied] = useState<number[]>([]);
+  const prevOccupied = useRef<number[]>([]);
   const { socket } = useSocket();
 
-  // Modal State
   const [modal, setModal] = useState<{
     isOpen: boolean;
     title: string;
     message: string;
     type: 'info' | 'error' | 'success' | 'confirm' | 'balance';
     onConfirm?: () => void;
-  }>({
-    isOpen: false,
-    title: '',
-    message: '',
-    type: 'info'
-  });
+  }>({ isOpen: false, title: '', message: '', type: 'info' });
 
   const showAlert = (title: string, message: string, type: any = 'info') => {
     setModal({ isOpen: true, title, message, type });
   };
 
+  const loadGameData = useCallback(() => {
+    if (!gameId) return;
+    getGame(gameId).then(g => {
+      setGame(g);
+      if (g.endTime && g.serverTime) {
+        const offset = g.serverTime - Date.now();
+        setServerOff(offset);
+        setEndTime(g.endTime);
+        if (g.status === 'COUNTDOWN') {
+          const rem = Math.max(0, Math.ceil((g.endTime - Date.now() - offset) / 1000));
+          if (rem > 0) setCountdown(rem);
+        }
+      } else if (g.status === 'COUNTDOWN' && g.countdownSeconds) {
+        const estimatedEnd = Date.now() + (g.countdownSeconds * 1000);
+        setEndTime(estimatedEnd);
+        setServerOff(0);
+        setCountdown(g.countdownSeconds);
+      }
+    }).catch(() => {});
+  }, [gameId]);
+
+  // Local countdown fallback
+  useEffect(() => {
+    if (endTime === null) return;
+    const timer = setInterval(() => {
+      const now = Date.now() + serverOff;
+      const rem = Math.max(0, Math.ceil((endTime - now) / 1000));
+      setCountdown(rem);
+      if (rem <= 0) setEndTime(null);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [endTime, serverOff]);
+
   useEffect(() => {
     getMe().then(setUser).catch(() => {});
-    
-    // Fetch initial occupancy and own previous cards
+    loadGameData();
+
     getOccupiedCards(roomType, gameId).then(res => {
       setOccupied(res.occupiedIds || []);
+      prevOccupied.current = res.occupiedIds || [];
       setPlayerCount(res.playerCount || 0);
       if (res.myCardIds && res.myCardIds.length > 0) {
         setSelected(res.myCardIds);
         setOwnedCardIds(res.myCardIds);
       }
-      
-      // Socket.io updates (VPS)
+
       if (socket && res.roomId) {
         socket.emit('join-game', res.roomId);
         socket.on('card-occupied', (data: { occupiedIds: number[] }) => {
+          const freshlyTaken = data.occupiedIds.filter(id => !prevOccupied.current.includes(id));
+          if (freshlyTaken.length > 0) {
+            setNewlyOccupied(freshlyTaken);
+            setTimeout(() => setNewlyOccupied([]), 2000);
+          }
+          prevOccupied.current = data.occupiedIds;
           setOccupied(data.occupiedIds);
         });
         socket.on('player-joined', (data: { playerCount: number }) => {
           setPlayerCount(data.playerCount);
+        });
+        socket.on('countdown-start', (d: any) => {
+          setCountdown(d.seconds);
+          if (d.endTime && d.serverTime) {
+            setServerOff(d.serverTime - Date.now());
+            setEndTime(d.endTime);
+          }
+        });
+        socket.on('countdown-tick', (d: any) => {
+          setCountdown(d.secondsRemaining);
         });
       }
     }).catch(() => {});
@@ -68,11 +120,12 @@ function SelectionContent() {
       if (socket) {
         socket.off('card-occupied');
         socket.off('player-joined');
+        socket.off('countdown-start');
+        socket.off('countdown-tick');
       }
     };
-  }, [roomType, gameId, socket]);
+  }, [roomType, gameId, socket, loadGameData]);
 
-  // Auto-deselect if someone else buys your card
   useEffect(() => {
     setSelected(prev => prev.filter(id => !occupied.includes(id)));
   }, [occupied]);
@@ -84,7 +137,7 @@ function SelectionContent() {
     }
     setSelected(prev => {
       if (prev.includes(num)) return prev.filter(n => n !== num);
-      if (occupied.includes(num)) return prev; // Cannot select occupied
+      if (occupied.includes(num)) return prev;
       if (prev.length >= 5) {
         showAlert('Limit Reached', 'Maximum of 5 cards allowed per player', 'info');
         return prev;
@@ -96,21 +149,14 @@ function SelectionContent() {
   const handleStart = async () => {
     if (selected.length === 0 || joining) return;
     setJoining(true);
-
     const newCardsToBuy = selected.filter(id => !ownedCardIds.includes(id));
     const totalCost = stake * newCardsToBuy.length;
-
     if (newCardsToBuy.length === 0) {
-      // No new cards selected, just go back to the lobby
-      if (roomType.startsWith('SPIN_')) {
-        router.push(`/play/spin?id=${gameId}&stake=${stake}`);
-      } else {
-        router.push(`/game?id=${gameId}`);
-      }
+      if (roomType.startsWith('SPIN_')) router.push(`/play/spin?id=${gameId}&stake=${stake}`);
+      else router.push(`/game?id=${gameId}`);
       setJoining(false);
       return;
     }
-
     if (balance < totalCost && roomType !== 'DEMO') {
       setModal({
         isOpen: true,
@@ -122,19 +168,13 @@ function SelectionContent() {
       setJoining(false);
       return;
     }
-
     try {
       const res = await joinGame(roomType, selected);
-      
       if (typeof window !== 'undefined' && res.gameId && res.tickets) {
         sessionStorage.setItem(`game_tickets_${res.gameId}`, JSON.stringify(res.tickets));
       }
-
-      if (roomType.startsWith('SPIN_')) {
-        router.push(`/play/spin?id=${res.gameId}&stake=${stake}`);
-      } else {
-        router.push(`/game?id=${res.gameId}`);
-      }
+      if (roomType.startsWith('SPIN_')) router.push(`/play/spin?id=${res.gameId}&stake=${stake}`);
+      else router.push(`/game?id=${res.gameId}`);
     } catch (err: any) {
       const msg = err.response?.data?.error || err.message || 'Failed to join';
       showAlert('Join Failed', msg, 'error');
@@ -144,107 +184,301 @@ function SelectionContent() {
   };
 
   const balance = user?.wallet?.balance || 0;
-  const activeGames = 2; 
-
-  const lastSelected = selected.length > 0 ? selected[selected.length - 1] : null;
-  const previewCard = lastSelected ? PREDEFINED_CARDS[lastSelected] : null;
-
   const isSpin = roomType.startsWith('SPIN_');
   const isVip = roomType === 'VIP' || roomType === 'JACKPOT' || stake >= 100;
+  const isDark = activeThemeKey === 'DARK' || activeThemeKey === 'GRAY';
+
+  const prize = game?.totalPrize
+    ? Number(game.totalPrize)
+    : Math.max(stake * 2, (playerCount || 1) * stake * 0.8);
+
+  const formatCountdown = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  };
+
+  const isLive = countdown !== null && countdown > 0;
+  const urgencyColor = countdown !== null && countdown <= 10 ? '#E74C3C' : T.gold;
+  const occupiedCount = occupied.filter(id => !ownedCardIds.includes(id)).length;
 
   return (
     <div className={`selection-container ${isVip ? 'vip-theme' : 'brown'} ${isSpin ? 'spin-theme' : ''}`}>
+
+      {/* ── Header ── */}
       <div className="selection-header-top">
-        <button className="btn-back" onClick={() => router.push('/')}><ChevronLeft size={20} color={isVip ? '#C471ED' : '#4B3621'} /></button>
+        <button className="btn-back" onClick={() => router.push('/')}>
+          <ChevronLeft size={20} color={isVip ? '#C471ED' : '#4B3621'} />
+        </button>
         <div className="header-text">
-          <h1 style={{color: isVip ? '#C471ED' : '#3D2B1F', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap'}}>
+          <h1 style={{ color: isVip ? '#C471ED' : '#3D2B1F', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             <ShieldCheck size={24} /> BUNA GAME ZONE
             {isVip && (
-              <span style={{
-                background: 'linear-gradient(135deg, #FFD700, #FFA500)',
-                color: '#1C0A35',
-                fontSize: '9px',
-                fontWeight: '900',
-                padding: '2px 8px',
-                borderRadius: '12px',
-                boxShadow: '0 0 10px rgba(255, 215, 0, 0.6)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '3px',
-                border: '1.5px solid #FFF',
-                letterSpacing: '0.5px'
-              }}>
+              <span style={{ background: 'linear-gradient(135deg, #FFD700, #FFA500)', color: '#1C0A35', fontSize: '9px', fontWeight: '900', padding: '2px 8px', borderRadius: '12px', boxShadow: '0 0 10px rgba(255, 215, 0, 0.6)', display: 'inline-flex', alignItems: 'center', gap: '3px', border: '1.5px solid #FFF', letterSpacing: '0.5px' }}>
                 👑 BOSS VIP
               </span>
             )}
           </h1>
-          <p style={{color: isVip ? 'rgba(255,255,255,0.7)' : 'rgba(61,43,31,0.6)', fontWeight: 800}}>{roomType} • STAKE {stake}</p>
+          <p style={{ color: isVip ? 'rgba(255,255,255,0.7)' : 'rgba(61,43,31,0.6)', fontWeight: 800 }}>{roomType} • STAKE {stake} ETB</p>
         </div>
       </div>
 
+      {/* ── Stats Row ── */}
       <div className="stats-row-brown">
         <div className="capsule-white"><div className="l">WALLET</div><div className="v">{Number(balance).toFixed(0)}</div></div>
         <div className="capsule-white"><div className="l">BONUS</div><div className="v">0</div></div>
         <div className="capsule-white"><div className="l">PLAYERS</div><div className="v">{playerCount}</div></div>
-        <div className="capsule-brown total-box"><div className="l" style={{color: 'rgba(255,255,255,0.5)'}}>STAKE</div><div className="v">{stake}</div></div>
+        <div className="capsule-brown total-box"><div className="l" style={{ color: 'rgba(255,255,255,0.5)' }}>STAKE</div><div className="v">{stake}</div></div>
       </div>
 
-      <div className="jackpot-section-mini">
-        <div className="jackpot-labels">
-          <div className="l"><Zap size={14} color="#D4AF37" /> <span style={{color: '#D4AF37'}}>JACKPOT</span></div>
-          <div className="v">808 / 1000</div>
+      {/* ── PREMIUM JACKPOT + COUNTDOWN BANNER ── */}
+      <div style={{
+        background: isDark
+          ? 'linear-gradient(135deg, #0F0A02 0%, #1C1208 50%, #0F0A02 100%)'
+          : 'linear-gradient(135deg, #1C1208 0%, #2D1F0A 60%, #1C1208 100%)',
+        border: `2px solid ${urgencyColor}`,
+        borderRadius: '18px',
+        padding: '14px 18px',
+        margin: '8px 0 10px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        position: 'relative',
+        overflow: 'hidden',
+        boxShadow: `0 8px 32px rgba(0,0,0,0.45), 0 0 0 1px ${urgencyColor}22, inset 0 1px 0 rgba(255,255,255,0.04)`,
+      }}>
+        {/* Shimmer sweep */}
+        <div className="jackpot-shimmer" />
+
+        {/* Left — Jackpot Amount */}
+        <div>
+          <div style={{
+            background: urgencyColor,
+            color: '#1C0A35',
+            fontSize: '9px',
+            fontWeight: '900',
+            padding: '3px 9px',
+            borderRadius: '6px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+            marginBottom: '8px',
+            letterSpacing: '1.2px',
+            boxShadow: `0 2px 8px ${urgencyColor}66`,
+          }}>
+            <Trophy size={9} /> JACKPOT LIVE
+          </div>
+          <motion.div
+            key={prize}
+            initial={{ opacity: 0.6, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            style={{
+              color: 'white',
+              fontSize: '30px',
+              fontWeight: '900',
+              lineHeight: 1,
+              letterSpacing: '-0.5px',
+              textShadow: `0 0 20px ${urgencyColor}66`,
+            }}
+          >
+            {prize.toFixed(0)} ETB
+          </motion.div>
         </div>
-        <div className="jackpot-progress-bg">
-          <div className="jackpot-progress-fill" style={{ width: '80.8%' }}></div>
+
+        {/* Right — Countdown */}
+        <div style={{ textAlign: 'right', minWidth: '90px' }}>
+          {isLive ? (
+            <>
+              <div style={{
+                color: 'rgba(255,255,255,0.55)',
+                fontSize: '9px',
+                fontWeight: '900',
+                letterSpacing: '1.5px',
+                marginBottom: '6px',
+                textTransform: 'uppercase',
+              }}>
+                GAME STARTING IN
+              </div>
+              <motion.div
+                key={countdown}
+                initial={{ scale: 1.15, color: countdown! <= 10 ? '#E74C3C' : 'white' }}
+                animate={{ scale: 1, color: countdown! <= 10 ? '#E74C3C' : 'white' }}
+                transition={{ duration: 0.2 }}
+                style={{
+                  fontSize: '30px',
+                  fontWeight: '900',
+                  fontVariantNumeric: 'tabular-nums',
+                  letterSpacing: '-0.5px',
+                  textShadow: countdown! <= 10 ? '0 0 15px rgba(231,76,60,0.8)' : `0 0 12px ${T.gold}44`,
+                }}
+              >
+                {formatCountdown(countdown!)}
+              </motion.div>
+            </>
+          ) : (
+            <>
+              <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: '9px', fontWeight: '900', letterSpacing: '1.5px', marginBottom: '6px' }}>
+                GAME STATUS
+              </div>
+              <div style={{
+                fontSize: '18px',
+                fontWeight: '900',
+                color: game?.status === 'RUNNING' ? '#2ECC71' : T.gold,
+                textShadow: game?.status === 'RUNNING' ? '0 0 12px rgba(46,204,113,0.6)' : `0 0 12px ${T.gold}66`,
+              }}>
+                {game?.status === 'RUNNING' ? '🔴 LIVE' : game?.status === 'WAITING' ? '⏳ WAITING' : '✅ READY'}
+              </div>
+            </>
+          )}
         </div>
       </div>
 
+      {/* ── Live Activity Bar ── */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '6px 4px',
+        marginBottom: '6px',
+      }}>
+        {/* Left: card select label */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span style={{ fontWeight: '900', fontSize: '12px', color: T.text }}>
+            SELECT YOUR CARDS ({stake} ETB)
+          </span>
+        </div>
+        {/* Right: selection counter + players */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {occupiedCount > 0 && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              background: 'rgba(46,204,113,0.12)',
+              border: '1px solid rgba(46,204,113,0.3)',
+              borderRadius: '12px',
+              padding: '2px 8px',
+              fontSize: '10px',
+              fontWeight: '900',
+              color: '#27AE60',
+            }}>
+              <Eye size={10} /> {occupiedCount} held
+            </div>
+          )}
+          <div style={{
+            background: T.gold,
+            color: T.header,
+            fontWeight: '900',
+            fontSize: '12px',
+            padding: '2px 10px',
+            borderRadius: '12px',
+            minWidth: '48px',
+            textAlign: 'center',
+          }}>
+            {selected.length} / 5
+          </div>
+        </div>
+      </div>
+
+      {/* ── Players Browsing Indicator ── */}
+      {playerCount > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '5px 10px',
+            marginBottom: '8px',
+            background: `${T.gold}11`,
+            border: `1px solid ${T.gold}33`,
+            borderRadius: '10px',
+            fontSize: '10px',
+            fontWeight: '800',
+            color: T.brown,
+          }}
+        >
+          <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#2ECC71', boxShadow: '0 0 6px #2ECC71', animation: 'liveDot 1.5s infinite' }} />
+          <Users size={11} color={T.gold} />
+          <span><strong style={{ color: T.text }}>{playerCount}</strong> players active now</span>
+          {occupiedCount > 0 && (
+            <span style={{ marginLeft: 'auto', color: '#E67E22', fontWeight: '900' }}>
+              🔥 {occupiedCount} cards snatched!
+            </span>
+          )}
+        </motion.div>
+      )}
+
+      {/* ── Card Grid ── */}
       <div className="grid-brown">
         {Array.from({ length: isVip ? 50 : 250 }, (_, i) => i + 1).map(num => {
           const isOccupied = occupied.includes(num);
           const isSelected = selected.includes(num);
           const isOwned = ownedCardIds.includes(num);
+          const isNewlySnatched = newlyOccupied.includes(num);
+
           return (
-            <div 
-              key={num} 
-              className={`num-brown ${isSelected ? 'selected' : ''} ${isOccupied ? 'occupied' : ''} ${isOwned ? 'owned' : ''}`}
+            <div
+              key={num}
+              className={`num-brown ${isSelected ? 'selected' : ''} ${isOccupied ? 'occupied occupied-pulse' : ''} ${isOwned ? 'owned' : ''} ${isNewlySnatched ? 'newly-snatched' : ''}`}
               style={{
-                background: isOwned 
+                background: isOwned
                   ? 'linear-gradient(135deg, #1C0A35, #D4AF37)'
-                  : (isOccupied ? '#BDC3C7' : (isSelected ? '#2ECC71' : 'white')),
-                color: isOccupied || isSelected || isOwned ? 'white' : '#3D2B1F',
+                  : (isOccupied ? undefined : (isSelected ? '#2ECC71' : undefined)),
+                color: isOccupied || isSelected || isOwned ? 'white' : T.text,
                 cursor: isOccupied ? 'not-allowed' : 'pointer',
-                opacity: isOccupied ? 0.5 : 1,
+                opacity: 1,
                 border: isOwned
                   ? '2.5px solid #D4AF37'
-                  : (isOccupied ? '1px solid rgba(0,0,0,0.1)' : (isSelected ? '2px solid #27AE60' : '1px solid rgba(0,0,0,0.1)')),
-                boxShadow: isOwned 
+                  : (isOccupied ? undefined : (isSelected ? '2px solid #27AE60' : undefined)),
+                boxShadow: isOwned
                   ? '0 0 12px rgba(212, 175, 55, 0.6)'
-                  : (isSelected ? '0 0 10px rgba(46, 204, 113, 0.4)' : 'none'),
+                  : (isOccupied ? undefined : (isSelected ? '0 0 10px rgba(46, 204, 113, 0.4)' : 'none')),
                 position: 'relative',
-                overflow: 'hidden'
+                overflow: 'hidden',
               }}
               onClick={() => !isOccupied && toggleSelect(num)}
             >
               {num}
+
+              {/* Crown for owned cards */}
               {isOwned && (
-                <span style={{ 
-                  position: 'absolute', 
-                  top: '1px', 
-                  right: '2px', 
-                  fontSize: '8px', 
-                  lineHeight: 1 
-                }}>
+                <span style={{ position: 'absolute', top: '1px', right: '2px', fontSize: '8px', lineHeight: 1 }}>
                   👑
                 </span>
+              )}
+
+              {/* "SNATCHED" flash overlay */}
+              {isNewlySnatched && (
+                <motion.div
+                  initial={{ opacity: 1 }}
+                  animate={{ opacity: 0 }}
+                  transition={{ duration: 1.5 }}
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    background: 'rgba(231,76,60,0.6)',
+                    borderRadius: '4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '7px',
+                    fontWeight: '900',
+                    color: 'white',
+                  }}
+                >
+                  ⚡
+                </motion.div>
               )}
             </div>
           );
         })}
       </div>
 
-      <div style={{height: '300px'}}></div>
+      <div style={{ height: '300px' }} />
 
+      {/* ── Footer ── */}
       <div className="selection-footer-smart">
         <div className="footer-cards-scroll">
           {selected.length === 0 ? (
@@ -272,7 +506,7 @@ function SelectionContent() {
           <button className="btn-refresh-blue" onClick={() => window.location.reload()}>
             <RefreshCw size={16} /> Refresh
           </button>
-          <button 
+          <button
             className={`btn-start-game ${selected.length > 0 ? 'active' : ''}`}
             disabled={selected.length === 0 || joining}
             onClick={handleStart}
@@ -282,7 +516,7 @@ function SelectionContent() {
         </div>
       </div>
 
-      <BunaModal 
+      <BunaModal
         isOpen={modal.isOpen}
         onClose={() => setModal(p => ({ ...p, isOpen: false }))}
         onConfirm={modal.onConfirm}
@@ -291,6 +525,44 @@ function SelectionContent() {
         type={modal.type}
         confirmText={modal.type === 'balance' ? 'Deposit Now' : 'Confirm'}
       />
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes occupiedGreenPulse {
+          0%   { background: linear-gradient(135deg, #1E8449, #27AE60); box-shadow: 0 0 4px rgba(46,204,113,0.4); border-color: #27AE60; }
+          50%  { background: linear-gradient(135deg, #27AE60, #2ECC71); box-shadow: 0 0 14px rgba(46,204,113,0.8); border-color: #2ECC71; }
+          100% { background: linear-gradient(135deg, #1E8449, #27AE60); box-shadow: 0 0 4px rgba(46,204,113,0.4); border-color: #27AE60; }
+        }
+        .occupied-pulse {
+          animation: occupiedGreenPulse 2s infinite ease-in-out !important;
+          color: white !important;
+          opacity: 1 !important;
+          border: 1.5px solid #2ecc71 !important;
+        }
+        @keyframes snatchFlash {
+          0%   { transform: scale(1.25); }
+          100% { transform: scale(1); }
+        }
+        .newly-snatched {
+          animation: snatchFlash 0.3s ease-out;
+        }
+        .jackpot-shimmer {
+          position: absolute;
+          top: 0; bottom: 0;
+          left: -100%;
+          width: 60%;
+          background: linear-gradient(90deg, transparent, rgba(212,175,55,0.06), transparent);
+          animation: shimmerMove 3.5s infinite linear;
+          pointer-events: none;
+        }
+        @keyframes shimmerMove {
+          0%   { left: -80%; }
+          100% { left: 120%; }
+        }
+        @keyframes liveDot {
+          0%, 100% { opacity: 1; box-shadow: 0 0 6px #2ECC71; }
+          50%       { opacity: 0.4; box-shadow: 0 0 2px #2ECC71; }
+        }
+      `}} />
     </div>
   );
 }
