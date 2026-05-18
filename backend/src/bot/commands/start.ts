@@ -143,21 +143,14 @@ export async function handleStart(ctx: Context) {
 
     const bannerUrl = `${process.env.WEBHOOK_URL}/uploads/banner.png`;
     const mainMenuText = 
-      `<b>Welcome to Buna Bingo!</b> ☕️💰\n` +
-      `<b>እንኳን ደና መጡ!</b>\n\n` +
-      `🔥 <b>CURRENT JACKPOT: ${jackpotAmount} ETB</b> 🔥\n` +
-      `🔥 <b>ያሁኑ ጃክፖት፡ ${jackpotAmount} ብር</b> 🔥\n\n` +
+      `👋 እንኳን ወደ ቡና ቢንጎ በደህና መጡ፣ <b>${tgUser.first_name}${tgUser.username ? ` @${tgUser.username}` : ''} 🦅</b>!\n\n` +
+      `ቡና ቢንጎ ጨዋታ ደምቋል! እየተዝናኑ ለማሸነፍ ዝግጁ ኖት? 🎰☕️\n\n` +
+      `🔥 <b>CURRENT JACKPOT: ${jackpotAmount} ETB</b> 🔥\n\n` +
       `✨ "Rich Flavor, Golden Wins."\n` +
       `☕️ "የቡና ጣዕም፣ ወርቃማ ድሎች።"\n\n` +
-      `🎰 "The Perfect Blend of Luck and Luxury."\n` +
-      `☕️ "የዕድል እና የቅንጦት ፍጹም ውህደት።"\n\n` +
-      `👑 "Buna Bingo, Play, Win: The Royal Buna Way."\n` +
-      `☕️ "ቡና፣ እየጠጡ ይጫወቱ፣ ያሸንፉ፦ በንጉሳዊው የቡና መንገድ!"\n\n` +
-      `☀️🏆 "Buna Bingo — Wake Up to a Jackpot."\n` +
-      `💳🏆 "ቡና ቢንጎ — ከጃክፖት ጋር ይንቁ!"\n\n` +
       `Choose an option below:\n` +
       `ከታች አንድ አማራጭ ይምረጡ፡-\n\n` +
-      `✉️ <a href="${shareUrl}">Share Invite Link & Earn 5 ETB! (የግብዣ ሊንክዎን ያጋሩ)</a>`;
+      `✉️ <a href="${shareUrl}">Share Invite Link &amp; Earn 5 ETB! (የግብዣ ሊንክዎን ያጋሩ)</a>`;
 
     await ctx.replyWithPhoto(bannerUrl, {
       caption: mainMenuText,
