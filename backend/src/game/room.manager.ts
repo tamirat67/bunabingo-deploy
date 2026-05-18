@@ -126,7 +126,7 @@ export async function getRoomWithActiveGame(roomType: RoomType) {
     where: { type: roomType, isActive: true },
     include: {
       games: {
-        where: { status: { in: ['WAITING', 'COUNTDOWN', 'RUNNING'] } },
+        where: { status: { in: ['WAITING', 'COUNTDOWN'] } },
         include: { tickets: { select: { userId: true } } },
         orderBy: { createdAt: 'desc' },
         take: 1,

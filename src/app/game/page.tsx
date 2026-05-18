@@ -31,6 +31,16 @@ function GameContent() {
   const gameId  = sp.get('id');
   const { socket } = useSocket();
 
+  const fabBg = activeThemeKey === 'LIGHT' 
+    ? 'radial-gradient(circle at 35% 35%, #5ac8fa 0%, #007aff 70%, #0056b3 130%)'
+    : activeThemeKey === 'GRAY'
+    ? 'radial-gradient(circle at 35% 35%, #ffffff 0%, #bdbdbd 70%, #424242 130%)'
+    : `radial-gradient(circle at 35% 35%, ${T.gold} 0%, ${T.goldDk || '#8B6B1D'} 70%, ${T.header} 130%)`;
+
+  const fabBorder = activeThemeKey === 'LIGHT' ? '#0056b3' : T.gold;
+  const fabInnerRing = activeThemeKey === 'LIGHT' ? '#007aff88' : `${T.goldDk || '#8B6B1D'}88`;
+  const fabPlusColor = activeThemeKey === 'LIGHT' ? '#ffffff' : T.header;
+
   const [game,      setGame]      = useState<any>(null);
   const [tickets,   setTickets]   = useState<any[]>(() => {
     if (typeof window !== 'undefined' && gameId) {
@@ -676,29 +686,6 @@ function GameContent() {
               </motion.div>
             );
           })}
-          {/* CARD ADD FAB / Button at the bottom of right column */}
-          <motion.div 
-            whileTap={{ scale: 0.95 }}
-            onClick={() => router.push(`/tickets/select?type=${game?.room?.type || 'STANDARD'}&price=${stake}&gameId=${gameId || ''}`)}
-            style={{
-              background: 'linear-gradient(135deg, #1C0A35, #C471ED)',
-              border: `2px solid ${T.gold}`,
-              borderRadius: '16px',
-              padding: '12.5px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              color: 'white',
-              fontWeight: '900',
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(196, 113, 237, 0.3)',
-              marginTop: '10px',
-              userSelect: 'none'
-            }}
-          >
-            <Plus size={18} /> CARD ADD / ካርቴላ ጨምር
-          </motion.div>
           {tickets.length === 0 && <div style={{ textAlign: 'center', color: T.brown, padding: '40px' }}>Fetching cards...</div>}
         </div>
       </div>
@@ -717,15 +704,15 @@ function GameContent() {
           right: '20px', 
           width: '64px',
           height: '64px',
-          background: `radial-gradient(circle at 35% 35%, ${T.gold} 0%, ${T.goldDk || '#8B6B1D'} 100%)`, 
+          background: fabBg, 
           borderRadius: '50%', 
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 200, 
           cursor: 'pointer', 
-          border: `2px solid ${T.gold}`,
-          boxShadow: `0 8px 24px rgba(0, 0, 0, 0.35), inset 0 2px 5px rgba(255, 255, 255, 0.45), inset 0 -3px 8px rgba(0, 0, 0, 0.45)`,
+          border: `2px solid ${fabBorder}`,
+          boxShadow: `0 10px 28px rgba(0, 0, 0, 0.4), inset 0 3px 6px rgba(255, 255, 255, 0.5), inset 0 -3px 8px rgba(0, 0, 0, 0.5)`,
           userSelect: 'none'
         }}
       >
@@ -734,19 +721,19 @@ function GameContent() {
           width: '82%',
           height: '82%',
           borderRadius: '50%',
-          border: `1.5px solid ${T.goldDk || '#8B6B1D'}88`,
+          border: `1.5px solid ${fabInnerRing}`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          boxShadow: `inset 0 2.5px 3px rgba(255, 255, 255, 0.3), inset 0 -2.5px 3px rgba(0, 0, 0, 0.25)`,
+          boxShadow: `inset 0 3px 4px rgba(255, 255, 255, 0.35), inset 0 -3px 4px rgba(0, 0, 0, 0.3)`,
           position: 'relative'
         }}>
           {/* Central Plus Icon (using Lucide Plus) */}
           <Plus 
             size={28} 
-            strokeWidth={3.8} 
+            strokeWidth={4.2} 
             style={{ 
-              color: T.header, 
+              color: fabPlusColor, 
               filter: 'drop-shadow(0px 2.5px 2px rgba(0,0,0,0.35))' 
             }} 
           />

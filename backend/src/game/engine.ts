@@ -20,6 +20,7 @@ interface ActiveGame {
   secondsRemaining?: number;
   numberPool: number[];
   tickets?: any[];
+  ticketCount?: number;
 }
 
 const activeGames = new Map<string, ActiveGame>();
@@ -63,8 +64,11 @@ export async function startCountdown(gameId: string, playerCount: number): Promi
       drawnNumbers: [],
       numberPool: buildNumberPool(),
       secondsRemaining: seconds,
+      ticketCount: playerCount,
     };
     activeGames.set(gameId, existing);
+  } else {
+    existing.ticketCount = playerCount;
   }
 
   existing.secondsRemaining = seconds;
@@ -82,12 +86,12 @@ export async function startCountdown(gameId: string, playerCount: number): Promi
     if (existing!.secondsRemaining! > 0) {
       existing!.secondsRemaining!--;
       
-      // Get current ticket count for "players count" display
-      const game = await prisma.game.findUnique({
-        where: { id: gameId },
-        include: { tickets: true }
-      });
-      const currentTicketCount = game?.tickets.length || 0;
+      // Get current ticket count from in-memory cache, falling back to db COUNT if undefined
+      let currentTicketCount = existing!.ticketCount;
+      if (currentTicketCount === undefined) {
+        currentTicketCount = await prisma.ticket.count({ where: { gameId } });
+        existing!.ticketCount = currentTicketCount;
+      }
 
       logger.info(`[Game ${gameId}] Countdown tick: ${existing!.secondsRemaining}s, Players: ${currentTicketCount}`);
 
@@ -779,20 +783,11 @@ export async function joinGame(
   if (numTickets === 0) throw new Error('No cards selected');
   if (numTickets > 5) throw new Error('Maximum of 5 cards allowed per player');
   
-  // Check if any cards are already taken by other users in this game
-  const occupiedTickets = await prisma.ticket.findMany({
-    where: { 
-      gameId,
-      userId: { not: userId } 
-    },
-    select: { card: true }
-  });
-  const takenIds = occupiedTickets.map(t => (t.card as any).id);
-  const duplicates = cardIds.filter(id => takenIds.includes(id));
-  if (duplicates.length > 0) {
-    throw new Error(`Cartela(s) #${duplicates.join(', #')} are already taken by another player!`);
+  const uniqueCardIds = new Set(cardIds);
+  if (uniqueCardIds.size !== numTickets) {
+    throw new Error('Duplicate card selection is not allowed!');
   }
-
+  
   // Validate and prepare cards
   const preparedCards: { id: number, pattern: BingoCard }[] = [];
   for (const cardId of cardIds) {
@@ -828,10 +823,30 @@ export async function joinGame(
 
   // ─── Perform everything in a SINGLE transaction for speed and atomicity ───
   const { tickets, playerCount, totalPrize, currentTicketCount } = await prisma.$transaction(async (tx) => {
-    // 1. Clear existing tickets for this user in this game
+    // 1. Acquire a write-lock on the Game row to serialize concurrent ticket purchases for this game
+    await tx.game.update({
+      where: { id: gameId },
+      data: { status: game.status }
+    });
+
+    // 2. Check duplicate card selections inside the locked transaction
+    const occupiedTickets = await tx.ticket.findMany({
+      where: { 
+        gameId,
+        userId: { not: userId } 
+      },
+      select: { card: true }
+    });
+    const takenIds = occupiedTickets.map(t => (t.card as any).id);
+    const duplicates = cardIds.filter(id => takenIds.includes(id));
+    if (duplicates.length > 0) {
+      throw new Error(`Cartela(s) #${duplicates.join(', #')} are already taken by another player!`);
+    }
+
+    // 3. Clear existing tickets for this user in this game
     await tx.ticket.deleteMany({ where: { userId, gameId } });
 
-    // 2. Create NEW Tickets inside a single Bulk INSERT query for maximum latency optimization!
+    // 4. Create NEW Tickets inside a single Bulk INSERT query for maximum latency optimization!
     await tx.ticket.createMany({
       data: preparedCards.map(c => ({
         userId,
@@ -841,19 +856,19 @@ export async function joinGame(
       }))
     });
 
-    // 3. Update Room player count (for lobby display)
+    // 5. Update Room player count (for lobby display)
     await tx.room.update({
       where: { id: game.roomId },
       data: { currentPlayers: { increment: numTickets } }
     });
 
-    // 4. Fetch all tickets for this game in a single query
+    // 6. Fetch all tickets for this game in a single query
     const allTickets = await tx.ticket.findMany({ where: { gameId } });
     const uniqueUsers = new Set(allTickets.map(t => t.userId));
     const pCount = uniqueUsers.size;
     const tCount = allTickets.length;
 
-    // 5. Calculate & Update prize pool
+    // 7. Calculate & Update prize pool
     const houseEdgePercent = config.game.houseEdgePercent;
     const totalSales = new Decimal(unitPrice).mul(tCount);
     const houseEdge = totalSales.mul(houseEdgePercent).div(100);
@@ -876,6 +891,9 @@ export async function joinGame(
 
   // ─── Broadcast Updates (Outside Transaction) ───────────────────────────
   const currentState = activeGames.get(gameId);
+  if (currentState) {
+    currentState.ticketCount = currentTicketCount;
+  }
   try {
     const endTime = currentState?.secondsRemaining ? (Date.now() + currentState.secondsRemaining * 1000) : undefined;
     

@@ -286,7 +286,7 @@ export async function getPlayersUnderAgent(agentId: string, page = 1, limit = 20
     }),
     prisma.user.count({ where: { referredBy: agentId } }),
   ]);
-  return { players, total, pages: Math.ceil(total / limit) };
+  return { players, users: players, total, pages: Math.ceil(total / limit) };
 }
 
 export async function getAgents(page = 1, limit = 20) {

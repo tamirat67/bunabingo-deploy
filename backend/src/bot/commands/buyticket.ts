@@ -91,10 +91,11 @@ export async function handleJoinRoom(ctx: Context, roomType: string) {
       return;
     }
 
-    const activeGame = room.games[0];
+    let activeGame = room.games[0];
     if (!activeGame) {
-      await ctx.answerCbQuery('❌ No active game. Please try again.');
-      return;
+      const { createWaitingGame } = await import('../../game/engine');
+      const newGameId = await createWaitingGame(room.id);
+      activeGame = { id: newGameId } as any;
     }
 
     const { tickets, cards } = await joinGame(user.id, activeGame.id);
