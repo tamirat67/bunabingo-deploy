@@ -31,15 +31,10 @@ function GameContent() {
   const gameId  = sp.get('id');
   const { socket } = useSocket();
 
-  const fabBg = activeThemeKey === 'LIGHT' 
-    ? 'radial-gradient(circle at 35% 35%, #5ac8fa 0%, #007aff 70%, #0056b3 130%)'
-    : activeThemeKey === 'GRAY'
-    ? 'radial-gradient(circle at 35% 35%, #ffffff 0%, #bdbdbd 70%, #424242 130%)'
-    : `radial-gradient(circle at 35% 35%, ${T.gold} 0%, ${T.goldDk || '#8B6B1D'} 70%, ${T.header} 130%)`;
-
-  const fabBorder = activeThemeKey === 'LIGHT' ? '#0056b3' : T.gold;
-  const fabInnerRing = activeThemeKey === 'LIGHT' ? '#007aff88' : `${T.goldDk || '#8B6B1D'}88`;
-  const fabPlusColor = activeThemeKey === 'LIGHT' ? '#ffffff' : T.header;
+  const fabBg = 'radial-gradient(circle at 35% 35%, #34c759 0%, #248a3d 70%, #155224 130%)';
+  const fabBorder = '#155224';
+  const fabInnerRing = '#34c75988';
+  const fabPlusColor = '#ffffff';
 
   const [game,      setGame]      = useState<any>(null);
   const [tickets,   setTickets]   = useState<any[]>(() => {
