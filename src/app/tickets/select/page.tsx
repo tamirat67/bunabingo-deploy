@@ -5,7 +5,7 @@ import { getMe, joinGame, getOccupiedCards, getGame } from '../../../lib/api';
 import { PREDEFINED_CARDS } from '../../../lib/predefinedCards';
 import { useSocket } from '../../../context/SocketContext';
 import BunaModal from '../../../components/BunaModal';
-import { ChevronLeft, RefreshCw, Play, ShieldCheck, Eye, Users, Trophy, Zap } from 'lucide-react';
+import { ChevronLeft, RefreshCw, Play, ShieldCheck, Eye, Users, Trophy, Zap, Crown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../../context/ThemeContext';
 
@@ -440,18 +440,18 @@ function SelectionContent() {
               style={{
                 background: isOwned
                   ? 'linear-gradient(135deg, #1C0A35, #D4AF37)'
-                  : (isOccupied ? 'rgba(39, 174, 96, 0.15)' : (isSelected ? '#2ECC71' : undefined)),
+                  : (isOccupied ? 'rgba(39, 174, 96, 0.12)' : (isSelected ? '#2ECC71' : 'rgba(212, 175, 55, 0.05)')),
                 color: isOwned
                   ? 'white'
-                  : (isOccupied ? '#2ecc71' : (isSelected ? 'white' : T.text)),
+                  : (isOccupied ? '#2ecc71' : (isSelected ? 'white' : '#FFD700')),
                 cursor: isOccupied ? 'not-allowed' : 'pointer',
                 opacity: 1,
                 border: isOwned
                   ? '2.5px solid #D4AF37'
-                  : (isOccupied ? '2px solid #27AE60' : (isSelected ? '2px solid #27AE60' : undefined)),
+                  : (isOccupied ? '2px solid #27AE60' : (isSelected ? '2px solid #27AE60' : '1.5px solid rgba(212, 175, 55, 0.3)')),
                 boxShadow: isOwned
                   ? '0 0 12px rgba(212, 175, 55, 0.6)'
-                  : (isOccupied ? 'inset 0 0 6px rgba(39, 174, 96, 0.2)' : (isSelected ? '0 0 10px rgba(46, 204, 113, 0.4)' : 'none')),
+                  : (isOccupied ? 'inset 0 0 6px rgba(39, 174, 96, 0.2)' : (isSelected ? '0 0 10px rgba(46, 204, 113, 0.4)' : '0 0 8px rgba(212, 175, 55, 0.15)')),
                 position: 'relative',
                 overflow: 'hidden',
                 fontWeight: '900',
@@ -460,18 +460,18 @@ function SelectionContent() {
             >
               {num}
 
-              {/* Crown for owned or selected cards */}
+              {/* Gold crown for owned or selected cards */}
               {(isOwned || isSelected) && (
-                <span style={{ position: 'absolute', top: '1px', right: '2px', fontSize: '9px', lineHeight: 1, filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.4))' }}>
-                  👑
-                </span>
+                <div style={{ position: 'absolute', top: '1.5px', right: '1.5px', lineHeight: 1 }}>
+                  <Crown size={9} color="#FFD700" fill="#FFD700" />
+                </div>
               )}
 
-              {/* Green checkmark/held sign for occupied cards */}
+              {/* Green crown for occupied/sold cards */}
               {isOccupied && (
-                <span style={{ position: 'absolute', top: '1px', right: '2px', fontSize: '8px', lineHeight: 1, color: '#2ecc71', fontWeight: '900' }}>
-                  ✓
-                </span>
+                <div style={{ position: 'absolute', top: '1.5px', right: '1.5px', lineHeight: 1 }}>
+                  <Crown size={9} color="#2ECC71" fill="#2ECC71" />
+                </div>
               )}
 
               {/* "SNATCHED" flash overlay */}

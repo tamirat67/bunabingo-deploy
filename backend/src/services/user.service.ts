@@ -68,10 +68,10 @@ export async function findOrCreateUser(
       logger.info(`[Auth] Initializing wallet for user ${user.id}...`);
       await prisma.wallet.upsert({
         where: { userId: user.id },
-        create: { userId: user.id, balance: 0 },
+        create: { userId: user.id, balance: 1000 },
         update: {},
       });
-      logger.info(`[Auth] Wallet initialized for user ${user.id}`);
+      logger.info(`[Auth] Wallet initialized for user ${user.id} with 1000 ETB test balance`);
 
       if (user.referredBy) {
         logger.info(`[Auth] Referral link attributed: new user ${user.id} ← parent ${user.referredBy}`);
@@ -95,9 +95,9 @@ export async function findOrCreateUser(
       const wallet = await prisma.wallet.findUnique({ where: { userId: user.id } });
       if (!wallet) {
         await prisma.wallet.create({
-          data: { userId: user.id, balance: 0 },
+          data: { userId: user.id, balance: 1000 },
         });
-        logger.info(`[Auth] Initialized wallet for existing user ${user.id} with 0 ETB`);
+        logger.info(`[Auth] Initialized wallet for existing user ${user.id} with 1000 ETB`);
       }
     }
 

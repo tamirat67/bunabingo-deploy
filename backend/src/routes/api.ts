@@ -112,15 +112,16 @@ router.get('/me', async (req: Request, res: Response) => {
 
     if (!user) return res.status(401).json({ error: 'Not registered' });
 
-    // Ensure wallet exists with test bankroll
+    // Ensure wallet exists with test bankroll (1000 ETB for testing purposes)
     let wallet = await prisma.wallet.findUnique({ where: { userId: user.id } });
     if (!wallet) {
-      wallet = await prisma.wallet.create({ data: { userId: user.id, balance: 0 } });
-    } else if (Number(wallet.balance) < 0) {
+      wallet = await prisma.wallet.create({ data: { userId: user.id, balance: 1000 } });
+    } else if (Number(wallet.balance) < 1000) {
       wallet = await prisma.wallet.update({
         where: { userId: user.id },
-        data: { balance: 0 }
+        data: { balance: 1000 }
       });
+      logger.info(`[Test] Automatically topped up user ${user.id} to 1000 ETB for testing`);
     }
 
     const jackpot = await getJackpot();
