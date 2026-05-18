@@ -700,7 +700,7 @@ function GameContent() {
         onClick={() => router.push(`/tickets/select?type=${game?.room?.type || 'STANDARD'}&price=${stake}&gameId=${gameId || ''}`)} 
         style={{ 
           position: 'fixed', 
-          bottom: '30px', 
+          bottom: '100px', 
           right: '20px', 
           width: '64px',
           height: '64px',
@@ -709,7 +709,7 @@ function GameContent() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 200, 
+          zIndex: 9999, 
           cursor: 'pointer', 
           border: `2px solid ${fabBorder}`,
           boxShadow: `0 10px 28px rgba(0, 0, 0, 0.4), inset 0 3px 6px rgba(255, 255, 255, 0.5), inset 0 -3px 8px rgba(0, 0, 0, 0.5)`,
