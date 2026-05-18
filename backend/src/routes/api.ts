@@ -383,6 +383,7 @@ router.post('/games/:gameId/leave', async (req: Request, res: Response) => {
 router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
   const { type } = req.params;
   const user = (req as any).user;
+  try {
     const gameIdFromQuery = req.query.gameId as string;
     let gameId: string | undefined;
     let room: any;
