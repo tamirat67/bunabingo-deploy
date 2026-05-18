@@ -15,15 +15,15 @@ export async function handleBuyTicket(ctx: Context) {
 
   try {
     const user = await getUserByTelegramId(tgUser.id);
-    if (!user) return ctx.reply('❌ Please /start first to register.');
+    if (!user) return ctx.reply('❌ እባክዎ አስቀድመው /start ን በመጫን ይመዝገቡ።');
     
     if (!user.phoneNumber) {
       return ctx.reply(
-        `📱 <b>የስልክ ማረጋገጫ ያስፈልጋል (Phone Verification Required)</b>\n\nጨዋታ ለመቀላቀል እባክዎ ከታች ያለውን ቁልፍ በመጫን ስልክዎን ያጋሩ።`,
+        `📱 <b>የስልክ ማረጋገጫ ያስፈልጋል</b>\n\nጨዋታ ለመቀላቀል እባክዎ ከታች ያለውን ቁልፍ በመጫን ስልክዎን ያጋሩ።`,
         {
           parse_mode: 'HTML',
           ...Markup.keyboard([
-            [Markup.button.contactRequest('📱 ስልክ ያጋሩ (Share Phone Number)')]
+            [Markup.button.contactRequest('📱 ስልክ ያጋሩ')]
           ]).oneTime().resize()
         }
       );
@@ -58,7 +58,7 @@ export async function handleBuyTicket(ctx: Context) {
       }
     );
   } catch (err) {
-    await ctx.reply('❌ Error loading rooms. Please try again.');
+    await ctx.reply('❌ ክፍሎችን መጫን አልተቻለም። እባክዎ እንደገና ይሞክሩ።');
   }
 }
 
@@ -67,9 +67,9 @@ export async function handleJoinRoom(ctx: Context, roomType: string) {
 
   try {
     const user = await getUserByTelegramId(tgUser.id);
-    if (!user) return ctx.answerCbQuery('❌ Please /start first.');
-    if (user.status === 'BANNED') return ctx.answerCbQuery('❌ Account banned.');
-    if (user.status === 'SUSPENDED') return ctx.answerCbQuery('❌ Account suspended.');
+    if (!user) return ctx.answerCbQuery('❌ እባክዎ አስቀድመው /start ን በመጫን ይመዝገቡ።');
+    if (user.status === 'BANNED') return ctx.answerCbQuery('❌ መለያዎ ታግዷል።');
+    if (user.status === 'SUSPENDED') return ctx.answerCbQuery('❌ መለያዎ በጊዜያዊነት ቆሟል።');
     
     if (!user.phoneNumber) {
       await ctx.answerCbQuery('❌ የስልክ ማረጋገጫ ያስፈልጋል!');
@@ -78,7 +78,7 @@ export async function handleJoinRoom(ctx: Context, roomType: string) {
         {
           parse_mode: 'HTML',
           ...Markup.keyboard([
-            [Markup.button.contactRequest('📱 ስልክ ያጋሩ (Share Phone Number)')]
+            [Markup.button.contactRequest('📱 ስልክ ያጋሩ')]
           ]).oneTime().resize()
         }
       );
@@ -87,7 +87,7 @@ export async function handleJoinRoom(ctx: Context, roomType: string) {
     const { getRoomWithActiveGame } = await import('../../game/room.manager');
     const room = await getRoomWithActiveGame(roomType as any);
     if (!room) {
-      await ctx.answerCbQuery('❌ Room not found.');
+      await ctx.answerCbQuery('❌ ክፍሉ አልተገኘም።');
       return;
     }
 
@@ -120,11 +120,11 @@ export async function handleJoinRoom(ctx: Context, roomType: string) {
       {
         parse_mode: 'Markdown',
         ...Markup.inlineKeyboard([
-          [Markup.button.webApp('🎮 በቀጥታ ይጫወቱ (Play Live)', `${config.bot.miniAppUrl}/game?id=${activeGame.id}`)],
+          [Markup.button.webApp('🎮 በቀጥታ ይጫወቱ', `${config.bot.miniAppUrl}/game?id=${activeGame.id}`)],
         ]),
       }
     );
   } catch (err: any) {
-    await ctx.answerCbQuery(`❌ ${err.message || 'Error joining game'}`);
+    await ctx.answerCbQuery(`❌ ${err.message || 'ጨዋታውን መቀላቀል አልተቻለም'}`);
   }
 }

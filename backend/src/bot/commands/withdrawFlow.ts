@@ -5,28 +5,27 @@ import { createWithdrawalRequest } from '../../services/withdrawal.service';
 import { logger } from '../../lib/logger';
 import { config } from '../../config';
 
-const CANCEL_BTN = [[Markup.button.callback('❌ ሰርዝ (Cancel)', 'cmd_withdraw_cancel')]];
+const CANCEL_BTN = [[Markup.button.callback('❌ ሰርዝ', 'cmd_withdraw_cancel')]];
 
 export async function handleWithdrawStart(ctx: Context) {
   if (ctx.callbackQuery) await ctx.answerCbQuery();
 
   const tgUser = ctx.from!;
   const user = await getUserByTelegramId(tgUser.id);
-  if (!user) return ctx.reply('❌ እባክዎ መጀመሪያ /start ይበሉ። (Please /start first.)');
+  if (!user) return ctx.reply('❌ እባክዎ አስቀድመው /start ን በመጫን ይመዝገቡ።');
 
   const balance = Number((user as any).wallet?.balance ?? 0);
   if (balance < config.withdrawal.minAmount) {
-    return ctx.reply(`❌ በቂ ሂሳብ የለዎትም። ዝቅተኛው የማውጫ መጠን ${config.withdrawal.minAmount} ብር ነው። (Insufficient balance. Minimum withdrawal is ${config.withdrawal.minAmount} ETB.)`);
+    return ctx.reply(`❌ በቂ ሂሳብ የለዎትም። ዝቅተኛው የማውጫ መጠን ${config.withdrawal.minAmount} ብር ነው።`);
   }
 
   setSession(tgUser.id, { type: 'WITHDRAWAL', step: 'AWAITING_AMOUNT' });
 
   await ctx.reply(
-    `💸 *Withdrawal Request / የገንዘብ ማውጫ ጥያቄ*\n\n` +
-    `እንዲወጣልዎት የሚፈልጉትን የገንዘብ መጠን ያስገቡ:\n` +
-    `_(Enter the amount you want to withdraw in ETB)_\n\n` +
-    `ያለዎት ሂሳብ (Available): *${balance.toFixed(2)} ETB*\n` +
-    `ዝቅተኛው መጠን (Minimum): *${config.withdrawal.minAmount} ETB*`,
+    `💸 *የገንዘብ ማውጫ ጥያቄ*\n\n` +
+    `እንዲወጣልዎት የሚፈልጉትን የገንዘብ መጠን በብር (ETB) ያስገቡ:\n\n` +
+    `ያለዎት ሂሳብ፡ *${balance.toFixed(2)} ብር (ETB)*\n` +
+    `ዝቅተኛው መጠን፡ *${config.withdrawal.minAmount} ብር (ETB)*`,
     {
       parse_mode: 'Markdown',
       ...Markup.inlineKeyboard(CANCEL_BTN),
@@ -37,7 +36,7 @@ export async function handleWithdrawStart(ctx: Context) {
 export async function handleWithdrawCancel(ctx: Context) {
   if (ctx.callbackQuery) await ctx.answerCbQuery();
   clearSession(ctx.from!.id);
-  await ctx.reply('❌ የገንዘብ ማውጫው ተሰርዟል። (Withdrawal cancelled.)');
+  await ctx.reply('❌ የገንዘብ ማውጫው ተሰርዟል።');
 }
 
 export async function handleWithdrawMessage(ctx: Context): Promise<boolean> {
@@ -52,14 +51,14 @@ export async function handleWithdrawMessage(ctx: Context): Promise<boolean> {
   if (session.step === 'AWAITING_AMOUNT') {
     const amount = parseFloat(text);
     if (isNaN(amount) || amount < config.withdrawal.minAmount) {
-      await ctx.reply(`⚠️ የተሳሳተ መጠን። ዝቅተኛው፡ ${config.withdrawal.minAmount} ብር። (Invalid amount. Minimum: ${config.withdrawal.minAmount} ETB.)`, {
+      await ctx.reply(`⚠️ የተሳሳተ የገንዘብ መጠን። ዝቅተኛው፡ ${config.withdrawal.minAmount} ብር።`, {
         ...Markup.inlineKeyboard(CANCEL_BTN),
       });
       return true;
     }
 
     setSession(tgUser.id, { ...session, step: 'AWAITING_BANK', amount });
-    await ctx.reply(`🏦 እባክዎ የባንክ ስም ያስገቡ (ለምሳሌ CBE, Telebirr, M-PESA):\n(Enter your Bank Name)`, {
+    await ctx.reply(`🏦 እባክዎ የባንክ ስም ያስገቡ (ለምሳሌ CBE, Telebirr, M-PESA)፦`, {
       ...Markup.inlineKeyboard(CANCEL_BTN),
     });
     return true;
@@ -69,7 +68,7 @@ export async function handleWithdrawMessage(ctx: Context): Promise<boolean> {
   if (session.step === 'AWAITING_BANK') {
     if (!text) return true;
     setSession(tgUser.id, { ...session, step: 'AWAITING_ACCOUNT', bankName: text });
-    await ctx.reply(`💳 እባክዎ የሂሳብ ቁጥርዎን (Account Number) ያስገቡ:`, {
+    await ctx.reply(`💳 እባክዎ የሂሳብ ቁጥርዎን ያስገቡ:`, {
       ...Markup.inlineKeyboard(CANCEL_BTN),
     });
     return true;
@@ -79,7 +78,7 @@ export async function handleWithdrawMessage(ctx: Context): Promise<boolean> {
   if (session.step === 'AWAITING_ACCOUNT') {
     if (!text) return true;
     setSession(tgUser.id, { ...session, step: 'AWAITING_NAME', accountNumber: text });
-    await ctx.reply(`👤 እባክዎ የባለቤቱን ስም (Account Holder Name) ያስገቡ:`, {
+    await ctx.reply(`👤 እባክዎ የባለቤቱን ሙሉ ስም ያስገቡ:`, {
       ...Markup.inlineKeyboard(CANCEL_BTN),
     });
     return true;
@@ -100,16 +99,16 @@ export async function handleWithdrawMessage(ctx: Context): Promise<boolean> {
       await createWithdrawalRequest(user.id, amount!, bankName!, accountNumber!, accountName);
 
       await ctx.reply(
-        `✅ *የገንዘብ ማውጫ ጥያቄዎ ተልኳል! (Withdrawal Submitted)*\n\n` +
-        `💰 መጠን (Amount): *${amount!.toFixed(2)} ETB*\n` +
-        `🏦 ባንክ (Bank): *${bankName}*\n` +
-        `📋 ሁኔታ (Status): *በሂደት ላይ (Awaiting Approval)*\n\n` +
+        `✅ *የገንዘብ ማውጫ ጥያቄዎ ተልኳል!*\n\n` +
+        `💰 መጠን፡ *${amount!.toFixed(2)} ብር (ETB)*\n` +
+        `🏦 ባንክ፡ *${bankName}*\n` +
+        `📋 ሁኔታ፡ *በሂደት ላይ*\n\n` +
         `ጥያቄዎ ለኤጀንቱ ተልኳል። ሲረጋገጥ እና ክፍያ ሲፈጸም መልዕክት ይደርስዎታል። 🙏`,
         { parse_mode: 'Markdown' }
       );
     } catch (err: any) {
       logger.error('[Withdrawal] Submit error:', err);
-      await ctx.reply(`❌ ስህተት (Error): ${err.message || 'Something went wrong.'}`);
+      await ctx.reply(`❌ ስህተት፡ ${err.message || 'ችግር አጋጥሟል።'}`);
     }
     return true;
   }

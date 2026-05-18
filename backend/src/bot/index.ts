@@ -175,7 +175,7 @@ export function createBot(): Telegraf {
     const tgUser  = ctx.from!;
 
     if (contact.user_id !== tgUser.id) {
-      return ctx.reply('❌ Please share your own contact number.');
+      return ctx.reply('❌ እባክዎ የእርስዎን የራስ ስልክ ቁጥር ያጋሩ።');
     }
 
     try {
@@ -183,7 +183,7 @@ export function createBot(): Telegraf {
       const { user, referrer } = await updateUserPhone(tgUser.id, contact.phone_number);
       logger.info(`[Bot] Phone verified for user ${tgUser.id}: ${contact.phone_number}`);
 
-      await ctx.reply('✅ ስልክ ቁጥርዎ በተሳካ ሁኔታ ተረጋግጧል! (Phone number verified successfully!)', Markup.keyboard([
+      await ctx.reply('✅ ስልክ ቁጥርዎ በተሳካ ሁኔታ ተረጋግጧል!', Markup.keyboard([
         ['🎮 ይጫወቱ'],
         ['💰 ሂሳብ', '📥 ገቢ ለማድረግ'],
         ['📤 ወጪ ለማድረግ', '🔗 ጋብዝ & አግኝ'],
@@ -196,9 +196,9 @@ export function createBot(): Telegraf {
         try {
           await ctx.telegram.sendMessage(
             Number(referrer.telegramId),
-            `🎉 <b>Referral Bonus Earned!</b>\n\n` +
-            `<b>${user.firstName}</b> just joined Buna Bingo using your invite link.\n\n` +
-            `💰 <b>+5.00 ETB</b> has been added to your wallet! ☕️`,
+            `🎉 <b>የግብዣ ቦነስ አግኝተዋል!</b>\n\n` +
+            `<b>${user.firstName}</b> የእርስዎን የግብዣ ሊንክ በመጠቀም ቡና ቢንጎን ተቀላቅለዋል።\n\n` +
+            `💰 <b>+5.00 ብር (ETB)</b> ወደ ቦርሳዎ ገቢ ተደርጓል! ☕️`,
             { parse_mode: 'HTML' }
           );
           logger.info(`[Referral] Notified referrer ${referrer.id} of 5 ETB bonus`);
@@ -211,7 +211,7 @@ export function createBot(): Telegraf {
       return handleStart(ctx); // Show main menu
     } catch (err) {
       logger.error('[Bot] Error saving phone number:', err);
-      return ctx.reply('❌ Failed to save phone number. Please try again.');
+      return ctx.reply('❌ ስልክ ቁጥርዎን ማስቀመጥ አልተቻለም። እባክዎ እንደገና ይሞክሩ።');
     }
   });
 

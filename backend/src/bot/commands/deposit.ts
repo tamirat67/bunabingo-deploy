@@ -11,7 +11,7 @@ export async function handleDeposit(ctx: Context) {
 
   try {
     const user = await getUserByTelegramId(tgUser.id);
-    if (!user) return ctx.reply('❌ Please /start first to register.');
+    if (!user) return ctx.reply('❌ እባክዎ አስቀድመው /start ን በመጫን ይመዝገቡ።');
 
     if (ctx.callbackQuery) await ctx.answerCbQuery();
 
@@ -19,7 +19,7 @@ export async function handleDeposit(ctx: Context) {
     const { handleDepositManualStart } = await import('./depositFlow');
     await handleDepositManualStart(ctx);
   } catch (err) {
-    await ctx.reply('❌ Error. Please try again.');
+    await ctx.reply('❌ ችግር አጋጥሟል፣ እባክዎ እንደገና ይሞክሩ።');
   }
 }
 

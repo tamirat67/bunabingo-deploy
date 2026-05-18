@@ -7,7 +7,7 @@ export async function handleMyCards(ctx: Context) {
   const tgUser = ctx.from!;
   try {
     const user = await getUserByTelegramId(tgUser.id);
-    if (!user) return ctx.reply('❌ Please /start first.');
+    if (!user) return ctx.reply('❌ እባክዎ አስቀድመው /start ን በመጫን ይመዝገቡ።');
 
     const tickets = await prisma.ticket.findMany({
       where: { userId: user.id },
@@ -21,19 +21,19 @@ export async function handleMyCards(ctx: Context) {
 
     if (!tickets.length) {
       return ctx.reply(
-        `🃏 *My Cards*\n\nYou have no tickets yet.\nBuy one with /buyticket!`,
+        `🃏 *የእኔ ካርዶች*\n\nእስካሁን ምንም ቲኬት የለዎትም።\nበ /buyticket መግዛት ይችላሉ!`,
         { parse_mode: 'Markdown' }
       );
     }
 
-    let msg = `🃏 *My Recent Cards*\n\n`;
+    let msg = `🃏 *የቅርብ ጊዜ ካርዶች*\n\n`;
     for (const ticket of tickets) {
       const status =
-        ticket.game.status === 'RUNNING' ? '🟢 LIVE' :
-        ticket.game.status === 'FINISHED' ? (ticket.isWinner ? '🏆 WON' : '❌ Lost') :
-        ticket.game.status === 'WAITING' ? '⏳ Waiting' :
-        ticket.game.status === 'COUNTDOWN' ? '⏱ Starting' :
-        '🚫 Cancelled';
+        ticket.game.status === 'RUNNING' ? '🟢 የቀጥታ ጨዋታ' :
+        ticket.game.status === 'FINISHED' ? (ticket.isWinner ? '🏆 አሸንፈዋል' : '❌ አልደረሰዎትም') :
+        ticket.game.status === 'WAITING' ? '⏳ በመጠባበቅ ላይ' :
+        ticket.game.status === 'COUNTDOWN' ? '⏱ ሊጀምር ነው' :
+        '🚫 ተሰርዟል';
 
       msg += `🎮 *${ticket.game.room.type}* — ${status}\n`;
       msg += `📅 ${ticket.purchasedAt.toLocaleDateString()}\n\n`;
@@ -42,11 +42,11 @@ export async function handleMyCards(ctx: Context) {
     await ctx.reply(msg, {
       parse_mode: 'Markdown',
       ...Markup.inlineKeyboard([
-        [Markup.button.webApp('🃏 View All Cards', `${config.bot.miniAppUrl}/tickets`)],
+        [Markup.button.webApp('🃏 ሁሉንም ካርዶች ይመልከቱ', `${config.bot.miniAppUrl}/tickets`)],
       ]),
     });
   } catch {
-    await ctx.reply('❌ Error loading cards.');
+    await ctx.reply('❌ ካርዶችን መጫን አልተቻለም።');
   }
 }
 
@@ -54,7 +54,7 @@ export async function handleResults(ctx: Context) {
   const tgUser = ctx.from!;
   try {
     const user = await getUserByTelegramId(tgUser.id);
-    if (!user) return ctx.reply('❌ Please /start first.');
+    if (!user) return ctx.reply('❌ እባክዎ አስቀድመው /start ን በመጫን ይመዝገቡ።');
 
     const recentWins = await prisma.winner.findMany({
       where: { userId: user.id },
@@ -70,31 +70,31 @@ export async function handleResults(ctx: Context) {
       take: 5,
     });
 
-    let msg = `📊 *My Results*\n\n`;
+    let msg = `📊 *ውጤቶቼ*\n\n`;
 
     if (recentWins.length) {
-      msg += `🏆 *Recent Wins:*\n`;
+      msg += `🏆 *የቅርብ ጊዜ አሸናፊዎች:*\n`;
       for (const w of recentWins) {
-        msg += `• ${w.winMode} — +${Number(w.prizeAmount).toFixed(2)} ETB (${w.game.room.type})\n`;
+        msg += `• ${w.winMode} — +${Number(w.prizeAmount).toFixed(2)} ብር (ETB) (${w.game.room.type})\n`;
       }
       msg += '\n';
     } else {
-      msg += `🏆 No wins yet — keep playing!\n\n`;
+      msg += `🏆 እስካሁን ምንም ድል የለም — መጫወትዎን ይቀጥሉ!\n\n`;
     }
 
-    msg += `🎮 *Recent Games:*\n`;
+    msg += `🎮 *የቅርብ ጊዜ ጨዋታዎች:*\n`;
     for (const t of recentGames) {
-      const result = t.isWinner ? '🏆 Won' : t.game.status === 'FINISHED' ? '❌ Lost' : '⏳ Active';
+      const result = t.isWinner ? '🏆 አሸንፈዋል' : t.game.status === 'FINISHED' ? '❌ አልደረሰዎትም' : '⏳ ገቢር';
       msg += `• ${t.game.room.type} — ${result}\n`;
     }
 
     await ctx.reply(msg, {
       parse_mode: 'Markdown',
       ...Markup.inlineKeyboard([
-        [Markup.button.webApp('📊 Full History', `${config.bot.miniAppUrl}/history`)],
+        [Markup.button.webApp('📊 ሙሉ ታሪክ', `${config.bot.miniAppUrl}/history`)],
       ]),
     });
   } catch {
-    await ctx.reply('❌ Error fetching results.');
+    await ctx.reply('❌ ውጤቶችን ማምጣት አልተቻለም።');
   }
 }

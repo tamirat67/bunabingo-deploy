@@ -13,25 +13,25 @@ export async function handleChangeName(ctx: Context) {
     if (ctx.callbackQuery) await ctx.answerCbQuery();
 
     const user = await getUserByTelegramId(tgUser.id);
-    if (!user) return ctx.reply('❌ Please /start first to register.');
+    if (!user) return ctx.reply('❌ እባክዎ አስቀድመው /start ን በመጫን ይመዝገቡ።');
 
     setSession(tgUser.id, { type: 'CHANGE_NAME', step: 'AWAITING_NAME' });
 
     await ctx.reply(
-      `✏️ <b>Change Account Name</b>\n\n` +
-      `Current name: <b>${user.firstName}${user.lastName ? ` ${user.lastName}` : ''}</b>\n\n` +
-      `Please enter your new display name:\n` +
-      `<i>(2–32 characters, letters and spaces only)</i>`,
+      `✏️ <b>ስም መቀየሪያ</b>\n\n` +
+      `ያሁኑ ስም፦ <b>${user.firstName}${user.lastName ? ` ${user.lastName}` : ''}</b>\n\n` +
+      `እባክዎ አዲሱን ስምዎን ያስገቡ፦\n` +
+      `<i>(ከ2 እስከ 32 ቁምፊዎች፣ ፊደላት እና ክፍተቶች ብቻ)</i>`,
       {
         parse_mode: 'HTML',
         ...Markup.inlineKeyboard([
-          [Markup.button.callback('❌ Cancel', 'cmd_change_name_cancel')],
+          [Markup.button.callback('❌ ሰርዝ', 'cmd_change_name_cancel')],
         ]),
       }
     );
   } catch (err: any) {
     logger.error('[ChangeName] Error:', err);
-    await ctx.reply('❌ Something went wrong. Please try again.');
+    await ctx.reply('❌ ችግር አጋጥሟል፣ እባክዎ እንደገና ይሞክሩ።');
   }
 }
 
@@ -39,7 +39,7 @@ export async function handleChangeName(ctx: Context) {
 export async function handleChangeNameCancel(ctx: Context) {
   if (ctx.callbackQuery) await ctx.answerCbQuery();
   clearSession(ctx.from!.id);
-  await ctx.reply('❌ Name change cancelled.');
+  await ctx.reply('❌ ስም መቀየሩ ተሰርዟል።');
 }
 
 // ─── Message router ───────────────────────────────────────────────────────────
@@ -54,16 +54,16 @@ export async function handleChangeNameMessage(ctx: Context): Promise<boolean> {
   // Validate
   if (!newName || newName.length < 2 || newName.length > 32) {
     await ctx.reply(
-      '⚠️ Name must be between 2 and 32 characters. Please try again.',
-      { ...Markup.inlineKeyboard([[Markup.button.callback('❌ Cancel', 'cmd_change_name_cancel')]]) }
+      '⚠️ ስም ከ2 እስከ 32 ቁምፊዎች መሆን አለበት። እባክዎ እንደገና ይሞክሩ።',
+      { ...Markup.inlineKeyboard([[Markup.button.callback('❌ ሰርዝ', 'cmd_change_name_cancel')]]) }
     );
     return true;
   }
 
   if (!/^[\p{L}\p{M} '-]+$/u.test(newName)) {
     await ctx.reply(
-      '⚠️ Name can only contain letters, spaces, hyphens and apostrophes.',
-      { ...Markup.inlineKeyboard([[Markup.button.callback('❌ Cancel', 'cmd_change_name_cancel')]]) }
+      '⚠️ ስም ፊደላትን፣ ክፍተቶችን፣ ሰረዞችን እና ጭረቶችን ብቻ መያዝ ይችላል።',
+      { ...Markup.inlineKeyboard([[Markup.button.callback('❌ ሰርዝ', 'cmd_change_name_cancel')]]) }
     );
     return true;
   }
@@ -82,18 +82,18 @@ export async function handleChangeNameMessage(ctx: Context): Promise<boolean> {
     logger.info(`[ChangeName] User ${tgUser.id} changed name to "${newName}"`);
 
     await ctx.reply(
-      `✅ <b>Name updated successfully!</b>\n\n` +
-      `Your new display name: <b>${newName}</b>`,
+      `✅ <b>ስምዎ በተሳካ ሁኔታ ተቀይሯል!</b>\n\n` +
+      `አዲሱ ስምዎ፦ <b>${newName}</b>`,
       {
         parse_mode: 'HTML',
         ...Markup.inlineKeyboard([
-          [Markup.button.callback('🏠 Main Menu', 'cmd_start')],
+          [Markup.button.callback('🏠 ወደ ዋና ማውጫ', 'cmd_start')],
         ]),
       }
     );
   } catch (err: any) {
     logger.error('[ChangeName] DB error:', err);
-    await ctx.reply('❌ Failed to update name. Please try again.');
+    await ctx.reply('❌ ስም መቀየር አልተሳካም። እባክዎ እንደገና ይሞክሩ።');
   }
 
   return true;

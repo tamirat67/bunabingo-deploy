@@ -6,7 +6,7 @@ import { setSession, getSession, clearSession, TransferSession } from '../sessio
 import { logger } from '../../lib/logger';
 import prisma from '../../lib/prisma';
 
-const CANCEL_BTN = [[Markup.button.callback('❌ Cancel', 'cmd_transfer_cancel')]];
+const CANCEL_BTN = [[Markup.button.callback('❌ ሰርዝ', 'cmd_transfer_cancel')]];
 
 // ─── /transfer — Step 1: intro & ask for recipient ───────────────────────────
 export async function handleTransfer(ctx: Context) {
@@ -16,20 +16,20 @@ export async function handleTransfer(ctx: Context) {
     if (ctx.callbackQuery) await ctx.answerCbQuery();
 
     const user = await getUserByTelegramId(tgUser.id);
-    if (!user) return ctx.reply('❌ Please /start first to register.');
+    if (!user) return ctx.reply('❌ እባክዎ አስቀድመው /start ን በመጫን ይመዝገቡ።');
 
     const wallet  = await getOrCreateWallet(user.id);
     const balance = Number(wallet.balance);
 
     if (balance <= 0) {
       return ctx.reply(
-        `💸 <b>Transfer Funds</b>\n\n` +
-        `❌ You have no balance to transfer.\n\n` +
-        `💰 Current Balance: <b>0.00 ETB</b>`,
+        `💸 <b>ብር ማስተላለፊያ</b>\n\n` +
+        `❌ ማስተላለፍ የሚችሉት በቂ ብር በሂሳብዎ ላይ የለም።\n\n` +
+        `💰 ያሁኑ ሂሳብ፡ <b>0.00 ብር (ETB)</b>`,
         {
           parse_mode: 'HTML',
           ...Markup.inlineKeyboard([
-            [Markup.button.callback('💵 Deposit Now', 'cmd_deposit')],
+            [Markup.button.callback('💵 ብር ያስገቡ', 'cmd_deposit')],
           ]),
         }
       );
@@ -38,10 +38,10 @@ export async function handleTransfer(ctx: Context) {
     setSession(tgUser.id, { type: 'TRANSFER', step: 'AWAITING_RECIPIENT' });
 
     await ctx.reply(
-      `💸 <b>Transfer Funds</b>\n\n` +
-      `💰 Your Balance: <b>${balance.toFixed(2)} ETB</b>\n\n` +
-      `Enter the <b>Telegram username</b> of the recipient:\n` +
-      `<i>(Example: @username)</i>`,
+      `💸 <b>ብር ማስተላለፊያ</b>\n\n` +
+      `💰 የእርስዎ ሂሳብ፡ <b>${balance.toFixed(2)} ብር (ETB)</b>\n\n` +
+      `እባክዎ የክፍያው ተቀባይ <b>የቴሌግራም ተጠቃሚ ስም (Telegram username)</b> ያስገቡ፦\n` +
+      `<i>(ለምሳሌ፦ @username)</i>`,
       {
         parse_mode: 'HTML',
         ...Markup.inlineKeyboard(CANCEL_BTN),
@@ -49,7 +49,7 @@ export async function handleTransfer(ctx: Context) {
     );
   } catch (err: any) {
     logger.error('[Transfer] handleTransfer error:', err);
-    await ctx.reply('❌ An error occurred. Please try again.');
+    await ctx.reply('❌ ችግር አጋጥሟል፣ እባክዎ እንደገና ይሞክሩ።');
   }
 }
 
@@ -57,7 +57,7 @@ export async function handleTransfer(ctx: Context) {
 export async function handleTransferCancel(ctx: Context) {
   if (ctx.callbackQuery) await ctx.answerCbQuery();
   clearSession(ctx.from!.id);
-  await ctx.reply('❌ Transfer cancelled.');
+  await ctx.reply('❌ ብር ማስተላለፉ ተሰርዟል።');
 }
 
 // ─── Confirm callback ─────────────────────────────────────────────────────────
@@ -68,19 +68,19 @@ export async function handleTransferConfirm(ctx: Context) {
   const session = getSession(tgUser.id) as TransferSession | undefined;
 
   if (!session || session.type !== 'TRANSFER' || session.step !== 'CONFIRMING') {
-    return ctx.reply('❌ No active transfer. Use /transfer to start again.');
+    return ctx.reply('❌ አሁን ላይ ምንም የጀመሩት ዝውውር የለም። እንደገና ለመጀመር /transfer ይበሉ።');
   }
 
   const { recipientId, recipientName, recipientUsername, amount } = session;
   clearSession(tgUser.id);
 
   if (!recipientId || !amount) {
-    return ctx.reply('❌ Incomplete transfer data. Please start again with /transfer.');
+    return ctx.reply('❌ ያልተሟላ የዝውውር መረጃ። እባክዎ እንደገና ለመጀመር /transfer ይበሉ።');
   }
 
   try {
     const sender = await getUserByTelegramId(tgUser.id);
-    if (!sender) return ctx.reply('❌ Sender not found.');
+    if (!sender) return ctx.reply('❌ ላኪው አልተገኘም።');
 
     // Debit sender
     await debitWallet(
@@ -103,15 +103,15 @@ export async function handleTransferConfirm(ctx: Context) {
     logger.info(`[Transfer] ${sender.id} → ${recipientId}: ${amount} ETB`);
 
     await ctx.reply(
-      `✅ <b>Transfer Successful!</b>\n\n` +
-      `👤 To: <b>${recipientName}</b>` +
+      `✅ <b>ብር ማስተላለፉ ተሳክቷል!</b>\n\n` +
+      `👤 ተቀባይ፡ <b>${recipientName}</b>` +
       `${recipientUsername ? ` (@${recipientUsername})` : ''}\n` +
-      `💸 Amount: <b>${amount.toFixed(2)} ETB</b>\n\n` +
-      `Funds sent instantly. ☕️`,
+      `💸 መጠን፡ <b>${amount.toFixed(2)} ብር (ETB)</b>\n\n` +
+      `ገንዘቡ በቅጽበት ተላልፏል። ☕️`,
       {
         parse_mode: 'HTML',
         ...Markup.inlineKeyboard([
-          [Markup.button.callback('💰 Check Balance', 'cmd_balance')],
+          [Markup.button.callback('💰 ሂሳብ ይመልከቱ', 'cmd_balance')],
         ]),
       }
     );
@@ -122,11 +122,11 @@ export async function handleTransferConfirm(ctx: Context) {
       try {
         await ctx.telegram.sendMessage(
           Number(recipient.telegramId),
-          `💸 <b>You received a transfer!</b>\n\n` +
-          `👤 From: <b>${sender.firstName}</b>` +
+          `💸 <b>ብር ተላልፎልዎታል!</b>\n\n` +
+          `👤 ላኪ፡ <b>${sender.firstName}</b>` +
           `${sender.telegramUsername ? ` (@${sender.telegramUsername})` : ''}\n` +
-          `💰 Amount: <b>${amount.toFixed(2)} ETB</b>\n\n` +
-          `Your wallet has been credited. ☕️`,
+          `💰 መጠን፡ <b>${amount.toFixed(2)} ብር (ETB)</b>\n\n` +
+          `ሂሳብዎ ላይ ገቢ ሆኗል። ☕️`,
           { parse_mode: 'HTML' }
         );
       } catch {
@@ -135,7 +135,7 @@ export async function handleTransferConfirm(ctx: Context) {
     }
   } catch (err: any) {
     logger.error('[Transfer] Execution error:', err);
-    await ctx.reply(`❌ Transfer failed: ${err.message}`);
+    await ctx.reply(`❌ ብር ማስተላለፉ አልተሳካም፡ ${err.message}`);
   }
 }
 
@@ -151,7 +151,7 @@ export async function handleTransferMessage(ctx: Context): Promise<boolean> {
   // ── Step 2: Receive recipient username ────────────────────────────────────
   if (session.step === 'AWAITING_RECIPIENT') {
     if (!text) {
-      await ctx.reply('⚠️ Please type a Telegram username.', {
+      await ctx.reply('⚠️ እባክዎ የቴሌግራም ተጠቃሚ ስም (Telegram username) ያስገቡ።', {
         ...Markup.inlineKeyboard(CANCEL_BTN),
       });
       return true;
@@ -166,13 +166,13 @@ export async function handleTransferMessage(ctx: Context): Promise<boolean> {
 
     if (!recipient) {
       await ctx.reply(
-        `❌ User <b>@${username}</b> not found.\n` +
-        `Make sure they are registered with Buna Bingo.`,
+        `❌ ተጠቃሚ <b>@${username}</b> አልተገኘም።\n` +
+        `ተጠቃሚው በቡና ቢንጎ መመዝገቡን ያረጋግጡ።`,
         {
           parse_mode: 'HTML',
           ...Markup.inlineKeyboard([
-            [Markup.button.callback('🔄 Try Again', 'cmd_transfer')],
-            [Markup.button.callback('❌ Cancel',    'cmd_transfer_cancel')],
+            [Markup.button.callback('🔄 እንደገና ይሞክሩ', 'cmd_transfer')],
+            [Markup.button.callback('❌ ሰርዝ',    'cmd_transfer_cancel')],
           ]),
         }
       );
@@ -180,7 +180,7 @@ export async function handleTransferMessage(ctx: Context): Promise<boolean> {
     }
 
     if (recipient.telegramId === BigInt(tgUser.id)) {
-      await ctx.reply('❌ You cannot transfer funds to yourself.', {
+      await ctx.reply('❌ ለራስዎ ብር ማስተላለፍ አይችሉም።', {
         ...Markup.inlineKeyboard(CANCEL_BTN),
       });
       return true;
@@ -196,9 +196,9 @@ export async function handleTransferMessage(ctx: Context): Promise<boolean> {
     setSession(tgUser.id, updated);
 
     await ctx.reply(
-      `✅ Recipient: <b>${recipient.firstName}</b>` +
+      `✅ ተቀባይ፡ <b>${recipient.firstName}</b>` +
       `${recipient.telegramUsername ? ` (@${recipient.telegramUsername})` : ''}\n\n` +
-      `💰 How much do you want to send? <i>(ETB, minimum 10)</i>`,
+      `💰 ማስተላለፍ የሚፈልጉትን የብር መጠን ያስገቡ <i>(ዝቅተኛ መጠን 10 ብር)</i>`,
       {
         parse_mode: 'HTML',
         ...Markup.inlineKeyboard(CANCEL_BTN),
@@ -212,7 +212,7 @@ export async function handleTransferMessage(ctx: Context): Promise<boolean> {
     const amount = parseFloat(text);
 
     if (isNaN(amount) || amount < 10) {
-      await ctx.reply('⚠️ Enter a valid amount (minimum 10 ETB).', {
+      await ctx.reply('⚠️ እባክዎ ትክክለኛ የገንዘብ መጠን ያስገቡ (ዝቅተኛ መጠን 10 ብር)።', {
         ...Markup.inlineKeyboard(CANCEL_BTN),
       });
       return true;
@@ -224,9 +224,9 @@ export async function handleTransferMessage(ctx: Context): Promise<boolean> {
     const wallet = await getOrCreateWallet(sender.id);
     if (Number(wallet.balance) < amount) {
       await ctx.reply(
-        `❌ Insufficient balance.\n\n` +
-        `💰 Available: <b>${Number(wallet.balance).toFixed(2)} ETB</b>\n` +
-        `💸 Requested: <b>${amount.toFixed(2)} ETB</b>`,
+        `❌ በቂ የገንዘብ መጠን በሂሳብዎ ላይ የለም።\n\n` +
+        `💰 ያለዎት ሂሳብ፡ <b>${Number(wallet.balance).toFixed(2)} ብር (ETB)</b>\n` +
+        `💸 ማስተላለፍ የፈለጉት፡ <b>${amount.toFixed(2)} ብር (ETB)</b>`,
         {
           parse_mode: 'HTML',
           ...Markup.inlineKeyboard(CANCEL_BTN),
@@ -239,17 +239,17 @@ export async function handleTransferMessage(ctx: Context): Promise<boolean> {
     setSession(tgUser.id, updated);
 
     await ctx.reply(
-      `📋 <b>Confirm Transfer</b>\n\n` +
-      `👤 To: <b>${session.recipientName}</b>` +
+      `📋 <b>እባክዎ ያረጋግጡ</b>\n\n` +
+      `👤 ተቀባይ፡ <b>${session.recipientName}</b>` +
       `${session.recipientUsername ? ` (@${session.recipientUsername})` : ''}\n` +
-      `💸 Amount: <b>${amount.toFixed(2)} ETB</b>\n\n` +
-      `Proceed?`,
+      `💸 መጠን፡ <b>${amount.toFixed(2)} ብር (ETB)</b>\n\n` +
+      `ማስተላለፍ ይፈልጋሉ?`,
       {
         parse_mode: 'HTML',
         ...Markup.inlineKeyboard([
           [
-            Markup.button.callback('✅ Confirm', 'cmd_transfer_confirm'),
-            Markup.button.callback('❌ Cancel',  'cmd_transfer_cancel'),
+            Markup.button.callback('✅ አረጋግጥ', 'cmd_transfer_confirm'),
+            Markup.button.callback('❌ ሰርዝ',  'cmd_transfer_cancel'),
           ],
         ]),
       }

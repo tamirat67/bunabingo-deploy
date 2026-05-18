@@ -14,6 +14,15 @@ const TYPE_ICONS: Record<string, string> = {
   REFERRAL_BONUS: '🎁',
 };
 
+const TYPE_LABELS: Record<string, string> = {
+  DEPOSIT:        'ገቢ የተደረገ (Deposit)',
+  WITHDRAWAL:     'ወጪ የተደረገ (Withdrawal)',
+  TICKET_PURCHASE:'ቲኬት ግዢ (Ticket Purchase)',
+  PRIZE_WIN:      'ያሸነፉት ሽልማት (Prize Win)',
+  REFUND:         'የተመለሰ (Refund)',
+  REFERRAL_BONUS: 'የግብዣ ቦነስ (Referral Bonus)',
+};
+
 const STATUS_ICONS: Record<string, string> = {
   COMPLETED: '✅',
   PENDING:   '⏳',
@@ -29,7 +38,7 @@ export async function handleCheckTransaction(ctx: Context, page = 1) {
     if (ctx.callbackQuery) await ctx.answerCbQuery();
 
     const user = await getUserByTelegramId(tgUser.id);
-    if (!user) return ctx.reply('❌ Please /start first to register.');
+    if (!user) return ctx.reply('❌ እባክዎ አስቀድመው /start ን በመጫን ይመዝገቡ።');
 
     const skip = (page - 1) * PAGE_SIZE;
 
@@ -45,7 +54,7 @@ export async function handleCheckTransaction(ctx: Context, page = 1) {
 
     if (!txns.length) {
       return ctx.reply(
-        `📋 <b>Transaction History</b>\n\nYou have no transactions yet.`,
+        `📋 <b>የሂሳብ ዝውውር ታሪክ</b>\n\nእስካሁን ምንም የሂሳብ እንቅስቃሴ የለዎትም።`,
         { parse_mode: 'HTML' }
       );
     }
@@ -64,23 +73,23 @@ export async function handleCheckTransaction(ctx: Context, page = 1) {
       });
 
       return (
-        `${num}. ${typeIcon} <b>${tx.type.replace(/_/g, ' ')}</b> ${statIcon}\n` +
-        `   ${sign}${amount.toFixed(2)} ETB  •  📅 ${date}\n` +
-        `   Balance: ${Number(tx.balanceBefore).toFixed(2)} → ${Number(tx.balanceAfter).toFixed(2)} ETB`
+        `${num}. ${typeIcon} <b>${TYPE_LABELS[tx.type] ?? tx.type}</b> ${statIcon}\n` +
+        `   ${sign}${amount.toFixed(2)} ብር (ETB)  •  📅 ${date}\n` +
+        `   ሂሳብ፡ ከ ${Number(tx.balanceBefore).toFixed(2)} → ወደ ${Number(tx.balanceAfter).toFixed(2)} ብር (ETB)`
       );
     });
 
     // Pagination
     const navButtons = [];
-    if (page > 1)          navButtons.push(Markup.button.callback('◀️ Prev', `tx_page_${page - 1}`));
-    if (page < totalPages) navButtons.push(Markup.button.callback('Next ▶️', `tx_page_${page + 1}`));
+    if (page > 1)          navButtons.push(Markup.button.callback('◀️ ቀዳሚ', `tx_page_${page - 1}`));
+    if (page < totalPages) navButtons.push(Markup.button.callback('ቀጣይ ▶️', `tx_page_${page + 1}`));
 
     const keyboard = [];
     if (navButtons.length) keyboard.push(navButtons);
 
     const replyText =
-      `📋 <b>Transaction History</b>  (page ${page}/${totalPages})\n` +
-      `Total: ${total} transactions\n\n` +
+      `📋 <b>የሂሳብ ዝውውር ታሪክ</b>  (ገጽ ${page}/${totalPages})\n` +
+      `ጠቅላላ፡ ${total} የሂሳብ እንቅስቃሴዎች\n\n` +
       lines.join('\n\n');
 
     if (ctx.callbackQuery) {
@@ -96,6 +105,6 @@ export async function handleCheckTransaction(ctx: Context, page = 1) {
     }
   } catch (err: any) {
     logger.error('[CheckTransaction] Error:', err);
-    await ctx.reply('❌ Could not load transactions. Please try again.');
+    await ctx.reply('❌ የሂሳብ እንቅስቃሴዎችዎን መጫን አልተቻለም። እባክዎ እንደገና ይሞክሩ።');
   }
 }

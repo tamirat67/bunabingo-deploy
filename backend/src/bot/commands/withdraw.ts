@@ -11,21 +11,21 @@ export async function handleWithdraw(ctx: Context) {
 export async function handleSupport(ctx: Context) {
   const bannerUrl = `${process.env.WEBHOOK_URL}/uploads/banner.png`;
   const text = 
-    `📞 <b>Customer Support</b>\n\n` +
-    `Need help? Our agents are available 24/7 to assist you with deposits, withdrawals, or game rules.\n\n` +
-    `💬 Contact us here: <b>@bunabingosupport</b>`;
+    `📞 <b>የደንበኞች አገልግሎት እና ድጋፍ</b>\n\n` +
+    `እርዳታ ይፈልጋሉ? የእኛ የድጋፍ ሰጪዎች ስለ ብር ገቢ፣ ወጪ ወይም ስለ ጨዋታ ህጎች እርስዎን ለመርዳት 24/7 ዝግጁ ናቸው።\n\n` +
+    `💬 እዚህ ያግኙን፡ <b>@bunabingosupport</b>`;
 
   await ctx.replyWithPhoto(bannerUrl, {
     caption: text,
     parse_mode: 'HTML',
     ...Markup.inlineKeyboard([
-      [Markup.button.webApp('🆘 Open Support', `${config.bot.miniAppUrl}/support`)],
+      [Markup.button.webApp('🆘 ድጋፍ ሰጪ ያግኙ', `${config.bot.miniAppUrl}/support`)],
     ]),
   }).catch(() => {
     return ctx.reply(text, {
       parse_mode: 'HTML',
       ...Markup.inlineKeyboard([
-        [Markup.button.webApp('🆘 Open Support', `${config.bot.miniAppUrl}/support`)],
+        [Markup.button.webApp('🆘 ድጋፍ ሰጪ ያግኙ', `${config.bot.miniAppUrl}/support`)],
       ]),
     });
   });

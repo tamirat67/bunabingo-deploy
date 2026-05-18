@@ -13,7 +13,7 @@ export async function handleGameHistory(ctx: Context, page = 1) {
     if (ctx.callbackQuery) await ctx.answerCbQuery();
 
     const user = await getUserByTelegramId(tgUser.id);
-    if (!user) return ctx.reply('❌ Please /start first to register.');
+    if (!user) return ctx.reply('❌ እባክዎ አስቀድመው /start ን በመጫን ይመዝገቡ።');
 
     const skip = (page - 1) * PAGE_SIZE;
 
@@ -37,14 +37,14 @@ export async function handleGameHistory(ctx: Context, page = 1) {
 
     if (!tickets.length) {
       return ctx.reply(
-        `🎮 <b>Game History</b>\n\n` +
-        `You haven't played any games yet.\n` +
-        `Use /playbingo or /playspin to start playing!`,
+        `🎮 <b>የጨዋታ ታሪክ</b>\n\n` +
+        `እስካሁን ምንም ጨዋታ አልተጫወቱም።\n` +
+        `ለመጫወት የ /playbingo ወይም /playspin ትዕዛዞችን ይጠቀሙ!`,
         {
           parse_mode: 'HTML',
           ...Markup.inlineKeyboard([
-            [Markup.button.callback('🎮 Play Bingo', 'cmd_play_bingo')],
-            [Markup.button.callback('🎰 Play Spin',  'cmd_play_spin')],
+            [Markup.button.callback('🎮 ቢንጎ ይጫወቱ', 'cmd_play_bingo')],
+            [Markup.button.callback('🎰 ስፒን ይጫወቱ',  'cmd_play_spin')],
           ]),
         }
       );
@@ -64,26 +64,26 @@ export async function handleGameHistory(ctx: Context, page = 1) {
       });
 
       const resultIcon = won ? '🏆' : status === 'FINISHED' ? '❌' : '⏳';
-      const prizeStr   = won && prize ? ` +${Number(prize).toFixed(2)} ETB` : '';
+      const prizeStr   = won && prize ? ` +${Number(prize).toFixed(2)} ብር (ETB)` : '';
       const ticketPrice = Number(ticket.game.room.ticketPrice);
 
       return (
-        `${gameNum}. ${resultIcon} <b>${roomType}</b> — ${ticketPrice === 0 ? 'Demo' : `${ticketPrice} ETB`}\n` +
+        `${gameNum}. ${resultIcon} <b>${roomType}</b> — ${ticketPrice === 0 ? 'ሙከራ (Demo)' : `${ticketPrice} ብር (ETB)`}\n` +
         `   📅 ${date}${prizeStr}`
       );
     });
 
     // Pagination buttons
     const navButtons = [];
-    if (page > 1)          navButtons.push(Markup.button.callback('◀️ Prev', `gh_page_${page - 1}`));
-    if (page < totalPages) navButtons.push(Markup.button.callback('Next ▶️', `gh_page_${page + 1}`));
+    if (page > 1)          navButtons.push(Markup.button.callback('◀️ ቀዳሚ', `gh_page_${page - 1}`));
+    if (page < totalPages) navButtons.push(Markup.button.callback('ቀጣይ ▶️', `gh_page_${page + 1}`));
 
     const keyboard = [];
     if (navButtons.length) keyboard.push(navButtons);
 
     const replyText =
-      `🎮 <b>Game History</b>  (page ${page}/${totalPages})\n` +
-      `Total games: ${total}\n\n` +
+      `🎮 <b>የጨዋታ ታሪክ</b>  (ገጽ ${page}/${totalPages})\n` +
+      `ጠቅላላ ጨዋታዎች፡ ${total}\n\n` +
       lines.join('\n\n');
 
     if (ctx.callbackQuery) {
@@ -99,6 +99,6 @@ export async function handleGameHistory(ctx: Context, page = 1) {
     }
   } catch (err: any) {
     logger.error('[GameHistory] Error:', err);
-    await ctx.reply('❌ Could not load game history. Please try again.');
+    await ctx.reply('❌ የጨዋታ ታሪክዎን መጫን አልተቻለም። እባክዎ እንደገና ይሞክሩ።');
   }
 }
