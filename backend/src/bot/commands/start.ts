@@ -93,11 +93,12 @@ export async function handleStart(ctx: Context) {
     }
 
     // ── 3b. Phone already saved → show main menu ──────────────────────────────
-    const inviteLink   = `${config.bot.miniAppUrl}/invite/${user.id}`;
+    const botUsername2 = ctx.botInfo?.username ?? 'buna_bingobot';
+    const inviteLink   = `https://t.me/${botUsername2}?start=${user.id}`;
     const shareMessage = encodeURIComponent(
       `🎰 Join me on Buna Bingo! ☕️ We both get 5 ETB bonus!\n\n`
     );
-    const shareUrl = `https://t.me/share/url?url=${inviteLink}&text=${shareMessage}`;
+    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(inviteLink)}&text=${shareMessage}`;
 
     logger.info(`[Start] Showing main menu to ${tgUser.id} (${tgUser.first_name})`);
 
@@ -221,7 +222,18 @@ export async function handleStart(ctx: Context) {
       });
     });
 
-    logger.info(`[Start] Main menu sent to ${user.id}`);
+    // Send persistent bottom keyboard menu
+    await ctx.reply('🎮 የጨዋታ አማራጮችን ከታች ካለው ዝርዝር መምረጥ ይችላሉ።', 
+      Markup.keyboard([
+        ['🎮 ይጫወቱ'],
+        ['💰 ሂሳብ', '📥 ገቢ ለማድረግ'],
+        ['📤 ወጪ ለማድረግ', '🔗 ጋብዝ & አግኝ'],
+        ['💎 VIP ክፍል', '⭐ Special Promoter'],
+        ['🆘 እርዳታ', '📜 ደንቦች']
+      ]).resize()
+    );
+
+    logger.info(`[Start] Main menu and reply keyboard sent to ${user.id}`);
   } catch (err: any) {
     logger.error('[Start] FATAL ERROR in handleStart:', err);
     if (err.message && err.message.includes('REGISTRATION_BLOCKED_NO_AGENT')) {

@@ -10,7 +10,7 @@ import { handleBuyTicket, handleJoinRoom }      from './commands/buyticket';
 import { handleMyCards, handleResults }         from './commands/mycards';
 import { handleWithdraw, handleSupport }        from './commands/withdraw';
 import { handleInstructions }                   from './commands/instructions';
-import { handlePlayBingoMenu }                  from './commands/playbingo';
+import { handlePlayBingoMenu, handleVipRoom }                  from './commands/playbingo';
 import { handlePlaySpinMenu }                   from './commands/playspin';
 import { handleRegister }                       from './commands/register';
 import { handleInvite }                         from './commands/invite';
@@ -58,6 +58,7 @@ export function createBot(): Telegraf {
   bot.command('playbingo',         ctx => handlePlayBingoMenu(ctx));
   bot.command('playspin',          ctx => handlePlaySpinMenu(ctx));
   bot.command('register',          ctx => handleRegister(ctx));
+  bot.command('vip',               ctx => handleVipRoom(ctx));
 
   // ─── Wallet ───────────────────────────────────────────────────────────────
   bot.command('balance',           ctx => handleBalance(ctx));
@@ -179,7 +180,13 @@ export function createBot(): Telegraf {
       const { user, referrer } = await updateUserPhone(tgUser.id, contact.phone_number);
       logger.info(`[Bot] Phone verified for user ${tgUser.id}: ${contact.phone_number}`);
 
-      await ctx.reply('✅ Phone number verified successfully!', Markup.removeKeyboard());
+      await ctx.reply('✅ ስልክ ቁጥርዎ በተሳካ ሁኔታ ተረጋግጧል! (Phone number verified successfully!)', Markup.keyboard([
+        ['🎮 ይጫወቱ'],
+        ['💰 ሂሳብ', '📥 ገቢ ለማድረግ'],
+        ['📤 ወጪ ለማድረግ', '🔗 ጋብዝ & አግኝ'],
+        ['💎 VIP ክፍል', '⭐ Special Promoter'],
+        ['🆘 እርዳታ', '📜 ደንቦች']
+      ]).resize());
 
       // ── Notify referrer (non-blocking) ───────────────────────────────────────
       if (referrer) {
@@ -211,6 +218,20 @@ export function createBot(): Telegraf {
   //  Priority: deposit → transfer → change_name
   // ═══════════════════════════════════════════════════════════════════════════
   bot.on('message', async (ctx) => {
+    // Intercept persistent Amharic reply keyboard buttons
+    const text = (ctx.message as any)?.text;
+    if (text) {
+      if (text === '🎮 ይጫወቱ') { await handlePlayBingoMenu(ctx); return; }
+      if (text === '💰 ሂሳብ') { await handleBalance(ctx); return; }
+      if (text === '📥 ገቢ ለማድረግ') { await handleDeposit(ctx); return; }
+      if (text === '📤 ወጪ ለማድረግ') { await handleWithdraw(ctx); return; }
+      if (text === '🔗 ጋብዝ & አግኝ') { await handleInvite(ctx); return; }
+      if (text === '💎 VIP ክፍል') { await handleVipRoom(ctx); return; }
+      if (text === '⭐ Special Promoter') { await ctx.reply('🌟 Special Promoter coming soon!'); return; }
+      if (text === '🆘 እርዳታ') { await handleInstructions(ctx); return; }
+      if (text === '📜 ደንቦች') { await handleInstructions(ctx); return; }
+    }
+
     // 1. Deposit flow (text + photo)
     if (await handleDepositMessage(ctx)) return;
 

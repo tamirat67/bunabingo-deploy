@@ -57,6 +57,7 @@ function GameContent() {
   const [marked,    setMarked]    = useState<Set<number>>(new Set());
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [audioUnlocked, setAudioUnlocked] = useState(false);
+  const [isAutoMode, setIsAutoMode] = useState(true);
 
   const toastTimer = useRef<any>(null);
   const lastStartAudioPlayed = useRef<number>(0);
@@ -340,6 +341,28 @@ function GameContent() {
           <div style={{ background: game?.status === 'RUNNING' ? '#27AE60' : '#E67E22', color: 'white', fontSize: '10px', fontWeight: '900', padding: '3px 10px', borderRadius: '20px' }}>
             {game?.status || 'LOADING'}
           </div>
+          {/* Auto / Manual Mode Toggle */}
+          <motion.div 
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setIsAutoMode(!isAutoMode)}
+            style={{
+              background: isAutoMode ? 'linear-gradient(135deg, #27AE60, #2ECC71)' : '#7F8C8D',
+              color: 'white',
+              fontSize: '10px',
+              fontWeight: '900',
+              padding: '4.5px 12px',
+              borderRadius: '20px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
+              userSelect: 'none'
+            }}
+          >
+            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'white' }}></div>
+            <span>{isAutoMode ? 'AUTO' : 'MANUAL'}</span>
+          </motion.div>
           <motion.div 
             whileTap={{ scale: 0.9 }}
             onClick={(e) => {
@@ -377,7 +400,7 @@ function GameContent() {
         ].map(([l, v]) => (
           <div key={l as string} style={{ background: T.card, border: `1px solid ${T.gold}33`, padding: '6px 4px', textAlign: 'center', borderRadius: '8px' }}>
             <div style={{ fontSize: '8px', fontWeight: 'bold', color: T.brown }}>{l}</div>
-            <div style={{ fontSize: '12px', fontWeight: '900', color: T.header }}>{v}</div>
+            <div style={{ fontSize: '12px', fontWeight: '900', color: T.text }}>{v}</div>
           </div>
         ))}
       </div>
@@ -388,7 +411,7 @@ function GameContent() {
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <div style={{ flex: 1, background: game?.status === 'RUNNING' ? '#27AE60' : T.header, borderRadius: '14px', padding: '10px', textAlign: 'center', border: `2px solid ${T.gold}`, transition: 'background 0.3s' }}>
               <div style={{ color: T.gold, fontSize: '9px', fontWeight: '900' }}>COUNT DOWN</div>
-              <div style={{ color: 'white', fontSize: '24px', fontWeight: '900' }}>{cdText}</div>
+              <div style={{ color: game?.status === 'RUNNING' ? 'white' : (activeThemeKey === 'LIGHT' ? '#333' : 'white'), fontSize: '24px', fontWeight: '900' }}>{cdText}</div>
             </div>
             <motion.div key={lastBall} initial={{ scale: 0.5 }} animate={{ scale: 1 }} style={{ width: '65px', height: '65px', background: lastBall ? COL_COLOR[colLabel(lastBall)] : T.statBg, borderRadius: '50%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontWeight: '900', border: `4px solid ${T.gold}`, color: lastBall ? 'white' : T.brown }}>
               {lastBall ? (
@@ -507,7 +530,7 @@ function GameContent() {
         </div>
 
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <div style={{ color: T.header, fontWeight: '900', fontSize: '13px', padding: '0 5px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ color: T.text, fontWeight: '900', fontSize: '13px', padding: '0 5px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span>🏆 YOUR CARTELAS ({visible.length})</span>
           </div>
 
@@ -571,7 +594,7 @@ function GameContent() {
                       const isFree = cell === 'FREE' || cell === 0 || cell === null;
                       const userMarked = !isFree && marked.has(numVal);
                       const callMarked = !isFree && isCalled(numVal);
-                      const isHinted   = callMarked && !userMarked;
+                      const isHinted   = isAutoMode && callMarked && !userMarked;
                       const colKey     = colLabel(numVal);
                       
                       return (
@@ -653,6 +676,29 @@ function GameContent() {
               </motion.div>
             );
           })}
+          {/* CARD ADD FAB / Button at the bottom of right column */}
+          <motion.div 
+            whileTap={{ scale: 0.95 }}
+            onClick={() => router.push(`/tickets/select?type=${game?.room?.type || 'STANDARD'}&price=${stake}`)}
+            style={{
+              background: 'linear-gradient(135deg, #1C0A35, #C471ED)',
+              border: `2px solid ${T.gold}`,
+              borderRadius: '16px',
+              padding: '12.5px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              color: 'white',
+              fontWeight: '900',
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(196, 113, 237, 0.3)',
+              marginTop: '10px',
+              userSelect: 'none'
+            }}
+          >
+            <Plus size={18} /> CARD ADD / ካርቴላ ጨምር
+          </motion.div>
           {tickets.length === 0 && <div style={{ textAlign: 'center', color: T.brown, padding: '40px' }}>Fetching cards...</div>}
         </div>
       </div>

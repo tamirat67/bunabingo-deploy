@@ -796,7 +796,11 @@ export async function joinGame(
   // Validate and prepare cards
   const preparedCards: { id: number, pattern: BingoCard }[] = [];
   for (const cardId of cardIds) {
-    const normalizedId = Math.max(1, Math.min(100, cardId));
+    const isVipRoom = game.room.type === 'VIP' || game.room.type === 'JACKPOT' || Number(game.room.ticketPrice) >= 100;
+    if (isVipRoom && (cardId < 1 || cardId > 50)) {
+      throw new Error('VIP room only allows cards from 1 to 50!');
+    }
+    const normalizedId = Math.max(1, Math.min(250, cardId));
     const pattern = PREDEFINED_CARDS[normalizedId];
     if (!pattern) throw new Error(`Invalid card selection: ${cardId}`);
     

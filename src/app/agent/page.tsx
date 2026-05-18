@@ -87,7 +87,7 @@ export default function AgentDashboard() {
 
   const handleCopy = () => {
     if (!user) return;
-    navigator.clipboard.writeText(`t.me/BunaBingoBot?start=${user.id}`);
+    navigator.clipboard.writeText(`https://t.me/buna_bingobot?start=${user.id}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -178,7 +178,7 @@ export default function AgentDashboard() {
           <h3 className="agent-h3">Your Referral Link</h3>
           <p className="agent-subtitle agent-mt-1">New users who join using this link will be added to your branch.</p>
           <div className="agent-referral-box agent-mt-6">
-            <code>t.me/BunaBingoBot?start={user.id}</code>
+            <code>t.me/buna_bingobot?start={user.id}</code>
             <button className="agent-btn-copy" onClick={handleCopy}>
               {copied ? 'COPIED!' : 'COPY LINK'}
             </button>

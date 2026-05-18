@@ -130,16 +130,35 @@ function SelectionContent() {
   const previewCard = lastSelected ? PREDEFINED_CARDS[lastSelected] : null;
 
   const isSpin = roomType.startsWith('SPIN_');
+  const isVip = roomType === 'VIP' || roomType === 'JACKPOT' || stake >= 100;
 
   return (
-    <div className={`selection-container brown ${isSpin ? 'spin-theme' : ''}`}>
+    <div className={`selection-container ${isVip ? 'vip-theme' : 'brown'} ${isSpin ? 'spin-theme' : ''}`}>
       <div className="selection-header-top">
-        <button className="btn-back" onClick={() => router.push('/')}><ChevronLeft size={20} color="#4B3621" /></button>
+        <button className="btn-back" onClick={() => router.push('/')}><ChevronLeft size={20} color={isVip ? '#C471ED' : '#4B3621'} /></button>
         <div className="header-text">
-          <h1 style={{color: '#3D2B1F', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '8px'}}>
+          <h1 style={{color: isVip ? '#C471ED' : '#3D2B1F', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap'}}>
             <ShieldCheck size={24} /> BUNA GAME ZONE
+            {isVip && (
+              <span style={{
+                background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                color: '#1C0A35',
+                fontSize: '9px',
+                fontWeight: '900',
+                padding: '2px 8px',
+                borderRadius: '12px',
+                boxShadow: '0 0 10px rgba(255, 215, 0, 0.6)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '3px',
+                border: '1.5px solid #FFF',
+                letterSpacing: '0.5px'
+              }}>
+                👑 BOSS VIP
+              </span>
+            )}
           </h1>
-          <p style={{color: 'rgba(61,43,31,0.6)', fontWeight: 800}}>{roomType} • STAKE {stake}</p>
+          <p style={{color: isVip ? 'rgba(255,255,255,0.7)' : 'rgba(61,43,31,0.6)', fontWeight: 800}}>{roomType} • STAKE {stake}</p>
         </div>
       </div>
 
@@ -161,7 +180,7 @@ function SelectionContent() {
       </div>
 
       <div className="grid-brown">
-        {Array.from({ length: 100 }, (_, i) => i + 1).map(num => {
+        {Array.from({ length: isVip ? 50 : 250 }, (_, i) => i + 1).map(num => {
           const isOccupied = occupied.includes(num);
           const isSelected = selected.includes(num);
           return (

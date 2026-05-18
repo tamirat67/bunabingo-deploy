@@ -661,3 +661,142 @@ h1, h2, h3 { font-weight: 900; text-transform: uppercase; letter-spacing: 1px; }
 .gp-orange { background: #F57C00; box-shadow: 0 4px 0 #E65100; }
 .gp-act-btn span { font-size: 11px; font-weight: 900; }
 
+/* ─── VIP Selection Theme ─── */
+.selection-container.vip-theme {
+  background: radial-gradient(circle at top, #2D1442 0%, #1C0A35 60%, #0F041A 100%) !important;
+  color: #FFFFFF !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.selection-container.vip-theme::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #FFD700, #C471ED, #FFD700);
+  z-index: 10;
+}
+
+.selection-container.vip-theme .selection-header-top .header-text h1 {
+  color: #FFD700 !important; /* Premium Gold Title */
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+}
+
+.selection-container.vip-theme .selection-header-top .header-text p {
+  color: rgba(255, 255, 255, 0.8) !important;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.selection-container.vip-theme .stats-row-brown .capsule-white {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 215, 0, 0.25) !important; /* Golden Glassmorphic Border */
+  color: #FFFFFF !important;
+  backdrop-filter: blur(10px);
+}
+
+.selection-container.vip-theme .stats-row-brown .capsule-white .l {
+  color: rgba(255, 215, 0, 0.7) !important; /* Gold Labels */
+}
+
+.selection-container.vip-theme .stats-row-brown .capsule-white .v {
+  color: #FFFFFF !important;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+}
+
+.selection-container.vip-theme .stats-row-brown .total-box {
+  background: linear-gradient(90deg, #FFD700, #FFA500) !important; /* Metallic Gold Total Box */
+  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3) !important;
+  color: #1C0A35 !important;
+  font-weight: 900 !important;
+}
+
+.selection-container.vip-theme .stats-row-brown .total-box .l {
+  color: rgba(28, 10, 53, 0.7) !important;
+}
+
+.selection-container.vip-theme .stats-row-brown .total-box .v {
+  color: #1C0A35 !important;
+}
+
+.selection-container.vip-theme .num-brown {
+  background: rgba(255, 255, 255, 0.03) !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+  border: 1px solid rgba(196, 113, 237, 0.2) !important;
+  backdrop-filter: blur(5px);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.selection-container.vip-theme .num-brown:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: #FFD700 !important;
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
+}
+
+.selection-container.vip-theme .num-brown.selected {
+  background: linear-gradient(135deg, #FFD700 0%, #C471ED 100%) !important; /* Beautiful Gold-Purple blend */
+  border-color: #FFFFFF !important;
+  color: #1C0A35 !important;
+  font-weight: 900 !important;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.8) !important;
+  transform: scale(1.12) translateY(-2px);
+  animation: vipPulse 2s infinite alternate;
+}
+
+.selection-container.vip-theme .num-brown.occupied {
+  background: linear-gradient(135deg, #2ECC71, #27AE60) !important;
+  border-color: #2ecc71 !important;
+  color: white !important;
+  box-shadow: 0 0 10px rgba(46, 204, 113, 0.4);
+}
+
+.selection-container.vip-theme .selection-footer-smart {
+  background: rgba(28, 10, 53, 0.95) !important;
+  border-top: 2px solid #FFD700 !important; /* Gold Footer divider */
+  border-bottom: 1px solid rgba(255, 215, 0, 0.2) !important;
+  backdrop-filter: blur(20px);
+}
+
+.selection-container.vip-theme .footer-card-item {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1.5px solid #FFD700 !important; /* Golden Card Preview Frame */
+  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.15);
+}
+
+.selection-container.vip-theme .flp-title {
+  color: #FFD700 !important;
+  text-shadow: 0 0 5px rgba(255, 215, 0, 0.3);
+}
+
+@keyframes vipPulse {
+  0% { box-shadow: 0 0 15px rgba(255, 215, 0, 0.6); }
+  100% { box-shadow: 0 0 25px rgba(196, 113, 237, 0.9); }
+}
+
+.selection-container.vip-theme .pc-mini-cell {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
+}
+
+.selection-container.vip-theme .pc-mini-cell.star {
+  background: #FEF3C7 !important;
+  color: #D4AF37 !important;
+}
+
+.selection-container.vip-theme .btn-start-game.active {
+  background: linear-gradient(90deg, #7B2FBE, #C471ED) !important;
+  box-shadow: 0 4px 12px rgba(123, 47, 190, 0.4) !important;
+}
+
+.selection-container.vip-theme .btn-back {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.selection-container.vip-theme .btn-back svg {
+  color: #C471ED !important;
+}
+
+
