@@ -18,10 +18,9 @@ export async function handlePlayBingoMenu(ctx: Context) {
         Markup.button.webApp('🎮 Bingo 50 ይጫወቱ', `${config.bot.miniAppUrl}/tickets/select?type=PRO&price=50`),
         Markup.button.webApp('🎮 በነጻ ይሞክሩ (Demo)', `${config.bot.miniAppUrl}/tickets/select?type=DEMO&price=0`),
       ],
-      // ── Row 3: VIP High-Stakes (Separate at Bottom) ───────────────────────────
+      // ── Row 3: VIP Room ───────────────────────────────────────────────────────
       [
-        Markup.button.webApp('🎮 Bingo 100 ይጫወቱ', `${config.bot.miniAppUrl}/tickets/select?type=JACKPOT&price=100`),
-        Markup.button.webApp('🎮 Bingo 200 ይጫወቱ', `${config.bot.miniAppUrl}/tickets/select?type=VIP&price=200`),
+        Markup.button.callback('💎 VIP ክፍል', 'cmd_vip'),
       ],
     ])
   );
@@ -41,8 +40,8 @@ export async function handleVipRoom(ctx: Context) {
     parse_mode: 'HTML',
     ...Markup.inlineKeyboard([
       [
-        Markup.button.webApp('👑 VIP 100 ይጫወቱ', `${config.bot.miniAppUrl}/tickets/select?type=JACKPOT&price=100`),
-        Markup.button.webApp('👑 VIP 200 ይጫወቱ', `${config.bot.miniAppUrl}/tickets/select?type=VIP&price=200`)
+        Markup.button.webApp('👑 VIP ክፍል 100', `${config.bot.miniAppUrl}/tickets/select?type=JACKPOT&price=100`),
+        Markup.button.webApp('👑 VIP ክፍል 200', `${config.bot.miniAppUrl}/tickets/select?type=VIP&price=200`)
       ],
       [Markup.button.callback('📊 ሂሳብ Check Balance', 'cmd_balance')],
     ]),
@@ -51,8 +50,8 @@ export async function handleVipRoom(ctx: Context) {
       parse_mode: 'HTML',
       ...Markup.inlineKeyboard([
         [
-          Markup.button.webApp('👑 VIP 100 ይጫወቱ', `${config.bot.miniAppUrl}/tickets/select?type=JACKPOT&price=100`),
-          Markup.button.webApp('👑 VIP 200 ይጫወቱ', `${config.bot.miniAppUrl}/tickets/select?type=VIP&price=200`)
+          Markup.button.webApp('👑 VIP ክፍል 100', `${config.bot.miniAppUrl}/tickets/select?type=JACKPOT&price=100`),
+          Markup.button.webApp('👑 VIP ክፍል 200', `${config.bot.miniAppUrl}/tickets/select?type=VIP&price=200`)
         ],
         [Markup.button.callback('📊 ሂሳብ Check Balance', 'cmd_balance')],
       ]),

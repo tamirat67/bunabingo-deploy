@@ -97,6 +97,7 @@ export function createBot(): Telegraf {
   bot.action('cmd_play_bingo',     ctx => handlePlayBingoMenu(ctx));
   bot.action('cmd_play_spin',      ctx => handlePlaySpinMenu(ctx));
   bot.action('cmd_register',       ctx => handleRegister(ctx));
+  bot.action('cmd_vip',            ctx => handleVipRoom(ctx));
 
   // ─── Wallet ───────────────────────────────────────────────────────────────
   bot.action('cmd_balance',        ctx => handleBalance(ctx));
