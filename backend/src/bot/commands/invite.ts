@@ -12,7 +12,7 @@ export async function handleInvite(ctx: Context) {
     const user = await getUserByTelegramId(tgUser.id);
     if (!user) return ctx.reply('❌ Please /start first to register.');
 
-    const botUsername  = ctx.botInfo?.username ?? 'buna_bingobot';
+    const botUsername  = 'buna_bingobot';
     const inviteLink   = `https://t.me/${botUsername}?start=${user.id}`;
     const shareMessage = encodeURIComponent(
       `🎰 Join me on Buna Bingo! ☕️ We both get 5 ETB bonus!\n\n`

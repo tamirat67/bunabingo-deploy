@@ -93,7 +93,7 @@ export async function handleStart(ctx: Context) {
     }
 
     // ── 3b. Phone already saved → show main menu ──────────────────────────────
-    const botUsername2 = ctx.botInfo?.username ?? 'buna_bingobot';
+    const botUsername2 = 'buna_bingobot';
     const inviteLink   = `https://t.me/${botUsername2}?start=${user.id}`;
     const shareMessage = encodeURIComponent(
       `🎰 Join me on Buna Bingo! ☕️ We both get 5 ETB bonus!\n\n`
