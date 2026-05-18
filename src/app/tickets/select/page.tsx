@@ -77,6 +77,21 @@ function SelectionContent() {
   }, [endTime, serverOff]);
 
   useEffect(() => {
+    if (roomType.toUpperCase().includes('SPIN')) {
+      showAlert(
+        'COMING SOON! / በቅርቡ ይጠብቁ! 🚧',
+        '☕ Buna Spin Games are currently undergoing maintenance for exciting upgrades. Get ready for something big! You will be redirected back to the Lobby.',
+        'info'
+      );
+      const t = setTimeout(() => {
+        router.push('/');
+      }, 3500);
+      return () => clearTimeout(t);
+    }
+  }, [roomType, router]);
+
+  useEffect(() => {
+    if (roomType.toUpperCase().includes('SPIN')) return;
     getMe().then(setUser).catch(() => {});
     loadGameData();
 
@@ -425,27 +440,37 @@ function SelectionContent() {
               style={{
                 background: isOwned
                   ? 'linear-gradient(135deg, #1C0A35, #D4AF37)'
-                  : (isOccupied ? undefined : (isSelected ? '#2ECC71' : undefined)),
-                color: isOccupied || isSelected || isOwned ? 'white' : T.text,
+                  : (isOccupied ? 'rgba(39, 174, 96, 0.15)' : (isSelected ? '#2ECC71' : undefined)),
+                color: isOwned
+                  ? 'white'
+                  : (isOccupied ? '#2ecc71' : (isSelected ? 'white' : T.text)),
                 cursor: isOccupied ? 'not-allowed' : 'pointer',
                 opacity: 1,
                 border: isOwned
                   ? '2.5px solid #D4AF37'
-                  : (isOccupied ? undefined : (isSelected ? '2px solid #27AE60' : undefined)),
+                  : (isOccupied ? '2px solid #27AE60' : (isSelected ? '2px solid #27AE60' : undefined)),
                 boxShadow: isOwned
                   ? '0 0 12px rgba(212, 175, 55, 0.6)'
-                  : (isOccupied ? undefined : (isSelected ? '0 0 10px rgba(46, 204, 113, 0.4)' : 'none')),
+                  : (isOccupied ? 'inset 0 0 6px rgba(39, 174, 96, 0.2)' : (isSelected ? '0 0 10px rgba(46, 204, 113, 0.4)' : 'none')),
                 position: 'relative',
                 overflow: 'hidden',
+                fontWeight: '900',
               }}
               onClick={() => !isOccupied && toggleSelect(num)}
             >
               {num}
 
-              {/* Crown for owned cards */}
-              {isOwned && (
-                <span style={{ position: 'absolute', top: '1px', right: '2px', fontSize: '8px', lineHeight: 1 }}>
+              {/* Crown for owned or selected cards */}
+              {(isOwned || isSelected) && (
+                <span style={{ position: 'absolute', top: '1px', right: '2px', fontSize: '9px', lineHeight: 1, filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.4))' }}>
                   👑
+                </span>
+              )}
+
+              {/* Green checkmark/held sign for occupied cards */}
+              {isOccupied && (
+                <span style={{ position: 'absolute', top: '1px', right: '2px', fontSize: '8px', lineHeight: 1, color: '#2ecc71', fontWeight: '900' }}>
+                  ✓
                 </span>
               )}
 

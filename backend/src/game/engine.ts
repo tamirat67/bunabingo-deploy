@@ -255,8 +255,7 @@ async function runGame(gameId: string): Promise<void> {
       return;
     }
 
-    try { await contributeToJackpot(game.tickets.length, unitPrice); }
-    catch (e) { logger.error(`[Jackpot] Contribution failed:`, e); }
+    // Note: Jackpot contribution is now handled in real-time live upon user ticket purchase inside joinGame()
   } else {
     logger.info(`[Game ${gameId}] DEMO game — skipping all financial logic.`);
   }
@@ -822,14 +821,17 @@ export async function joinGame(
   }
 
   // ─── Perform everything in a SINGLE transaction for speed and atomicity ───
-  const { tickets, playerCount, totalPrize, currentTicketCount } = await prisma.$transaction(async (tx) => {
-    // 1. Acquire a write-lock on the Game row to serialize concurrent ticket purchases for this game
+  const { tickets, playerCount, totalPrize, currentTicketCount, updatedJackpot } = await prisma.$transaction(async (tx) => {
+    // 1. Count user's existing tickets before deletion to calculate net change for live jackpot addition
+    const existingCount = await tx.ticket.count({ where: { userId, gameId } });
+
+    // 2. Acquire a write-lock on the Game row to serialize concurrent ticket purchases for this game
     await tx.game.update({
       where: { id: gameId },
       data: { status: game.status }
     });
 
-    // 2. Check duplicate card selections inside the locked transaction
+    // 3. Check duplicate card selections inside the locked transaction
     const occupiedTickets = await tx.ticket.findMany({
       where: { 
         gameId,
@@ -843,10 +845,10 @@ export async function joinGame(
       throw new Error(`Cartela(s) #${duplicates.join(', #')} are already taken by another player!`);
     }
 
-    // 3. Clear existing tickets for this user in this game
+    // 4. Clear existing tickets for this user in this game
     await tx.ticket.deleteMany({ where: { userId, gameId } });
 
-    // 4. Create NEW Tickets inside a single Bulk INSERT query for maximum latency optimization!
+    // 5. Create NEW Tickets inside a single Bulk INSERT query for maximum latency optimization!
     await tx.ticket.createMany({
       data: preparedCards.map(c => ({
         userId,
@@ -856,19 +858,19 @@ export async function joinGame(
       }))
     });
 
-    // 5. Update Room player count (for lobby display)
+    // 6. Update Room player count (for lobby display)
     await tx.room.update({
       where: { id: game.roomId },
       data: { currentPlayers: { increment: numTickets } }
     });
 
-    // 6. Fetch all tickets for this game in a single query
+    // 7. Fetch all tickets for this game in a single query
     const allTickets = await tx.ticket.findMany({ where: { gameId } });
     const uniqueUsers = new Set(allTickets.map(t => t.userId));
     const pCount = uniqueUsers.size;
     const tCount = allTickets.length;
 
-    // 7. Calculate & Update prize pool
+    // 8. Calculate & Update prize pool
     const houseEdgePercent = config.game.houseEdgePercent;
     const totalSales = new Decimal(unitPrice).mul(tCount);
     const houseEdge = totalSales.mul(houseEdgePercent).div(100);
@@ -879,13 +881,29 @@ export async function joinGame(
       data: { totalPrize: prizePool }
     });
 
+    // 9. Atomic Live Jackpot Auto-Increment Contribution
+    const netTickets = numTickets - existingCount;
+    let jackpotRecord = null;
+    const isDemo = game.room.type === 'DEMO';
+    if (!isDemo && netTickets > 0) {
+      const jackpot = await tx.jackpot.findUnique({ where: { id: 'GLOBAL' } });
+      if (jackpot) {
+        const contribution = new Decimal(unitPrice).mul(netTickets).mul(jackpot.contributionPercent).div(100);
+        jackpotRecord = await tx.jackpot.update({
+          where: { id: 'GLOBAL' },
+          data: { currentAmount: { increment: contribution } }
+        });
+      }
+    }
+
     const userCreatedTickets = allTickets.filter(t => t.userId === userId);
 
     return { 
       tickets: userCreatedTickets, 
       playerCount: pCount, 
       totalPrize: prizePool,
-      currentTicketCount: tCount 
+      currentTicketCount: tCount,
+      updatedJackpot: jackpotRecord
     };
   });
 
@@ -893,6 +911,18 @@ export async function joinGame(
   const currentState = activeGames.get(gameId);
   if (currentState) {
     currentState.ticketCount = currentTicketCount;
+  }
+
+  if (updatedJackpot) {
+    try {
+      await triggerAdminEvent('jackpot-updated', {
+        amount: updatedJackpot.currentAmount.toString(),
+        target: updatedJackpot.targetAmount.toString()
+      });
+      logger.info(`[Jackpot] Live Auto-Increment. New amount: ${updatedJackpot.currentAmount}`);
+    } catch (e) {
+      logger.error(`[Jackpot] Failed to broadcast live jackpot update:`, e);
+    }
   }
   try {
     const endTime = currentState?.secondsRemaining ? (Date.now() + currentState.secondsRemaining * 1000) : undefined;

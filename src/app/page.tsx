@@ -85,10 +85,25 @@ export default function LobbyPage() {
       });
     });
 
+    socket.on('jackpot-updated', (data: { amount: string, target: string }) => {
+      setUser((prev: any) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          jackpot: {
+            ...prev.jackpot,
+            amount: data.amount,
+            target: data.target
+          }
+        };
+      });
+    });
+
     return () => {
       socket.off('balance-updated');
       socket.off('bonus-updated');
       socket.off('deposit-approved');
+      socket.off('jackpot-updated');
     };
   }, [socket]);
 
