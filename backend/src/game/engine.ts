@@ -821,7 +821,7 @@ export async function joinGame(
   }
 
   // ─── Perform everything in a SINGLE transaction for speed and atomicity ───
-  const { tickets, playerCount, totalPrize, currentTicketCount, updatedJackpot } = await prisma.$transaction(async (tx) => {
+  const { tickets, allTickets, playerCount, totalPrize, currentTicketCount, updatedJackpot } = await prisma.$transaction(async (tx) => {
     // 1. Count user's existing tickets before deletion to calculate net change for live jackpot addition
     const existingCount = await tx.ticket.count({ where: { userId, gameId } });
 
@@ -900,6 +900,7 @@ export async function joinGame(
 
     return { 
       tickets: userCreatedTickets, 
+      allTickets,
       playerCount: pCount, 
       totalPrize: prizePool,
       currentTicketCount: tCount,
