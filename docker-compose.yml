@@ -1,7 +1,28 @@
+version: '3.8'
 
 services:
+  # ─── 1. PostgreSQL Production Database ─────────────────────────────────────
+  db:
+    image: postgres:15-alpine
+    container_name: buna-db
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: bunabingo_user
+      POSTGRES_PASSWORD: SecurePasswordHere123!
+      POSTGRES_DB: bunabingo
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bunabingo_user -d bunabingo"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - buna-network
 
-  # ─── Backend API + Telegram Bot ────────────────────────────────────────────
+  # ─── 2. Node.js Express API & Telegram Bot ────────────────────────────────
   backend:
     build:
       context: ./backend
@@ -10,11 +31,17 @@ services:
     restart: always
     ports:
       - "3001:3001"
+    depends_on:
+      db:
+        condition: service_healthy
     env_file:
       - ./backend/.env
+    environment:
+      DATABASE_URL: "postgresql://bunabingo_user:SecurePasswordHere123!@db:5432/bunabingo?schema=public"
+      DIRECT_URL: "postgresql://bunabingo_user:SecurePasswordHere123!@db:5432/bunabingo?schema=public"
     volumes:
-      - ./backend/uploads:/app/uploads   # persist uploaded receipts/banners
-      - ./backend/logs:/app/logs         # persist logs
+      - ./backend/uploads:/app/uploads   # Persist receipt uploads & banners
+      - ./backend/logs:/app/logs         # Persist debug logfiles
     ulimits:
       nofile:
         soft: 65535
@@ -22,15 +49,13 @@ services:
     networks:
       - buna-network
 
-  # ─── Frontend (Next.js Mini App) ───────────────────────────────────────────
+  # ─── 3. Next.js Frontend Mini-App ─────────────────────────────────────────
   frontend:
     build:
       context: .
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.bunatechhub.net}
-        NEXT_PUBLIC_PUSHER_KEY: ${NEXT_PUBLIC_PUSHER_KEY:-13890cf18bf6ba41dc0d}
-        NEXT_PUBLIC_PUSHER_CLUSTER: ${NEXT_PUBLIC_PUSHER_CLUSTER:-ap2}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://bunatechhub.net/api}
     container_name: buna-frontend
     restart: always
     ports:
@@ -45,6 +70,10 @@ services:
       start_period: 30s
     networks:
       - buna-network
+
+volumes:
+  postgres_data:
+    driver: local
 
 networks:
   buna-network:

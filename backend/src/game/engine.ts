@@ -927,6 +927,24 @@ export async function joinGame(
   try {
     const endTime = currentState?.secondsRemaining ? (Date.now() + currentState.secondsRemaining * 1000) : undefined;
     
+    // Broadcast high-performance occupied-sync for instant zero-HTTP ticket sync!
+    const ticketData = allTickets.map(t => ({
+      cardId: (t.card as any).id,
+      userId: t.userId
+    }));
+
+    await triggerGameEvent(gameId, 'occupied-sync', {
+      tickets: ticketData,
+      playerCount,
+      gameId
+    });
+
+    await triggerGameEvent(game.room.type, 'occupied-sync', {
+      tickets: ticketData,
+      playerCount,
+      gameId
+    });
+
     await triggerGameEvent(gameId, 'player-joined', { 
       userId, 
       playerCount, 

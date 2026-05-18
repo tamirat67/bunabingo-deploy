@@ -16,6 +16,7 @@ function SelectionContent() {
   const roomType = searchParams.get('type') || 'STANDARD';
   const stake = parseInt(searchParams.get('price') || '20');
   const gameId = searchParams.get('gameId') || undefined;
+  const [activeGameId, setActiveGameId] = useState<string | undefined>(gameId);
 
   const [user, setUser] = useState<any>(null);
   const [selected, setSelected] = useState<number[]>([]);
@@ -44,8 +45,8 @@ function SelectionContent() {
   };
 
   const loadGameData = useCallback(() => {
-    if (!gameId) return;
-    getGame(gameId).then(g => {
+    if (!activeGameId) return;
+    getGame(activeGameId).then(g => {
       setGame(g);
       if (g.endTime && g.serverTime) {
         const offset = g.serverTime - Date.now();
@@ -62,7 +63,7 @@ function SelectionContent() {
         setCountdown(g.countdownSeconds);
       }
     }).catch(() => {});
-  }, [gameId]);
+  }, [activeGameId]);
 
   // Local countdown fallback
   useEffect(() => {
@@ -95,7 +96,8 @@ function SelectionContent() {
     getMe().then(setUser).catch(() => {});
     loadGameData();
 
-    getOccupiedCards(roomType, gameId).then(res => {
+    // 1. Initial Quick Fetch (REST Fallback)
+    getOccupiedCards(roomType, activeGameId).then(res => {
       setOccupied(res.occupiedIds || []);
       prevOccupied.current = res.occupiedIds || [];
       setPlayerCount(res.playerCount || 0);
@@ -103,56 +105,78 @@ function SelectionContent() {
         setSelected(res.myCardIds);
         setOwnedCardIds(res.myCardIds);
       }
+      if (res.gameId) {
+        setActiveGameId(res.gameId);
+      }
+    }).catch(() => {});
 
-      if (socket && res.roomId) {
-        socket.emit('join-game', res.roomId);
-        socket.on('card-occupied', (data: { occupiedIds: number[] }) => {
-          const freshlyTaken = data.occupiedIds.filter(id => !prevOccupied.current.includes(id));
+    // 2. High-Performance WebSocket Sync (Real-time & Zero Network Overhead)
+    if (socket) {
+      socket.emit('join-game', roomType);
+      if (activeGameId) socket.emit('join-game', activeGameId);
+
+      socket.on('occupied-sync', (data: any) => {
+        if (data.tickets) {
+          const ticketList = data.tickets;
+          const myCardIds = ticketList.filter((t: any) => t.userId === user?.id).map((t: any) => t.cardId);
+          const otherOccupiedIds = ticketList.filter((t: any) => t.userId !== user?.id).map((t: any) => t.cardId);
+          
+          const freshlyTaken = otherOccupiedIds.filter((id: number) => !prevOccupied.current.includes(id));
           if (freshlyTaken.length > 0) {
             setNewlyOccupied(freshlyTaken);
             setTimeout(() => setNewlyOccupied([]), 2000);
           }
-          prevOccupied.current = data.occupiedIds;
-          setOccupied(data.occupiedIds);
-        });
-        socket.on('player-joined', (data: { playerCount: number }) => {
-          setPlayerCount(data.playerCount);
-        });
-        socket.on('countdown-start', (d: any) => {
-          setCountdown(d.seconds);
-          if (d.endTime && d.serverTime) {
-            setServerOff(d.serverTime - Date.now());
-            setEndTime(d.endTime);
+          prevOccupied.current = otherOccupiedIds;
+          setOccupied(otherOccupiedIds);
+          
+          if (myCardIds.length > 0) {
+            setOwnedCardIds(myCardIds);
           }
-        });
-        socket.on('countdown-tick', (d: any) => {
-          setCountdown(d.secondsRemaining);
-        });
-      }
-    }).catch(() => {});
+        }
+        if (data.gameId) {
+          setActiveGameId(data.gameId);
+        }
+        if (data.playerCount !== undefined) {
+          setPlayerCount(data.playerCount);
+        }
+      });
+
+      socket.on('countdown-start', (d: any) => {
+        setCountdown(d.seconds);
+        if (d.endTime && d.serverTime) {
+          setServerOff(d.serverTime - Date.now());
+          setEndTime(d.endTime);
+        }
+      });
+
+      socket.on('countdown-tick', (d: any) => {
+        setCountdown(d.secondsRemaining);
+      });
+    }
 
     return () => {
       if (socket) {
-        socket.off('card-occupied');
-        socket.off('player-joined');
+        socket.off('occupied-sync');
         socket.off('countdown-start');
         socket.off('countdown-tick');
       }
     };
-  }, [roomType, gameId, socket, loadGameData]);
+  }, [roomType, activeGameId, socket, loadGameData, user?.id]);
 
   useEffect(() => {
     setSelected(prev => prev.filter(id => !occupied.includes(id)));
   }, [occupied]);
 
   const toggleSelect = (num: number) => {
-    if (ownedCardIds.includes(num)) {
-      showAlert('Already Owned', 'You have already purchased this cartela. You cannot deselect or re-purchase it.', 'info');
+    // 1. If the card is owned/occupied by another player
+    if (occupied.includes(num)) {
+      showAlert('Card Taken', 'This card has just been purchased by another player! Please choose a free card.', 'error');
       return;
     }
+
+    // 2. Normal select/deselect flow (freely allow changing owned cards)
     setSelected(prev => {
       if (prev.includes(num)) return prev.filter(n => n !== num);
-      if (occupied.includes(num)) return prev;
       if (prev.length >= 5) {
         showAlert('Limit Reached', 'Maximum of 5 cards allowed per player', 'info');
         return prev;
@@ -164,15 +188,23 @@ function SelectionContent() {
   const handleStart = async () => {
     if (selected.length === 0 || joining) return;
     setJoining(true);
+
     const newCardsToBuy = selected.filter(id => !ownedCardIds.includes(id));
     const totalCost = stake * newCardsToBuy.length;
-    if (newCardsToBuy.length === 0) {
-      if (roomType.startsWith('SPIN_')) router.push(`/play/spin?id=${gameId}&stake=${stake}`);
-      else router.push(`/game?id=${gameId}`);
+
+    // Detect if selection actually changed
+    const isSelectionChanged = selected.length !== ownedCardIds.length || selected.some(id => !ownedCardIds.includes(id));
+
+    if (!isSelectionChanged) {
+      // If selection is identical to owned tickets, enter the game room directly
+      if (roomType.startsWith('SPIN_')) router.push(`/play/spin?id=${activeGameId}&stake=${stake}`);
+      else router.push(`/game?id=${activeGameId}`);
       setJoining(false);
       return;
     }
-    if (balance < totalCost && roomType !== 'DEMO') {
+
+    // Selection has changed, we must send joinGame to update tickets in the database
+    if (newCardsToBuy.length > 0 && balance < totalCost && roomType !== 'DEMO') {
       setModal({
         isOpen: true,
         title: 'Insufficient Balance',
@@ -183,6 +215,7 @@ function SelectionContent() {
       setJoining(false);
       return;
     }
+
     try {
       const res = await joinGame(roomType, selected);
       if (typeof window !== 'undefined' && res.gameId && res.tickets) {
@@ -440,18 +473,18 @@ function SelectionContent() {
               style={{
                 background: isOwned
                   ? 'linear-gradient(135deg, #1C0A35, #D4AF37)'
-                  : (isOccupied ? 'rgba(39, 174, 96, 0.12)' : (isSelected ? '#2ECC71' : 'rgba(212, 175, 55, 0.05)')),
-                color: isOwned
+                  : (isOccupied ? 'linear-gradient(135deg, #27AE60, #1E8449)' : (isSelected ? 'linear-gradient(135deg, #00B4DB, #0083B0)' : undefined)),
+                color: (isOwned || isOccupied || isSelected)
                   ? 'white'
-                  : (isOccupied ? '#2ecc71' : (isSelected ? 'white' : '#FFD700')),
+                  : T.text,
                 cursor: isOccupied ? 'not-allowed' : 'pointer',
                 opacity: 1,
                 border: isOwned
                   ? '2.5px solid #D4AF37'
-                  : (isOccupied ? '2px solid #27AE60' : (isSelected ? '2px solid #27AE60' : '1.5px solid rgba(212, 175, 55, 0.3)')),
+                  : (isOccupied ? '2px solid #2ECC71' : (isSelected ? '2px solid #00D2FF' : undefined)),
                 boxShadow: isOwned
                   ? '0 0 12px rgba(212, 175, 55, 0.6)'
-                  : (isOccupied ? 'inset 0 0 6px rgba(39, 174, 96, 0.2)' : (isSelected ? '0 0 10px rgba(46, 204, 113, 0.4)' : '0 0 8px rgba(212, 175, 55, 0.15)')),
+                  : (isOccupied ? '0 0 8px rgba(46, 204, 113, 0.5)' : (isSelected ? '0 0 10px rgba(0, 180, 219, 0.6)' : 'none')),
                 position: 'relative',
                 overflow: 'hidden',
                 fontWeight: '900',
@@ -460,10 +493,17 @@ function SelectionContent() {
             >
               {num}
 
-              {/* Green crown for owned or selected cards */}
-              {(isOwned || isSelected) && (
+              {/* Gold crown for owned cards */}
+              {isOwned && (
                 <div style={{ position: 'absolute', top: '1.5px', right: '1.5px', lineHeight: 1 }}>
-                  <Crown size={9} color="#2ECC71" fill="#2ECC71" />
+                  <Crown size={9} color="#F1C40F" fill="#F1C40F" />
+                </div>
+              )}
+
+              {/* Light blue/cyan crown for selected cards */}
+              {isSelected && !isOwned && (
+                <div style={{ position: 'absolute', top: '1.5px', right: '1.5px', lineHeight: 1 }}>
+                  <Crown size={9} color="#E0F7FA" fill="#00E5FF" />
                 </div>
               )}
 
@@ -536,7 +576,12 @@ function SelectionContent() {
             disabled={selected.length === 0 || joining}
             onClick={handleStart}
           >
-            <Play size={16} fill="white" /> {joining ? 'STARTING...' : 'START GAME'}
+            <Play size={16} fill="white" /> {(() => {
+              const isSelectionChanged = selected.length !== ownedCardIds.length || selected.some(id => !ownedCardIds.includes(id));
+              if (joining) return 'CONFIRMING...';
+              if (isSelectionChanged) return ownedCardIds.length > 0 ? 'CONFIRM SELECTION' : 'START GAME';
+              return ownedCardIds.length > 0 ? 'ENTER GAME ROOM' : 'START GAME';
+            })()}
           </button>
         </div>
       </div>

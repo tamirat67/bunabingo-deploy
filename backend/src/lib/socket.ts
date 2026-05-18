@@ -19,16 +19,57 @@ export function initSocket(server: HttpServer) {
       logger.info(`[Socket] User ${userId} connected and joined private room.`);
     }
 
-    socket.on('join-game', async (gameId: string) => {
-      socket.join(`game_${gameId}`);
-      logger.info(`[Socket] Socket ${socket.id} joined game room: ${gameId}`);
+    socket.on('join-game', async (gameOrRoom: string) => {
+      socket.join(`game_${gameOrRoom}`);
+      logger.info(`[Socket] Socket ${socket.id} joined channel: ${gameOrRoom}`);
+
+      // ── Real-Time Occupied Card Sync ───────────────────────────
+      try {
+        const { default: prisma } = await import('./prisma');
+        const { getRoomWithActiveGame } = await import('../game/room.manager');
+
+        let gameId = gameOrRoom;
+        let room: any = null;
+
+        const isRoomType = ['DEMO', 'CASUAL', 'STANDARD', 'PRO', 'JACKPOT', 'VIP'].includes(gameOrRoom) || gameOrRoom.startsWith('SPIN_');
+        if (isRoomType) {
+          room = await getRoomWithActiveGame(gameOrRoom as any);
+          gameId = room?.games[0]?.id || '';
+        } else {
+          const game = await prisma.game.findUnique({
+            where: { id: gameOrRoom },
+            include: { room: true }
+          });
+          gameId = game?.id || '';
+          room = game?.room || null;
+        }
+
+        if (gameId && room) {
+          const tickets = await prisma.ticket.findMany({
+            where: { gameId },
+            select: { card: true, userId: true }
+          });
+
+          const ticketData = tickets.map(t => ({
+            cardId: (t.card as any).id,
+            userId: t.userId
+          }));
+
+          socket.emit('occupied-sync', {
+            tickets: ticketData,
+            playerCount: new Set(tickets.map(t => t.userId)).size,
+            gameId,
+            roomId: room.id
+          });
+        }
+      } catch (e) {
+        logger.warn(`[Socket] Failed to send initial occupied sync for ${gameOrRoom}:`, e);
+      }
 
       // ── Sync mid-countdown state to reconnecting clients ──────────────────
-      // When a user refreshes mid-countdown they miss the 'countdown-start'
-      // event. We replay the live state immediately so the timer syncs.
       try {
         const { getActiveGames } = await import('../game/engine');
-        const state = getActiveGames().get(gameId);
+        const state = getActiveGames().get(gameOrRoom);
         if (state && state.secondsRemaining !== undefined && state.secondsRemaining > 0) {
           const endTime = Date.now() + state.secondsRemaining * 1000;
           socket.emit('countdown-start', {
@@ -39,15 +80,12 @@ export function initSocket(server: HttpServer) {
           });
           logger.info(`[Socket] Sent mid-countdown sync to ${socket.id}: ${state.secondsRemaining}s remaining`);
         } else {
-          // ── DB Fallback: in-memory state lost (server restart) ────────────
-          // Check DB for COUNTDOWN status and send remaining time estimate
           const { default: prisma } = await import('./prisma');
           const game = await prisma.game.findUnique({
-            where: { id: gameId },
+            where: { id: gameOrRoom },
             select: { status: true, countdownSeconds: true, createdAt: true }
           });
           if (game?.status === 'COUNTDOWN' && game.countdownSeconds && game.countdownSeconds > 0) {
-            // Estimate remaining seconds based on when created/started
             const elapsedSec = Math.floor((Date.now() - new Date(game.createdAt).getTime()) / 1000);
             const remaining = Math.max(0, game.countdownSeconds - elapsedSec);
             if (remaining > 0) {
@@ -63,7 +101,7 @@ export function initSocket(server: HttpServer) {
           }
         }
       } catch (e) {
-        logger.warn(`[Socket] Could not sync countdown state for game ${gameId}:`, e);
+        logger.warn(`[Socket] Could not sync countdown state for game ${gameOrRoom}:`, e);
       }
     });
 
