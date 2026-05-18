@@ -460,10 +460,10 @@ function SelectionContent() {
             >
               {num}
 
-              {/* Gold crown for owned or selected cards */}
+              {/* Green crown for owned or selected cards */}
               {(isOwned || isSelected) && (
                 <div style={{ position: 'absolute', top: '1.5px', right: '1.5px', lineHeight: 1 }}>
-                  <Crown size={9} color="#FFD700" fill="#FFD700" />
+                  <Crown size={9} color="#2ECC71" fill="#2ECC71" />
                 </div>
               )}
 

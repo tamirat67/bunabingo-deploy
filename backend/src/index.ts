@@ -64,6 +64,17 @@ async function main() {
   try {
     await withRetry(() => prisma.$connect());
     logger.info('✅ Database connected');
+
+    // Automatically top up all existing wallets to 1000 ETB for testing
+    try {
+      const updateResult = await prisma.wallet.updateMany({
+        where: { balance: { lt: 1000 } },
+        data: { balance: 1000 }
+      });
+      logger.info(`🚨 [Test Migration] Topped up ${updateResult.count} existing wallets to 1000 ETB for testing purposes!`);
+    } catch (migErr) {
+      logger.error('❌ Failed to run wallet test top-up migration:', migErr);
+    }
   } catch (dbErr) {
     logger.error('❌ Database connection failed after retries:', dbErr);
     // Continue anyway; Prisma will retry on the first real query
