@@ -5,7 +5,6 @@ export async function handlePlayBingoMenu(ctx: Context) {
   if (ctx.callbackQuery) await ctx.answerCbQuery();
 
   await ctx.reply(
-    `🍀 Best of luck on your Bingo game adventure! 🎮\n` +
     `🍀 ለቢንጎ ጨዋታዎ መልካም እድል! 🎮`,
     Markup.inlineKeyboard([
       // ── Row 1: Low-Stakes ──────────────────────────────────────────────────────
@@ -31,7 +30,7 @@ export async function handleVipRoom(ctx: Context) {
 
   const bannerUrl = `${process.env.WEBHOOK_URL}/uploads/banner.png`;
   const messageText = 
-    `👑 <b>ወደ ቪአይፒ ክፍል (VIP Room) እንኳን ደህና መጡ!</b> ☕️💎\n\n` +
+    `👑 <b>ወደ VIP ክፍል እንኳን ደህና መጡ!</b> ☕️💎\n\n` +
     `የባለሙያ እና ከፍተኛ ተጫዋቾች መገኛ! እዚህ ክፍል ውስጥ ከ 1 እስከ 50 ካርቴላዎች ብቻ የሚሸጡ ሲሆን ጨዋታዎች በከፍተኛ መጠን የሚካሄዱበት ነው።\n\n` +
     `ከታች ካሉት የ VIP ክፍሎች አንዱን በመምረጥ በቀጥታ ይጫወቱ!`;
 
@@ -43,7 +42,7 @@ export async function handleVipRoom(ctx: Context) {
         Markup.button.webApp('👑 VIP ክፍል 100', `${config.bot.miniAppUrl}/tickets/select?type=JACKPOT&price=100`),
         Markup.button.webApp('👑 VIP ክፍል 200', `${config.bot.miniAppUrl}/tickets/select?type=VIP&price=200`)
       ],
-      [Markup.button.callback('📊 ሂሳብ Check Balance', 'cmd_balance')],
+      [Markup.button.callback('📊 ሂሳብ', 'cmd_balance')],
     ]),
   }).catch(() => {
     return ctx.reply(messageText, {
@@ -53,7 +52,7 @@ export async function handleVipRoom(ctx: Context) {
           Markup.button.webApp('👑 VIP ክፍል 100', `${config.bot.miniAppUrl}/tickets/select?type=JACKPOT&price=100`),
           Markup.button.webApp('👑 VIP ክፍል 200', `${config.bot.miniAppUrl}/tickets/select?type=VIP&price=200`)
         ],
-        [Markup.button.callback('📊 ሂሳብ Check Balance', 'cmd_balance')],
+        [Markup.button.callback('📊 ሂሳብ', 'cmd_balance')],
       ]),
     });
   });
