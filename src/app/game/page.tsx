@@ -31,11 +31,6 @@ function GameContent() {
   const gameId  = sp.get('id');
   const { socket } = useSocket();
 
-  const fabBg = 'radial-gradient(circle at 35% 35%, #34c759 0%, #248a3d 70%, #155224 130%)';
-  const fabBorder = '#155224';
-  const fabInnerRing = '#34c75988';
-  const fabPlusColor = '#ffffff';
-
   const [game,      setGame]      = useState<any>(null);
   const [tickets,   setTickets]   = useState<any[]>(() => {
     if (typeof window !== 'undefined' && gameId) {
@@ -49,6 +44,18 @@ function GameContent() {
     }
     return [];
   });
+
+  const isDemo  = game?.room?.type === 'DEMO';
+  const isSpin  = game?.room?.type?.startsWith('SPIN_');
+  const stake   = isDemo ? 0 : Number(game?.room?.ticketPrice || 10);
+  const isVip   = game?.room?.type === 'VIP' || game?.room?.type === 'JACKPOT' || stake >= 50;
+
+  const fabBg = isVip 
+    ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 50%, #C471ED 100%)' 
+    : 'radial-gradient(circle at 35% 35%, #34c759 0%, #248a3d 70%, #155224 130%)';
+  const fabBorder = isVip ? '#FFD700' : '#155224';
+  const fabInnerRing = isVip ? 'rgba(255, 255, 255, 0.6)' : '#34c75988';
+  const fabPlusColor = isVip ? '#1C0A35' : '#ffffff';
   const [drawn,     setDrawn]     = useState<number[]>([]);
   const [lastBall,  setLastBall]  = useState<number | null>(null);
   const [countdown, setCountdown] = useState<number | null>(null);
@@ -293,9 +300,6 @@ function GameContent() {
 
   if (!mounted) return null;
 
-  const isDemo  = game?.room?.type === 'DEMO';
-  const isSpin  = game?.room?.type?.startsWith('SPIN_');
-  const stake   = isDemo ? 0 : Number(game?.room?.ticketPrice || 10);
   const prize   = isDemo 
                   ? (game?.totalPrize ? Number(game.totalPrize) : 100) 
                   : ((game?.totalPrize && Number(game.totalPrize) > 0) 
@@ -332,15 +336,22 @@ function GameContent() {
   return (
     <div 
       onClick={unlockAudio}
-      style={{ background: T.bg, minHeight: '100vh', paddingBottom: '180px', fontFamily: "'Segoe UI', sans-serif", overflowX: 'hidden' }}
+      style={{
+        background: isVip ? 'radial-gradient(circle at top, #2D1442 0%, #1C0A35 60%, #0F041A 100%)' : T.bg,
+        minHeight: '100vh',
+        paddingBottom: '180px',
+        fontFamily: "'Segoe UI', sans-serif",
+        overflowX: 'hidden',
+        color: isVip ? '#FFFFFF' : T.text
+      }}
     >
       <audio id="audio-start" src="/audio/start.mp3" preload="auto" />
       <audio id="audio-stop" src="/audio/stop.mp3" preload="auto" />
 
       {/* ── Buna Game Zone Header ── */}
-      <div style={{ background: T.header, padding: '12px 15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `3px solid ${T.gold}`, position: 'sticky', top: 0, zIndex: 100 }}>
-        <div style={{ color: T.gold, fontWeight: '900', fontSize: '18px', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <ShieldCheck size={20} /> BUNA GAME ZONE
+      <div style={{ background: isVip ? '#1C0A35' : T.header, padding: '12px 15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: isVip ? `3px solid #FFD700` : `3px solid ${T.gold}`, position: 'sticky', top: 0, zIndex: 100 }}>
+        <div style={{ color: isVip ? '#FFD700' : T.gold, fontWeight: '900', fontSize: '18px', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <ShieldCheck size={20} /> BUNA GAME ZONE {isVip && '👑 VIP'}
         </div>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           <div style={{ background: game?.status === 'RUNNING' ? '#27AE60' : '#E67E22', color: 'white', fontSize: '10px', fontWeight: '900', padding: '3px 10px', borderRadius: '20px' }}>
@@ -385,9 +396,9 @@ function GameContent() {
               display: 'flex', 
               alignItems: 'center', 
               justifyContent: 'center',
-              color: soundOn ? T.gold : '#7F8C8D', 
+              color: soundOn ? (isVip ? '#FFD700' : T.gold) : '#7F8C8D', 
               cursor: 'pointer',
-              border: `1px solid ${soundOn ? T.gold : '#7F8C8D'}44`
+              border: `1px solid ${soundOn ? (isVip ? '#FFD700' : T.gold) : '#7F8C8D'}44`
             }}
           >
             {soundOn ? <Volume2 size={18} /> : <VolumeX size={18} />}
@@ -396,16 +407,23 @@ function GameContent() {
       </div>
 
       {/* ── Stats Row ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', padding: '8px', background: T.statBg, borderBottom: `1px solid ${T.gold}44` }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', padding: '8px', background: isVip ? 'rgba(255,255,255,0.02)' : T.statBg, borderBottom: isVip ? '1px solid rgba(255,215,0,0.2)' : `1px solid ${T.gold}44` }}>
         {[
           ['GAME ID', gameId?.slice(-6).toUpperCase() || '--'],
           ['PLAYERS', game?.currentPlayers || game?.tickets?.length || (tickets.length > 0 ? tickets.length : '-')],
           ['STAKE', `${stake} ETB`],
           ['POOL', `${prize} ETB`]
         ].map(([l, v]) => (
-          <div key={l as string} style={{ background: T.card, border: `1px solid ${T.gold}33`, padding: '6px 4px', textAlign: 'center', borderRadius: '8px' }}>
-            <div style={{ fontSize: '8px', fontWeight: 'bold', color: T.brown }}>{l}</div>
-            <div style={{ fontSize: '12px', fontWeight: '900', color: T.text }}>{v}</div>
+          <div key={l as string} style={{ 
+            background: isVip ? 'rgba(255, 255, 255, 0.05)' : T.card, 
+            border: isVip ? '1px solid rgba(255, 215, 0, 0.25)' : `1px solid ${T.gold}33`, 
+            padding: '6px 4px', 
+            textAlign: 'center', 
+            borderRadius: '8px',
+            backdropFilter: isVip ? 'blur(10px)' : 'none'
+          }}>
+            <div style={{ fontSize: '8px', fontWeight: 'bold', color: isVip ? '#FFD700' : T.brown }}>{l}</div>
+            <div style={{ fontSize: '12px', fontWeight: '900', color: isVip ? 'white' : T.text }}>{v}</div>
           </div>
         ))}
       </div>
@@ -414,11 +432,40 @@ function GameContent() {
         {/* Master Board (Left) */}
         <div style={{ flex: '0 0 52%', display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <div style={{ flex: 1, background: game?.status === 'RUNNING' ? '#27AE60' : T.header, borderRadius: '14px', padding: '10px', textAlign: 'center', border: `2px solid ${T.gold}`, transition: 'background 0.3s' }}>
-              <div style={{ color: T.gold, fontSize: '9px', fontWeight: '900' }}>COUNT DOWN</div>
-              <div style={{ color: game?.status === 'RUNNING' ? 'white' : (activeThemeKey === 'LIGHT' ? '#333' : 'white'), fontSize: '24px', fontWeight: '900' }}>{cdText}</div>
+            <div style={{ 
+              flex: 1, 
+              background: game?.status === 'RUNNING' ? '#27AE60' : (isVip ? 'rgba(255,255,255,0.05)' : T.header), 
+              borderRadius: '14px', 
+              padding: '10px', 
+              textAlign: 'center', 
+              border: isVip ? '2px solid #FFD700' : `2px solid ${T.gold}`, 
+              transition: 'background 0.3s',
+              boxShadow: isVip ? '0 0 10px rgba(255, 215, 0, 0.2)' : 'none'
+            }}>
+              <div style={{ color: isVip ? '#FFD700' : T.gold, fontSize: '9px', fontWeight: '900' }}>COUNT DOWN</div>
+              <div style={{ color: game?.status === 'RUNNING' ? 'white' : (isVip ? 'white' : (activeThemeKey === 'LIGHT' ? '#333' : 'white')), fontSize: '24px', fontWeight: '900' }}>{cdText}</div>
             </div>
-            <motion.div key={lastBall} initial={{ scale: 0.5 }} animate={{ scale: 1 }} style={{ width: '65px', height: '65px', background: lastBall ? COL_COLOR[colLabel(lastBall)] : T.statBg, borderRadius: '50%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontWeight: '900', border: `4px solid ${T.gold}`, color: lastBall ? 'white' : T.brown }}>
+            <motion.div 
+              key={lastBall} 
+              initial={{ scale: 0.5 }} 
+              animate={{ scale: 1 }} 
+              style={{ 
+                width: '65px', 
+                height: '65px', 
+                background: lastBall 
+                  ? (isVip ? 'linear-gradient(135deg, #FFD700 0%, #C471ED 100%)' : COL_COLOR[colLabel(lastBall)]) 
+                  : (isVip ? 'rgba(255,255,255,0.05)' : T.statBg), 
+                borderRadius: '50%', 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                fontWeight: '900', 
+                border: isVip ? '4px solid #FFD700' : `4px solid ${T.gold}`, 
+                color: lastBall ? (isVip ? '#1C0A35' : 'white') : (isVip ? '#FFD700' : T.brown),
+                boxShadow: isVip ? '0 0 15px rgba(255, 215, 0, 0.6)' : 'none'
+              }}
+            >
               {lastBall ? (
                 <>
                   <div style={{ fontSize: '14px', lineHeight: 1 }}>{colLabel(lastBall)}</div>
@@ -429,12 +476,12 @@ function GameContent() {
           </div>
 
           {/* Current Called Balls (Last 4 Recent Balls) Row - Placed Under Countdown / Last Ball and next to simulation */}
-          <div style={{ background: T.statBg, borderRadius: '12px', padding: '6px 10px', border: `1px solid ${T.gold}33`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ color: T.brown, fontSize: '9px', fontWeight: '900', letterSpacing: '0.5px' }}>RECENT BALLS</span>
+          <div style={{ background: isVip ? 'rgba(255,255,255,0.02)' : T.statBg, borderRadius: '12px', padding: '6px 10px', border: isVip ? '1px solid rgba(255,215,0,0.2)' : `1px solid ${T.gold}33`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ color: isVip ? '#FFD700' : T.brown, fontSize: '9px', fontWeight: '900', letterSpacing: '0.5px' }}>RECENT BALLS</span>
             <div style={{ display: 'flex', gap: '5px' }}>
               {drawn.slice(-4).reverse().map((ball) => {
                 const label = colLabel(ball);
-                const color = COL_COLOR[label];
+                const color = isVip ? 'linear-gradient(135deg, #FFD700, #C471ED)' : COL_COLOR[label];
                 return (
                   <motion.div
                     key={ball}
@@ -442,7 +489,7 @@ function GameContent() {
                     animate={{ scale: 1, opacity: 1 }}
                     style={{
                       background: color,
-                      color: 'white',
+                      color: isVip ? '#1C0A35' : 'white',
                       fontWeight: '900',
                       width: '28px',
                       height: '28px',
@@ -451,7 +498,7 @@ function GameContent() {
                       flexDirection: 'column',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      border: `1.5px solid white`,
+                      border: isVip ? '1.5px solid #FFD700' : '1.5px solid white',
                       boxShadow: '0 2px 4px rgba(0,0,0,0.15)'
                     }}
                   >
@@ -460,14 +507,23 @@ function GameContent() {
                   </motion.div>
                 );
               })}
-              {drawn.length === 0 && <span style={{ color: T.brown, fontSize: '9px', fontWeight: '800', opacity: 0.6 }}>Waiting for draw...</span>}
+              {drawn.length === 0 && <span style={{ color: isVip ? 'rgba(255,255,255,0.4)' : T.brown, fontSize: '9px', fontWeight: '800', opacity: 0.6 }}>Waiting for draw...</span>}
             </div>
           </div>
 
-          <div style={{ background: T.card, borderRadius: '14px', padding: '10px', border: `1px solid ${T.gold}44` }}>
+          <div style={{ background: isVip ? 'rgba(255,255,255,0.05)' : T.card, borderRadius: '14px', padding: '10px', border: isVip ? '1px solid rgba(255, 215, 0, 0.25)' : `1px solid ${T.gold}44`, backdropFilter: isVip ? 'blur(10px)' : 'none' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '3px', marginBottom: '6px' }}>
               {['B','I','N','G','O'].map(l => (
-                <div key={l} style={{ background: COL_COLOR[l], color: 'white', textAlign: 'center', fontSize: '13px', fontWeight: '900', borderRadius: '6px', padding: '4px 0' }}>{l}</div>
+                <div key={l} style={{ 
+                  background: isVip ? 'linear-gradient(135deg, #FFD700, #C471ED)' : COL_COLOR[l], 
+                  color: isVip ? '#1C0A35' : 'white', 
+                  textAlign: 'center', 
+                  fontSize: '13px', 
+                  fontWeight: '900', 
+                  borderRadius: '6px', 
+                  padding: '4px 0',
+                  boxShadow: isVip ? '0 2px 5px rgba(0,0,0,0.15)' : 'none'
+                }}>{l}</div>
               ))}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '2px' }}>
@@ -475,8 +531,11 @@ function GameContent() {
                 const n = col.s + i;
                 return (
                   <div key={n} style={{
-                    background: isCalled(n) ? COL_COLOR[col.l] : T.statBg,
-                    color:      isCalled(n) ? 'white' : T.text,
+                    background: isCalled(n) 
+                      ? (isVip ? 'linear-gradient(135deg, #FFD700, #C471ED)' : COL_COLOR[col.l]) 
+                      : (isVip ? 'rgba(255,255,255,0.05)' : T.statBg),
+                    color:      isCalled(n) ? '#1C0A35' : (isVip ? 'rgba(255,255,255,0.6)' : T.text),
+                    border:     isVip && isCalled(n) ? '1px solid #FFD700' : 'none',
                     fontSize: '10px', fontWeight: '900', textAlign: 'center', padding: '5.5px 0', borderRadius: '4px'
                   }}>{n}</div>
                 );
@@ -535,7 +594,7 @@ function GameContent() {
         </div>
 
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <div style={{ color: T.text, fontWeight: '900', fontSize: '13px', padding: '0 5px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ color: isVip ? 'white' : T.text, fontWeight: '900', fontSize: '13px', padding: '0 5px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span>🏆 YOUR CARTELAS ({visible.length})</span>
           </div>
 
@@ -545,8 +604,8 @@ function GameContent() {
               <div 
                 key={l} 
                 style={{ 
-                  background: COL_COLOR[l], 
-                  color: 'white', 
+                  background: isVip ? 'linear-gradient(135deg, #FFD700, #C471ED)' : COL_COLOR[l], 
+                  color: isVip ? '#1C0A35' : 'white', 
                   textAlign: 'center', 
                   fontSize: '12px', 
                   fontWeight: '900', 
@@ -580,17 +639,32 @@ function GameContent() {
                 animate={{ opacity: 1, scale: isSelected ? 1.02 : 1 }} 
                 style={{ 
                   position: 'relative', 
-                  background: T.card, 
+                  background: isVip ? 'rgba(255,255,255,0.04)' : T.card, 
                   borderRadius: '16px', 
                   overflow: 'hidden', 
-                  border: isSelected ? `3px solid ${T.gold}` : `2px solid ${T.gold}55`, 
-                  boxShadow: isSelected ? `0 8px 20px ${T.gold}44` : '0 4px 10px rgba(0,0,0,0.05)',
+                  border: isSelected 
+                    ? (isVip ? '3px solid #FFD700' : `3px solid ${T.gold}`) 
+                    : (isVip ? '2px solid rgba(255, 215, 0, 0.2)' : `2px solid ${T.gold}55`), 
+                  boxShadow: isSelected 
+                    ? (isVip ? '0 8px 25px rgba(255, 215, 0, 0.3)' : `0 8px 20px ${T.gold}44`) 
+                    : '0 4px 10px rgba(0,0,0,0.05)',
                   cursor: 'pointer',
-                  transition: 'all 0.2s'
+                  transition: 'all 0.2s',
+                  backdropFilter: isVip ? 'blur(10px)' : 'none'
                 }}
               >
                 <button onClick={(e) => { e.stopPropagation(); hideCard(t.id); }} style={{ position: 'absolute', top: '4px', right: '5px', width: '20px', height: '20px', background: '#C0392B', color: 'white', border: 'none', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}><X size={10} /></button>
-                <div style={{ background: isSelected ? T.gold : T.header, padding: '4px 10px', color: isSelected ? T.header : T.gold, fontWeight: '900', fontSize: '11px' }}>
+                <div style={{ 
+                  background: isSelected 
+                    ? (isVip ? 'linear-gradient(90deg, #FFD700, #C471ED)' : T.gold) 
+                    : (isVip ? '#1C0A35' : T.header), 
+                  padding: '4px 10px', 
+                  color: isSelected 
+                    ? (isVip ? '#1C0A35' : T.header) 
+                    : (isVip ? '#FFD700' : T.gold), 
+                  fontWeight: '900', 
+                  fontSize: '11px' 
+                }}>
                    Cartela #{cardId} {isSelected ? '(SELECTED)' : ''}
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '2px', padding: '5px' }}>
@@ -614,9 +688,19 @@ function GameContent() {
                             borderRadius: '4px', 
                             fontSize: '11px', 
                             fontWeight: '900', 
-                            background: isFree ? '#27AE60' : userMarked ? T.gold : (isHinted ? '#E67E22' : T.statBg), 
-                            color: (isFree || isHinted) ? 'white' : (userMarked ? T.header : T.text), 
-                            border: userMarked ? `3px solid white` : (isHinted ? `2px solid white` : 'none'),
+                            background: isFree 
+                              ? '#27AE60' 
+                              : userMarked 
+                                ? (isVip ? 'linear-gradient(135deg, #FFD700, #C471ED)' : T.gold) 
+                                : (isHinted ? '#E67E22' : (isVip ? 'rgba(255,255,255,0.06)' : T.statBg)), 
+                            color: (isFree || isHinted) 
+                              ? 'white' 
+                              : userMarked 
+                                ? (isVip ? '#1C0A35' : T.header) 
+                                : (isVip ? 'white' : T.text), 
+                            border: userMarked 
+                              ? (isVip ? '3px solid #FFD700' : '3px solid white') 
+                              : (isHinted ? '2px solid white' : 'none'),
                             position: 'relative',
                             overflow: 'hidden',
                             boxShadow: isHinted ? `0 0 10px rgba(230, 126, 34, 0.6)` : 'none',
@@ -661,9 +745,13 @@ function GameContent() {
                     disabled={game?.status !== 'RUNNING'}
                     style={{
                       width: '100%',
-                      background: game?.status === 'RUNNING' ? 'linear-gradient(135deg, #F39C12, #E67E22)' : 'rgba(150,150,150,0.1)',
-                      color: game?.status === 'RUNNING' ? 'white' : 'rgba(0,0,0,0.3)',
-                      border: 'none',
+                      background: game?.status === 'RUNNING' 
+                        ? (isVip ? 'linear-gradient(135deg, #FFD700, #C471ED)' : 'linear-gradient(135deg, #F39C12, #E67E22)') 
+                        : (isVip ? 'rgba(255,255,255,0.05)' : 'rgba(150,150,150,0.1)'),
+                      color: game?.status === 'RUNNING' 
+                        ? (isVip ? '#1C0A35' : 'white') 
+                        : (isVip ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.3)'),
+                      border: isVip && game?.status === 'RUNNING' ? '2px solid #FFFFFF' : 'none',
                       borderRadius: '12px',
                       height: '36px',
                       fontWeight: '900',
@@ -672,7 +760,9 @@ function GameContent() {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      boxShadow: game?.status === 'RUNNING' ? '0 4px 10px rgba(230,126,34,0.3)' : 'none'
+                      boxShadow: game?.status === 'RUNNING' 
+                        ? (isVip ? '0 4px 15px rgba(255,215,0,0.4)' : '0 4px 10px rgba(230,126,34,0.3)') 
+                        : 'none'
                     }}
                   >
                     ☕ BINGO! ({cardId})
@@ -681,7 +771,7 @@ function GameContent() {
               </motion.div>
             );
           })}
-          {tickets.length === 0 && <div style={{ textAlign: 'center', color: T.brown, padding: '40px' }}>Fetching cards...</div>}
+          {tickets.length === 0 && <div style={{ textAlign: 'center', color: isVip ? 'white' : T.brown, padding: '40px' }}>Fetching cards...</div>}
         </div>
       </div>
 
