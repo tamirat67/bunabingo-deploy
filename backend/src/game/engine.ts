@@ -37,8 +37,11 @@ function buildNumberPool(): number[] {
 
 // ─── Determine Countdown ──────────────────────────────────────
 function getCountdownSeconds(playerCount: number, roomType: string): number {
-  if (roomType === 'DEMO') return 10; // Fast 10s timer for practice mode
-  return (config.game.countdown as any).default || 60;
+  const cdConfig = config.game.countdown as Record<string, number>;
+  if (roomType in cdConfig) {
+    return cdConfig[roomType];
+  }
+  return cdConfig.default ?? 30;
 }
 
 // ─── Start Countdown ──────────────────────────────────────────
@@ -72,6 +75,14 @@ export async function startCountdown(gameId: string, playerCount: number): Promi
   }
 
   existing.secondsRemaining = seconds;
+
+  if (seconds <= 0) {
+    logger.info(`[Game ${gameId}] Countdown is ${seconds}s. Starting game loop immediately.`);
+    if (existing.countdownInterval) clearInterval(existing.countdownInterval);
+    if (existing.countdownTimer) clearTimeout(existing.countdownTimer);
+    runGame(gameId);
+    return;
+  }
 
   const endTime = Date.now() + seconds * 1000;
   await triggerGameEvent(gameId, 'countdown-start', { seconds, playerCount, endTime, serverTime: Date.now() });
