@@ -169,7 +169,7 @@ export async function handleDepositMessage(ctx: Context): Promise<boolean> {
     // ── Layer 1: Parse + internal self-verification ───────────────────────────
     await ctx.replyWithHTML(
       `🔍 <b>SMS እየተረጋገጠ ነው...</b>\n` +
-      `<i>ስርዓቱ ብዙ ደረጃዎችን ያካሂዳል — ይጠብቁ።</i>`
+      `<i>(AI Bot)ስርዓቱ በርካታ የማረጋገጫ ደረጃዎችን እያካሄደ ነው — እባክዎ ይጠብቁ።</i>`
     );
 
     const { validateTelebirrSms } = await import('../../services/bunafrankValidator');
