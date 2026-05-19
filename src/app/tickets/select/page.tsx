@@ -34,11 +34,11 @@ function SelectionContent() {
   
   // Fake Player Simulation Logic
   useEffect(() => {
-    if (game?.status !== 'RUNNING' && fakePlayersCount < 50000) {
+    if (game?.status !== 'RUNNING' && fakePlayersCount < 200) {
       const timer = setTimeout(() => {
-        const newPlayers = Math.floor(Math.random() * 26) + 5;
-        setFakePlayersCount(prev => Math.min(prev + newPlayers, 50000));
-      }, Math.random() * 500 + 100);
+        const newPlayers = Math.floor(Math.random() * 3) + 1; // Adds 1 to 3 players at a time
+        setFakePlayersCount(prev => Math.min(prev + newPlayers, 200));
+      }, Math.random() * 1000 + 500); // Wait 0.5s to 1.5s between additions
       return () => clearTimeout(timer);
     }
   }, [fakePlayersCount, game?.status]);
@@ -347,7 +347,7 @@ function SelectionContent() {
           </motion.div>
         </div>
 
-        {/* Right — Countdown */}
+        {/* Right — Countdown / Player Count */}
         <div style={{ textAlign: 'right', minWidth: '90px' }}>
           {isLive ? (
             <>
@@ -379,16 +379,22 @@ function SelectionContent() {
             </>
           ) : (
             <>
-              <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: '9px', fontWeight: '900', letterSpacing: '1.5px', marginBottom: '6px' }}>
-                GAME STATUS
+              <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: '9px', fontWeight: '900', letterSpacing: '1.5px', marginBottom: '6px', textTransform: 'uppercase' }}>
+                {game?.status === 'WAITING' ? 'PLAYERS JOINED' : 'GAME STATUS'}
               </div>
               <div style={{
-                fontSize: '18px',
+                fontSize: game?.status === 'WAITING' ? '28px' : '18px',
                 fontWeight: '900',
                 color: game?.status === 'RUNNING' ? '#2ECC71' : T.gold,
                 textShadow: game?.status === 'RUNNING' ? '0 0 12px rgba(46,204,113,0.6)' : `0 0 12px ${T.gold}66`,
+                fontVariantNumeric: 'tabular-nums',
+                letterSpacing: '-1px'
               }}>
-                {game?.status === 'RUNNING' ? '🔴 LIVE' : game?.status === 'WAITING' ? '⏳ WAITING' : '✅ READY'}
+                {game?.status === 'RUNNING' ? '🔴 LIVE' : game?.status === 'WAITING' ? (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end' }}>
+                    <Users size={18} /> {displayPlayerCount.toLocaleString()}
+                  </span>
+                ) : '✅ READY'}
               </div>
             </>
           )}
