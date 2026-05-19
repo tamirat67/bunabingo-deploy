@@ -334,8 +334,12 @@ async function submitDeposit(
         
         await creditWallet(user.id, amount, 'DEPOSIT', deposit.id, `Automatic Telebirr Deposit: ${referenceOrSms}`);
         
-        const bonusAmount = amount * 0.5;
-        await creditBonus(user.id, bonusAmount, `Telebirr Deposit Bonus (50%) for deposit #${deposit.id}`);
+        const isEligible = amount >= 50;
+        const bonusPercentage = isEligible ? 100 : 0;
+        const bonusAmount = amount * (bonusPercentage / 100);
+        if (bonusAmount > 0) {
+          await creditBonus(user.id, bonusAmount, `Telebirr Deposit Bonus (${bonusPercentage}%) for deposit #${deposit.id}`);
+        }
         
         logger.info(`[Deposit] Successfully credited user ${user.id} for deposit ${deposit.id}`);
       } catch (creditErr) {
@@ -355,13 +359,21 @@ async function submitDeposit(
       paymentMethod === 'mpesa'    ? 'MPESA'    : 'Manual';
 
     if (autoComplete) {
+      const isEligible = amount >= 50;
+      const bonusPercentage = isEligible ? 100 : 0;
+      const bonusAmount = amount * (bonusPercentage / 100);
+      
+      let replyMsg = `✅ *ገቢዎ ተሳክቷል!*\n\n` +
+                     `💵 መጠን፡ *${amount.toFixed(2)} ብር (ETB)*\n`;
+      if (bonusAmount > 0) {
+        replyMsg += `🎁 ቦነስ (${bonusPercentage}%)፡ *${bonusAmount.toFixed(2)} ብር (ETB)*\n`;
+      }
+      replyMsg += `💳 መንገድ፡ *${methodLabel}*\n` +
+                  `📋 ሁኔታ፡ *ተጠናቋል*\n\n` +
+                  `💰 ሂሳብዎ ገቢ ሆኗል። መልካም እድል! 🎰`;
+
       await ctx.reply(
-        `✅ *ገቢዎ ተሳክቷል!*\n\n` +
-        `💵 መጠን፡ *${amount.toFixed(2)} ብር (ETB)*\n` +
-        `🎁 ቦነስ (50%)፡ *${(amount * 0.5).toFixed(2)} ብር (ETB)*\n` +
-        `💳 መንገድ፡ *${methodLabel}*\n` +
-        `📋 ሁኔታ፡ *ተጠናቋል*\n\n` +
-        `💰 ሂሳብዎ ገቢ ሆኗል። መልካም እድል! 🎰`,
+        replyMsg,
         { 
           parse_mode: 'Markdown',
           ...Markup.inlineKeyboard([

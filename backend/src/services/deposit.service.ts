@@ -94,10 +94,15 @@ export async function approveDeposit(depositId: string, adminId: string) {
   if (deposit.userId) {
     await creditWallet(deposit.userId, deposit.amount, 'DEPOSIT', depositId, 'Deposit approved');
 
-    // ─── 50% Deposit Bonus ───
+    // ─── Deposit Bonus (100% for >= 50 ETB only) ───
     const { creditBonus } = await import('./wallet.service');
-    const bonusAmount = Number(deposit.amount) * 0.5;
-    await creditBonus(deposit.userId, bonusAmount, `Deposit bonus (50%) for request #${depositId}`);
+    const isEligible = Number(deposit.amount) >= 50;
+    const bonusPercentage = isEligible ? 100 : 0;
+    const bonusAmount = Number(deposit.amount) * (bonusPercentage / 100);
+    
+    if (bonusAmount > 0) {
+      await creditBonus(deposit.userId, bonusAmount, `Deposit bonus (${bonusPercentage}%) for request #${depositId}`);
+    }
 
     await prisma.adminLog.create({
       data: { adminId: adminId, targetUserId: deposit.userId, action: 'APPROVE_DEPOSIT', details: { depositId, amount: deposit.amount, bonus: bonusAmount } },
@@ -110,13 +115,16 @@ export async function approveDeposit(depositId: string, adminId: string) {
       });
 
       // Notify User on Telegram
-      await notifyUser(
-        deposit.userId,
-        `✅ <b>የብር ገቢ ተረጋግጧል! (Deposit Approved)</b>\n\n` +
-        `💵 መጠን (Amount): <b>${Number(deposit.amount).toFixed(2)} ETB</b>\n` +
-        `🎁 ቦነስ (Bonus): <b>${bonusAmount.toFixed(2)} ETB (50%)</b>\n\n` +
-        `ሂሳብዎ ገቢ ሆኗል። አሁኑኑ ተጫውተው ያሸንፉ! 🎰`
-      );
+      let msgText = `✅ <b>የብር ገቢ ተረጋግጧል! (Deposit Approved)</b>\n\n` +
+                    `💵 መጠን (Amount): <b>${Number(deposit.amount).toFixed(2)} ETB</b>\n`;
+      if (bonusAmount > 0) {
+        msgText += `🎁 ቦነስ (Bonus): <b>${bonusAmount.toFixed(2)} ETB (${bonusPercentage}%)</b>\n\n`;
+      } else {
+        msgText += `\n`;
+      }
+      msgText += `ሂሳብዎ ገቢ ሆኗል። አሁኑኑ ተጫውተው ያሸንፉ! 🎰`;
+
+      await notifyUser(deposit.userId, msgText);
   }
 
   logger.info(`Deposit approved: ${depositId} by admin/agent ${adminId}`);
