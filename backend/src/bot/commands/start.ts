@@ -138,6 +138,7 @@ export async function handleStart(ctx: Context) {
     const bannerUrl = `${process.env.WEBHOOK_URL}/uploads/banner.png`;
     const mainMenuText = 
       `👋 እንኳን ወደ ቡና ቢንጎ በደህና መጡ፣ <b>${tgUser.first_name}${tgUser.username ? ` @${tgUser.username}` : ''} 🦅</b>!\n\n` +
+      `📢 <b>የቡና ቢንጎ ቻናል (Buna Bingo Channel)፡</b> <a href="https://t.me/buna_bingobot1">ይቀላቀሉ!</a>\n\n` +
       `ቡና ቢንጎ ጨዋታ ደምቋል! እየተዝናኑ ለማሸነፍ ዝግጁ ኖት? 🎰☕️\n\n` +
       `🔥 <b>ያሁኑ ጃክፖት፡ ${jackpotAmount} ETB</b> 🔥\n\n` +
       `☕️ "የቡና ጣዕም፣ ወርቃማ ድሎች።"\n\n` +
@@ -167,7 +168,11 @@ export async function handleStart(ctx: Context) {
           Markup.button.callback('ሂሳብ ማውጫ 💰', 'cmd_balance'),
           Markup.button.url('ድጋፍ ያግኙ 📞', 'https://t.me/sisay_2121'),
         ],
-        // ── Row 5: Help & Referral ────────────────────────────────────────────
+        // ── Row 5: Channel ───────────────────────────────────────────────────
+        [
+          Markup.button.url('📢 ቻናላችንን ይቀላቀሉ (Join Channel)', 'https://t.me/buna_bingobot1'),
+        ],
+        // ── Row 6: Help & Referral ────────────────────────────────────────────
         [
           Markup.button.callback('አጠቃቀም መመሪያ 📖', 'cmd_instructions'),
           Markup.button.url(
@@ -195,6 +200,9 @@ export async function handleStart(ctx: Context) {
           [
             Markup.button.callback('ሂሳብ ማውጫ 💰', 'cmd_balance'),
             Markup.button.url('ድጋፍ ያግኙ 📞', 'https://t.me/sisay_2121'),
+          ],
+          [
+            Markup.button.url('📢 ቻናላችንን ይቀላቀሉ (Join Channel)', 'https://t.me/buna_bingobot1'),
           ],
           [
             Markup.button.callback('አጠቃቀም መመሪያ 📖', 'cmd_instructions'),
