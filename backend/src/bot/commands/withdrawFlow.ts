@@ -15,8 +15,15 @@ export async function handleWithdrawStart(ctx: Context) {
   if (!user) return ctx.reply('❌ እባክዎ አስቀድመው /start ን በመጫን ይመዝገቡ።');
 
   const balance = Number((user as any).wallet?.balance ?? 0);
+  const bonusBalance = Number((user as any).wallet?.bonusBalance ?? 0);
+
   if (balance < config.withdrawal.minAmount) {
-    return ctx.reply(`❌ በቂ ሂሳብ የለዎትም። ዝቅተኛው የማውጫ መጠን ${config.withdrawal.minAmount} ብር ነው።`);
+    return ctx.reply(
+      `❌ በቂ ሂሳብ የለዎትም። ዝቅተኛው የማውጫ መጠን ${config.withdrawal.minAmount} ብር ነው።\n\n` +
+      `💵 ዋና ሂሳብ (ሊወጣ የሚችል): *${balance.toFixed(2)} ETB*\n` +
+      `🎁 የቦነስ ሂሳብ (ለጨዋታ ብቻ): *${bonusBalance.toFixed(2)} ETB*`,
+      { parse_mode: 'Markdown' }
+    );
   }
 
   setSession(tgUser.id, { type: 'WITHDRAWAL', step: 'AWAITING_AMOUNT' });
@@ -24,7 +31,9 @@ export async function handleWithdrawStart(ctx: Context) {
   await ctx.reply(
     `💸 *የገንዘብ ማውጫ ጥያቄ*\n\n` +
     `እንዲወጣልዎት የሚፈልጉትን የገንዘብ መጠን በብር (ETB) ያስገቡ:\n\n` +
-    `ያለዎት ሂሳብ፡ *${balance.toFixed(2)} ብር (ETB)*\n` +
+    `💵 *ዋና ሂሳብ (ሊወጣ የሚችል)፡* *${balance.toFixed(2)} ብር (ETB)*\n` +
+    `🎁 *የቦነስ ሂሳብ (ለጨዋታ ብቻ)፡* *${bonusBalance.toFixed(2)} ብር (ETB)*\n\n` +
+    `⚠️ _ማሳሰቢያ: የቦነስ ሂሳብ ማውጣት አይቻልም (Bonus balance is strictly non-withdrawable)._\n\n` +
     `ዝቅተኛው መጠን፡ *${config.withdrawal.minAmount} ብር (ETB)*`,
     {
       parse_mode: 'Markdown',

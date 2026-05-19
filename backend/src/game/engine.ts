@@ -1,4 +1,4 @@
-import prisma from '../lib/prisma';
+import prisma, { withRetry } from '../lib/prisma';
 import { logger } from '../lib/logger';
 import { config } from '../config';
 import { triggerGameEvent, triggerUserEvent, triggerAdminEvent } from '../lib/pusher';
@@ -174,20 +174,38 @@ async function runGame(gameId: string): Promise<void> {
         continue;
       }
 
-      if (new Decimal(wallet.balance).lessThan(totalCharge)) {
+      const balance = new Decimal(wallet.balance.toString());
+      const bonus = new Decimal(wallet.bonusBalance.toString());
+      const totalAvailable = balance.add(bonus);
+
+      if (totalAvailable.lessThan(totalCharge)) {
         logger.warn(`[Game ${gameId}] User ${userId} has insufficient balance at game start — removing tickets`);
         await prisma.ticket.deleteMany({ where: { gameId, userId } });
         continue;
       }
 
-      const newBalance = new Decimal(wallet.balance).sub(totalCharge);
+      // Deduct from Bonus Wallet first, then Main Wallet
+      let remainingToDebit = totalCharge;
+      let newBonus = bonus;
+      let newBalance = balance;
+
+      if (bonus.greaterThan(0)) {
+        const bonusToUse = Decimal.min(bonus, remainingToDebit);
+        newBonus = bonus.sub(bonusToUse);
+        remainingToDebit = remainingToDebit.sub(bonusToUse);
+      }
+
+      if (remainingToDebit.greaterThan(0)) {
+        newBalance = balance.sub(remainingToDebit);
+      }
 
       await prisma.$transaction(async (tx) => {
         await tx.wallet.update({
           where: { userId },
           data: {
             balance: newBalance,
-            totalSpent: new Decimal(wallet.totalSpent).add(totalCharge),
+            bonusBalance: newBonus,
+            totalSpent: new Decimal(wallet.totalSpent.toString()).add(totalCharge),
           },
         });
         await tx.transaction.create({
@@ -199,7 +217,7 @@ async function runGame(gameId: string): Promise<void> {
             balanceAfter: newBalance,
             status: 'COMPLETED',
             referenceId: gameId,
-            description: `Game started — ${numTickets} ticket(s) charged for ${game.room.type}`,
+            description: `Game started — ${numTickets} ticket(s) charged for ${game.room.type} (Bonus Used: ${bonus.sub(newBonus).toFixed(2)} ETB)`,
           },
         });
       });
@@ -332,18 +350,38 @@ async function runSpinRaffle(gameId: string): Promise<void> {
     const prizeContribution = totalCharge.sub(houseEdge);
 
     const wallet = await prisma.wallet.findUnique({ where: { userId } });
-    if (!wallet || new Decimal(wallet.balance).lessThan(totalCharge)) {
+    if (!wallet) continue;
+
+    const balance = new Decimal(wallet.balance.toString());
+    const bonus = new Decimal(wallet.bonusBalance.toString());
+    const totalAvailable = balance.add(bonus);
+
+    if (totalAvailable.lessThan(totalCharge)) {
       logger.warn(`[Spin ${gameId}] User ${userId} has insufficient balance. Skipping.`);
       continue;
     }
 
-    const newBalance = new Decimal(wallet.balance).sub(totalCharge);
+    // Deduct from Bonus Wallet first, then Main Wallet
+    let remainingToDebit = totalCharge;
+    let newBonus = bonus;
+    let newBalance = balance;
+
+    if (bonus.greaterThan(0)) {
+      const bonusToUse = Decimal.min(bonus, remainingToDebit);
+      newBonus = bonus.sub(bonusToUse);
+      remainingToDebit = remainingToDebit.sub(bonusToUse);
+    }
+
+    if (remainingToDebit.greaterThan(0)) {
+      newBalance = balance.sub(remainingToDebit);
+    }
 
     await prisma.$transaction(async (tx) => {
       await tx.wallet.update({
         where: { userId },
         data: { 
           balance: newBalance,
+          bonusBalance: newBonus,
           totalSpent: { increment: totalCharge }
         }
       });
@@ -357,7 +395,7 @@ async function runSpinRaffle(gameId: string): Promise<void> {
           balanceAfter: newBalance,
           status: 'COMPLETED',
           referenceId: gameId,
-          description: `Spin Tournament Join: ${game.room.type} (Game #${gameId})`
+          description: `Spin Tournament Join: ${game.room.type} (Game #${gameId}) (Bonus Used: ${bonus.sub(newBonus).toFixed(2)} ETB)`
         }
       });
     });
@@ -811,101 +849,107 @@ export async function joinGame(
   const unitPrice = game.room.ticketPrice;
   const totalPrice = new Decimal(unitPrice).mul(numTickets);
 
-  if (new Decimal(wallet.balance).lessThan(totalPrice)) {
-    const currentBalance = Number(wallet.balance);
-    if (currentBalance === 0) {
+  const balance = new Decimal(wallet.balance.toString());
+  const bonus = new Decimal(wallet.bonusBalance.toString());
+  const totalAvailable = balance.add(bonus);
+
+  if (totalAvailable.lessThan(totalPrice)) {
+    const currentTotal = Number(totalAvailable);
+    if (currentTotal === 0) {
       throw new Error(`❌ Your wallet is empty (0 ETB). Please deposit via Telebirr to join the game!`);
     } else {
-      throw new Error(`❌ Insufficient balance. You need ${totalPrice} ETB for ${numTickets} card(s), but you have ${currentBalance} ETB.`);
+      throw new Error(`❌ Insufficient balance. You need ${totalPrice} ETB for ${numTickets} card(s), but you have ${currentTotal} ETB (Main: ${balance.toFixed(2)} ETB, Bonus: ${bonus.toFixed(2)} ETB).`);
     }
   }
 
-  // ─── Perform everything in a SINGLE transaction for speed and atomicity ───
-  const { tickets, allTickets, playerCount, totalPrize, currentTicketCount, updatedJackpot } = await prisma.$transaction(async (tx) => {
-    // 1. Count user's existing tickets before deletion to calculate net change for live jackpot addition
-    const existingCount = await tx.ticket.count({ where: { userId, gameId } });
+  // ─── Perform everything in a SINGLE transaction for speed and atomicity with retry mechanism ───
+  const { tickets, allTickets, playerCount, totalPrize, currentTicketCount, updatedJackpot } = await withRetry(async () => {
+    return prisma.$transaction(async (tx) => {
+      // 1. Count user's existing tickets before deletion to calculate net change for live jackpot addition
+      const existingCount = await tx.ticket.count({ where: { userId, gameId } });
 
-    // 2. Acquire a write-lock on the Game row to serialize concurrent ticket purchases for this game
-    await tx.game.update({
-      where: { id: gameId },
-      data: { status: game.status }
-    });
+      // 2. Acquire a write-lock on the Game row to serialize concurrent ticket purchases for this game
+      await tx.game.update({
+        where: { id: gameId },
+        data: { status: game.status }
+      });
 
-    // 3. Check duplicate card selections inside the locked transaction
-    const occupiedTickets = await tx.ticket.findMany({
-      where: { 
-        gameId,
-        userId: { not: userId } 
-      },
-      select: { card: true }
-    });
-    const takenIds = occupiedTickets.map(t => (t.card as any).id);
-    const duplicates = cardIds.filter(id => takenIds.includes(id));
-    if (duplicates.length > 0) {
-      throw new Error(`Cartela(s) #${duplicates.join(', #')} are already taken by another player!`);
-    }
-
-    // 4. Clear existing tickets for this user in this game
-    await tx.ticket.deleteMany({ where: { userId, gameId } });
-
-    // 5. Create NEW Tickets inside a single Bulk INSERT query for maximum latency optimization!
-    await tx.ticket.createMany({
-      data: preparedCards.map(c => ({
-        userId,
-        gameId,
-        card: { id: c.id, rows: c.pattern } as any,
-        markedNumbers: []
-      }))
-    });
-
-    // 6. Update Room player count (for lobby display)
-    await tx.room.update({
-      where: { id: game.roomId },
-      data: { currentPlayers: { increment: numTickets } }
-    });
-
-    // 7. Fetch all tickets for this game in a single query
-    const allTickets = await tx.ticket.findMany({ where: { gameId } });
-    const uniqueUsers = new Set(allTickets.map(t => t.userId));
-    const pCount = uniqueUsers.size;
-    const tCount = allTickets.length;
-
-    // 8. Calculate & Update prize pool
-    const houseEdgePercent = config.game.houseEdgePercent;
-    const totalSales = new Decimal(unitPrice).mul(tCount);
-    const houseEdge = totalSales.mul(houseEdgePercent).div(100);
-    const prizePool = totalSales.sub(houseEdge);
-
-    await tx.game.update({
-      where: { id: gameId },
-      data: { totalPrize: prizePool }
-    });
-
-    // 9. Atomic Live Jackpot Auto-Increment Contribution
-    const netTickets = numTickets - existingCount;
-    let jackpotRecord = null;
-    const isDemo = game.room.type === 'DEMO';
-    if (!isDemo && netTickets > 0) {
-      const jackpot = await tx.jackpot.findUnique({ where: { id: 'GLOBAL' } });
-      if (jackpot) {
-        const contribution = new Decimal(unitPrice).mul(netTickets).mul(jackpot.contributionPercent).div(100);
-        jackpotRecord = await tx.jackpot.update({
-          where: { id: 'GLOBAL' },
-          data: { currentAmount: { increment: contribution } }
-        });
+      // 3. Check duplicate card selections inside the locked transaction
+      const occupiedTickets = await tx.ticket.findMany({
+        where: { 
+          gameId,
+          userId: { not: userId } 
+        },
+        select: { card: true }
+      });
+      const takenIds = occupiedTickets.map(t => (t.card as any).id);
+      const duplicates = cardIds.filter(id => takenIds.includes(id));
+      if (duplicates.length > 0) {
+        throw new Error(`Cartela(s) #${duplicates.join(', #')} are already taken by another player!`);
       }
-    }
 
-    const userCreatedTickets = allTickets.filter(t => t.userId === userId);
+      // 4. Clear existing tickets for this user in this game
+      await tx.ticket.deleteMany({ where: { userId, gameId } });
 
-    return { 
-      tickets: userCreatedTickets, 
-      allTickets,
-      playerCount: pCount, 
-      totalPrize: prizePool,
-      currentTicketCount: tCount,
-      updatedJackpot: jackpotRecord
-    };
+      // 5. Create NEW Tickets inside a single Bulk INSERT query for maximum latency optimization!
+      await tx.ticket.createMany({
+        data: preparedCards.map(c => ({
+          userId,
+          gameId,
+          card: { id: c.id, rows: c.pattern } as any,
+          markedNumbers: []
+        }))
+      });
+
+      // 6. Update Room player count (for lobby display)
+      await tx.room.update({
+        where: { id: game.roomId },
+        data: { currentPlayers: { increment: numTickets } }
+      });
+
+      // 7. Fetch all tickets for this game in a single query
+      const allTickets = await tx.ticket.findMany({ where: { gameId } });
+      const uniqueUsers = new Set(allTickets.map(t => t.userId));
+      const pCount = uniqueUsers.size;
+      const tCount = allTickets.length;
+
+      // 8. Calculate & Update prize pool
+      const houseEdgePercent = config.game.houseEdgePercent;
+      const totalSales = new Decimal(unitPrice).mul(tCount);
+      const houseEdge = totalSales.mul(houseEdgePercent).div(100);
+      const prizePool = totalSales.sub(houseEdge);
+
+      await tx.game.update({
+        where: { id: gameId },
+        data: { totalPrize: prizePool }
+      });
+
+      // 9. Atomic Live Jackpot Auto-Increment Contribution
+      const netTickets = numTickets - existingCount;
+      let jackpotRecord = null;
+      const isDemo = game.room.type === 'DEMO';
+      if (!isDemo && netTickets > 0) {
+        const jackpot = await tx.jackpot.findUnique({ where: { id: 'GLOBAL' } });
+        if (jackpot) {
+          const contribution = new Decimal(unitPrice).mul(netTickets).mul(jackpot.contributionPercent).div(100);
+          jackpotRecord = await tx.jackpot.update({
+            where: { id: 'GLOBAL' },
+            data: { currentAmount: { increment: contribution } }
+          });
+        }
+      }
+
+      const userCreatedTickets = allTickets.filter(t => t.userId === userId);
+
+      return { 
+        tickets: userCreatedTickets, 
+        allTickets,
+        playerCount: pCount, 
+        totalPrize: prizePool,
+        currentTicketCount: tCount,
+        updatedJackpot: jackpotRecord
+      };
+    });
   });
 
   // ─── Broadcast Updates (Outside Transaction) ───────────────────────────

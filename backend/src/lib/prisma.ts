@@ -33,8 +33,10 @@ export async function withRetry<T>(
       const isClosedError =
         err?.message?.includes('Closed') ||
         err?.message?.includes('Connection') ||
+        err?.message?.includes('deadlock') ||
         err?.code === 'P1001' ||
-        err?.code === 'P1017';
+        err?.code === 'P1017' ||
+        err?.code === 'P2034';
 
       if (isClosedError && attempt < retries) {
         console.warn(`[DB] Connection dropped (attempt ${attempt}/${retries}), reconnecting...`);

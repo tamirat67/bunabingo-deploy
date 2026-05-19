@@ -490,7 +490,13 @@ router.post('/game/spin', async (req: Request, res: Response) => {
     // ─── Mode 2: Direct Spin (Fall-back) ─────────
     else {
       const wallet = await prisma.wallet.findUnique({ where: { userId: user.id } });
-      if (!wallet || Number(wallet.balance) < stake) {
+      if (!wallet) return res.status(404).json({ error: 'Wallet not found' });
+
+      const balance = new Decimal(wallet.balance.toString());
+      const bonus = new Decimal(wallet.bonusBalance.toString());
+      const totalAvailable = balance.add(bonus);
+
+      if (totalAvailable.lessThan(stake)) {
         return res.status(400).json({ error: 'Insufficient balance' });
       }
       // If direct spin, we just simulate a card with 24 random numbers
@@ -508,11 +514,27 @@ router.post('/game/spin', async (req: Request, res: Response) => {
     const result = await prisma.$transaction(async (tx) => {
        const wallet = await tx.wallet.findUniqueOrThrow({ where: { userId: user.id } });
 
+       let remainingToDebit = new Decimal(finalStake);
+       let newBonus = new Decimal(wallet.bonusBalance.toString());
+       let newBalance = new Decimal(wallet.balance.toString());
+
        if (!gameId) {
+         // Deduct from Bonus Wallet first, then Main Wallet
+         if (newBonus.greaterThan(0)) {
+           const bonusToUse = Decimal.min(newBonus, remainingToDebit);
+           newBonus = newBonus.sub(bonusToUse);
+           remainingToDebit = remainingToDebit.sub(bonusToUse);
+         }
+
+         if (remainingToDebit.greaterThan(0)) {
+           newBalance = newBalance.sub(remainingToDebit);
+         }
+
          await tx.wallet.update({
            where: { userId: user.id },
            data: { 
-             balance: { decrement: finalStake },
+             balance: newBalance,
+             bonusBalance: newBonus,
              totalSpent: { increment: finalStake }
            }
          });
@@ -523,16 +545,16 @@ router.post('/game/spin', async (req: Request, res: Response) => {
              type: 'TICKET_PURCHASE',
              amount: finalStake,
              balanceBefore: wallet.balance,
-             balanceAfter: new Decimal(wallet.balance).sub(finalStake),
+             balanceAfter: newBalance,
              status: 'COMPLETED',
-             description: `Direct Spin: ${finalStake} ETB`
+             description: `Direct Spin: ${finalStake} ETB (Bonus Used: ${new Decimal(wallet.bonusBalance.toString()).sub(newBonus).toFixed(2)} ETB)`
            }
          });
        }
        
        if (isWin) {
-         const midBalance = gameId ? wallet.balance : new Decimal(wallet.balance).sub(finalStake);
-         const finalBalance = new Decimal(midBalance).add(prizeAmount);
+         const midBalance = gameId ? new Decimal(wallet.balance.toString()) : newBalance;
+         const finalBalance = midBalance.add(prizeAmount);
          
          await tx.wallet.update({
            where: { userId: user.id },

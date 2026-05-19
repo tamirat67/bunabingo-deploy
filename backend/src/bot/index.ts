@@ -28,7 +28,7 @@ import { handleTransfer,
 // ─── Deposit flow ─────────────────────────────────────────────────────────────
 import {
   handleDepositMessage, handleDepositCancel, handleDepositSubmit,
-  handlePayCbeBirr, handlePayCbeBank, handlePayMpesa, handlePayTelebirr,
+  handlePaySultan, handlePayYohanis,
 } from './commands/depositFlow';
 
 // ─── Withdrawal flow ──────────────────────────────────────────────────────────
@@ -112,10 +112,8 @@ export function createBot(): Telegraf {
   bot.action('cmd_transfer',       ctx => handleTransfer(ctx));
 
   // ─── Payment method sub-actions ───────────────────────────────────────────
-  bot.action('cmd_pay_cbe_birr',   ctx => handlePayCbeBirr(ctx));
-  bot.action('cmd_pay_cbe_bank',   ctx => handlePayCbeBank(ctx));
-  bot.action('cmd_pay_mpesa',      ctx => handlePayMpesa(ctx));
-  bot.action('cmd_pay_telebirr',   ctx => handlePayTelebirr(ctx));
+  bot.action('cmd_pay_sultan',     ctx => handlePaySultan(ctx));
+  bot.action('cmd_pay_yohanis',    ctx => handlePayYohanis(ctx));
 
   // ─── Transfer flow ────────────────────────────────────────────────────────
   bot.action('cmd_transfer_confirm', ctx => handleTransferConfirm(ctx));

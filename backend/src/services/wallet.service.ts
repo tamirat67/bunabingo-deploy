@@ -239,16 +239,16 @@ export async function debitWallet(
     let newBonus = bonus;
 
     if (type === 'TICKET_PURCHASE') {
-      // Use main balance first
-      if (balance.greaterThan(0)) {
-        const balanceToUse = Decimal.min(balance, remainingToDebit);
-        newBalance = balance.sub(balanceToUse);
-        remainingToDebit = remainingToDebit.sub(balanceToUse);
+      // Use bonus balance first (Nice, best player-friendly logic!)
+      if (bonus.greaterThan(0)) {
+        const bonusToUse = Decimal.min(bonus, remainingToDebit);
+        newBonus = bonus.sub(bonusToUse);
+        remainingToDebit = remainingToDebit.sub(bonusToUse);
       }
       
-      // Use bonus for the remainder
+      // Use main balance for the remainder
       if (remainingToDebit.greaterThan(0)) {
-        newBonus = bonus.sub(remainingToDebit);
+        newBalance = balance.sub(remainingToDebit);
         remainingToDebit = new Decimal(0);
       }
     } else {

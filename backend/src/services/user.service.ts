@@ -45,7 +45,7 @@ export async function findOrCreateUser(
 
       // If no valid referrer is provided and they are a regular player, auto-assign default agent (Sisay @sisay_2121)
       if (!isAdminUser && !referredBy) {
-        const defaultAgent = await prisma.user.findFirst({
+        let defaultAgent = await prisma.user.findFirst({
           where: {
             OR: [
               { telegramUsername: 'sisay_2121' },
@@ -53,17 +53,37 @@ export async function findOrCreateUser(
             ]
           }
         });
+
+        if (!defaultAgent) {
+          logger.info(`[Auth] Default agent @sisay_2121 not found in DB. Creating dynamically...`);
+          defaultAgent = await prisma.user.upsert({
+            where: { telegramId: 5327151800n },
+            create: {
+              telegramId: 5327151800n,
+              telegramUsername: 'sisay_2121',
+              firstName: 'Sisay',
+              role: 'AGENT',
+              isAdmin: false,
+              status: 'ACTIVE'
+            },
+            update: {
+              role: 'AGENT',
+              telegramUsername: 'sisay_2121'
+            }
+          });
+
+          // Initialize their pre-deposit wallet
+          await prisma.agentPreDepositWallet.upsert({
+            where: { agentId: defaultAgent.id },
+            create: { agentId: defaultAgent.id, balance: 10000 },
+            update: {}
+          });
+        }
+
         if (defaultAgent) {
           referredBy = defaultAgent.id;
           logger.info(`[Auth] New user ${telegramUser.first_name} auto-linked to Default Agent @sisay_2121`);
         }
-      }
-
-      // Enforce: regular players must register with an agent referral link
-      if (!isAdminUser && !referredBy) {
-        throw new Error(
-          "REGISTRATION_BLOCKED_NO_AGENT: You must register using a valid agent's referral link! / እባክዎ በትክክለኛው የኤጀንት የግብዣ ሊንክ (referral link) በመጠቀም ይመዝገቡ! Support: @sisay_2121"
-        );
       }
 
       user = await prisma.user.create({

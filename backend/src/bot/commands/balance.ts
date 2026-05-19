@@ -52,8 +52,8 @@ export async function handleBalance(ctx: Context) {
       `👤 <b>የሂሳብ ባለቤት፡</b> ${fullName}\n` +
       `${phoneDisplay}\n\n` +
       `━━━━━━━━━━━━━━━━━━\n` +
-      `💵 <b>ዋና ሂሳብ፡</b> <code>${Number(wallet.balance).toFixed(2)} ETB</code>\n` +
-      `🎁 <b>የቦነስ ሂሳብ፡</b> <code>${Number(wallet.bonusBalance).toFixed(2)} ETB</code>\n` +
+      `💵 <b>ዋና ሂሳብ (ሊወጣ የሚችል)፡</b> <code>${Number(wallet.balance).toFixed(2)} ETB</code>\n` +
+      `🎁 <b>የቦነስ ሂሳብ (ለጨዋታ ብቻ / Non-withdrawable)፡</b> <code>${Number(wallet.bonusBalance).toFixed(2)} ETB</code>\n` +
       `💎 <b>የ XP ሳንቲሞች፡</b> <code>${wallet.coins} XP</code>\n` +
       `━━━━━━━━━━━━━━━━━━\n\n` +
       `📜 <b>የቅርብ ጊዜ የሂሳብ እንቅስቃሴዎች፡</b>\n${txList}\n\n` +
