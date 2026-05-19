@@ -29,7 +29,19 @@ function SelectionContent() {
   const [endTime, setEndTime] = useState<number | null>(null);
   const [serverOff, setServerOff] = useState(0);
   const [newlyOccupied, setNewlyOccupied] = useState<number[]>([]);
+  const [fakePlayersCount, setFakePlayersCount] = useState(0);
   const prevOccupied = useRef<number[]>([]);
+  
+  // Fake Player Simulation Logic
+  useEffect(() => {
+    if (game?.status !== 'RUNNING' && fakePlayersCount < 50000) {
+      const timer = setTimeout(() => {
+        const newPlayers = Math.floor(Math.random() * 26) + 5;
+        setFakePlayersCount(prev => Math.min(prev + newPlayers, 50000));
+      }, Math.random() * 500 + 100);
+      return () => clearTimeout(timer);
+    }
+  }, [fakePlayersCount, game?.status]);
   const { socket } = useSocket();
 
   const [modal, setModal] = useState<{
@@ -236,9 +248,11 @@ function SelectionContent() {
   const isVip = roomType === 'VIP' || roomType === 'JACKPOT' || stake >= 100;
   const isDark = activeThemeKey === 'DARK' || activeThemeKey === 'GRAY';
 
-  const prize = game?.totalPrize
+  const displayPlayerCount = playerCount + fakePlayersCount;
+  const basePrize = game?.totalPrize
     ? Number(game.totalPrize)
     : Math.max(stake * 2, (playerCount || 1) * stake * 0.8);
+  const prize = basePrize + (fakePlayersCount * stake * 0.8);
 
   const formatCountdown = (secs: number) => {
     const m = Math.floor(secs / 60);
@@ -275,7 +289,7 @@ function SelectionContent() {
       <div className="stats-row-brown">
         <div className="capsule-white"><div className="l">WALLET</div><div className="v">{Number(balance).toFixed(0)}</div></div>
         <div className="capsule-white"><div className="l">BONUS</div><div className="v">0</div></div>
-        <div className="capsule-white"><div className="l">PLAYERS</div><div className="v">{playerCount}</div></div>
+        <div className="capsule-white"><div className="l">PLAYERS</div><div className="v">{displayPlayerCount}</div></div>
         <div className="capsule-brown total-box"><div className="l" style={{ color: 'rgba(255,255,255,0.5)' }}>STAKE</div><div className="v">{stake}</div></div>
       </div>
 
@@ -429,7 +443,7 @@ function SelectionContent() {
       </div>
 
       {/* ── Players Browsing Indicator ── */}
-      {playerCount > 0 && (
+      {displayPlayerCount > 0 && (
         <motion.div
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
@@ -449,7 +463,7 @@ function SelectionContent() {
         >
           <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#2ECC71', boxShadow: '0 0 6px #2ECC71', animation: 'liveDot 1.5s infinite' }} />
           <Users size={11} color={T.gold} />
-          <span><strong style={{ color: T.text }}>{playerCount}</strong> players active now</span>
+          <span><strong style={{ color: T.text }}>{displayPlayerCount}</strong> players active now</span>
           {occupiedCount > 0 && (
             <span style={{ marginLeft: 'auto', color: '#E67E22', fontWeight: '900' }}>
               🔥 {occupiedCount} cards snatched!
