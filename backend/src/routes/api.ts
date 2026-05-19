@@ -234,16 +234,31 @@ router.get('/me/profile', async (req: Request, res: Response) => {
       _sum: { amount: true }
     });
 
+    const referralsCount = await prisma.user.count({
+      where: { referredBy: fullUser.id }
+    });
+
     res.json({
+      id: fullUser.id,
       username: fullUser.telegramUsername || fullUser.firstName || 'User',
       balance: fullUser.wallet?.balance || 0,
       bonusBalance: fullUser.wallet?.bonusBalance || 0,
       gamesWon: fullUser._count.winners,
       totalCoins: totalEarnings._sum.amount || 0,
       role: fullUser.role,
-      isAdmin: fullUser.isAdmin
+      isAdmin: fullUser.isAdmin,
+      referralsCount,
+      wallet: {
+        id: fullUser.wallet?.id,
+        userId: fullUser.wallet?.userId,
+        balance: fullUser.wallet?.balance ? fullUser.wallet.balance.toString() : '0',
+        bonusBalance: fullUser.wallet?.bonusBalance ? fullUser.wallet.bonusBalance.toString() : '0',
+        referralBalance: fullUser.wallet?.referralBalance ? fullUser.wallet.referralBalance.toString() : '0',
+        coins: fullUser.wallet?.coins || 0
+      }
     });
   } catch (err) {
+    logger.error('Failed to fetch profile:', err);
     res.status(500).json({ error: 'Failed to fetch profile' });
   }
 });

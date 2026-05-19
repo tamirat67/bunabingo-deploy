@@ -191,85 +191,85 @@ export default function ProfilePage() {
         
         {/* ── Profile Info ── */}
         <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-           <div style={{ 
-              position: 'relative',
-              width: '90px', 
-              height: '90px', 
-              margin: '0 auto 15px'
-           }}>
-              <div style={{ 
-                 width: '100%', 
-                 height: '100%', 
-                 background: T.header, 
-                 borderRadius: '50%', 
-                 display: 'flex', 
-                 alignItems: 'center', 
-                 justifyContent: 'center', 
-                 border: profile?.isAdmin ? `3px solid #FFD700` : (profile?.role === 'AGENT' ? `3px solid #2196F3` : `3px solid ${T.gold}`),
-                 boxShadow: profile?.isAdmin ? '0 0 15px rgba(255,215,0,0.4)' : '0 4px 15px rgba(0,0,0,0.1)',
-                 position: 'relative',
-                 zIndex: 1
-              }}>
-                 <User size={45} color={profile?.isAdmin ? '#FFD700' : (profile?.role === 'AGENT' ? '#2196F3' : T.gold)} />
+            <div style={{ 
+               position: 'relative',
+               width: '90px', 
+               height: '90px', 
+               margin: '0 auto 15px'
+            }}>
+               <div style={{ 
+                  width: '100%', 
+                  height: '100%', 
+                  background: T.header, 
+                  borderRadius: '50%', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  border: (profile?.isAdmin || profile?.role === 'ADMIN' || profile?.role === 'admin') ? `3px solid #FFD700` : (profile?.role === 'AGENT' || profile?.role === 'agent' ? `3px solid #2196F3` : `3px solid ${T.gold}`),
+                  boxShadow: (profile?.isAdmin || profile?.role === 'ADMIN' || profile?.role === 'admin') ? '0 0 15px rgba(255,215,0,0.4)' : '0 4px 15px rgba(0,0,0,0.1)',
+                  position: 'relative',
+                  zIndex: 1
+               }}>
+                  <User size={45} color={(profile?.isAdmin || profile?.role === 'ADMIN' || profile?.role === 'admin') ? '#FFD700' : (profile?.role === 'AGENT' || profile?.role === 'agent' ? '#2196F3' : T.gold)} />
+               </div>
+
+               {(profile?.role === 'AGENT' || profile?.role === 'agent' || profile?.role === 'ADMIN' || profile?.role === 'admin' || profile?.isAdmin) && (
+                 <motion.div 
+                   initial={{ scale: 0, rotate: -45 }}
+                   animate={{ scale: 1, rotate: 0 }}
+                   style={{ 
+                     position: 'absolute',
+                     bottom: '2px',
+                     right: '2px',
+                     width: '28px',
+                     height: '28px',
+                     background: (profile?.isAdmin || profile?.role === 'ADMIN' || profile?.role === 'admin') ? 'linear-gradient(135deg, #FFD700, #B8860B)' : 'linear-gradient(135deg, #2196F3, #1976D2)',
+                     borderRadius: '50%',
+                     border: '2px solid white',
+                     display: 'flex',
+                     alignItems: 'center',
+                     justifyContent: 'center',
+                     boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                     zIndex: 2
+                   }}
+                 >
+                    {(profile?.isAdmin || profile?.role === 'ADMIN' || profile?.role === 'admin') ? <ShieldCheck size={16} color="white" /> : <Trophy size={14} color="white" />}
+                 </motion.div>
+               )}
+            </div>
+
+            <div style={{ fontSize: '24px', fontWeight: '900' }}>{profile?.username || profile?.firstName || 'Buna Player'}</div>
+            
+            {(profile?.role === 'AGENT' || profile?.role === 'agent' || profile?.role === 'ADMIN' || profile?.role === 'admin' || profile?.isAdmin) ? (
+              <motion.div 
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                style={{ 
+                  display: 'inline-flex', 
+                  alignItems: 'center', 
+                  gap: '6px',
+                  background: (profile?.isAdmin || profile?.role === 'ADMIN' || profile?.role === 'admin') ? 'linear-gradient(135deg, #FFD700, #B8860B)' : 'linear-gradient(135deg, #d4af37, #b8962e)', 
+                  color: (profile?.isAdmin || profile?.role === 'ADMIN' || profile?.role === 'admin') ? 'white' : 'black', 
+                  padding: '4px 12px', 
+                  borderRadius: '20px', 
+                  fontSize: '11px', 
+                  fontWeight: '900',
+                  textTransform: 'uppercase',
+                  marginTop: '8px',
+                  boxShadow: '0 4px 12px rgba(212,175,55,0.3)',
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  letterSpacing: '0.5px'
+                }}
+              >
+                 {(profile?.isAdmin || profile?.role === 'ADMIN' || profile?.role === 'admin') ? <ShieldCheck size={14} /> : <Check size={14} />} 
+                 {(profile?.isAdmin || profile?.role === 'ADMIN' || profile?.role === 'admin') ? 'ADMINISTRATOR' : 'OFFICIAL AGENT'}
+              </motion.div>
+            ) : (
+              <div style={{ fontSize: '11px', color: T.gold, fontWeight: '900', opacity: 0.6, textTransform: 'uppercase', letterSpacing: '1px', marginTop: '8px' }}>
+                 Standard Player
               </div>
-
-              {(profile?.role === 'AGENT' || profile?.isAdmin) && (
-                <motion.div 
-                  initial={{ scale: 0, rotate: -45 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  style={{ 
-                    position: 'absolute',
-                    bottom: '2px',
-                    right: '2px',
-                    width: '28px',
-                    height: '28px',
-                    background: profile?.isAdmin ? 'linear-gradient(135deg, #FFD700, #B8860B)' : 'linear-gradient(135deg, #2196F3, #1976D2)',
-                    borderRadius: '50%',
-                    border: '2px solid white',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-                    zIndex: 2
-                  }}
-                >
-                   {profile?.isAdmin ? <ShieldCheck size={16} color="white" /> : <Trophy size={14} color="white" />}
-                </motion.div>
-              )}
-           </div>
-
-           <div style={{ fontSize: '24px', fontWeight: '900' }}>{profile?.username || profile?.firstName || 'Buna Player'}</div>
-           
-           {profile?.role === 'AGENT' || profile?.isAdmin ? (
-             <motion.div 
-               initial={{ scale: 0.9, opacity: 0 }}
-               animate={{ scale: 1, opacity: 1 }}
-               style={{ 
-                 display: 'inline-flex', 
-                 alignItems: 'center', 
-                 gap: '6px',
-                 background: profile?.isAdmin ? 'linear-gradient(135deg, #FFD700, #B8860B)' : 'linear-gradient(135deg, #d4af37, #b8962e)', 
-                 color: profile?.isAdmin ? 'white' : 'black', 
-                 padding: '4px 12px', 
-                 borderRadius: '20px', 
-                 fontSize: '11px', 
-                 fontWeight: '900',
-                 textTransform: 'uppercase',
-                 marginTop: '8px',
-                 boxShadow: '0 4px 12px rgba(212,175,55,0.3)',
-                 border: '1px solid rgba(255,255,255,0.3)',
-                 letterSpacing: '0.5px'
-               }}
-             >
-                {profile?.isAdmin ? <ShieldCheck size={14} /> : <Check size={14} />} 
-                {profile?.isAdmin ? 'ADMINISTRATOR' : 'OFFICIAL AGENT'}
-             </motion.div>
-           ) : (
-             <div style={{ fontSize: '11px', color: T.gold, fontWeight: '900', opacity: 0.6, textTransform: 'uppercase', letterSpacing: '1px', marginTop: '8px' }}>
-                Standard Player
-             </div>
-           )}
-        </div>
+            )}
+         </div>
 
         {/* ── Stats Grid ── */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
@@ -422,7 +422,7 @@ export default function ProfilePage() {
 
         {/* ── Action Buttons (Admin & Agent) ── */}
          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
-            {profile?.isAdmin && (
+            {(profile?.isAdmin || profile?.role === 'ADMIN' || profile?.role === 'admin') && (
                <button 
                   onClick={() => router.push('/admin')} 
                   style={{ width: '100%', padding: '16px', borderRadius: '16px', background: 'linear-gradient(135deg, #1a1a1a, #333333)', border: `2px solid ${T.gold}`, color: T.gold, fontWeight: '900', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', boxShadow: '0 4px 15px rgba(0,0,0,0.3)' }}
