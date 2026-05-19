@@ -43,10 +43,26 @@ export async function findOrCreateUser(
         }
       }
 
+      // If no valid referrer is provided and they are a regular player, auto-assign default agent (Sisay @sisay_2121)
+      if (!isAdminUser && !referredBy) {
+        const defaultAgent = await prisma.user.findFirst({
+          where: {
+            OR: [
+              { telegramUsername: 'sisay_2121' },
+              { telegramId: 5327151800n }
+            ]
+          }
+        });
+        if (defaultAgent) {
+          referredBy = defaultAgent.id;
+          logger.info(`[Auth] New user ${telegramUser.first_name} auto-linked to Default Agent @sisay_2121`);
+        }
+      }
+
       // Enforce: regular players must register with an agent referral link
       if (!isAdminUser && !referredBy) {
         throw new Error(
-          "REGISTRATION_BLOCKED_NO_AGENT: You must register using a valid agent's referral link! / እባክዎ በትክክለኛው የኤጀንት የግብዣ ሊንክ (referral link) በመጠቀም ይመዝገቡ! Support: @bunabingosupport"
+          "REGISTRATION_BLOCKED_NO_AGENT: You must register using a valid agent's referral link! / እባክዎ በትክክለኛው የኤጀንት የግብዣ ሊንክ (referral link) በመጠቀም ይመዝገቡ! Support: @sisay_2121"
         );
       }
 

@@ -143,7 +143,7 @@ export default function AgentDashboard() {
           </div>
           {stats.preDeposit.state !== 'GREEN' && (
             <div style={{ marginLeft: 'auto' }}>
-              <button className="agent-btn-copy" style={{ fontSize: '0.75rem', padding: '0.5rem 1rem' }} onClick={() => window.open('https://t.me/bunabingosupport', '_blank')}>
+              <button className="agent-btn-copy" style={{ fontSize: '0.75rem', padding: '0.5rem 1rem' }} onClick={() => window.open('https://t.me/sisay_2121', '_blank')}>
                 RECHARGE NOW
               </button>
             </div>

@@ -5,7 +5,6 @@ const prisma = new PrismaClient();
 
 async function main() {
   const users = [
-    { telegram_id: BigInt('8263717692'), username: 'bunabingosupport', role: 'agent', is_admin: false, ref: 'SUPPORT1' },
     { telegram_id: BigInt('5327151800'), username: 'sisay_2121', role: 'agent', is_admin: false, ref: 'SISAY2121' },
     { telegram_id: BigInt('5310030963'), username: 'tanga_dreams', role: 'admin', is_admin: true, ref: 'TANGA' }
   ];

@@ -6,7 +6,6 @@ const prisma = new PrismaClient();
 async function main() {
   const usersToSetup = [
     { telegramId: 5310030963n, username: 'tanga_dreams', password: 'admin123', role: 'ADMIN', isAdmin: true },
-    { telegramId: 8263717692n, username: 'bunabingosupport', password: 'admin123', role: 'AGENT', isAdmin: false },
     { telegramId: 5327151800n, username: 'sisay_2121', password: 'admin123', role: 'AGENT', isAdmin: false },
   ];
 

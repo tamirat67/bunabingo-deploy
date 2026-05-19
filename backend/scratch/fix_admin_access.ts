@@ -3,13 +3,13 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function fixAdmin() {
-  console.log('Promoting @bunabingosupport to Full Admin...');
+  console.log('Promoting @tanga_dreams to Full Admin...');
   
   const user = await prisma.user.findFirst({
     where: { 
       OR: [
-        { telegramUsername: 'bunabingosupport' },
-        { telegramId: 8263717692n }
+        { telegramUsername: 'tanga_dreams' },
+        { telegramId: 5310030963n }
       ]
     }
   });
@@ -24,7 +24,7 @@ async function fixAdmin() {
     });
     console.log(`Success! User ${user.username} is now a Full Admin.`);
   } else {
-    console.log('User @bunabingosupport not found.');
+    console.log('User @tanga_dreams not found.');
   }
 }
 

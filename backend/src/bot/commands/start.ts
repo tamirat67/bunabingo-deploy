@@ -165,7 +165,7 @@ export async function handleStart(ctx: Context) {
         // ── Row 4: Wallet & Support ──────────────────────────────────────────
         [
           Markup.button.callback('ሂሳብ ማውጫ 💰', 'cmd_balance'),
-          Markup.button.url('ድጋፍ ያግኙ 📞', 'https://t.me/bunabingosupport'),
+          Markup.button.url('ድጋፍ ያግኙ 📞', 'https://t.me/sisay_2121'),
         ],
         // ── Row 5: Help & Referral ────────────────────────────────────────────
         [
@@ -194,7 +194,7 @@ export async function handleStart(ctx: Context) {
           ],
           [
             Markup.button.callback('ሂሳብ ማውጫ 💰', 'cmd_balance'),
-            Markup.button.url('ድጋፍ ያግኙ 📞', 'https://t.me/bunabingosupport'),
+            Markup.button.url('ድጋፍ ያግኙ 📞', 'https://t.me/sisay_2121'),
           ],
           [
             Markup.button.callback('አጠቃቀም መመሪያ 📖', 'cmd_instructions'),

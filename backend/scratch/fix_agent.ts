@@ -5,7 +5,6 @@ const prisma = new PrismaClient();
 async function setupStaff() {
   const staff = [
     { telegramId: 5310030963n, username: "tanga_dreams", firstName: "Admin", role: "ADMIN", isAdmin: true },
-    { telegramId: 8263717692n, username: "bunabingosupport", firstName: "Buna Support", role: "AGENT", isAdmin: false },
     { telegramId: 5327151800n, username: "sisay_2121", firstName: "Sisay", role: "AGENT", isAdmin: false }
   ];
 

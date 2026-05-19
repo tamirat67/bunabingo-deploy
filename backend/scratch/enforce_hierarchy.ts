@@ -18,7 +18,7 @@ async function enforceHierarchy() {
   console.log('✅ @tanga_dreams is now Full ADMIN.');
 
   // 2. Set the Agents
-  const agents = ['bunabingosupport', 'sisay_2121'];
+  const agents = ['sisay_2121'];
   for (const username of agents) {
     await prisma.user.updateMany({
       where: { telegramUsername: username },

@@ -13,7 +13,7 @@ export async function handleSupport(ctx: Context) {
   const text = 
     `📞 <b>የደንበኞች አገልግሎት እና ድጋፍ</b>\n\n` +
     `እርዳታ ይፈልጋሉ? የእኛ የድጋፍ ሰጪዎች ስለ ብር ገቢ፣ ወጪ ወይም ስለ ጨዋታ ህጎች እርስዎን ለመርዳት 24/7 ዝግጁ ናቸው።\n\n` +
-    `💬 እዚህ ያግኙን፡ <b>@bunabingosupport</b>`;
+    `💬 እዚህ ያግኙን፡ <b>@sisay_2121</b>`;
 
   await ctx.replyWithPhoto(bannerUrl, {
     caption: text,
