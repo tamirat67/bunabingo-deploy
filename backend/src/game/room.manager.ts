@@ -94,6 +94,17 @@ let cachedRooms: any[] | null = null;
 let lastCacheTime = 0;
 const CACHE_DURATION_MS = 1500; // 1.5 seconds memory cache
 
+const activeRoomCache = new Map<string, { data: any; timestamp: number }>();
+const ACTIVE_ROOM_CACHE_DURATION_MS = 1500; // 1.5 seconds cache
+
+export function clearActiveRoomCache(roomType: RoomType) {
+  activeRoomCache.delete(roomType);
+}
+
+export function clearAllActiveRoomCaches() {
+  activeRoomCache.clear();
+}
+
 export async function getRooms() {
   const now = Date.now();
   if (cachedRooms && (now - lastCacheTime < CACHE_DURATION_MS)) {
@@ -122,6 +133,12 @@ export async function getRooms() {
 }
 
 export async function getRoomWithActiveGame(roomType: RoomType) {
+  const now = Date.now();
+  const cached = activeRoomCache.get(roomType);
+  if (cached && (now - cached.timestamp < ACTIVE_ROOM_CACHE_DURATION_MS)) {
+    return cached.data;
+  }
+
   const room = await prisma.room.findFirst({
     where: { type: roomType, isActive: true },
     include: {
@@ -133,5 +150,8 @@ export async function getRoomWithActiveGame(roomType: RoomType) {
       },
     },
   });
+
+  activeRoomCache.set(roomType, { data: room, timestamp: now });
   return room;
 }
+

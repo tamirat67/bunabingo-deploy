@@ -863,7 +863,7 @@ export async function joinGame(
   }
 
   // ─── Perform everything in a SINGLE transaction for speed and atomicity with retry mechanism ───
-  const { tickets, allTickets, playerCount, totalPrize, currentTicketCount, updatedJackpot } = await withRetry(async () => {
+  const { tickets, allTickets, playerCount, totalPrize, currentTicketCount, existingCount } = await withRetry(async () => {
     return prisma.$transaction(async (tx) => {
       // 1. Count user's existing tickets before deletion to calculate net change for live jackpot addition
       const existingCount = await tx.ticket.count({ where: { userId, gameId } });
@@ -901,19 +901,13 @@ export async function joinGame(
         }))
       });
 
-      // 6. Update Room player count (for lobby display)
-      await tx.room.update({
-        where: { id: game.roomId },
-        data: { currentPlayers: { increment: numTickets } }
-      });
-
-      // 7. Fetch all tickets for this game in a single query
+      // 6. Fetch all tickets for this game in a single query
       const allTickets = await tx.ticket.findMany({ where: { gameId } });
       const uniqueUsers = new Set(allTickets.map(t => t.userId));
       const pCount = uniqueUsers.size;
       const tCount = allTickets.length;
 
-      // 8. Calculate & Update prize pool
+      // 7. Calculate & Update prize pool
       const houseEdgePercent = config.game.houseEdgePercent;
       const totalSales = new Decimal(unitPrice).mul(tCount);
       const houseEdge = totalSales.mul(houseEdgePercent).div(100);
@@ -924,21 +918,6 @@ export async function joinGame(
         data: { totalPrize: prizePool }
       });
 
-      // 9. Atomic Live Jackpot Auto-Increment Contribution
-      const netTickets = numTickets - existingCount;
-      let jackpotRecord = null;
-      const isDemo = game.room.type === 'DEMO';
-      if (!isDemo && netTickets > 0) {
-        const jackpot = await tx.jackpot.findUnique({ where: { id: 'GLOBAL' } });
-        if (jackpot) {
-          const contribution = new Decimal(unitPrice).mul(netTickets).mul(jackpot.contributionPercent).div(100);
-          jackpotRecord = await tx.jackpot.update({
-            where: { id: 'GLOBAL' },
-            data: { currentAmount: { increment: contribution } }
-          });
-        }
-      }
-
       const userCreatedTickets = allTickets.filter(t => t.userId === userId);
 
       return { 
@@ -947,7 +926,7 @@ export async function joinGame(
         playerCount: pCount, 
         totalPrize: prizePool,
         currentTicketCount: tCount,
-        updatedJackpot: jackpotRecord
+        existingCount
       };
     });
   });
@@ -958,16 +937,40 @@ export async function joinGame(
     currentState.ticketCount = currentTicketCount;
   }
 
-  if (updatedJackpot) {
-    try {
-      await triggerAdminEvent('jackpot-updated', {
-        amount: updatedJackpot.currentAmount.toString(),
-        target: updatedJackpot.targetAmount.toString()
-      });
-      logger.info(`[Jackpot] Live Auto-Increment. New amount: ${updatedJackpot.currentAmount}`);
-    } catch (e) {
-      logger.error(`[Jackpot] Failed to broadcast live jackpot update:`, e);
-    }
+  // ─── Live Jackpot & Cache Invalidation (Outside Transaction - Async/Background) ───
+  const isDemo = game.room.type === 'DEMO';
+  const netTickets = numTickets - existingCount;
+
+  if (!isDemo && netTickets > 0) {
+    (async () => {
+      try {
+        const jackpot = await prisma.jackpot.findUnique({ where: { id: 'GLOBAL' } });
+        if (jackpot) {
+          const contribution = new Decimal(unitPrice).mul(netTickets).mul(jackpot.contributionPercent).div(100);
+          const updatedJackpot = await prisma.jackpot.update({
+            where: { id: 'GLOBAL' },
+            data: { currentAmount: { increment: contribution } }
+          });
+          if (updatedJackpot) {
+            await triggerAdminEvent('jackpot-updated', {
+              amount: updatedJackpot.currentAmount.toString(),
+              target: updatedJackpot.targetAmount.toString()
+            });
+            logger.info(`[Jackpot] Live Auto-Increment. New amount: ${updatedJackpot.currentAmount}`);
+          }
+        }
+      } catch (e) {
+        logger.error(`[Jackpot] Failed to update live jackpot:`, e);
+      }
+    })();
+  }
+
+  // Invalidate the cache for this active room
+  try {
+    const { clearActiveRoomCache } = await import('./room.manager');
+    clearActiveRoomCache(game.room.type);
+  } catch (e) {
+    logger.warn('Failed to clear active room cache:', e);
   }
   try {
     const endTime = currentState?.secondsRemaining ? (Date.now() + currentState.secondsRemaining * 1000) : undefined;
@@ -1052,13 +1055,7 @@ export async function leaveGame(userId: string, gameId: string): Promise<void> {
     // 2. Delete them
     await tx.ticket.deleteMany({ where: { userId, gameId } });
 
-    // 3. Update Room player count
-    await tx.room.update({
-      where: { id: game.roomId },
-      data: { currentPlayers: { decrement: numTickets } }
-    });
-
-    // 4. Recalculate Prize Pool
+    // 3. Recalculate Prize Pool
     const allTickets = await tx.ticket.findMany({ where: { gameId } });
     const tCount = allTickets.length;
     const houseEdgePercent = config.game.houseEdgePercent;
@@ -1071,6 +1068,14 @@ export async function leaveGame(userId: string, gameId: string): Promise<void> {
       data: { totalPrize: prizePool }
     });
   });
+
+  // Invalidate the cache for this active room
+  try {
+    const { clearActiveRoomCache } = await import('./room.manager');
+    clearActiveRoomCache(game.room.type);
+  } catch (e) {
+    logger.warn('Failed to clear active room cache:', e);
+  }
 
   // 5. Check if countdown needs to be aborted
   const allTicketsAfter = await prisma.ticket.findMany({ where: { gameId } });

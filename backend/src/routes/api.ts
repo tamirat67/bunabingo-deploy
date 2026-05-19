@@ -112,11 +112,12 @@ router.get('/me', async (req: Request, res: Response) => {
 
     if (!user) return res.status(401).json({ error: 'Not registered' });
 
-    // Ensure wallet exists with test bankroll (1000 ETB for testing purposes)
+    // Ensure wallet exists
     let wallet = await prisma.wallet.findUnique({ where: { userId: user.id } });
     if (!wallet) {
-      wallet = await prisma.wallet.create({ data: { userId: user.id, balance: 1000 } });
-    } else if (Number(wallet.balance) < 1000) {
+      const initialBalance = config.server.nodeEnv === 'production' ? 0 : 1000;
+      wallet = await prisma.wallet.create({ data: { userId: user.id, balance: initialBalance } });
+    } else if (config.server.nodeEnv !== 'production' && Number(wallet.balance) < 1000) {
       wallet = await prisma.wallet.update({
         where: { userId: user.id },
         data: { balance: 1000 }
@@ -381,11 +382,26 @@ router.post('/games/:gameId/leave', async (req: Request, res: Response) => {
 });
 
 // ─── Get Occupied Cards for Room ────────────────────────────
+const occupiedCache = new Map<string, { data: any; timestamp: number }>();
+const OCCUPIED_CACHE_DURATION_MS = 1500; // 1.5 seconds cache
+
 router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
   const { type } = req.params;
   const user = (req as any).user;
+  const gameIdFromQuery = req.query.gameId as string;
+  const cacheKey = `${type}_${gameIdFromQuery || 'active'}_${user?.id || 'guest'}`;
+
+  if (occupiedCache.size > 1000) {
+    occupiedCache.clear();
+  }
+
+  const now = Date.now();
+  const cached = occupiedCache.get(cacheKey);
+  if (cached && (now - cached.timestamp < OCCUPIED_CACHE_DURATION_MS)) {
+    return res.json(cached.data);
+  }
+
   try {
-    const gameIdFromQuery = req.query.gameId as string;
     let gameId: string | undefined;
     let room: any;
 
@@ -397,7 +413,11 @@ router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
       gameId = room?.games[0]?.id;
     }
     
-    if (!gameId || !room) return res.json({ occupiedIds: [], myCardIds: [] });
+    if (!gameId || !room) {
+      const responseData = { occupiedIds: [], myCardIds: [] };
+      occupiedCache.set(cacheKey, { data: responseData, timestamp: now });
+      return res.json(responseData);
+    }
 
     const tickets = await prisma.ticket.findMany({
       where: { gameId },
@@ -410,13 +430,16 @@ router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
       : tickets.map(t => (t.card as any).id);
 
     const playerCount = new Set(tickets.map(t => t.userId)).size;
-    res.json({ 
+    const responseData = { 
       occupiedIds: otherOccupiedIds, 
       myCardIds, 
       gameId, 
       roomId: room.id, 
       playerCount 
-    });
+    };
+
+    occupiedCache.set(cacheKey, { data: responseData, timestamp: now });
+    res.json(responseData);
   } catch (e: any) {
     logger.error('Failed to fetch occupied cards:', e);
     res.status(500).json({ error: 'Failed to fetch occupied cards' });
