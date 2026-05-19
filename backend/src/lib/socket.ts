@@ -35,13 +35,16 @@ export function initSocket(server: HttpServer) {
         if (isRoomType) {
           room = await getRoomWithActiveGame(gameOrRoom as any);
           gameId = room?.games[0]?.id || '';
-        } else {
+        } else if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(gameOrRoom)) {
           const game = await prisma.game.findUnique({
             where: { id: gameOrRoom },
             include: { room: true }
           });
           gameId = game?.id || '';
           room = game?.room || null;
+        } else {
+          logger.warn(`[Socket] join-game skipped: invalid room/game format: ${gameOrRoom}`);
+          return;
         }
 
         if (gameId && room) {
