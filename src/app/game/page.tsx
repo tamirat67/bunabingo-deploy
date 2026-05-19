@@ -45,10 +45,17 @@ function GameContent() {
     return [];
   });
 
-  const isDemo  = game?.room?.type === 'DEMO';
-  const isSpin  = game?.room?.type?.startsWith('SPIN_');
-  const stake   = isDemo ? 0 : Number(game?.room?.ticketPrice || 10);
-  const isVip   = game?.room?.type === 'VIP' || game?.room?.type === 'JACKPOT' || stake >= 100;
+  const spType  = sp.get('type') || '';
+  const spPrice = sp.get('price');
+
+  const isDemo  = game ? (game?.room?.type === 'DEMO') : (spType === 'DEMO');
+  const isSpin  = game ? (game?.room?.type?.startsWith('SPIN_')) : (spType.startsWith('SPIN_'));
+  const stake   = game 
+    ? (isDemo ? 0 : Number(game?.room?.ticketPrice || 10)) 
+    : (spPrice ? Number(spPrice) : 10);
+  const isVip   = game 
+    ? (game?.room?.type === 'VIP' || game?.room?.type === 'JACKPOT' || stake >= 100)
+    : (spType === 'VIP' || spType === 'JACKPOT' || stake >= 100);
 
   const fabBg = isVip 
     ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 50%, #C471ED 100%)' 
@@ -807,7 +814,7 @@ function GameContent() {
         whileTap={{ scale: 0.85 }} 
         whileHover={{ scale: 1.05 }}
         className="premium-fab"
-        onClick={() => router.push(`/tickets/select?type=${game?.room?.type || 'STANDARD'}&price=${stake}&gameId=${gameId || ''}`)} 
+        onClick={() => router.push(`/tickets/select?type=${game?.room?.type || spType || 'STANDARD'}&price=${stake}&gameId=${gameId || ''}`)} 
         style={{ 
           position: 'fixed', 
           bottom: '100px', 

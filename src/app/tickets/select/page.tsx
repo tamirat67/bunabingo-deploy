@@ -198,7 +198,7 @@ function SelectionContent() {
     if (!isSelectionChanged) {
       // If selection is identical to owned tickets, enter the game room directly
       if (roomType.startsWith('SPIN_')) router.push(`/play/spin?id=${activeGameId}&stake=${stake}`);
-      else router.push(`/game?id=${activeGameId}`);
+      else router.push(`/game?id=${activeGameId}&type=${roomType}&price=${stake}`);
       setJoining(false);
       return;
     }
@@ -222,7 +222,7 @@ function SelectionContent() {
         sessionStorage.setItem(`game_tickets_${res.gameId}`, JSON.stringify(res.tickets));
       }
       if (roomType.startsWith('SPIN_')) router.push(`/play/spin?id=${res.gameId}&stake=${stake}`);
-      else router.push(`/game?id=${res.gameId}`);
+      else router.push(`/game?id=${res.gameId}&type=${roomType}&price=${stake}`);
     } catch (err: any) {
       const msg = err.response?.data?.error || err.message || 'Failed to join';
       showAlert('Join Failed', msg, 'error');

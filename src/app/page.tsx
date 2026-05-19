@@ -162,7 +162,7 @@ export default function LobbyPage() {
     if (activeGame.room.type.startsWith('SPIN_')) {
       router.push(`/play/spin?id=${activeGame.id}`);
     } else {
-      router.push(`/game?id=${activeGame.id}`);
+      router.push(`/game?id=${activeGame.id}&type=${activeGame.room.type}&price=${activeGame.room.ticketPrice}`);
     }
   };
 

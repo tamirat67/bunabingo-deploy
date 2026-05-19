@@ -82,7 +82,7 @@ export function initSocket(server: HttpServer) {
             serverTime: Date.now(),
           });
           logger.info(`[Socket] Sent mid-countdown sync to ${socket.id}: ${state.secondsRemaining}s remaining`);
-        } else {
+        } else if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(gameOrRoom)) {
           const { default: prisma } = await import('./prisma');
           const game = await prisma.game.findUnique({
             where: { id: gameOrRoom },
