@@ -48,7 +48,7 @@ function GameContent() {
   const isDemo  = game?.room?.type === 'DEMO';
   const isSpin  = game?.room?.type?.startsWith('SPIN_');
   const stake   = isDemo ? 0 : Number(game?.room?.ticketPrice || 10);
-  const isVip   = game?.room?.type === 'VIP' || game?.room?.type === 'JACKPOT' || stake >= 50;
+  const isVip   = game?.room?.type === 'VIP' || game?.room?.type === 'JACKPOT' || stake >= 100;
 
   const fabBg = isVip 
     ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 50%, #C471ED 100%)' 
@@ -350,8 +350,13 @@ function GameContent() {
 
       {/* ── Buna Game Zone Header ── */}
       <div style={{ background: isVip ? '#1C0A35' : T.header, padding: '12px 15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: isVip ? `3px solid #FFD700` : `3px solid ${T.gold}`, position: 'sticky', top: 0, zIndex: 100 }}>
-        <div style={{ color: isVip ? '#FFD700' : T.gold, fontWeight: '900', fontSize: '18px', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <ShieldCheck size={20} /> BUNA GAME ZONE {isVip && '👑 VIP'}
+        <div style={{ color: isVip ? '#C471ED' : T.gold, fontWeight: '900', fontSize: '18px', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <ShieldCheck size={20} color={isVip ? '#C471ED' : T.gold} /> BUNA GAME ZONE
+          {isVip && (
+            <span style={{ background: 'linear-gradient(135deg, #FFD700, #FFA500)', color: '#1C0A35', fontSize: '9px', fontWeight: '900', padding: '2px 8px', borderRadius: '12px', boxShadow: '0 0 10px rgba(255, 215, 0, 0.6)', display: 'inline-flex', alignItems: 'center', gap: '3px', border: '1.5px solid #FFF', letterSpacing: '0.5px' }}>
+              👑 BOSS VIP
+            </span>
+          )}
         </div>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           <div style={{ background: game?.status === 'RUNNING' ? '#27AE60' : '#E67E22', color: 'white', fontSize: '10px', fontWeight: '900', padding: '3px 10px', borderRadius: '20px' }}>
@@ -413,19 +418,39 @@ function GameContent() {
           ['PLAYERS', game?.currentPlayers || game?.tickets?.length || (tickets.length > 0 ? tickets.length : '-')],
           ['STAKE', `${stake} ETB`],
           ['POOL', `${prize} ETB`]
-        ].map(([l, v]) => (
-          <div key={l as string} style={{ 
-            background: isVip ? 'rgba(255, 255, 255, 0.05)' : T.card, 
-            border: isVip ? '1px solid rgba(255, 215, 0, 0.25)' : `1px solid ${T.gold}33`, 
-            padding: '6px 4px', 
-            textAlign: 'center', 
-            borderRadius: '8px',
-            backdropFilter: isVip ? 'blur(10px)' : 'none'
-          }}>
-            <div style={{ fontSize: '8px', fontWeight: 'bold', color: isVip ? '#FFD700' : T.brown }}>{l}</div>
-            <div style={{ fontSize: '12px', fontWeight: '900', color: isVip ? 'white' : T.text }}>{v}</div>
-          </div>
-        ))}
+        ].map(([l, v]) => {
+          const isStake = l === 'STAKE';
+          return (
+            <div key={l as string} style={{ 
+              background: isVip 
+                ? (isStake ? 'linear-gradient(90deg, #FFD700, #FFA500)' : 'rgba(255, 255, 255, 0.05)') 
+                : T.card, 
+              border: isVip 
+                ? (isStake ? 'none' : '1px solid rgba(255, 215, 0, 0.25)') 
+                : `1px solid ${T.gold}33`, 
+              padding: '6px 4px', 
+              textAlign: 'center', 
+              borderRadius: '8px',
+              backdropFilter: isVip && !isStake ? 'blur(10px)' : 'none',
+              boxShadow: isVip && isStake ? '0 4px 15px rgba(255, 215, 0, 0.3)' : 'none',
+            }}>
+              <div style={{ 
+                fontSize: '8px', 
+                fontWeight: 'bold', 
+                color: isVip 
+                  ? (isStake ? 'rgba(28, 10, 53, 0.7)' : '#FFD700') 
+                  : T.brown 
+              }}>{l}</div>
+              <div style={{ 
+                fontSize: '12px', 
+                fontWeight: '900', 
+                color: isVip 
+                  ? (isStake ? '#1C0A35' : 'white') 
+                  : T.text 
+              }}>{v}</div>
+            </div>
+          );
+        })}
       </div>
 
       <div style={{ display: 'flex', gap: '10px', padding: '10px', alignItems: 'flex-start' }}>
