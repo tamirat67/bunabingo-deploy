@@ -51,20 +51,28 @@ export function parseTelebirrSms(smsText: string): TelebirrSmsData | null {
     let recipientPhoneLast4 = '';
     let amount = 0;
 
-    // Try English Pattern first
-    // "... transferred ETB 15.00 to Yohanis Ashenafi (2519****8294)"
-    const enPattern = /transferred\s+ETB\s+([\d,]+\.?\d*)\s+to\s+([^(]+?)\s*\((25\d{2}[\*x]+(\d{4}))\)/i;
+    // ── Ethiopian phone formats accepted: 251XXXXXXXX, 09XXXXXXXX, +251XXXXXXXX
+    // Masked in SMS as: 2519****8294 | 09****8294 | +251****8294
+    const phonePattern = `(?:(?:\\+251|251|0)\\d{1,2}[\\*x]+(\\d{4}))`;
+
+    // Try English Pattern: "transferred ETB 15.00 to Yohanis Ashenafi (2519****8294)"
+    const enPattern = new RegExp(
+      `transferred\\s+ETB\\s+([\\d,]+\\.?\\d*)\\s+to\\s+([^(]+?)\\s*\\((${phonePattern})\\)`,
+      'i'
+    );
     const enMatch = text.match(enPattern);
-    
+
     if (enMatch) {
       amount = parseFloat(enMatch[1].replace(/,/g, ''));
       recipientName = enMatch[2].trim();
       recipientPhoneMasked = enMatch[3];
       recipientPhoneLast4 = enMatch[4];
     } else {
-      // Try Amharic Pattern
-      // "ወደ Yohanis Ashenafi(2519****8294) 10.00 ብር"
-      const amPattern = /ወደ\s+([^(]+?)\s*\((25\d{2}[\*x]+(\d{4}))\)\s+([\d,]+\.?\d*)\s+ብር/i;
+      // Try Amharic Pattern: "ወደ Yohanis Ashenafi(2519****8294) 10.00 ብር"
+      const amPattern = new RegExp(
+        `ወደ\\s+([^(]+?)\\s*\\((${phonePattern})\\)\\s+([\\d,]+\\.?\\d*)\\s+ብር`,
+        'i'
+      );
       const amMatch = text.match(amPattern);
       if (amMatch) {
         recipientName = amMatch[1].trim();
@@ -193,6 +201,28 @@ export async function verifyReceiptOnline(receiptUrl: string, transactionId: str
   return false;
 }
 
+// ─── Self-verification: internal consistency of parsed fields ─────────────────
+function selfVerifyParsed(data: TelebirrSmsData): { ok: boolean; issue?: string } {
+  if (!data.amount || data.amount <= 0)
+    return { ok: false, issue: '❌ ተሰልቶ የተገኘው ክፍያ ዜሮ ወይም ከዜሮ በታች ነው።' };
+  if (data.amount > 500_000)
+    return { ok: false, issue: '❌ ክፍያው ያልተለመደ ትልቅ መጠን አለው — ሳይጣምም SMS ያስገቡ።' };
+  if (!data.transactionId || !/^[A-Z0-9]{6,20}$/.test(data.transactionId))
+    return { ok: false, issue: '❌ የግብይት መለያ (ID) ቅርጽ ትክክል አይደለም — ሙሉ SMS ያስገቡ።' };
+  // Accept: 251XXXXXXXX, 09XXXXXXXX, +251XXXXXXXX (all Ethiopian formats)
+  if (!data.recipientPhoneMasked || !/^(\+?251|09)/.test(data.recipientPhoneMasked))
+    return { ok: false, issue: '❌ የተቀባዩ ስልክ ቁጥር ቅርጽ ያልተለመደ ነው።' };
+  if (!data.recipientName || data.recipientName.toLowerCase() === 'unknown')
+    return { ok: false, issue: '❌ የተቀባዩ ስም ሊነበብ አልቻለም — ሙሉ SMS ያስገቡ።' };
+  if (!data.recipientPhoneLast4 || data.recipientPhoneLast4.length !== 4)
+    return { ok: false, issue: '❌ የስልክ ቁጥሩ መጨረሻ 4 ቁጥሮች ሊነበቡ አልቻሉም።' };
+  if (!data.dateTime || data.dateTime.trim().length < 10)
+    return { ok: false, issue: '❌ የግብይቱ ቀን/ሰዓት ሊነበብ አልቻለም — ሙሉ SMS ያስገቡ።' };
+  if (data.serviceFee < 0)
+    return { ok: false, issue: '❌ የአገልግሎት ክፍያ ዋጋ ትክክል አይደለም።' };
+  return { ok: true };
+}
+
 // ─── Main validator ────────────────────────────────────────────────────────────
 export async function validateTelebirrSms(
   smsText: string,
@@ -204,15 +234,51 @@ export async function validateTelebirrSms(
   if (!data) {
     return {
       valid: false,
-      error: '❌ Could not read your SMS. Please paste the *exact* receipt starting with "Dear..." or "ውድ..."',
+      error: '❌ SMS ሊነበብ አልቻለም። "Dear..." ወይም "ውድ..." ብሎ የሚጀምረውን ሙሉ SMS ኮፒ አድርገው ይለጥፉ።',
     };
   }
 
-  const ourLast4 = receiverPhone.replace(/^0/, '').slice(-4);
-  if (data.recipientPhoneLast4 !== ourLast4) {
+  // ── Bot self-verifies its own parsed output before trusting it ──────────────
+  const selfCheck = selfVerifyParsed(data);
+  if (!selfCheck.ok) {
+    logger.warn(`[BunaFrankValidator] Self-verify failed for SMS: ${selfCheck.issue}`);
+    return { valid: false, error: selfCheck.issue };
+  }
+
+  const YOHANIS_PHONE = '251997688294';
+  const SULTAN_PHONE = '251929922421';
+  
+  const yohanisLast4 = '8294';
+  const sultanLast4 = '2421';
+
+  const matchedPhone = data.recipientPhoneLast4 === yohanisLast4 ? YOHANIS_PHONE :
+                       data.recipientPhoneLast4 === sultanLast4 ? SULTAN_PHONE : null;
+
+  if (!matchedPhone) {
     return {
       valid: false,
-      error: `❌ Wrong recipient number. Expected last 4: ...${ourLast4}`,
+      error: `❌ Wrong recipient number. Expected last 4 to match Yohanis (...${yohanisLast4}) or Sultan (...${sultanLast4}).`,
+    };
+  }
+
+  // Strict Name & Phone Number pairing verification
+  const normRecipient = data.recipientName.toLowerCase();
+  const isYohanis = normRecipient.includes('yohanis') || normRecipient.includes('ashenafi');
+  const isSultan = normRecipient.includes('sultan') || normRecipient.includes('mebrahetom');
+
+  // Pair 1: Yohanis Ashenafi must strictly use 251997688294 (last 4: 8294)
+  if (data.recipientPhoneLast4 === yohanisLast4 && !isYohanis) {
+    return {
+      valid: false,
+      error: `❌ Recipient mismatch. Phone (...${yohanisLast4}) must belong to Yohanis Ashenafi. Found: ${data.recipientName}`,
+    };
+  }
+
+  // Pair 2: SULTAN MEBRAHETOM must strictly use 251929922421 (last 4: 2421)
+  if (data.recipientPhoneLast4 === sultanLast4 && !isSultan) {
+    return {
+      valid: false,
+      error: `❌ Recipient mismatch. Phone (...${sultanLast4}) must belong to SULTAN MEBRAHETOM. Found: ${data.recipientName}`,
     };
   }
 
