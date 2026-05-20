@@ -178,16 +178,32 @@ export async function getUserByTelegramId(telegramId: number) {
   });
 }
 
-export async function getAllUsers(page = 1, limit = 20) {
+export async function getAllUsers(page = 1, limit = 20, search = '') {
   const skip = (page - 1) * limit;
+
+  // Build optional search where clause
+  const where: any = search
+    ? {
+        OR: [
+          { firstName: { contains: search, mode: 'insensitive' } },
+          { telegramUsername: { contains: search, mode: 'insensitive' } },
+          { username: { contains: search, mode: 'insensitive' } },
+          { phone: { contains: search } },
+          // telegramId is BigInt — only filter if search looks numeric
+          ...(isNaN(Number(search)) ? [] : [{ telegramId: BigInt(search) }]),
+        ],
+      }
+    : {};
+
   const [users, total] = await Promise.all([
     prisma.user.findMany({
+      where,
       skip,
       take: limit,
       include: { wallet: true },
       orderBy: { createdAt: 'desc' },
     }),
-    prisma.user.count(),
+    prisma.user.count({ where }),
   ]);
   return { users, total, pages: Math.ceil(total / limit) };
 }
@@ -311,17 +327,35 @@ export async function demoteFromAgent(userId: string, adminId: string) {
   return user;
 }
 
-export async function getPlayersUnderAgent(agentId: string, page = 1, limit = 20) {
+export async function getPlayersUnderAgent(agentId: string, page = 1, limit = 20, search = '') {
   const skip = (page - 1) * limit;
+  
+  const searchFilter: any = search
+    ? {
+        OR: [
+          { firstName: { contains: search, mode: 'insensitive' } },
+          { telegramUsername: { contains: search, mode: 'insensitive' } },
+          { username: { contains: search, mode: 'insensitive' } },
+          { phone: { contains: search } },
+          ...(isNaN(Number(search)) ? [] : [{ telegramId: BigInt(search) }]),
+        ],
+      }
+    : {};
+
+  const where: any = {
+    referredBy: agentId,
+    ...searchFilter,
+  };
+
   const [players, total] = await Promise.all([
     prisma.user.findMany({
-      where: { referredBy: agentId },
+      where,
       skip,
       take: limit,
       include: { wallet: true },
       orderBy: { createdAt: 'desc' },
     }),
-    prisma.user.count({ where: { referredBy: agentId } }),
+    prisma.user.count({ where }),
   ]);
   return { players, users: players, total, pages: Math.ceil(total / limit) };
 }

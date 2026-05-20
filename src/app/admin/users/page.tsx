@@ -9,19 +9,31 @@ import '@/app/admin.css';
 export default function UsersPage() {
   const [users, setUsers] = useState<any[]>([]);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [stats, setStats] = useState({ total: 0, active: 0, banned: 0 });
 
+  // Debounce search query changes to prevent flooding the server
   useEffect(() => {
-    fetchUsers();
-  }, [page]);
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [search]);
 
-  const fetchUsers = async () => {
+  useEffect(() => {
+    fetchUsers(page, debouncedSearch);
+  }, [page, debouncedSearch]);
+
+  const fetchUsers = async (pageNumber: number, searchQuery: string) => {
     try {
       setLoading(true);
-      const response = await api.get(`/admin/users?page=${page}`);
+      setError(null);
+      const response = await api.get(`/admin/users?page=${pageNumber}&search=${encodeURIComponent(searchQuery)}`);
       const data = response.data;
       setUsers(data.users || []);
       setTotalPages(data.pages || 1);
@@ -29,8 +41,9 @@ export default function UsersPage() {
       const total = data.total || data.users?.length || 0;
       const banned = data.users?.filter((u: any) => u.status === 'BANNED').length || 0;
       setStats({ total, active: total - banned, banned });
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to fetch users:', err);
+      setError(err?.response?.data?.error || err.message || 'Failed to fetch users. Please make sure you are logged in as an authorized admin.');
     } finally {
       setLoading(false);
     }
@@ -40,17 +53,11 @@ export default function UsersPage() {
     if (!confirm(`Are you sure you want to ${action} this user?`)) return;
     try {
       await api.post(`/admin/users/${userId}/${action}`);
-      fetchUsers();
+      fetchUsers(page, debouncedSearch);
     } catch (err) {
       alert('Action failed. Check permissions.');
     }
   };
-
-  const filteredUsers = users.filter(u => 
-    (u.telegramUsername || '').toLowerCase().includes(search.toLowerCase()) ||
-    (u.telegramId || '').toString().includes(search) ||
-    (u.firstName || '').toLowerCase().includes(search.toLowerCase())
-  );
 
   return (
     <div className="admin-page">
@@ -69,6 +76,21 @@ export default function UsersPage() {
           </div>
         </div>
       </div>
+
+      {error && (
+        <div style={{ 
+          background: '#fef2f2', 
+          border: '1px solid #fca5a5', 
+          color: '#b91c1c', 
+          padding: '16px', 
+          borderRadius: '12px', 
+          marginBottom: '24px', 
+          fontWeight: '600',
+          fontSize: '14px'
+        }}>
+          ⚠️ {error}
+        </div>
+      )}
 
       {/* Search & Filters */}
       <div className="stat-card-m" style={{ padding: '20px', marginBottom: '32px', display: 'flex', gap: '16px' }}>
@@ -105,7 +127,7 @@ export default function UsersPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredUsers.map((user) => (
+              {users.map((user) => (
                 <tr key={user.id}>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -178,7 +200,7 @@ export default function UsersPage() {
                   </td>
                 </tr>
               ))}
-              {filteredUsers.length === 0 && (
+              {users.length === 0 && (
                 <tr>
                   <td colSpan={6} style={{ textAlign: 'center', padding: '60px', color: '#78716c', fontWeight: '600' }}>
                     No players found matching your search.

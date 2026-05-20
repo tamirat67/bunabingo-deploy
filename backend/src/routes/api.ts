@@ -918,15 +918,20 @@ staffRouter.get('/transactions', async (req, res) => {
 staffRouter.get('/users', async (req, res) => {
   const user = (req as any).user;
   const page = parseInt(req.query.page as string) || 1;
+  const search = (req.query.search as string) || '';
   const limit = 20;
 
-  if (user.isAdmin) {
-    // Admins see everyone
-    res.json(await getAllUsers(page, limit));
-  } else {
-    // Agents only see their own referred players
-    const { getPlayersUnderAgent } = await import('../services/user.service');
-    res.json(await getPlayersUnderAgent(user.id, page, limit));
+  try {
+    if (user.isAdmin) {
+      // Admins see everyone, with optional search
+      res.json(await getAllUsers(page, limit, search));
+    } else {
+      // Agents only see their own referred players
+      const { getPlayersUnderAgent } = await import('../services/user.service');
+      res.json(await getPlayersUnderAgent(user.id, page, limit, search));
+    }
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
   }
 });
 staffRouter.post('/users/:id/suspend', async (req, res) => {
@@ -1271,8 +1276,20 @@ staffRouter.post('/promotions', restrictToAdmin, upload.single('image'), async (
         isActive: activeVal,
         scheduledAt: parseDate(scheduledAt),
         expiresAt: parseDate(expiresAt),
+        sentAt: activeVal ? new Date() : null,
       },
     });
+
+    // Automatically broadcast active announcements immediately upon creation
+    if (activeVal) {
+      const { broadcastMessage } = await import('../bot/notifier');
+      const formattedMessage = `📢 <b>${promotion.title}</b>\n\n${promotion.message}`;
+
+      broadcastMessage(formattedMessage, promotion.imageUrl).catch((err) => {
+        console.error(`[Broadcast] Background broadcast failed for newly created promotion ${promotion.id}:`, err);
+      });
+    }
+
     res.json(promotion);
   } catch (err) {
     res.status(500).json({ error: 'Failed to create promotion' });
