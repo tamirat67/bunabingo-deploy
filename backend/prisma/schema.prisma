@@ -314,6 +314,7 @@ model Promotion {
   title       String
   message     String
   type        String   @default("daily")   // "daily" | "weekly" | "announcement" | "custom"
+  imageUrl    String?  @map("image_url")
   isActive    Boolean  @default(true) @map("is_active")
   scheduledAt DateTime? @map("scheduled_at") @db.Timestamptz(6)
   expiresAt   DateTime? @map("expires_at") @db.Timestamptz(6)

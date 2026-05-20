@@ -27,6 +27,7 @@ interface Promotion {
   title: string;
   message: string;
   type: string;
+  imageUrl?: string | null;
   isActive: boolean;
   scheduledAt: string | null;
   expiresAt: string | null;
@@ -64,6 +65,9 @@ export default function SettingsPage() {
   const [promoForm, setPromoForm] = useState({ title: '', message: '', type: 'announcement', scheduledAt: '', expiresAt: '' });
   const [savingPromo, setSavingPromo] = useState(false);
   const [broadcastingId, setBroadcastingId] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [removeImage, setRemoveImage] = useState<boolean>(false);
 
   useEffect(() => {
     fetchRooms();
@@ -158,13 +162,29 @@ export default function SettingsPage() {
     }
     setSavingPromo(true);
     try {
+      const formData = new FormData();
+      formData.append('title', promoForm.title);
+      formData.append('message', promoForm.message);
+      formData.append('type', promoForm.type);
+      formData.append('scheduledAt', promoForm.scheduledAt || '');
+      formData.append('expiresAt', promoForm.expiresAt || '');
+      if (imageFile) {
+        formData.append('image', imageFile);
+      }
+
       if (editingPromo) {
-        await api.patch(`/admin/promotions/${editingPromo.id}`, promoForm);
+        if (removeImage) {
+          formData.append('removeImage', 'true');
+        }
+        await api.patch(`/admin/promotions/${editingPromo.id}`, formData);
       } else {
-        await api.post('/admin/promotions', promoForm);
+        await api.post('/admin/promotions', formData);
       }
       setShowPromoForm(false);
       setEditingPromo(null);
+      setImageFile(null);
+      setImageUrl(null);
+      setRemoveImage(false);
       setPromoForm({ title: '', message: '', type: 'announcement', scheduledAt: '', expiresAt: '' });
       fetchPromotions();
     } catch (err) {
@@ -751,6 +771,9 @@ export default function SettingsPage() {
                 setShowPromoForm(true);
                 setEditingPromo(null);
                 setPromoForm({ title: '', message: '', type: 'announcement', scheduledAt: '', expiresAt: '' });
+                setImageFile(null);
+                setImageUrl(null);
+                setRemoveImage(false);
               }}
               className="cmd-button"
               style={{ padding: '10px 20px', borderRadius: '12px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}
@@ -793,6 +816,64 @@ export default function SettingsPage() {
                     value={promoForm.message}
                     onChange={(e) => setPromoForm(f => ({ ...f, message: e.target.value }))}
                   />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: '800', color: '#78716c', marginBottom: '6px', textTransform: 'uppercase' }}>Banner Image / Image (optional)</label>
+                  {imageUrl && !removeImage ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '12px', background: '#f5f5f4', borderRadius: '12px', marginBottom: '8px' }}>
+                      <img 
+                        src={`${process.env.NEXT_PUBLIC_API_URL || 'https://api.bunatechhub.net'}${imageUrl}`} 
+                        alt="Promo Banner" 
+                        style={{ width: '80px', height: '60px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e7e5e4' }} 
+                      />
+                      <div style={{ flex: 1 }}>
+                        <span style={{ fontSize: '12px', fontWeight: '700', color: '#3d2b1f', display: 'block' }}>Current image banner</span>
+                        <button 
+                          type="button" 
+                          onClick={() => setRemoveImage(true)} 
+                          style={{ fontSize: '11px', fontWeight: '800', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginTop: '4px' }}
+                        >
+                          Remove Image
+                        </button>
+                      </div>
+                    </div>
+                  ) : imageFile ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '12px', background: '#f5f5f4', borderRadius: '12px', marginBottom: '8px' }}>
+                      <img 
+                        src={URL.createObjectURL(imageFile)} 
+                        alt="Selected Preview" 
+                        style={{ width: '80px', height: '60px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e7e5e4' }} 
+                      />
+                      <div style={{ flex: 1 }}>
+                        <span style={{ fontSize: '12px', fontWeight: '700', color: '#3d2b1f', display: 'block', wordBreak: 'break-all' }}>{imageFile.name}</span>
+                        <button 
+                          type="button" 
+                          onClick={() => setImageFile(null)} 
+                          style={{ fontSize: '11px', fontWeight: '800', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginTop: '4px' }}
+                        >
+                          Clear File
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ position: 'relative', width: '100%', height: '100px', border: '2px dashed #e7e5e4', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'white' }}>
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%' }}
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            setImageFile(e.target.files[0]);
+                            setRemoveImage(false);
+                          }
+                        }}
+                      />
+                      <FiPlus size={20} style={{ color: '#d4af37', marginBottom: '6px' }} />
+                      <span style={{ fontSize: '12px', fontWeight: '800', color: '#78716c' }}>Click to Upload Banner Image</span>
+                      <span style={{ fontSize: '10px', color: '#a8a29e', marginTop: '2px' }}>PNG, JPG or JPEG (Max 5MB)</span>
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
@@ -886,6 +967,16 @@ export default function SettingsPage() {
                           )}
                         </div>
 
+                        {promo.imageUrl && (
+                          <div style={{ marginTop: '4px', marginBottom: '12px', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e7e5e4', maxWidth: '320px' }}>
+                            <img 
+                              src={`${process.env.NEXT_PUBLIC_API_URL || 'https://api.bunatechhub.net'}${promo.imageUrl}`} 
+                              alt="Announcement Banner" 
+                              style={{ width: '100%', height: '160px', objectFit: 'cover', display: 'block' }} 
+                            />
+                          </div>
+                        )}
+
                         <p style={{ color: '#5c554b', fontSize: '13px', margin: '0 0 8px', lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>{promo.message}</p>
 
                         <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '11px', color: '#a8a29e' }}>
@@ -928,6 +1019,9 @@ export default function SettingsPage() {
                               scheduledAt: promo.scheduledAt ? promo.scheduledAt.slice(0, 16) : '',
                               expiresAt: promo.expiresAt ? promo.expiresAt.slice(0, 16) : '',
                             });
+                            setImageUrl(promo.imageUrl || null);
+                            setImageFile(null);
+                            setRemoveImage(false);
                             setShowPromoForm(true);
                           }}
                           title="Edit"

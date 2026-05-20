@@ -1251,20 +1251,26 @@ staffRouter.get('/promotions', restrictToAdmin, async (req, res) => {
 });
 
 // CREATE a promotion
-staffRouter.post('/promotions', restrictToAdmin, async (req, res) => {
+staffRouter.post('/promotions', restrictToAdmin, upload.single('image'), async (req, res) => {
   const { title, message, type, scheduledAt, expiresAt, isActive } = req.body;
   if (!title || !message) {
     return res.status(400).json({ error: 'Title and message are required' });
   }
+  
+  const parseDate = (val: any) => (val && val !== 'null' && val !== 'undefined' && val !== '' ? new Date(val) : null);
+  const activeVal = isActive === 'false' || isActive === false ? false : true;
+  const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
+
   try {
     const promotion = await prisma.promotion.create({
       data: {
         title,
         message,
         type: type || 'announcement',
-        isActive: isActive !== false,
-        scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
-        expiresAt: expiresAt ? new Date(expiresAt) : null,
+        imageUrl,
+        isActive: activeVal,
+        scheduledAt: parseDate(scheduledAt),
+        expiresAt: parseDate(expiresAt),
       },
     });
     res.json(promotion);
@@ -1274,19 +1280,30 @@ staffRouter.post('/promotions', restrictToAdmin, async (req, res) => {
 });
 
 // UPDATE a promotion
-staffRouter.patch('/promotions/:id', restrictToAdmin, async (req, res) => {
+staffRouter.patch('/promotions/:id', restrictToAdmin, upload.single('image'), async (req, res) => {
   const { id } = req.params;
-  const { title, message, type, scheduledAt, expiresAt, isActive } = req.body;
+  const { title, message, type, scheduledAt, expiresAt, isActive, removeImage } = req.body;
+  
+  const parseDate = (val: any) => (val && val !== 'null' && val !== 'undefined' && val !== '' ? new Date(val) : null);
+  
   try {
+    let imageUrlUpdate: any = undefined;
+    if (req.file) {
+      imageUrlUpdate = `/uploads/${req.file.filename}`;
+    } else if (removeImage === 'true' || removeImage === true) {
+      imageUrlUpdate = null;
+    }
+
     const promotion = await prisma.promotion.update({
       where: { id },
       data: {
         ...(title !== undefined && { title }),
         ...(message !== undefined && { message }),
         ...(type !== undefined && { type }),
-        ...(isActive !== undefined && { isActive }),
-        ...(scheduledAt !== undefined && { scheduledAt: scheduledAt ? new Date(scheduledAt) : null }),
-        ...(expiresAt !== undefined && { expiresAt: expiresAt ? new Date(expiresAt) : null }),
+        ...(isActive !== undefined && { isActive: isActive === 'true' || isActive === true }),
+        ...(scheduledAt !== undefined && { scheduledAt: parseDate(scheduledAt) }),
+        ...(expiresAt !== undefined && { expiresAt: parseDate(expiresAt) }),
+        ...(imageUrlUpdate !== undefined && { imageUrl: imageUrlUpdate }),
         updatedAt: new Date(),
       },
     });
@@ -1324,7 +1341,7 @@ staffRouter.post('/promotions/:id/broadcast', restrictToAdmin, async (req, res) 
     const { broadcastMessage } = await import('../bot/notifier');
     const formattedMessage = `📢 <b>${promotion.title}</b>\n\n${promotion.message}`;
 
-    broadcastMessage(formattedMessage).catch((err) => {
+    broadcastMessage(formattedMessage, promotion.imageUrl).catch((err) => {
       console.error(`[Broadcast] Background broadcast failed for promotion ${id}:`, err);
     });
 

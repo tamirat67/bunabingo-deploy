@@ -60,7 +60,7 @@ export async function notifyUser(userId: string, message: string, buttons?: any)
 /**
  * Broadcasts a promotion/announcement to all users.
  */
-export async function broadcastMessage(message: string, buttons?: any): Promise<{ successCount: number; failureCount: number }> {
+export async function broadcastMessage(message: string, imageUrl?: string | null, buttons?: any): Promise<{ successCount: number; failureCount: number }> {
   try {
     const users = await prisma.user.findMany({
       select: { id: true, telegramId: true }
@@ -71,13 +71,38 @@ export async function broadcastMessage(message: string, buttons?: any): Promise<
 
     logger.info(`[Notifier] Starting broadcast to ${users.length} users...`);
 
+    const path = require('path');
+    const fs = require('fs');
+
     for (const user of users) {
       if (!user.telegramId) continue;
       try {
-        await bot.telegram.sendMessage(Number(user.telegramId), message, {
-          parse_mode: 'HTML',
-          ...(buttons ? buttons : {})
-        });
+        if (imageUrl) {
+          let photoInput: any = imageUrl;
+          if (imageUrl.startsWith('/uploads/')) {
+            const dockerPath = path.join(process.cwd(), imageUrl);
+            const devPath = path.join(process.cwd(), 'backend', imageUrl);
+            const compiledPath = path.join(__dirname, '../..', imageUrl);
+            
+            if (fs.existsSync(dockerPath)) {
+              photoInput = { source: dockerPath };
+            } else if (fs.existsSync(devPath)) {
+              photoInput = { source: devPath };
+            } else if (fs.existsSync(compiledPath)) {
+              photoInput = { source: compiledPath };
+            }
+          }
+          await bot.telegram.sendPhoto(Number(user.telegramId), photoInput, {
+            caption: message,
+            parse_mode: 'HTML',
+            ...(buttons ? buttons : {})
+          });
+        } else {
+          await bot.telegram.sendMessage(Number(user.telegramId), message, {
+            parse_mode: 'HTML',
+            ...(buttons ? buttons : {})
+          });
+        }
         successCount++;
         // Small delay to prevent rate-limiting issues from Telegram
         await new Promise(resolve => setTimeout(resolve, 50));
