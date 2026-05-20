@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { 
   FiPieChart, FiUsers, FiUserCheck, FiDollarSign, 
   FiSettings, FiLogOut, FiMenu, FiX, FiAward,
-  FiActivity, FiShield, FiCreditCard
+  FiActivity, FiShield, FiCreditCard, FiCalendar, FiChevronDown
 } from 'react-icons/fi';
 import api from '@/lib/api';
 import '@/app/admin.css';
@@ -16,6 +16,33 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [user, setUser] = useState<any>(null);
   const pathname = usePathname();
   const router = useRouter();
+
+  const [selectedDate, setSelectedDate] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      const dateParam = searchParams.get('date');
+      if (dateParam) return dateParam;
+    }
+    const today = new Date();
+    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  });
+
+  const handleDateChange = (newDate: string) => {
+    setSelectedDate(newDate);
+    const params = new URLSearchParams(window.location.search);
+    params.set('date', newDate);
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  const getFormattedDateLabel = (dateStr: string) => {
+    try {
+      const [year, month, day] = dateStr.split('-');
+      const date = new Date(Number(year), Number(month) - 1, Number(day));
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    } catch (e) {
+      return dateStr;
+    }
+  };
 
   useEffect(() => {
     // Mobile optimization: Close sidebar by default on small screens
@@ -145,23 +172,85 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       <main className="admin-main">
-        <header className="admin-header">
-          <button 
-            onClick={() => setSidebarOpen(!isSidebarOpen)}
-            className="sidebar-toggle-btn"
-            title={isSidebarOpen ? "Close Sidebar" : "Open Sidebar"}
-          >
-            {isSidebarOpen ? <FiX size={20} /> : <FiMenu size={20} />}
-          </button>
-          
-          <div style={{ flex: 1 }}>
-            <h2 style={{ fontSize: '14px', fontWeight: '800', color: '#3d2b1f', textTransform: 'uppercase', letterSpacing: '1px' }}>
-              {pathname === '/admin' ? 'Overview' : pathname.split('/').pop()?.replace('-', ' ')}
-            </h2>
+        <header className="admin-header" style={{ justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <button 
+              onClick={() => setSidebarOpen(!isSidebarOpen)}
+              className="sidebar-toggle-btn"
+              title={isSidebarOpen ? "Close Sidebar" : "Open Sidebar"}
+            >
+              {isSidebarOpen ? <FiX size={20} /> : <FiMenu size={20} />}
+            </button>
+            
+            {pathname === '/admin' ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <button 
+                  onClick={() => router.push('/admin')}
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '10px',
+                    border: '1px solid rgba(0,0,0,0.08)',
+                    background: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: '#3d2b1f',
+                  }}
+                  title="Close overview"
+                >
+                  <FiX size={16} />
+                </button>
+                <span style={{ fontSize: '14px', fontWeight: '900', letterSpacing: '1px', color: '#3d2b1f' }}>
+                  OVERVIEW
+                </span>
+              </div>
+            ) : (
+              <h2 style={{ fontSize: '14px', fontWeight: '800', color: '#3d2b1f', textTransform: 'uppercase', letterSpacing: '1px', margin: 0 }}>
+                {pathname.split('/').pop()?.replace('-', ' ')}
+              </h2>
+            )}
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-            <div style={{ textAlign: 'right', display: 'none' }}>
+          {pathname === '/admin' && (
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <button style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '10px 16px',
+                borderRadius: '12px',
+                border: '1px solid rgba(0,0,0,0.08)',
+                background: '#ffffff',
+                cursor: 'pointer',
+                fontWeight: '700',
+                color: '#3d2b1f',
+                fontSize: '13px'
+              }}>
+                <FiCalendar size={16} />
+                <span>{getFormattedDateLabel(selectedDate)}</span>
+                <FiChevronDown size={14} />
+              </button>
+              <input 
+                type="date" 
+                value={selectedDate}
+                onChange={(e) => handleDateChange(e.target.value)}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  opacity: 0,
+                  cursor: 'pointer'
+                }}
+              />
+            </div>
+          )}
+
+          <div style={{ display: 'none', alignItems: 'center', gap: '20px' }}>
+            <div style={{ textAlign: 'right' }}>
                <div style={{ fontSize: '10px', fontWeight: '800', color: '#d4af37' }}>PLATFORM BALANCE</div>
                <div style={{ fontSize: '16px', fontWeight: '900', color: '#3d2b1f' }}>{Number(user.wallet?.balance || 0).toLocaleString()} <span style={{ fontSize: '10px' }}>ETB</span></div>
             </div>

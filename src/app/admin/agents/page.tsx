@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { FiSearch, FiExternalLink, FiUserPlus, FiTrendingUp, FiUserX, FiX, FiLock, FiPhone, FiUser } from 'react-icons/fi';
+import { FiSearch, FiExternalLink, FiUserPlus, FiTrendingUp, FiUserX, FiX, FiLock, FiPhone, FiUser, FiAlertCircle } from 'react-icons/fi';
 import api from '@/lib/api';
 import { Pagination } from '@/components/Pagination';
 import '@/app/admin.css';
@@ -118,14 +118,36 @@ export default function AgentsPage() {
         <div className="stat-card-m">
           <p className="stat-label">Total Pre-Deposit Liquidity</p>
           <h2 className="stat-value" style={{ color: '#d4af37' }}>
-            {agents.reduce((acc, a) => acc + Number(a.agentPreDepositWallet?.balance || 0), 0).toLocaleString()} <span style={{ fontSize: '14px', opacity: 0.5 }}>ETB</span>
+            {agents.reduce((acc, a) => acc + Number((a.preDepositStatus?.balance ?? a.agentPreDepositWallet?.balance) || 0), 0).toLocaleString()} <span style={{ fontSize: '14px', opacity: 0.5 }}>ETB</span>
           </h2>
         </div>
         <div className="stat-card-m">
           <p className="stat-label">Branch Players</p>
-          <h2 className="stat-value">{agents.reduce((acc, a) => acc + (a.referrals?.length || 0), 0)}</h2>
+          <h2 className="stat-value">{agents.reduce((acc, a) => acc + (a.referrals?.length ?? a._count?.referrals ?? 0), 0)}</h2>
         </div>
       </div>
+
+      {/* Critical Pre-Deposit Alert Banner */}
+      {agents.filter(a => a.preDepositStatus?.state === 'RED').length > 0 && (
+        <div style={{
+          background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: '16px',
+          padding: '16px 20px', marginBottom: '24px', display: 'flex', flexDirection: 'column', gap: '8px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#991b1b', fontWeight: '900', fontSize: '15px' }}>
+            <FiAlertCircle size={20} /> CRITICAL: Pre-Deposit Recharge Required!
+          </div>
+          <p style={{ color: '#7f1d1d', fontSize: '13px', margin: 0, lineHeight: '1.4' }}>
+            The following agents have critically low pre-deposit balances and cannot host/start games. Please refill their accounts immediately:
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '4px' }}>
+            {agents.filter(a => a.preDepositStatus?.state === 'RED').map(a => (
+              <span key={a.id} className="badge badge-red" style={{ padding: '6px 12px', fontSize: '12px', fontWeight: '800' }}>
+                {a.firstName} ({Number(a.preDepositStatus?.balance ?? a.agentPreDepositWallet?.balance ?? 0).toFixed(2)} ETB)
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="data-table-container">
         <div style={{ padding: '24px', borderBottom: '1px solid var(--admin-border)', display: 'flex', alignItems: 'center' }}>
@@ -176,10 +198,21 @@ export default function AgentsPage() {
                    {agent.telegramUsername ? `@${agent.telegramUsername}` : '—'}
                 </td>
                 <td>
-                   <span className="badge badge-blue">{agent.referrals?.length || 0} Players</span>
+                   <span className="badge badge-blue">{agent.referrals?.length ?? agent._count?.referrals ?? 0} Players</span>
                 </td>
-                <td style={{ fontWeight: '800', color: Number(agent.agentPreDepositWallet?.balance || 0) < 1000 ? '#ef4444' : '#4ade80' }}>
-                   {Number(agent.agentPreDepositWallet?.balance || 0).toLocaleString()} ETB
+                <td>
+                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                     <span style={{ fontWeight: '800', color: agent.preDepositStatus?.state === 'RED' ? '#ef4444' : agent.preDepositStatus?.state === 'YELLOW' ? '#f59e0b' : '#10b981' }}>
+                       {Number(agent.preDepositStatus?.balance ?? agent.agentPreDepositWallet?.balance ?? 0).toLocaleString()} ETB
+                     </span>
+                     {agent.preDepositStatus?.state === 'RED' ? (
+                       <span className="badge badge-red" style={{ fontSize: '10px', padding: '2px 6px', alignSelf: 'flex-start' }}>CRITICAL</span>
+                     ) : agent.preDepositStatus?.state === 'YELLOW' ? (
+                       <span className="badge badge-gold" style={{ fontSize: '10px', padding: '2px 6px', alignSelf: 'flex-start', background: '#fef3c7', color: '#d97706' }}>LOW BALANCE</span>
+                     ) : (
+                       <span className="badge badge-green" style={{ fontSize: '10px', padding: '2px 6px', alignSelf: 'flex-start' }}>HEALTHY</span>
+                     )}
+                   </div>
                 </td>
                 <td style={{ fontWeight: '600' }}>
                    {Number(agent.wallet?.totalDeposited || 0).toLocaleString()} ETB

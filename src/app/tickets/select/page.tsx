@@ -16,6 +16,8 @@ function SelectionContent() {
   const roomType = searchParams.get('type') || 'STANDARD';
   const stake = parseInt(searchParams.get('price') || '20');
   const gameId = searchParams.get('gameId') || undefined;
+  const isSpin = roomType.startsWith('SPIN_');
+  const isVip = roomType === 'VIP' || roomType === 'JACKPOT' || stake >= 100;
   const [activeGameId, setActiveGameId] = useState<string | undefined>(gameId);
 
   const [user, setUser] = useState<any>(null);
@@ -30,7 +32,94 @@ function SelectionContent() {
   const [serverOff, setServerOff] = useState(0);
   const [newlyOccupied, setNewlyOccupied] = useState<number[]>([]);
   const [fakePlayersCount, setFakePlayersCount] = useState(0);
+  const [fakeOccupied, setFakeOccupied] = useState<number[]>([]);
   const prevOccupied = useRef<number[]>([]);
+  
+  const selectedRef = useRef<number[]>([]);
+  const ownedRef = useRef<number[]>([]);
+  const occupiedRef = useRef<number[]>([]);
+
+  useEffect(() => {
+    selectedRef.current = selected;
+  }, [selected]);
+
+  useEffect(() => {
+    ownedRef.current = ownedCardIds;
+  }, [ownedCardIds]);
+
+  useEffect(() => {
+    occupiedRef.current = occupied;
+  }, [occupied]);
+
+  // Clean up fakeOccupied if they overlap with selected, owned, or real occupied cards
+  useEffect(() => {
+    setFakeOccupied(prev => prev.filter(num => !selected.includes(num) && !ownedCardIds.includes(num) && !occupied.includes(num)));
+  }, [selected, ownedCardIds, occupied]);
+
+  // Dynamic Fake Holds Simulation (Up to 25 cartelas for Standard, 15 for VIP)
+  useEffect(() => {
+    const maxFakeHolds = isVip ? 15 : 25;
+    const totalCartelas = isVip ? 50 : 250;
+    const getRandNum = (existing: number[]): number => {
+      let attempts = 0;
+      while (attempts < 100) {
+        const num = Math.floor(Math.random() * totalCartelas) + 1;
+        if (
+          !existing.includes(num) &&
+          !selectedRef.current.includes(num) &&
+          !ownedRef.current.includes(num) &&
+          !occupiedRef.current.includes(num)
+        ) {
+          return num;
+        }
+        attempts++;
+      }
+      return -1;
+    };
+    
+    // Initial occupied fake cards (7-11 for VIP, 12-18 for Standard)
+    const initialHolds: number[] = [];
+    const initialCount = isVip 
+      ? Math.floor(Math.random() * 5) + 7   // 7 to 11
+      : Math.floor(Math.random() * 7) + 12; // 12 to 18
+    for (let i = 0; i < initialCount; i++) {
+      const n = getRandNum(initialHolds);
+      if (n !== -1) initialHolds.push(n);
+    }
+    setFakeOccupied(initialHolds);
+
+    const interval = setInterval(() => {
+      setFakeOccupied(prev => {
+        const currentHolds = prev.filter(
+          num =>
+            !selectedRef.current.includes(num) &&
+            !ownedRef.current.includes(num) &&
+            !occupiedRef.current.includes(num)
+        );
+        const currentCount = currentHolds.length;
+        const newHolds = [...currentHolds];
+        // Fluctuate cards: add new holds, or remove existing ones
+        const lowThreshold = isVip ? 6 : 10;
+        const shouldAdd = currentCount < lowThreshold ? true : (currentCount >= maxFakeHolds ? false : Math.random() > 0.45);
+        if (shouldAdd) {
+          const numToAdd = getRandNum(newHolds);
+          if (numToAdd !== -1) {
+            newHolds.push(numToAdd);
+            setNewlyOccupied(f => [...f, numToAdd]);
+            setTimeout(() => setNewlyOccupied(f => f.filter(x => x !== numToAdd)), 2000);
+          }
+        } else if (newHolds.length > 0) {
+          const removeIndex = Math.floor(Math.random() * newHolds.length);
+          newHolds.splice(removeIndex, 1);
+        }
+        return newHolds;
+      });
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [isVip]);
+
+
   
   // Fake Player Simulation Logic
   useEffect(() => {
@@ -181,7 +270,7 @@ function SelectionContent() {
 
   const toggleSelect = (num: number) => {
     // 1. If the card is owned/occupied by another player
-    if (occupied.includes(num)) {
+    if (occupied.includes(num) || fakeOccupied.includes(num)) {
       showAlert('Card Taken', 'This card has just been purchased by another player! Please choose a free card.', 'error');
       return;
     }
@@ -244,8 +333,6 @@ function SelectionContent() {
   };
 
   const balance = user?.wallet?.balance || 0;
-  const isSpin = roomType.startsWith('SPIN_');
-  const isVip = roomType === 'VIP' || roomType === 'JACKPOT' || stake >= 100;
   const isDark = activeThemeKey === 'DARK' || activeThemeKey === 'GRAY';
 
   const displayPlayerCount = playerCount + fakePlayersCount;
@@ -262,7 +349,8 @@ function SelectionContent() {
 
   const isLive = countdown !== null && countdown > 0;
   const urgencyColor = countdown !== null && countdown <= 10 ? '#E74C3C' : T.gold;
-  const occupiedCount = occupied.filter(id => !ownedCardIds.includes(id)).length;
+  const totalOccupiedList = Array.from(new Set([...occupied, ...fakeOccupied]));
+  const occupiedCount = totalOccupiedList.filter(id => !ownedCardIds.includes(id)).length;
 
   return (
     <div className={`selection-container ${isVip ? 'vip-theme' : 'brown'} ${isSpin ? 'spin-theme' : ''}`}>
@@ -481,7 +569,7 @@ function SelectionContent() {
       {/* ── Card Grid ── */}
       <div className="grid-brown">
         {Array.from({ length: isVip ? 50 : 250 }, (_, i) => i + 1).map(num => {
-          const isOccupied = occupied.includes(num);
+          const isOccupied = occupied.includes(num) || fakeOccupied.includes(num);
           const isSelected = selected.includes(num);
           const isOwned = ownedCardIds.includes(num);
           const isNewlySnatched = newlyOccupied.includes(num);

@@ -829,6 +829,92 @@ staffRouter.post('/withdrawals/:id/reject', async (req, res) => {
   } catch (e: any) { res.status(400).json({ error: e.message }); }
 });
 
+staffRouter.get('/transactions/summary', async (req, res) => {
+  const user = (req as any).user;
+  const userFilter = user.isAdmin ? {} : { referredBy: user.id };
+
+  try {
+    const [
+      pendingDeps,
+      pendingWds,
+      approvedDepsAgg,
+      completedWdsAgg
+    ] = await Promise.all([
+      prisma.deposit.aggregate({
+        where: { status: 'pending', user: userFilter },
+        _sum: { amount: true },
+        _count: { id: true }
+      }),
+      prisma.withdrawal.aggregate({
+        where: { status: 'pending', user: userFilter },
+        _sum: { amount: true },
+        _count: { id: true }
+      }),
+      prisma.deposit.aggregate({
+        where: { status: 'approved', user: userFilter },
+        _sum: { amount: true }
+      }),
+      prisma.withdrawal.aggregate({
+        where: { status: 'approved', user: userFilter },
+        _sum: { amount: true }
+      })
+    ]);
+
+    res.json({
+      pendingDepositsCount: pendingDeps._count.id || 0,
+      pendingDepositsSum: Number(pendingDeps._sum.amount || 0),
+      pendingWithdrawalsCount: pendingWds._count.id || 0,
+      pendingWithdrawalsSum: Number(pendingWds._sum.amount || 0),
+      totalDeposited: Number(approvedDepsAgg._sum.amount || 0),
+      totalWithdrawn: Number(completedWdsAgg._sum.amount || 0)
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+staffRouter.get('/transactions', async (req, res) => {
+  const user = (req as any).user;
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = 50;
+  const skip = (page - 1) * limit;
+
+  const whereClause: any = {};
+  if (!user.isAdmin) {
+    whereClause.user = { referredBy: user.id };
+  }
+
+  try {
+    const [txns, total] = await Promise.all([
+      prisma.transaction.findMany({
+        where: whereClause,
+        include: {
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              telegramId: true,
+              telegramUsername: true,
+            }
+          }
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      prisma.transaction.count({ where: whereClause })
+    ]);
+
+    res.json({
+      transactions: txns,
+      total,
+      pages: Math.ceil(total / limit)
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 staffRouter.get('/users', async (req, res) => {
   const user = (req as any).user;
   const page = parseInt(req.query.page as string) || 1;
@@ -896,37 +982,140 @@ staffRouter.post('/users/:id/demote', restrictToAdmin, async (req, res) => {
   }
 });
 
-staffRouter.get('/analytics', restrictToAdmin, async (_req, res) => {
+staffRouter.get('/analytics', restrictToAdmin, async (req, res) => {
+  const dateStr = req.query.date as string; // Optional date 'YYYY-MM-DD'
+  let todayStart = new Date();
+  if (dateStr) {
+    todayStart = new Date(dateStr);
+  }
+  todayStart.setHours(0,0,0,0);
+  
+  const todayEnd = new Date(todayStart);
+  todayEnd.setHours(23,59,59,999);
+
   const [
-    totalUsers, totalGames, totalDeposits, totalWithdrawals,
-    pendingDeposits, pendingWithdrawals, activeGames,
-    globalSalesAgg, totalCompanyRevenueAgg
+    totalUsers,
+    totalGamesAllTime,
+    activeGames,
+    totalDepositsAllTime,
+    totalWithdrawalsAllTime,
+    pendingDeposits,
+    pendingWithdrawals,
+    globalSalesAllTimeAgg,
+    totalCompanyRevenueAllTimeAgg,
+    // Today's stats
+    globalSalesTodayAgg,
+    totalCompanyRevenueTodayAgg,
+    activePlayersTodayCount,
+    activeGamesTodayCount,
+    // Tickets purchased today for room breakdown
+    ticketsToday,
+    walletsAgg
   ] = await Promise.all([
     prisma.user.count(),
     prisma.game.count({ where: { status: 'FINISHED' } }),
+    prisma.game.count({ where: { status: { in: ['RUNNING', 'COUNTDOWN', 'WAITING'] } } }),
     prisma.deposit.aggregate({ where: { status: 'APPROVED' }, _sum: { amount: true } }),
     prisma.withdrawal.aggregate({ where: { status: 'COMPLETED' }, _sum: { amount: true } }),
     prisma.deposit.count({ where: { status: 'PENDING' } }),
     prisma.withdrawal.count({ where: { status: 'PENDING' } }),
-    prisma.game.count({ where: { status: { in: ['RUNNING', 'COUNTDOWN', 'WAITING'] } } }),
-    // Global Sales: Total spent on tickets by all players
     prisma.transaction.aggregate({ 
       where: { type: 'TICKET_PURCHASE', status: 'COMPLETED' }, 
       _sum: { amount: true } 
     }),
-    // Total Company Revenue: Total of all 6.25% commissions collected
     prisma.agentCommissionLog.aggregate({ 
       where: { type: 'COMMISSION_DEBIT' }, 
       _sum: { amount: true } 
     }),
+    // Today's Sales (Gross Volume)
+    prisma.transaction.aggregate({
+      where: { type: 'TICKET_PURCHASE', status: 'COMPLETED', createdAt: { gte: todayStart, lte: todayEnd } },
+      _sum: { amount: true }
+    }),
+    // Today's Company Revenue
+    prisma.agentCommissionLog.aggregate({
+      where: { type: 'COMMISSION_DEBIT', createdAt: { gte: todayStart, lte: todayEnd } },
+      _sum: { amount: true }
+    }),
+    // Distinct players active today
+    prisma.transaction.groupBy({
+      by: ['userId'],
+      where: { createdAt: { gte: todayStart, lte: todayEnd } }
+    }),
+    // Games played today
+    prisma.game.count({
+      where: { createdAt: { gte: todayStart, lte: todayEnd } }
+    }),
+    // Tickets purchased today for room breakdown
+    prisma.ticket.findMany({
+      where: { purchasedAt: { gte: todayStart, lte: todayEnd } },
+      include: {
+        game: {
+          include: {
+            room: true
+          }
+        }
+      }
+    }),
+    // Pre-deposit wallets sum
+    prisma.agentPreDepositWallet.aggregate({
+      _sum: {
+        balance: true,
+        totalDebited: true
+      }
+    })
   ]);
+
+  // Group tickets by room type
+  const roomStats: Record<string, { totalStake: number; ticketPrice: number; ticketCount: number }> = {
+    CASUAL: { totalStake: 0, ticketPrice: 10, ticketCount: 0 },
+    STANDARD: { totalStake: 0, ticketPrice: 20, ticketCount: 0 },
+    PRO: { totalStake: 0, ticketPrice: 50, ticketCount: 0 },
+    JACKPOT: { totalStake: 0, ticketPrice: 100, ticketCount: 0 },
+    VIP: { totalStake: 0, ticketPrice: 200, ticketCount: 0 }
+  };
+
+  ticketsToday.forEach(ticket => {
+    const type = ticket.game?.room?.type;
+    const price = Number(ticket.game?.room?.ticketPrice || 0);
+    if (type && roomStats[type]) {
+      roomStats[type].ticketCount += 1;
+      roomStats[type].totalStake += price;
+    }
+  });
+
+  const breakdown = Object.keys(roomStats).map(key => ({
+    gameType: key,
+    entryFee: roomStats[key].ticketPrice,
+    totalStake: roomStats[key].totalStake,
+    serviceFee: roomStats[key].totalStake * 0.25
+  }));
+
+  const totalPreDepositBalance = Number(walletsAgg._sum.balance || 0);
+  const totalPreDepositDebited = Number(walletsAgg._sum.totalDebited || 0);
+  const totalPreDepositAdded = totalPreDepositBalance + totalPreDepositDebited;
+
   res.json({
-    totalUsers, totalGames, activeGames,
-    totalDeposited: totalDeposits._sum.amount || 0,
-    totalWithdrawn: totalWithdrawals._sum.amount || 0,
-    pendingDeposits, pendingWithdrawals,
-    globalSales: globalSalesAgg._sum.amount || 0,
-    totalCompanyRevenue: totalCompanyRevenueAgg._sum.amount || 0,
+    totalUsers,
+    totalGames: totalGamesAllTime,
+    activeGames,
+    totalDeposited: totalDepositsAllTime._sum.amount || 0,
+    totalWithdrawn: totalWithdrawalsAllTime._sum.amount || 0,
+    pendingDeposits,
+    pendingWithdrawals,
+    globalSales: globalSalesAllTimeAgg._sum.amount || 0,
+    totalCompanyRevenue: totalCompanyRevenueAllTimeAgg._sum.amount || 0,
+    preDepositBalance: totalPreDepositBalance,
+    preDepositAdded: totalPreDepositAdded,
+    
+    // Today's values
+    today: {
+      globalSales: globalSalesTodayAgg._sum.amount || 0,
+      totalCompanyRevenue: totalCompanyRevenueTodayAgg._sum.amount || 0,
+      activePlayers: activePlayersTodayCount.length,
+      activeGames: activeGamesTodayCount,
+      breakdown
+    }
   });
 });
 
@@ -986,12 +1175,26 @@ staffRouter.post('/users/:id/sync', restrictToAdmin, async (req, res) => {
 staffRouter.get('/settings', restrictToAdmin, async (_req, res) => {
   const { getSystemSetting } = await import('../services/settings.service');
   try {
-    const [companyCommissionRate, agentProfitRate, receiverPhone, receiverName, telebirrPhone] = await Promise.all([
+    const [
+      companyCommissionRate,
+      agentProfitRate,
+      receiverPhone,
+      receiverName,
+      telebirrPhone,
+      bonusActive,
+      bonusPercent,
+      bonusMinDeposit,
+      bonusExpiry
+    ] = await Promise.all([
       getSystemSetting('COMPANY_COMMISSION_RATE'),
       getSystemSetting('AGENT_PROFIT_RATE'),
       getSystemSetting('PAYMENT_RECEIVER_PHONE'),
       getSystemSetting('PAYMENT_RECEIVER_NAME'),
       getSystemSetting('PAYMENT_TELEBIRR_PHONE'),
+      getSystemSetting('BONUS_ACTIVE'),
+      getSystemSetting('BONUS_PERCENT'),
+      getSystemSetting('BONUS_MIN_DEPOSIT'),
+      getSystemSetting('BONUS_EXPIRY'),
     ]);
     res.json({
       COMPANY_COMMISSION_RATE: companyCommissionRate || '12.5',
@@ -999,6 +1202,10 @@ staffRouter.get('/settings', restrictToAdmin, async (_req, res) => {
       PAYMENT_RECEIVER_PHONE: receiverPhone || '',
       PAYMENT_RECEIVER_NAME: receiverName || '',
       PAYMENT_TELEBIRR_PHONE: telebirrPhone || '',
+      BONUS_ACTIVE: bonusActive === 'true',
+      BONUS_PERCENT: bonusPercent || '100',
+      BONUS_MIN_DEPOSIT: bonusMinDeposit || '50',
+      BONUS_EXPIRY: bonusExpiry || '',
     });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch settings' });
@@ -1007,7 +1214,17 @@ staffRouter.get('/settings', restrictToAdmin, async (_req, res) => {
 
 staffRouter.put('/settings', restrictToAdmin, async (req, res) => {
   const { setSystemSetting } = await import('../services/settings.service');
-  const allowed = ['COMPANY_COMMISSION_RATE', 'AGENT_PROFIT_RATE', 'PAYMENT_RECEIVER_PHONE', 'PAYMENT_RECEIVER_NAME', 'PAYMENT_TELEBIRR_PHONE'];
+  const allowed = [
+    'COMPANY_COMMISSION_RATE',
+    'AGENT_PROFIT_RATE',
+    'PAYMENT_RECEIVER_PHONE',
+    'PAYMENT_RECEIVER_NAME',
+    'PAYMENT_TELEBIRR_PHONE',
+    'BONUS_ACTIVE',
+    'BONUS_PERCENT',
+    'BONUS_MIN_DEPOSIT',
+    'BONUS_EXPIRY',
+  ];
   try {
     for (const key of allowed) {
       if (req.body[key] !== undefined) {
@@ -1020,9 +1237,112 @@ staffRouter.put('/settings', restrictToAdmin, async (req, res) => {
   }
 });
 
+// ─── Promotions CRUD ──────────────────────────────────────────
+// GET all promotions
+staffRouter.get('/promotions', restrictToAdmin, async (req, res) => {
+  try {
+    const promotions = await prisma.promotion.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json(promotions);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch promotions' });
+  }
+});
+
+// CREATE a promotion
+staffRouter.post('/promotions', restrictToAdmin, async (req, res) => {
+  const { title, message, type, scheduledAt, expiresAt, isActive } = req.body;
+  if (!title || !message) {
+    return res.status(400).json({ error: 'Title and message are required' });
+  }
+  try {
+    const promotion = await prisma.promotion.create({
+      data: {
+        title,
+        message,
+        type: type || 'announcement',
+        isActive: isActive !== false,
+        scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
+        expiresAt: expiresAt ? new Date(expiresAt) : null,
+      },
+    });
+    res.json(promotion);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to create promotion' });
+  }
+});
+
+// UPDATE a promotion
+staffRouter.patch('/promotions/:id', restrictToAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { title, message, type, scheduledAt, expiresAt, isActive } = req.body;
+  try {
+    const promotion = await prisma.promotion.update({
+      where: { id },
+      data: {
+        ...(title !== undefined && { title }),
+        ...(message !== undefined && { message }),
+        ...(type !== undefined && { type }),
+        ...(isActive !== undefined && { isActive }),
+        ...(scheduledAt !== undefined && { scheduledAt: scheduledAt ? new Date(scheduledAt) : null }),
+        ...(expiresAt !== undefined && { expiresAt: expiresAt ? new Date(expiresAt) : null }),
+        updatedAt: new Date(),
+      },
+    });
+    res.json(promotion);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update promotion' });
+  }
+});
+
+// DELETE a promotion
+staffRouter.delete('/promotions/:id', restrictToAdmin, async (req, res) => {
+  const { id } = req.params;
+  try {
+    await prisma.promotion.delete({ where: { id } });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete promotion' });
+  }
+});
+
+// BROADCAST a promotion (mark as sent - triggers Telegram bot notification)
+staffRouter.post('/promotions/:id/broadcast', restrictToAdmin, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const promotion = await prisma.promotion.findUnique({ where: { id } });
+    if (!promotion) return res.status(404).json({ error: 'Promotion not found' });
+
+    // Mark as sent
+    await prisma.promotion.update({
+      where: { id },
+      data: { sentAt: new Date(), updatedAt: new Date() },
+    });
+
+    // Actually trigger Telegram bot notification broadcast in background
+    const { broadcastMessage } = await import('../bot/notifier');
+    const formattedMessage = `📢 <b>${promotion.title}</b>\n\n${promotion.message}`;
+
+    broadcastMessage(formattedMessage).catch((err) => {
+      console.error(`[Broadcast] Background broadcast failed for promotion ${id}:`, err);
+    });
+
+    // Get total recipient count for response
+    const totalRecipients = await prisma.user.count({
+      where: { telegramId: { not: null } }
+    });
+
+    res.json({ success: true, totalRecipients, message: 'Broadcast queued successfully' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to broadcast promotion' });
+  }
+});
+
 // ─── Agent Routes ─────────────────────────────────────────────
 import agentRouter from './agent';
 router.use('/agent', agentRouter);
+
 
 // ─── Auth Routes ──────────────────────────────────────────────
 

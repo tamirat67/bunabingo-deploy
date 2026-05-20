@@ -382,11 +382,17 @@ export async function getAgents(page = 1, limit = 20) {
       const rate = await getAgentProfitRate();
       const netProfit = totalBranchSales.mul(new Decimal(rate.toString()));
 
+      // 4. Pre-Deposit Status
+      const { getAgentPreDepositStatus } = await import('./agentPreDeposit.service');
+      const preDepositStatus = await getAgentPreDepositStatus(agent.id);
+
       // Override the agent's wallet fields for the frontend
       if (agent.wallet) {
         agent.wallet.totalDeposited = totalBranchDeposited as any;
         agent.wallet.referralBalance = netProfit as any;
       }
+
+      (agent as any).preDepositStatus = preDepositStatus;
 
       return agent;
     })

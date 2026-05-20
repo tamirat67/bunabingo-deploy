@@ -308,3 +308,18 @@ model SystemSetting {
 
   @@map("system_settings")
 }
+
+model Promotion {
+  id          String   @id @default(cuid())
+  title       String
+  message     String
+  type        String   @default("daily")   // "daily" | "weekly" | "announcement" | "custom"
+  isActive    Boolean  @default(true) @map("is_active")
+  scheduledAt DateTime? @map("scheduled_at") @db.Timestamptz(6)
+  expiresAt   DateTime? @map("expires_at") @db.Timestamptz(6)
+  sentAt      DateTime? @map("sent_at") @db.Timestamptz(6)
+  createdAt   DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt   DateTime @default(now()) @db.Timestamptz(6) @map("updated_at")
+
+  @@map("promotions")
+}

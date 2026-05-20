@@ -9,8 +9,8 @@ import { getCompanyCommissionRate } from './settings.service';
 //
 // Business rules:
 //   TOTAL_SALES        = sum of all player buy-ins for the game
-//   COMPANY_COMMISSION = TOTAL_SALES × 6.25%      ← deducted from this wallet
-//   AGENT_GROSS_PROFIT = TOTAL_SALES × 18.75%     ← agent keeps (informational)
+//   COMPANY_COMMISSION = TOTAL_SALES × 12.5%      ← deducted from this wallet
+//   AGENT_GROSS_PROFIT = TOTAL_SALES × 12.5%      ← agent keeps (informational)
 //   PLAYER_PRIZE_POOL  = TOTAL_SALES × 75%        ← paid out to winner(s)
 //
 // Game start is HARD-BLOCKED if:
@@ -92,7 +92,7 @@ export async function getAgentPreDepositStatus(
  * Called inside runGame() BEFORE the game is allowed to proceed.
  *
  * 1. Finds the agent for the game (via any ticket's user.referredBy).
- * 2. Calculates company commission (totalSales × 6.25%).
+ * 2. Calculates company commission (totalSales × 12.5%).
  * 3. Hard-blocks if balance < commission.
  * 4. Deducts commission and writes an audit log.
  *

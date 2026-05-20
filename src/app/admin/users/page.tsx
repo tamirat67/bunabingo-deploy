@@ -47,9 +47,9 @@ export default function UsersPage() {
   };
 
   const filteredUsers = users.filter(u => 
-    u.telegramUsername?.toLowerCase().includes(search.toLowerCase()) ||
-    u.telegramId?.toString().includes(search) ||
-    u.firstName?.toLowerCase().includes(search.toLowerCase())
+    (u.telegramUsername || '').toLowerCase().includes(search.toLowerCase()) ||
+    (u.telegramId || '').toString().includes(search) ||
+    (u.firstName || '').toLowerCase().includes(search.toLowerCase())
   );
 
   return (

@@ -94,10 +94,10 @@ export async function approveDeposit(depositId: string, adminId: string) {
   if (deposit.userId) {
     await creditWallet(deposit.userId, deposit.amount, 'DEPOSIT', depositId, 'Deposit approved');
 
-    // ─── Deposit Bonus (100% for >= 50 ETB only) ───
+    // ─── Deposit Bonus (Dynamic based on system settings) ───
+    const { isDepositBonusEligible } = await import('./settings.service');
+    const { percentage: bonusPercentage } = await isDepositBonusEligible(Number(deposit.amount));
     const { creditBonus } = await import('./wallet.service');
-    const isEligible = Number(deposit.amount) >= 50;
-    const bonusPercentage = isEligible ? 100 : 0;
     const bonusAmount = Number(deposit.amount) * (bonusPercentage / 100);
     
     if (bonusAmount > 0) {

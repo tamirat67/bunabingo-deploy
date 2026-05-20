@@ -56,3 +56,42 @@ export async function notifyUser(userId: string, message: string, buttons?: any)
     logger.error(`[Notifier] Failed to notify user ${userId}:`, err);
   }
 }
+
+/**
+ * Broadcasts a promotion/announcement to all users.
+ */
+export async function broadcastMessage(message: string, buttons?: any): Promise<{ successCount: number; failureCount: number }> {
+  try {
+    const users = await prisma.user.findMany({
+      select: { id: true, telegramId: true }
+    });
+
+    let successCount = 0;
+    let failureCount = 0;
+
+    logger.info(`[Notifier] Starting broadcast to ${users.length} users...`);
+
+    for (const user of users) {
+      if (!user.telegramId) continue;
+      try {
+        await bot.telegram.sendMessage(Number(user.telegramId), message, {
+          parse_mode: 'HTML',
+          ...(buttons ? buttons : {})
+        });
+        successCount++;
+        // Small delay to prevent rate-limiting issues from Telegram
+        await new Promise(resolve => setTimeout(resolve, 50));
+      } catch (err) {
+        logger.error(`[Notifier] Broadcast failed for user ${user.id}:`, err);
+        failureCount++;
+      }
+    }
+
+    logger.info(`[Notifier] Broadcast finished. Success: ${successCount}, Failures: ${failureCount}`);
+    return { successCount, failureCount };
+  } catch (err) {
+    logger.error(`[Notifier] Failed to execute broadcast:`, err);
+    throw err;
+  }
+}
+

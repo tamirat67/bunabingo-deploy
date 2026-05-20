@@ -21,33 +21,65 @@ router.get('/stats', async (req: Request, res: Response) => {
   const agent = (req as any).user;
   
   try {
+    const dateStr = req.query.date as string;
+    let todayStart = new Date();
+    if (dateStr) {
+      todayStart = new Date(dateStr);
+    }
+    todayStart.setHours(0,0,0,0);
+    const todayEnd = new Date(todayStart);
+    todayEnd.setHours(23,59,59,999);
+
     const [
       playerCount,
       totalDeposits,
       totalSalesAgg,
       totalCommissionPaidAgg,
-      preDepositStatus
+      preDepositStatus,
+      wallet,
+      activePlayersToday,
+      activeGames
     ] = await Promise.all([
       prisma.user.count({ where: { referredBy: agent.id } }),
       prisma.deposit.aggregate({
         where: { user: { referredBy: agent.id }, status: 'approved' },
         _sum: { amount: true }
       }),
-      // Total Sales = Total spent on tickets by players under this agent
+      // Total Sales = Total spent on tickets by players under this agent during selected date
       prisma.transaction.aggregate({
         where: { 
           user: { referredBy: agent.id }, 
           type: 'TICKET_PURCHASE',
-          status: 'COMPLETED'
+          status: 'COMPLETED',
+          createdAt: { gte: todayStart, lte: todayEnd }
         },
         _sum: { amount: true }
       }),
-      // Net Commission Paid = Total 6.25% amounts debited from agent's pre-deposit wallet
+      // Net Commission Paid = Total company commission amounts debited from agent's pre-deposit wallet during selected date
       prisma.agentCommissionLog.aggregate({
-        where: { agentId: agent.id, type: 'COMMISSION_DEBIT' },
+        where: { 
+          agentId: agent.id, 
+          type: 'COMMISSION_DEBIT',
+          createdAt: { gte: todayStart, lte: todayEnd }
+        },
         _sum: { amount: true }
       }),
-      getAgentPreDepositStatus(agent.id)
+      getAgentPreDepositStatus(agent.id),
+      prisma.agentPreDepositWallet.findUnique({
+        where: { agentId: agent.id }
+      }),
+      // Distinct players active under this agent today
+      prisma.transaction.groupBy({
+        by: ['userId'],
+        where: {
+          user: { referredBy: agent.id },
+          createdAt: { gte: todayStart, lte: todayEnd }
+        }
+      }),
+      // Global active games
+      prisma.game.count({
+        where: { status: { in: ['RUNNING', 'COUNTDOWN', 'WAITING'] } }
+      })
     ]);
 
     const totalSales = totalSalesAgg._sum.amount || new Decimal(0);
@@ -57,14 +89,21 @@ router.get('/stats', async (req: Request, res: Response) => {
     const rate = await getAgentProfitRate();
     const agentTakeHome = totalSales.mul(rate);
 
+    const walletBalance = wallet ? Number(wallet.balance) : 10000;
+    const walletDebited = wallet ? Number(wallet.totalDebited) : 0;
+    const walletAdded = walletBalance + walletDebited;
+
     res.json({
       playerCount,
       totalDeposits: totalDeposits._sum.amount || 0,
       totalSales: totalSales,
       netCommissionPaid: netCommissionPaid,
       agentTakeHome: agentTakeHome,
+      activePlayers: activePlayersToday.length,
+      activeGames,
       preDeposit: {
-        balance: preDepositStatus.balance,
+        balance: walletBalance,
+        totalAdded: walletAdded,
         state: preDepositStatus.state,
         message: preDepositStatus.stateMessage,
       }

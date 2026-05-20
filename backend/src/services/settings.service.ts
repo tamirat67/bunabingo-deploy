@@ -58,6 +58,48 @@ export async function getTelebirrPhone(): Promise<string> {
   return phone || config.payment.telebirrPhone;
 }
 
+export async function getDepositBonusActive(): Promise<boolean> {
+  const active = await getSystemSetting('BONUS_ACTIVE');
+  return active === 'true';
+}
+
+export async function getDepositBonusPercent(): Promise<number> {
+  const val = await getSystemSetting('BONUS_PERCENT');
+  const percent = parseFloat(val);
+  return isNaN(percent) ? 100 : percent;
+}
+
+export async function getDepositBonusMinDeposit(): Promise<number> {
+  const val = await getSystemSetting('BONUS_MIN_DEPOSIT');
+  const minDep = parseFloat(val);
+  return isNaN(minDep) ? 50 : minDep;
+}
+
+export async function getDepositBonusExpiry(): Promise<Date | null> {
+  const val = await getSystemSetting('BONUS_EXPIRY');
+  if (!val) return null;
+  const date = new Date(val);
+  return isNaN(date.getTime()) ? null : date;
+}
+
+export async function isDepositBonusEligible(amount: number): Promise<{ active: boolean; percentage: number }> {
+  const active = await getDepositBonusActive();
+  if (!active) {
+    return { active: false, percentage: 0 };
+  }
+  const expiry = await getDepositBonusExpiry();
+  if (expiry && new Date() > expiry) {
+    return { active: false, percentage: 0 };
+  }
+  const minDeposit = await getDepositBonusMinDeposit();
+  if (amount < minDeposit) {
+    return { active: true, percentage: 0 };
+  }
+  const percent = await getDepositBonusPercent();
+  return { active: true, percentage: percent };
+}
+
+
 /**
  * Set a system setting in the database.
  */
