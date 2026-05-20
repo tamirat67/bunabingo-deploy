@@ -28,6 +28,7 @@ function SelectionContent() {
   const [playerCount, setPlayerCount] = useState(0);
   const [game, setGame] = useState<any>(null);
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [fakeCountdown, setFakeCountdown] = useState(60);
   const [endTime, setEndTime] = useState<number | null>(null);
   const [serverOff, setServerOff] = useState(0);
   const [newlyOccupied, setNewlyOccupied] = useState<number[]>([]);
@@ -50,6 +51,22 @@ function SelectionContent() {
   useEffect(() => {
     occupiedRef.current = occupied;
   }, [occupied]);
+
+  // A secondary fake suspense countdown for the jackpot banner when in WAITING state, ticking from 60 down to 0
+  useEffect(() => {
+    const isRealLive = countdown !== null && countdown > 0;
+    if (game?.status === 'WAITING' || !isRealLive) {
+      const interval = setInterval(() => {
+        setFakeCountdown(prev => {
+          if (prev <= 1) {
+            return 60; // reset to 60 to loop the suspense!
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [game?.status, countdown]);
 
   // Clean up fakeOccupied if they overlap with selected, owned, or real occupied cards
   useEffect(() => {
@@ -96,25 +113,43 @@ function SelectionContent() {
             !ownedRef.current.includes(num) &&
             !occupiedRef.current.includes(num)
         );
-        const currentCount = currentHolds.length;
         const newHolds = [...currentHolds];
-        // Fluctuate cards: add new holds, or remove existing ones
         const lowThreshold = isVip ? 6 : 10;
-        const shouldAdd = currentCount < lowThreshold ? true : (currentCount >= maxFakeHolds ? false : Math.random() > 0.45);
-        if (shouldAdd) {
+
+        // 70% chance to perform a "shift" (simulate selecting and deselecting numbers)
+        const action = Math.random() < 0.70 ? 'SHIFT' : 'FLUCTUATE';
+
+        if (action === 'SHIFT' && newHolds.length > 0) {
+          // Deselect one random held number and select a new one
+          const removeIndex = Math.floor(Math.random() * newHolds.length);
+          newHolds.splice(removeIndex, 1);
+
           const numToAdd = getRandNum(newHolds);
           if (numToAdd !== -1) {
             newHolds.push(numToAdd);
+            // Pulse the newly selected card
             setNewlyOccupied(f => [...f, numToAdd]);
-            setTimeout(() => setNewlyOccupied(f => f.filter(x => x !== numToAdd)), 2000);
+            setTimeout(() => setNewlyOccupied(f => f.filter(x => x !== numToAdd)), 1500);
           }
-        } else if (newHolds.length > 0) {
-          const removeIndex = Math.floor(Math.random() * newHolds.length);
-          newHolds.splice(removeIndex, 1);
+        } else {
+          // Fluctuate count: add new holds, or remove existing ones
+          const currentCount = newHolds.length;
+          const shouldAdd = currentCount < lowThreshold ? true : (currentCount >= maxFakeHolds ? false : Math.random() > 0.50);
+          if (shouldAdd) {
+            const numToAdd = getRandNum(newHolds);
+            if (numToAdd !== -1) {
+              newHolds.push(numToAdd);
+              setNewlyOccupied(f => [...f, numToAdd]);
+              setTimeout(() => setNewlyOccupied(f => f.filter(x => x !== numToAdd)), 1500);
+            }
+          } else if (newHolds.length > 0) {
+            const removeIndex = Math.floor(Math.random() * newHolds.length);
+            newHolds.splice(removeIndex, 1);
+          }
         }
         return newHolds;
       });
-    }, 4000);
+    }, 2000); // highly dynamic ticking every 2 seconds
 
     return () => clearInterval(interval);
   }, [isVip]);
@@ -437,7 +472,7 @@ function SelectionContent() {
 
         {/* Right — Countdown / Player Count */}
         <div style={{ textAlign: 'right', minWidth: '90px' }}>
-          {isLive ? (
+          {(isLive || game?.status === 'WAITING') ? (
             <>
               <div style={{
                 color: 'rgba(255,255,255,0.55)',
@@ -447,42 +482,38 @@ function SelectionContent() {
                 marginBottom: '6px',
                 textTransform: 'uppercase',
               }}>
-                GAME STARTING IN
+                {isLive ? 'GAME STARTING IN' : 'LOBBY CLOSING IN'}
               </div>
               <motion.div
-                key={countdown}
-                initial={{ scale: 1.15, color: countdown! <= 10 ? '#E74C3C' : 'white' }}
-                animate={{ scale: 1, color: countdown! <= 10 ? '#E74C3C' : 'white' }}
+                key={isLive ? countdown : fakeCountdown}
+                initial={{ scale: 1.15, color: (isLive ? countdown! : fakeCountdown) <= 10 ? '#E74C3C' : 'white' }}
+                animate={{ scale: 1, color: (isLive ? countdown! : fakeCountdown) <= 10 ? '#E74C3C' : 'white' }}
                 transition={{ duration: 0.2 }}
                 style={{
                   fontSize: '30px',
                   fontWeight: '900',
                   fontVariantNumeric: 'tabular-nums',
                   letterSpacing: '-0.5px',
-                  textShadow: countdown! <= 10 ? '0 0 15px rgba(231,76,60,0.8)' : `0 0 12px ${T.gold}44`,
+                  textShadow: (isLive ? countdown! : fakeCountdown) <= 10 ? '0 0 15px rgba(231,76,60,0.8)' : `0 0 12px ${T.gold}44`,
                 }}
               >
-                {formatCountdown(countdown!)}
+                {formatCountdown(isLive ? countdown! : fakeCountdown)}
               </motion.div>
             </>
           ) : (
             <>
               <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: '9px', fontWeight: '900', letterSpacing: '1.5px', marginBottom: '6px', textTransform: 'uppercase' }}>
-                {game?.status === 'WAITING' ? 'PLAYERS JOINED' : 'GAME STATUS'}
+                GAME STATUS
               </div>
               <div style={{
-                fontSize: game?.status === 'WAITING' ? '28px' : '18px',
+                fontSize: '18px',
                 fontWeight: '900',
                 color: game?.status === 'RUNNING' ? '#2ECC71' : T.gold,
                 textShadow: game?.status === 'RUNNING' ? '0 0 12px rgba(46,204,113,0.6)' : `0 0 12px ${T.gold}66`,
                 fontVariantNumeric: 'tabular-nums',
                 letterSpacing: '-1px'
               }}>
-                {game?.status === 'RUNNING' ? '🔴 LIVE' : game?.status === 'WAITING' ? (
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end' }}>
-                    <Users size={18} /> {displayPlayerCount.toLocaleString()}
-                  </span>
-                ) : '✅ READY'}
+                {game?.status === 'RUNNING' ? '🔴 LIVE' : '✅ READY'}
               </div>
             </>
           )}
