@@ -358,6 +358,23 @@ router.post('/games/join', joinGameLimiter, async (req: Request, res: Response) 
 
     let gameId;
     if (room.type === 'DEMO') {
+      // ─── Demo Play Limit: max 10 free games per user ────────────────────────
+      const demoPlaysCount = await prisma.game.count({
+        where: {
+          room: { type: 'DEMO' },
+          status: 'FINISHED',
+          tickets: { some: { userId: user.id } },
+        },
+      });
+
+      const DEMO_LIMIT = 10;
+      if (demoPlaysCount >= DEMO_LIMIT) {
+        return res.status(403).json({
+          error: 'DEMO_LIMIT_REACHED',
+          message: `🎮 የ${DEMO_LIMIT} ነፃ ዲሞ ጨዋታዎ ጊዜ አልቋል!\n\n💰 እውነተኛ ጨዋታ ለመጫወት እና ሽልማት ለማሸነፍ፣ እባክዎ ወደ ዋሌት ሂደው ገንዘብ ያስቀምጡ።\n\n(You have used all ${DEMO_LIMIT} free demo games! Please deposit to play real games and win real prizes.)`
+        });
+      }
+
       // Force an entirely new private game for every DEMO join
       gameId = await createWaitingGame(room.id);
     } else {

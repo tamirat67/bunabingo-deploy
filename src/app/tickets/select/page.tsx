@@ -360,11 +360,25 @@ function SelectionContent() {
       if (roomType.startsWith('SPIN_')) router.push(`/play/spin?id=${res.gameId}&stake=${stake}`);
       else router.push(`/game?id=${res.gameId}&type=${roomType}&price=${stake}`);
     } catch (err: any) {
-      const msg = err.response?.data?.error || err.message || 'Failed to join';
-      showAlert('Join Failed', msg, 'error');
+      const errData = err.response?.data;
+      const errCode = errData?.error;
+      const msg = errData?.message || err.message || 'Failed to join';
+
+      if (errCode === 'DEMO_LIMIT_REACHED') {
+        setModal({
+          isOpen: true,
+          title: '🎮 Demo Limit Reached / ዲሞ ጊዜ አልቋል',
+          message: msg,
+          type: 'balance',
+          onConfirm: () => router.push('/wallet')
+        });
+      } else {
+        showAlert('Join Failed', msg, 'error');
+      }
     } finally {
       setJoining(false);
     }
+
   };
 
   const balance = user?.wallet?.balance || 0;
