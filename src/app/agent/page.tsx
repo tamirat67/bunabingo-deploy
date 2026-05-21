@@ -141,8 +141,8 @@ function AgentDashboardContent() {
   const activePlayers = stats.activePlayers || 0;
   const activeGames = stats.activeGames || 0;
 
-  const preDepositAdded = stats.preDeposit?.totalAdded !== undefined ? Number(stats.preDeposit.totalAdded) : 10000;
-  const preDepositBalance = stats.preDeposit?.balance !== undefined ? Number(stats.preDeposit.balance) : 0;
+  const preDepositAdded = Number(stats.preDeposit?.totalAdded || 0);
+  const preDepositBalance = Number(stats.preDeposit?.balance || 0);
   const preDepositPercent = preDepositAdded > 0 ? (preDepositBalance / preDepositAdded) * 100 : 0;
 
   return (

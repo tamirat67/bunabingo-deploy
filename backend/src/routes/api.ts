@@ -112,17 +112,9 @@ router.get('/me', async (req: Request, res: Response) => {
 
     if (!user) return res.status(401).json({ error: 'Not registered' });
 
-    // Ensure wallet exists
     let wallet = await prisma.wallet.findUnique({ where: { userId: user.id } });
     if (!wallet) {
-      const initialBalance = config.server.nodeEnv === 'production' ? 0 : 1000;
-      wallet = await prisma.wallet.create({ data: { userId: user.id, balance: initialBalance } });
-    } else if (config.server.nodeEnv !== 'production' && Number(wallet.balance) < 1000) {
-      wallet = await prisma.wallet.update({
-        where: { userId: user.id },
-        data: { balance: 1000 }
-      });
-      logger.info(`[Test] Automatically topped up user ${user.id} to 1000 ETB for testing`);
+      wallet = await prisma.wallet.create({ data: { userId: user.id, balance: 0 } });
     }
 
     const jackpot = await getJackpot();
@@ -808,7 +800,7 @@ const restrictToAdmin = async (req: Request, res: Response, next: any) => {
 
 staffRouter.get('/deposits/pending', async (req, res) => {
   const admin = (req as any).user;
-  const agentId = admin.isAdmin ? undefined : admin.id;
+  const agentId = (admin.isAdmin || admin.role === 'ADMIN') ? undefined : admin.id;
   res.json(await getPendingDeposits(agentId));
 });
 staffRouter.post('/deposits/:id/approve', async (req, res) => {
@@ -828,7 +820,7 @@ staffRouter.post('/deposits/:id/reject', async (req, res) => {
 
 staffRouter.get('/withdrawals/pending', async (req, res) => {
   const admin = (req as any).user;
-  const agentId = admin.isAdmin ? undefined : admin.id;
+  const agentId = (admin.isAdmin || admin.role === 'ADMIN') ? undefined : admin.id;
   res.json(await getPendingWithdrawals(agentId));
 });
 staffRouter.post('/withdrawals/:id/approve', async (req, res) => {
@@ -848,7 +840,7 @@ staffRouter.post('/withdrawals/:id/reject', async (req, res) => {
 
 staffRouter.get('/transactions/summary', async (req, res) => {
   const user = (req as any).user;
-  const userFilter = user.isAdmin ? {} : { referredBy: user.id };
+  const userFilter = (user.isAdmin || user.role === 'ADMIN') ? {} : { referredBy: user.id };
 
   try {
     const [
@@ -858,21 +850,21 @@ staffRouter.get('/transactions/summary', async (req, res) => {
       completedWdsAgg
     ] = await Promise.all([
       prisma.deposit.aggregate({
-        where: { status: 'pending', user: userFilter },
+        where: { status: { in: ['pending', 'PENDING'] }, user: userFilter },
         _sum: { amount: true },
         _count: { id: true }
       }),
       prisma.withdrawal.aggregate({
-        where: { status: 'pending', user: userFilter },
+        where: { status: { in: ['pending', 'PENDING'] }, user: userFilter },
         _sum: { amount: true },
         _count: { id: true }
       }),
       prisma.deposit.aggregate({
-        where: { status: 'approved', user: userFilter },
+        where: { status: { in: ['approved', 'completed', 'APPROVED', 'COMPLETED'] }, user: userFilter },
         _sum: { amount: true }
       }),
       prisma.withdrawal.aggregate({
-        where: { status: 'approved', user: userFilter },
+        where: { status: { in: ['approved', 'completed', 'APPROVED', 'COMPLETED'] }, user: userFilter },
         _sum: { amount: true }
       })
     ]);
@@ -897,7 +889,7 @@ staffRouter.get('/transactions', async (req, res) => {
   const skip = (page - 1) * limit;
 
   const whereClause: any = {};
-  if (!user.isAdmin) {
+  if (!user.isAdmin && user.role !== 'ADMIN') {
     whereClause.user = { referredBy: user.id };
   }
 
@@ -939,7 +931,7 @@ staffRouter.get('/users', async (req, res) => {
   const limit = 20;
 
   try {
-    if (user.isAdmin) {
+    if (user.isAdmin || user.role === 'ADMIN') {
       // Admins see everyone, with optional search
       res.json(await getAllUsers(page, limit, search));
     } else {

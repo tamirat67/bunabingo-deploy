@@ -3,7 +3,7 @@ import { agentMiddleware } from '../middleware/auth';
 import prisma from '../lib/prisma';
 import { logger } from '../lib/logger';
 import { approveDeposit, rejectDeposit } from '../services/deposit.service';
-import { approveWithdrawal, rejectWithdrawal } from '../services/withdrawal.service';
+import { approveWithdrawal, rejectWithdrawal, getPendingWithdrawals } from '../services/withdrawal.service';
 import { getAgentPreDepositStatus, getAgentCommissionHistory } from '../services/agentPreDeposit.service';
 import { Decimal } from '@prisma/client/runtime/library';
 import { config } from '../config';
@@ -46,11 +46,12 @@ router.get('/stats', async (req: Request, res: Response) => {
         _sum: { amount: true }
       }),
       // Total Sales = Total spent on tickets by players under this agent during selected date
+      // Use case-insensitive status match to handle both 'completed' and 'COMPLETED'
       prisma.transaction.aggregate({
         where: { 
           user: { referredBy: agent.id }, 
           type: 'TICKET_PURCHASE',
-          status: 'COMPLETED',
+          status: { in: ['completed', 'COMPLETED'] },
           createdAt: { gte: todayStart, lte: todayEnd }
         },
         _sum: { amount: true }
@@ -89,7 +90,7 @@ router.get('/stats', async (req: Request, res: Response) => {
     const rate = await getAgentProfitRate();
     const agentTakeHome = totalSales.mul(rate);
 
-    const walletBalance = wallet ? Number(wallet.balance) : 10000;
+    const walletBalance = wallet ? Number(wallet.balance) : 0;
     const walletDebited = wallet ? Number(wallet.totalDebited) : 0;
     const walletAdded = walletBalance + walletDebited;
 
@@ -144,6 +145,7 @@ router.get('/players', async (req: Request, res: Response) => {
       where: { referredBy: agent.id },
       skip: (page - 1) * limit,
       take: limit,
+      include: { wallet: true },
       orderBy: { createdAt: 'desc' }
     });
     const total = await prisma.user.count({ where: { referredBy: agent.id } });
@@ -257,14 +259,8 @@ router.post('/deposits/:id/reject', async (req, res) => {
 router.get('/withdrawals/pending', async (req, res) => {
   const agent = (req as any).user;
   try {
-    const withdrawals = await prisma.withdrawal.findMany({
-      where: { 
-        status: 'pending',
-        user: { referredBy: agent.id }
-      },
-      include: { user: true },
-      orderBy: { createdAt: 'asc' }
-    });
+    // Use the enriched service so trueBalance + isBalanceLegit fraud checks are included
+    const withdrawals = await getPendingWithdrawals(agent.id);
     res.json(withdrawals);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch pending withdrawals' });

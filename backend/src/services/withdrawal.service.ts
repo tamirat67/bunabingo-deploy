@@ -2,7 +2,7 @@ import prisma from '../lib/prisma';
 import { debitWallet } from './wallet.service';
 import { triggerAdminEvent, triggerUserEvent } from '../lib/pusher';
 import { logger } from '../lib/logger';
-import { notifyAgent, notifyUser } from '../bot/notifier';
+import { notifyAgent, notifyUser, notifySuperAdmin } from '../bot/notifier';
 import { Decimal } from '@prisma/client/runtime/library';
 import { Markup } from 'telegraf';
 
@@ -52,7 +52,40 @@ export async function createWithdrawalRequest(
   // Deduct from wallet immediately to prevent double-spending
   await debitWallet(userId, amount, 'WITHDRAWAL', withdrawal.id, `Withdrawal request: ${bankName}`);
 
-  // Notify Agent if applicable
+  // ─── Build the shared withdrawal notification message & buttons ────────────
+  const withdrawalMsg =
+    `💸 <b>አዲስ የገንዘብ ማውጫ ጥያቄ (New Withdrawal Request)</b>\n\n` +
+    `👤 <b>ተጫዋች (Player):</b> ${withdrawal.user?.username || 'Unknown'}\n` +
+    `💰 <b>መጠን (Amount):</b> ${amount} ETB\n` +
+    `🏦 <b>ባንክ (Bank):</b> ${bankName}\n` +
+    `💳 <b>ሂሳብ (Account):</b> ${accountNumber}\n` +
+    `👤 <b>ስም (Holder):</b> ${accountName}\n\n` +
+    `⏳ <b>Status:</b> Pending Approval\n\n` +
+    `እባክዎ መረጃውን አረጋግጠው ይክፈሉ ወይም ውድቅ ያድርጉ።`;
+
+  const withdrawalButtons = Markup.inlineKeyboard([
+    [
+      Markup.button.callback('✅ Approve', `approve_wd_${withdrawal.id}`),
+      Markup.button.callback('❌ Reject',  `reject_wd_${withdrawal.id}`),
+    ],
+  ]);
+
+  // ─── 1. ALWAYS notify @sisay_2121 (super-admin) via Telegram + web ──────────
+  await notifySuperAdmin(withdrawalMsg, withdrawalButtons);
+
+  // ─── 2. Also trigger web dashboard admin event (for sisay_2121 web panel) ──
+  await triggerAdminEvent('new-withdrawal', {
+    withdrawalId: withdrawal.id,
+    userId,
+    amount,
+    userName: withdrawal.user?.username || 'User',
+    bankName,
+    accountNumber,
+    accountName,
+    requiresApproval: true,
+  });
+
+  // ─── 3. Notify the referring agent as well (if applicable) ──────────────────
   if (withdrawal.user?.referredBy) {
     const agent = await prisma.user.findUnique({
       where: { id: withdrawal.user.referredBy },
@@ -60,44 +93,8 @@ export async function createWithdrawalRequest(
     });
 
     if (agent && (agent.role === 'AGENT' || agent.role === 'ADMIN')) {
-      const agentMsg = 
-        `💸 <b>አዲስ የገንዘብ ማውጫ ጥያቄ (New Withdrawal)</b>\n\n` +
-        `👤 <b>ተጫዋች (Player):</b> ${withdrawal.user?.username || 'Unknown'}\n` +
-        `💰 <b>መጠን (Amount):</b> ${amount} ETB\n` +
-        `🏦 <b>ባንክ (Bank):</b> ${bankName}\n` +
-        `💳 <b>ሂሳብ (Account):</b> ${accountNumber}\n` +
-        `👤 <b>ስም (Holder):</b> ${accountName}\n\n` +
-        `እባክዎ መረጃውን አረጋግጠው ይክፈሉ ወይም ውድቅ ያድርጉ።`;
-
-      const agentButtons = Markup.inlineKeyboard([
-        [
-          Markup.button.callback('✅ Approve', `approve_wd_${withdrawal.id}`),
-          Markup.button.callback('❌ Reject',  `reject_wd_${withdrawal.id}`),
-        ],
-      ]);
-
-      await notifyAgent(agent.id, agentMsg, agentButtons);
-    } else {
-      // Fallback: Notify main admins if no valid agent is found
-      await triggerAdminEvent('new-withdrawal', {
-        withdrawalId: withdrawal.id,
-        userId,
-        amount,
-        userName: withdrawal.user?.username || 'User',
-        bankName,
-        accountNumber,
-      });
+      await notifyAgent(agent.id, withdrawalMsg, withdrawalButtons);
     }
-  } else {
-    // No referrer: Notify main admins
-    await triggerAdminEvent('new-withdrawal', {
-      withdrawalId: withdrawal.id,
-      userId,
-      amount,
-      userName: (withdrawal as any).user?.username || 'User',
-      bankName,
-      accountNumber,
-    });
   }
 
   logger.info(`Withdrawal request: user ${userId}, amount ${amount}, bank ${bankName}`);
@@ -116,9 +113,12 @@ export async function approveWithdrawal(withdrawalId: string, adminId: string) {
 
   if (withdrawal.userId) {
     // Already debited on creation, just log the approval
-    await prisma.adminLog.create({
-      data: { adminId: adminId, targetUserId: withdrawal.userId, action: 'APPROVE_WITHDRAWAL', details: { withdrawalId, amount: withdrawal.amount } },
-    });
+    // Skip adminLog if staffId is a placeholder (super-admin not yet in DB)
+    if (!adminId.startsWith('tg_superadmin_')) {
+      await prisma.adminLog.create({
+        data: { adminId: adminId, targetUserId: withdrawal.userId, action: 'APPROVE_WITHDRAWAL', details: { withdrawalId, amount: withdrawal.amount } },
+      });
+    }
 
     await triggerUserEvent(withdrawal.userId, 'withdrawal-approved', {
       withdrawalId,
@@ -153,9 +153,12 @@ export async function rejectWithdrawal(withdrawalId: string, adminId: string, re
     const { creditWallet } = await import('./wallet.service');
     await creditWallet(withdrawal.userId, withdrawal.amount, 'REFUND', withdrawalId, `Withdrawal rejected: ${reason}`);
 
-    await prisma.adminLog.create({
-      data: { adminId: adminId, targetUserId: withdrawal.userId, action: 'REJECT_WITHDRAWAL', details: { withdrawalId, reason } },
-    });
+    // Skip adminLog if staffId is a placeholder (super-admin not yet in DB)
+    if (!adminId.startsWith('tg_superadmin_')) {
+      await prisma.adminLog.create({
+        data: { adminId: adminId, targetUserId: withdrawal.userId, action: 'REJECT_WITHDRAWAL', details: { withdrawalId, reason } },
+      });
+    }
 
     await triggerUserEvent(withdrawal.userId, 'withdrawal-rejected', { withdrawalId, reason });
 
@@ -175,7 +178,7 @@ export async function rejectWithdrawal(withdrawalId: string, adminId: string, re
 export async function getPendingWithdrawals(agentId?: string) {
   const withdrawals = await prisma.withdrawal.findMany({
     where: { 
-      status: 'pending',
+      status: { in: ['pending', 'PENDING'] },
       user: agentId ? { referredBy: agentId } : undefined
     },
     include: { 

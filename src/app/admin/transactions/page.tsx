@@ -316,6 +316,7 @@ export default function TransactionsPage() {
                   <th>Player</th>
                   <th>Reference</th>
                   <th>Type</th>
+                  <th>Description</th>
                   <th>Amount</th>
                   <th>Balance After</th>
                   <th>Status</th>
@@ -340,6 +341,9 @@ export default function TransactionsPage() {
                         {tx.type}
                       </div>
                     </td>
+                    <td style={{ fontSize: '12px', color: '#78716c', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={tx.description || ''}>
+                      {tx.description || 'N/A'}
+                    </td>
                     <td style={{ fontWeight: '800', color: tx.type === 'DEPOSIT' || tx.type === 'PRIZE_WIN' || tx.type === 'REFERRAL_BONUS' || tx.type === 'REFUND' ? '#22c55e' : '#ef4444' }}>
                       {tx.type === 'DEPOSIT' || tx.type === 'PRIZE_WIN' || tx.type === 'REFERRAL_BONUS' || tx.type === 'REFUND' ? '+' : '-'}{parseFloat(tx.amount).toLocaleString()} ETB
                     </td>
@@ -352,7 +356,7 @@ export default function TransactionsPage() {
                     <td style={{ color: '#78716c', fontSize: '13px' }}>{new Date(tx.createdAt).toLocaleString()}</td>
                   </tr>
                 ))}
-                {history.length === 0 && <tr><td colSpan={7} style={{ textAlign: 'center', padding: '60px', color: '#78716c' }}>No transaction history found.</td></tr>}
+                {history.length === 0 && <tr><td colSpan={8} style={{ textAlign: 'center', padding: '60px', color: '#78716c' }}>No transaction history found.</td></tr>}
               </tbody>
             </table>
           </div>

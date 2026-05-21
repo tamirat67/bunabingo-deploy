@@ -120,6 +120,7 @@ export default function UsersPage() {
               <tr>
                 <th>Player</th>
                 <th>Telegram ID</th>
+                <th>Phone Number</th>
                 <th>Balance</th>
                 <th>Role</th>
                 <th>Status</th>
@@ -141,6 +142,7 @@ export default function UsersPage() {
                     </div>
                   </td>
                   <td style={{ fontFamily: 'monospace', fontWeight: '700' }}>{user.telegramId?.toString()}</td>
+                  <td>{user.phone || user.phoneNumber || 'N/A'}</td>
                   <td>
                     <div style={{ fontWeight: '800', color: '#3d2b1f' }}>
                       {parseFloat(user.wallet?.balance || 0).toLocaleString()} <span style={{ fontSize: '10px', color: '#d4af37' }}>ETB</span>
@@ -202,7 +204,7 @@ export default function UsersPage() {
               ))}
               {users.length === 0 && (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', padding: '60px', color: '#78716c', fontWeight: '600' }}>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '60px', color: '#78716c', fontWeight: '600' }}>
                     No players found matching your search.
                   </td>
                 </tr>

@@ -66,43 +66,43 @@ function DashboardContent() {
     }
   })();
 
-  // Extract variables based on role
+  // Extract variables based on role — NO fake fallbacks, only real data
   const globalSales = isAdmin 
-    ? (stats.today?.globalSales !== undefined && stats.today.globalSales > 0 ? Number(stats.today.globalSales) : 12450)
+    ? Number(stats.today?.globalSales || 0)
     : Number(stats.totalSales || 0);
 
   const companyRevenue = isAdmin
-    ? (stats.today?.totalCompanyRevenue !== undefined && stats.today.totalCompanyRevenue > 0 ? Number(stats.today.totalCompanyRevenue) : (globalSales * 0.125))
+    ? Number(stats.today?.totalCompanyRevenue || (globalSales * 0.125))
     : (globalSales * 0.125);
 
   const agentRevenue = isAdmin
-    ? (globalSales * 0.125)
+    ? Number(stats.today?.totalAgentRevenue || (globalSales * 0.125))
     : Number(stats.agentTakeHome || 0);
 
   const totalPlayers = isAdmin
-    ? (stats.totalUsers !== undefined ? stats.totalUsers : 86)
+    ? (stats.totalUsers || 0)
     : (stats.playerCount || 0);
 
   const activePlayers = isAdmin
-    ? (stats.today?.activePlayers !== undefined && stats.today.activePlayers > 0 ? stats.today.activePlayers : 34)
+    ? (stats.today?.activePlayers || 0)
     : (stats.activePlayers || 0);
 
   const activeGames = isAdmin
-    ? (stats.activeGames !== undefined && stats.activeGames > 0 ? stats.activeGames : 45)
+    ? (stats.activeGames || 0)
     : (stats.activeGames || 0);
 
   const preDepositAdded = isAdmin
-    ? (stats.preDepositAdded !== undefined ? Number(stats.preDepositAdded) : 10000)
-    : (stats.preDeposit?.totalAdded !== undefined ? Number(stats.preDeposit.totalAdded) : 10000);
+    ? Number(stats.preDepositAdded || 0)
+    : Number(stats.preDeposit?.totalAdded || 0);
 
   const preDepositBalance = isAdmin
-    ? (stats.preDepositBalance !== undefined ? Number(stats.preDepositBalance) : 6250)
-    : (stats.preDeposit?.balance !== undefined ? Number(stats.preDeposit.balance) : 0);
+    ? Number(stats.preDepositBalance || 0)
+    : Number(stats.preDeposit?.balance || 0);
 
   const preDepositPercent = preDepositAdded > 0 ? (preDepositBalance / preDepositAdded) * 100 : 0;
 
   const bunaWalletBalance = isAdmin
-    ? (stats.bunaWalletBalance !== undefined ? Number(stats.bunaWalletBalance) : 0)
+    ? Number(stats.bunaWalletBalance || 0)
     : 0;
 
   // Room/Game Type Breakdown Data (Only for Admin)
@@ -114,14 +114,14 @@ function DashboardContent() {
     { gameType: 'VIP', entryFee: 200, totalStake: 3200, serviceFee: 800.00 },
   ];
 
-  const breakdownData = isAdmin && stats.today?.breakdown && stats.today.breakdown.some((b: any) => b.totalStake > 0)
+  const breakdownData = isAdmin && stats.today?.breakdown && stats.today.breakdown.length > 0
     ? stats.today.breakdown.map((b: any) => ({
         gameType: b.gameType.charAt(0) + b.gameType.slice(1).toLowerCase(),
         entryFee: b.entryFee,
         totalStake: b.totalStake,
         serviceFee: b.serviceFee
       }))
-    : defaultBreakdown;
+    : [];
 
   const totalBreakdownStake = breakdownData.reduce((acc: number, item: any) => acc + item.totalStake, 0);
   const totalBreakdownServiceFee = breakdownData.reduce((acc: number, item: any) => acc + item.serviceFee, 0);
