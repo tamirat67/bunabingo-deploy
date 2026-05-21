@@ -54,6 +54,8 @@ model User {
   isAdmin          Boolean  @default(false) @map("is_admin")
   status           String   @default("ACTIVE")
   hasSeenJackpot   Boolean  @default(false) @map("has_seen_jackpot")
+  depositPhones    Json?    @map("deposit_phones")
+  isBot            Boolean  @default(false) @map("is_bot")
   lastActiveAt     DateTime @default(now()) @db.Timestamptz(6) @map("last_active_at")
   createdAt        DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
 
@@ -323,4 +325,22 @@ model Promotion {
   updatedAt   DateTime @default(now()) @db.Timestamptz(6) @map("updated_at")
 
   @@map("promotions")
+}
+
+model SystemWallet {
+  id        Int      @id @default(1)
+  balance   Decimal  @default(0.0) @db.Decimal(20, 2)
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("system_wallets")
+}
+
+model GameCycle {
+  roomType   String   @id @map("room_type")
+  totalGames Int      @default(0) @map("total_games")
+  houseWins  Int      @default(0) @map("house_wins")
+  playerWins Int      @default(0) @map("player_wins")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@map("game_cycles")
 }

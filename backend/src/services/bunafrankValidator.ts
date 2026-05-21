@@ -245,40 +245,65 @@ export async function validateTelebirrSms(
     return { valid: false, error: selfCheck.issue };
   }
 
-  const YOHANIS_PHONE = '251997688294';
-  const SULTAN_PHONE = '251929922421';
-  
-  const yohanisLast4 = '8294';
-  const sultanLast4 = '2421';
+  // ── Load authorized deposit accounts for this user ─────────────────────────
+  // Default fallback (always in sync with depositFlow.ts)
+  const DEFAULT_ACCOUNTS = [
+    { name: 'Yohanis Ashenafi',  phone: '251997688294', last4: '8294', keywords: ['yohanis', 'ashenafi'] },
+    { name: 'SULTAN MEBRAHETOM', phone: '251929922421', last4: '2421', keywords: ['sultan', 'mebrahetom'] },
+  ];
 
-  const matchedPhone = data.recipientPhoneLast4 === yohanisLast4 ? YOHANIS_PHONE :
-                       data.recipientPhoneLast4 === sultanLast4 ? SULTAN_PHONE : null;
+  let authorizedAccounts = DEFAULT_ACCOUNTS;
 
-  if (!matchedPhone) {
+  try {
+    // Find the user's agent (referrer) and their configured deposit phones
+    const userRecord = await prisma.user.findFirst({
+      where: { telegramId: BigInt(receiverPhone) }, // receiverPhone here is the telegramId string passed from bot
+      include: { referrer: true }
+    });
+
+    let agentPhones: any[] = [];
+    if (userRecord?.referrer?.depositPhones) {
+      agentPhones = userRecord.referrer.depositPhones as any[];
+    } else {
+      const defaultAgent = await prisma.user.findFirst({
+        where: { telegramUsername: 'sisay_2121' }
+      });
+      if (defaultAgent?.depositPhones) {
+        agentPhones = defaultAgent.depositPhones as any[];
+      }
+    }
+
+    if (agentPhones.length > 0) {
+      authorizedAccounts = agentPhones.map(p => ({
+        name: p.name,
+        phone: p.phone.startsWith('0') ? '251' + p.phone.slice(1) : p.phone,
+        last4: p.last4 || p.phone.slice(-4),
+        keywords: p.name.toLowerCase().split(/\s+/)
+      }));
+    }
+  } catch (dbErr) {
+    logger.warn('[BunaFrankValidator] DB lookup failed, using default accounts:', dbErr);
+  }
+
+  // ── Find which account the SMS was sent to ──────────────────────────────────
+  const matchedAccount = authorizedAccounts.find(a => a.last4 === data.recipientPhoneLast4);
+
+  if (!matchedAccount) {
+    const allowedLast4s = authorizedAccounts.map(a => `...${a.last4}`).join(', ');
     return {
       valid: false,
-      error: `❌ Wrong recipient number. Expected last 4 to match Yohanis (...${yohanisLast4}) or Sultan (...${sultanLast4}).`,
+      error: `❌ Wrong recipient number. Expected last 4 to match one of: ${allowedLast4s}.`,
     };
   }
 
-  // Strict Name & Phone Number pairing verification
+  // ── Strict name+phone pairing: recipient name must match the account ────────
   const normRecipient = data.recipientName.toLowerCase();
-  const isYohanis = normRecipient.includes('yohanis') || normRecipient.includes('ashenafi');
-  const isSultan = normRecipient.includes('sultan') || normRecipient.includes('mebrahetom');
+  const nameMatches = matchedAccount.keywords.some((kw: string) => normRecipient.includes(kw));
 
-  // Pair 1: Yohanis Ashenafi must strictly use 251997688294 (last 4: 8294)
-  if (data.recipientPhoneLast4 === yohanisLast4 && !isYohanis) {
+  if (!nameMatches) {
     return {
       valid: false,
-      error: `❌ Recipient mismatch. Phone (...${yohanisLast4}) must belong to Yohanis Ashenafi. Found: ${data.recipientName}`,
-    };
-  }
-
-  // Pair 2: SULTAN MEBRAHETOM must strictly use 251929922421 (last 4: 2421)
-  if (data.recipientPhoneLast4 === sultanLast4 && !isSultan) {
-    return {
-      valid: false,
-      error: `❌ Recipient mismatch. Phone (...${sultanLast4}) must belong to SULTAN MEBRAHETOM. Found: ${data.recipientName}`,
+      error: `❌ Recipient mismatch. Phone (...${matchedAccount.last4}) must belong to ${matchedAccount.name}. Found: ${data.recipientName}`,
     };
   }
 

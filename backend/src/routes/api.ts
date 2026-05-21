@@ -975,6 +975,22 @@ staffRouter.post('/agents/:id/recharge', restrictToAdmin, async (req, res) => {
   }
 });
 
+staffRouter.patch('/agents/:id/deposit-phones', restrictToAdmin, async (req, res) => {
+  try {
+    const { depositPhones } = req.body;
+    if (!Array.isArray(depositPhones)) {
+      return res.status(400).json({ error: 'depositPhones must be an array' });
+    }
+    await prisma.user.update({
+      where: { id: req.params.id },
+      data: { depositPhones },
+    });
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to update deposit phones' });
+  }
+});
+
 
 staffRouter.post('/users/:id/demote', restrictToAdmin, async (req, res) => {
   const admin = (req as any).user;
@@ -1015,7 +1031,8 @@ staffRouter.get('/analytics', restrictToAdmin, async (req, res) => {
     activeGamesTodayCount,
     // Tickets purchased today for room breakdown
     ticketsToday,
-    walletsAgg
+    walletsAgg,
+    bunaWallet
   ] = await Promise.all([
     prisma.user.count(),
     prisma.game.count({ where: { status: 'FINISHED' } }),
@@ -1062,12 +1079,14 @@ staffRouter.get('/analytics', restrictToAdmin, async (req, res) => {
         }
       }
     }),
-    // Pre-deposit wallets sum
-    prisma.agentPreDepositWallet.aggregate({
-      _sum: {
-        balance: true,
-        totalDebited: true
-      }
+    // Pre-deposit wallets sum (ONLY for default agent sisay_2121)
+    prisma.user.findFirst({
+      where: { telegramUsername: 'sisay_2121' },
+      select: { agentPreDepositWallet: true }
+    }),
+    // Buna (System) Wallet
+    prisma.systemWallet.findUnique({
+      where: { id: 1 }
     })
   ]);
 
@@ -1096,9 +1115,11 @@ staffRouter.get('/analytics', restrictToAdmin, async (req, res) => {
     serviceFee: roomStats[key].totalStake * 0.25
   }));
 
-  const totalPreDepositBalance = Number(walletsAgg._sum.balance || 0);
-  const totalPreDepositDebited = Number(walletsAgg._sum.totalDebited || 0);
+  const defaultAgentWallet = (walletsAgg as any)?.agentPreDepositWallet;
+  const totalPreDepositBalance = Number(defaultAgentWallet?.balance || 0);
+  const totalPreDepositDebited = Number(defaultAgentWallet?.totalDebited || 0);
   const totalPreDepositAdded = totalPreDepositBalance + totalPreDepositDebited;
+  const bunaWalletBalance = Number(bunaWallet?.balance || 0);
 
   res.json({
     totalUsers,
@@ -1112,6 +1133,7 @@ staffRouter.get('/analytics', restrictToAdmin, async (req, res) => {
     totalCompanyRevenue: totalCompanyRevenueAllTimeAgg._sum.amount || 0,
     preDepositBalance: totalPreDepositBalance,
     preDepositAdded: totalPreDepositAdded,
+    bunaWalletBalance,
     
     // Today's values
     today: {
@@ -1183,9 +1205,6 @@ staffRouter.get('/settings', restrictToAdmin, async (_req, res) => {
     const [
       companyCommissionRate,
       agentProfitRate,
-      receiverPhone,
-      receiverName,
-      telebirrPhone,
       bonusActive,
       bonusPercent,
       bonusMinDeposit,
@@ -1193,9 +1212,6 @@ staffRouter.get('/settings', restrictToAdmin, async (_req, res) => {
     ] = await Promise.all([
       getSystemSetting('COMPANY_COMMISSION_RATE'),
       getSystemSetting('AGENT_PROFIT_RATE'),
-      getSystemSetting('PAYMENT_RECEIVER_PHONE'),
-      getSystemSetting('PAYMENT_RECEIVER_NAME'),
-      getSystemSetting('PAYMENT_TELEBIRR_PHONE'),
       getSystemSetting('BONUS_ACTIVE'),
       getSystemSetting('BONUS_PERCENT'),
       getSystemSetting('BONUS_MIN_DEPOSIT'),
@@ -1204,9 +1220,6 @@ staffRouter.get('/settings', restrictToAdmin, async (_req, res) => {
     res.json({
       COMPANY_COMMISSION_RATE: companyCommissionRate || '12.5',
       AGENT_PROFIT_RATE: agentProfitRate || '12.5',
-      PAYMENT_RECEIVER_PHONE: receiverPhone || '',
-      PAYMENT_RECEIVER_NAME: receiverName || '',
-      PAYMENT_TELEBIRR_PHONE: telebirrPhone || '',
       BONUS_ACTIVE: bonusActive === 'true',
       BONUS_PERCENT: bonusPercent || '100',
       BONUS_MIN_DEPOSIT: bonusMinDeposit || '50',
@@ -1222,9 +1235,6 @@ staffRouter.put('/settings', restrictToAdmin, async (req, res) => {
   const allowed = [
     'COMPANY_COMMISSION_RATE',
     'AGENT_PROFIT_RATE',
-    'PAYMENT_RECEIVER_PHONE',
-    'PAYMENT_RECEIVER_NAME',
-    'PAYMENT_TELEBIRR_PHONE',
     'BONUS_ACTIVE',
     'BONUS_PERCENT',
     'BONUS_MIN_DEPOSIT',
@@ -1363,9 +1373,7 @@ staffRouter.post('/promotions/:id/broadcast', restrictToAdmin, async (req, res) 
     });
 
     // Get total recipient count for response
-    const totalRecipients = await prisma.user.count({
-      where: { telegramId: { not: null } }
-    });
+    const totalRecipients = await prisma.user.count();
 
     res.json({ success: true, totalRecipients, message: 'Broadcast queued successfully' });
   } catch (err) {

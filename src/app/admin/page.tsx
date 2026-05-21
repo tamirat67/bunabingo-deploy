@@ -101,6 +101,10 @@ function DashboardContent() {
 
   const preDepositPercent = preDepositAdded > 0 ? (preDepositBalance / preDepositAdded) * 100 : 0;
 
+  const bunaWalletBalance = isAdmin
+    ? (stats.bunaWalletBalance !== undefined ? Number(stats.bunaWalletBalance) : 0)
+    : 0;
+
   // Room/Game Type Breakdown Data (Only for Admin)
   const defaultBreakdown = [
     { gameType: 'Casual', entryFee: 10, totalStake: 1250, serviceFee: 312.50 },
@@ -174,6 +178,47 @@ function DashboardContent() {
           </div>
         </div>
       </div>
+
+      {/* Buna Wallet Balance Card */}
+      {isAdmin && (
+        <div className="premium-card" style={{
+          background: 'linear-gradient(135deg, #3d2b1f 0%, #1c1917 100%)',
+          color: '#ffffff',
+          padding: '24px 32px',
+          borderRadius: '24px',
+          marginBottom: '32px',
+          boxShadow: '0 10px 30px rgba(61, 43, 31, 0.25)',
+          border: '1px solid rgba(212, 175, 55, 0.3)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '24px'
+        }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+              <FiDollarSign style={{ color: '#d4af37' }} size={20} />
+              <span style={{ fontSize: '12px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '2px', color: '#d4cbbd' }}>
+                HOUSE BOTS SYSTEM WALLET
+              </span>
+            </div>
+            <h2 style={{ fontSize: '32px', fontWeight: '900', margin: 0, color: '#ffffff', fontFamily: 'Inter, sans-serif' }}>
+              BUNA WALLET
+            </h2>
+            <p style={{ color: '#a8a29e', margin: '4px 0 0 0', fontSize: '14px', fontWeight: '500' }}>
+              Accumulated winnings from House Bots (credited to system operations)
+            </p>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: '11px', fontWeight: '800', color: '#d4af37', letterSpacing: '1px', marginBottom: '4px' }}>
+              CURRENT BALANCE
+            </div>
+            <div style={{ fontSize: '36px', fontWeight: '900', color: '#ffffff', fontFamily: 'Inter, sans-serif' }}>
+              {bunaWalletBalance.toLocaleString()} <span style={{ fontSize: '20px', color: '#d4af37' }}>ETB</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Six Stat Cards Grid */}
       <div className="stat-grid-6">

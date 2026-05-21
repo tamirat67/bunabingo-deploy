@@ -311,7 +311,7 @@ function GameContent() {
                   ? (game?.totalPrize ? Number(game.totalPrize) : 100) 
                   : ((game?.totalPrize && Number(game.totalPrize) > 0) 
                       ? Number(game.totalPrize) 
-                      : Math.max(80, (tickets.length || 1) * stake * 0.8));
+                      : Math.max(80, (tickets.length || 1) * stake * 0.75));
   const cdText  = countdown !== null ? `${countdown}s` : (game?.status === 'WAITING' ? 'WAIT' : 'LIVE');
   const visible = tickets.filter(t => !hidden.has(t.id));
 

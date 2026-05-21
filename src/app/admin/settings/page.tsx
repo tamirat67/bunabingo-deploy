@@ -13,9 +13,6 @@ import '@/app/admin.css';
 interface SystemSettings {
   COMPANY_COMMISSION_RATE: string;
   AGENT_PROFIT_RATE: string;
-  PAYMENT_RECEIVER_PHONE: string;
-  PAYMENT_RECEIVER_NAME: string;
-  PAYMENT_TELEBIRR_PHONE: string;
   BONUS_ACTIVE: boolean;
   BONUS_PERCENT: string;
   BONUS_MIN_DEPOSIT: string;
@@ -44,9 +41,6 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<SystemSettings>({
     COMPANY_COMMISSION_RATE: '12.5',
     AGENT_PROFIT_RATE: '12.5',
-    PAYMENT_RECEIVER_PHONE: '',
-    PAYMENT_RECEIVER_NAME: '',
-    PAYMENT_TELEBIRR_PHONE: '',
     BONUS_ACTIVE: true,
     BONUS_PERCENT: '100',
     BONUS_MIN_DEPOSIT: '50',
@@ -365,58 +359,7 @@ export default function SettingsPage() {
                     </div>
                   </div>
 
-                  {/* Payment Phone Numbers */}
-                  <h2 style={{ fontSize: '16px', fontWeight: '900', color: '#3d2b1f', margin: '0 0 20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <FiPhone style={{ color: '#d4af37' }} /> Deposit Payment Details
-                  </h2>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                      <div>
-                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', color: '#78716c', marginBottom: '8px', textTransform: 'uppercase' }}>
-                          <FiUser size={11} style={{ marginRight: '4px' }} /> Receiver Name (MPESA/CBE)
-                        </label>
-                        <input
-                          type="text"
-                          className="login-input"
-                          style={{ width: '100%' }}
-                          placeholder="e.g. Buna Bingo"
-                          value={settings.PAYMENT_RECEIVER_NAME}
-                          onChange={(e) => setSettings(s => ({ ...s, PAYMENT_RECEIVER_NAME: e.target.value }))}
-                        />
-                      </div>
-                      <div>
-                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', color: '#78716c', marginBottom: '8px', textTransform: 'uppercase' }}>
-                          <FiPhone size={11} style={{ marginRight: '4px' }} /> Receiver Phone (MPESA/CBE)
-                        </label>
-                        <input
-                          type="text"
-                          className="login-input"
-                          style={{ width: '100%' }}
-                          placeholder="e.g. 0912345678"
-                          value={settings.PAYMENT_RECEIVER_PHONE}
-                          onChange={(e) => setSettings(s => ({ ...s, PAYMENT_RECEIVER_PHONE: e.target.value }))}
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', color: '#78716c', marginBottom: '8px', textTransform: 'uppercase' }}>
-                        <FiPhone size={11} style={{ marginRight: '4px' }} /> Telebirr Receiving Phone
-                      </label>
-                      <input
-                        type="text"
-                        className="login-input"
-                        style={{ width: '100%' }}
-                        placeholder="e.g. 0997688294"
-                        value={settings.PAYMENT_TELEBIRR_PHONE}
-                        onChange={(e) => setSettings(s => ({ ...s, PAYMENT_TELEBIRR_PHONE: e.target.value }))}
-                      />
-                      <p style={{ fontSize: '11px', color: '#78716c', marginTop: '6px' }}>
-                        This number is shown to players for Telebirr deposits and used for SMS validation
-                      </p>
-                    </div>
-                  </div>
 
                   {settingsError && (
                     <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '12px', padding: '12px 16px', marginBottom: '16px', fontSize: '13px', color: '#dc2626', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}>

@@ -373,8 +373,8 @@ function SelectionContent() {
   const displayPlayerCount = playerCount + fakePlayersCount;
   const basePrize = game?.totalPrize
     ? Number(game.totalPrize)
-    : Math.max(stake * 2, (playerCount || 1) * stake * 0.8);
-  const prize = basePrize + (fakePlayersCount * stake * 0.8);
+    : Math.max(stake * 2, (playerCount || 1) * stake * 0.75);
+  const prize = basePrize + (fakePlayersCount * stake * 0.75);
 
   const formatCountdown = (secs: number) => {
     const m = Math.floor(secs / 60);

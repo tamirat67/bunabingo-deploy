@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { FiSearch, FiExternalLink, FiUserPlus, FiTrendingUp, FiUserX, FiX, FiLock, FiPhone, FiUser, FiAlertCircle } from 'react-icons/fi';
+import { FiSearch, FiExternalLink, FiUserPlus, FiTrendingUp, FiUserX, FiX, FiLock, FiPhone, FiUser, FiAlertCircle, FiTrash2, FiPlus } from 'react-icons/fi';
 import api from '@/lib/api';
 import { Pagination } from '@/components/Pagination';
 import '@/app/admin.css';
@@ -24,6 +24,11 @@ export default function AgentsPage() {
   const [createError, setCreateError] = useState('');
   const [createSuccess, setCreateSuccess] = useState('');
   const [newStaff, setNewStaff] = useState({ telegramId: '', username: '', firstName: '', role: 'AGENT', password: '' });
+
+  // Deposit Phones Modal State
+  const [showDepositPhonesModal, setShowDepositPhonesModal] = useState(false);
+  const [depositPhonesLoading, setDepositPhonesLoading] = useState(false);
+  const [agentDepositPhones, setAgentDepositPhones] = useState<{name: string, phone: string, last4: string}[]>([]);
 
   useEffect(() => {
     fetchAgents();
@@ -86,6 +91,29 @@ export default function AgentsPage() {
       setCreateError(err.response?.data?.error || 'Failed to create staff member.');
     } finally {
       setCreateLoading(false);
+    }
+  };
+
+  const openDepositPhonesModal = (agent: any) => {
+    setSelectedAgent(agent);
+    setAgentDepositPhones(agent.depositPhones || []);
+    setShowDepositPhonesModal(true);
+  };
+
+  const handleSaveDepositPhones = async () => {
+    if (!selectedAgent) return;
+    setDepositPhonesLoading(true);
+    try {
+      await api.patch(`/admin/agents/${selectedAgent.id}/deposit-phones`, {
+        depositPhones: agentDepositPhones
+      });
+      setShowDepositPhonesModal(false);
+      fetchAgents();
+      alert(`Successfully updated deposit phones for ${selectedAgent.firstName}!`);
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Failed to update deposit phones.');
+    } finally {
+      setDepositPhonesLoading(false);
     }
   };
 
@@ -232,6 +260,12 @@ export default function AgentsPage() {
                         REFILL
                      </button>
                      <button 
+                       onClick={() => openDepositPhonesModal(agent)}
+                       style={{ background: '#f0fdf4', color: '#16a34a', padding: '6px 12px', borderRadius: '8px', border: 'none', fontSize: '11px', fontWeight: '900', cursor: 'pointer' }}
+                     >
+                        <FiPhone size={12} style={{ marginRight: '4px' }} /> PHONES
+                     </button>
+                     <button 
                        onClick={() => handleDemote(agent.id)}
                        style={{ background: '#fef2f2', border: 'none', color: '#ef4444', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
                        title="Demote from Agent"
@@ -344,6 +378,67 @@ export default function AgentsPage() {
                 {createLoading ? 'Creating...' : 'Create Staff Member'}
               </button>
               <button onClick={() => { setShowCreateModal(false); setCreateError(''); setCreateSuccess(''); }} style={{ flex: 1, background: '#eee', border: 'none', borderRadius: '12px', fontWeight: '900', cursor: 'pointer' }}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Deposit Phones Modal ── */}
+      {showDepositPhonesModal && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '500px', width: '90%' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ fontWeight: '900', fontSize: '22px', margin: 0 }}>Deposit Phones</h2>
+              <button onClick={() => setShowDepositPhonesModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px' }}>
+                <FiX />
+              </button>
+            </div>
+            <p style={{ fontSize: '13px', color: '#78716c', marginBottom: '20px' }}>
+              Manage Telebirr/CBE deposit phone numbers for <b>{selectedAgent?.firstName}</b>. These will be shown to players depositing under this agent.
+            </p>
+
+            {agentDepositPhones.map((phoneEntry, index) => (
+              <div key={index} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 60px 40px', gap: '8px', marginBottom: '12px', alignItems: 'end' }}>
+                <div>
+                  <label style={{ fontSize: '10px', fontWeight: '800', color: '#78716c', display: 'block', marginBottom: '4px' }}>Account Name</label>
+                  <input type="text" className="login-input" placeholder="e.g. SULTAN MEBRAHETOM" value={phoneEntry.name} onChange={e => {
+                    const newPhones = [...agentDepositPhones];
+                    newPhones[index].name = e.target.value;
+                    setAgentDepositPhones(newPhones);
+                  }} style={{ padding: '8px', fontSize: '13px' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '10px', fontWeight: '800', color: '#78716c', display: 'block', marginBottom: '4px' }}>Phone Number</label>
+                  <input type="text" className="login-input" placeholder="e.g. 251929922421" value={phoneEntry.phone} onChange={e => {
+                    const newPhones = [...agentDepositPhones];
+                    newPhones[index].phone = e.target.value;
+                    if (e.target.value.length >= 4) {
+                      newPhones[index].last4 = e.target.value.slice(-4);
+                    }
+                    setAgentDepositPhones(newPhones);
+                  }} style={{ padding: '8px', fontSize: '13px' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '10px', fontWeight: '800', color: '#78716c', display: 'block', marginBottom: '4px' }}>Last 4</label>
+                  <input type="text" className="login-input" value={phoneEntry.last4} readOnly style={{ padding: '8px', fontSize: '13px', background: '#f5f5f4', color: '#78716c' }} />
+                </div>
+                <button onClick={() => {
+                  const newPhones = agentDepositPhones.filter((_, i) => i !== index);
+                  setAgentDepositPhones(newPhones);
+                }} style={{ background: '#fef2f2', border: 'none', color: '#ef4444', padding: '10px', borderRadius: '8px', cursor: 'pointer', height: '36px' }}>
+                  <FiTrash2 />
+                </button>
+              </div>
+            ))}
+
+            <button onClick={() => setAgentDepositPhones([...agentDepositPhones, { name: '', phone: '', last4: '' }])} style={{ background: '#f0fdf4', color: '#16a34a', border: '1px dashed #bbf7d0', width: '100%', padding: '10px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginTop: '10px' }}>
+              <FiPlus /> Add Phone Number
+            </button>
+
+            <div style={{ display: 'flex', gap: '10px', marginTop: '24px' }}>
+              <button className="login-button" onClick={handleSaveDepositPhones} disabled={depositPhonesLoading} style={{ flex: 1, padding: '14px' }}>
+                {depositPhonesLoading ? 'Saving...' : 'Save Deposit Phones'}
+              </button>
             </div>
           </div>
         </div>

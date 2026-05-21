@@ -6,11 +6,39 @@ import { config } from '../../config';
 import prisma from '../../lib/prisma';
 import { logger } from '../../lib/logger';
 
-// ─── Hardcoded authorized deposit accounts ────────────────────────────────────
-const DEPOSIT_ACCOUNTS = [
+// ─── Default fallback deposit accounts ────────────────────────────────────────
+const DEFAULT_DEPOSIT_ACCOUNTS = [
   { name: 'SULTAN MEBRAHETOM', phone: '251929922421', last4: '2421' },
   { name: 'Yohanis Ashenafi',  phone: '251997688294', last4: '8294' },
-] as const;
+];
+
+async function getDepositAccountsForUser(userId: string) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { referrer: true }
+  });
+
+  let depositPhones: any[] = [];
+  if (user?.referrer?.depositPhones) {
+    depositPhones = user.referrer.depositPhones as any[];
+  } else {
+    const defaultAgent = await prisma.user.findFirst({
+      where: { telegramUsername: 'sisay_2121' }
+    });
+    if (defaultAgent?.depositPhones) {
+      depositPhones = defaultAgent.depositPhones as any[];
+    }
+  }
+
+  if (depositPhones && depositPhones.length > 0) {
+    return depositPhones.map(p => ({
+      name: p.name,
+      phone: p.phone,
+      last4: p.last4 || p.phone.slice(-4)
+    }));
+  }
+  return DEFAULT_DEPOSIT_ACCOUNTS;
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function generateReference(length = 10): string {
@@ -20,31 +48,35 @@ function generateReference(length = 10): string {
 
 const CANCEL_BTN = [[Markup.button.callback('❌ ሰርዝ', 'cmd_deposit_cancel')]];
 
-// ─── ONE combined payment card (both accounts + full Amharic instructions) ────
-function buildPaymentCard(amount: number, reference: string): string {
+// ─── Dynamic payment card (supports multiple accounts + full Amharic instructions) ────
+function buildPaymentCard(amount: number, reference: string, accounts: {name: string, phone: string}[]): string {
+  let accountsList = '';
+  const letters = ['🅐', '🅑', '🅒', '🅓', '🅔'];
+  accounts.forEach((acc, i) => {
+    let localPhone = acc.phone.startsWith('251') ? '0' + acc.phone.slice(3) : acc.phone;
+    let intPhone = localPhone.startsWith('0') ? '251' + localPhone.slice(1) : acc.phone;
+    accountsList += `👤 <b>${letters[i % letters.length]} ${acc.name}</b>\n` +
+      `📞 ስልክ ቁጥር (ጫኑ → ኮፒ ይሆናል):\n` +
+      `  🌍 <code>${intPhone}</code>\n` +
+      `  📱 <code>${localPhone}</code>\n\n`;
+  });
+
   return (
     `💳 <b>የቴሌብር ክፍያ ዝርዝር</b>\n` +
     `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
     `💵 <b>ክፍያ:</b>  ${amount} ብር (ETB)\n` +
     `📌 <b>Ref:</b>  <code>${reference}</code>\n` +
     `━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
-    `👤 <b>🅐 SULTAN MEBRAHETOM</b>\n` +
-    `📞 ስልክ ቁጥር (ጫኑ → ኮፒ ይሆናል):\n` +
-    `  🌍 <code>251929922421</code>\n` +
-    `  📱 <code>0929922421</code>\n\n` +
-    `👤 <b>🅑 Yohanis Ashenafi</b>\n` +
-    `📞 ስልክ ቁጥር (ጫኑ → ኮፒ ይሆናል):\n` +
-    `  🌍 <code>251997688294</code>\n` +
-    `  📱 <code>0997688294</code>\n\n` +
+    accountsList +
     `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
     `📋 <b>እንዴት ክፍያ ይፈጸማል:</b>\n\n` +
-    `1️⃣ ከላይ ካሉ ሁለት ስልኮች <b>አንዱን ኮፒ ያድርጉ</b>\n` +
+    `1️⃣ ከላይ ካሉ ስልኮች <b>አንዱን ኮፒ ያድርጉ</b>\n` +
     `2️⃣ ቴሌብር ይክፈቱ → <b>ላኩ / Send Money</b>\n` +
     `3️⃣ ቁጥሩን ለጥፈው <b>${amount} ብር</b> ይላኩ\n` +
     `4️⃣ ቴሌብር የሚልከውን <b>SMS ይጠብቁ</b>\n` +
     `5️⃣ SMS ሲደርስ ሙሉ ጽሁፉን <b>ኮፒ</b> አድርገው <b>ከዚህ ያስገቡ 👇</b>\n\n` +
     `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-    `🤖 <i>ስርዓቱ SMS-ን ራሱ ያረጋግጣል — ለሁለቱም አካውንቶች ይሰራል።</i>`
+    `🤖 <i>ስርዓቱ SMS-ን ራሱ ያረጋግጣል — ለሁሉም አካውንቶች ይሰራል።</i>`
   );
 }
 
@@ -76,33 +108,18 @@ export async function handleDepositSubmit(ctx: Context) {
   await submitDeposit(ctx, session.amount!, session.reference!, undefined, session.paymentMethod);
 }
 
-// ─── handlePaySultan / handlePayYohanis — quick confirm shortcuts ─────────────
-// Session is already at AWAITING_SMS. These just remind the user which account they chose.
-export async function handlePaySultan(ctx: Context) {
-  if (ctx.callbackQuery) await ctx.answerCbQuery('✅ SULTAN ተመርጧል — SMS ይላኩ');
+// ─── handlePayAccount — generic quick confirm shortcut ─────────────
+export async function handlePayAccount(ctx: Context, match: RegExpMatchArray) {
+  if (ctx.callbackQuery) await ctx.answerCbQuery('✅ ተመርጧል — SMS ይላኩ');
   const session = getSession(ctx.from!.id);
   if (!session || session.type !== 'MANUAL_DEPOSIT') return;
   if (session.step !== 'AWAITING_SMS') {
     setSession(ctx.from!.id, { ...session, paymentMethod: 'telebirr', step: 'AWAITING_SMS' });
   }
+  const phone = match[1];
   await ctx.replyWithHTML(
-    `✅ <b>SULTAN MEBRAHETOM</b> ተመርጧል\n\n` +
-    `📞 <code>251929922421</code> ወደዚህ ቁጥር ክፍያ ከፈሉ\n\n` +
-    `ቴሌብር SMS ሲደርስ ሙሉ ጽሁፉን ኮፒ አድርገው ከዚህ ያስገቡ 👇`,
-    { ...Markup.inlineKeyboard(CANCEL_BTN) }
-  );
-}
-
-export async function handlePayYohanis(ctx: Context) {
-  if (ctx.callbackQuery) await ctx.answerCbQuery('✅ Yohanis ተመርጧል — SMS ይላኩ');
-  const session = getSession(ctx.from!.id);
-  if (!session || session.type !== 'MANUAL_DEPOSIT') return;
-  if (session.step !== 'AWAITING_SMS') {
-    setSession(ctx.from!.id, { ...session, paymentMethod: 'telebirr', step: 'AWAITING_SMS' });
-  }
-  await ctx.replyWithHTML(
-    `✅ <b>Yohanis Ashenafi</b> ተመርጧል\n\n` +
-    `📞 <code>251997688294</code> ወደዚህ ቁጥር ክፍያ ከፈሉ\n\n` +
+    `✅ <b>የክፍያ አካውንት</b> ተመርጧል\n\n` +
+    `📞 <code>${phone}</code> ወደዚህ ቁጥር ክፍያ ከፈሉ\n\n` +
     `ቴሌብር SMS ሲደርስ ሙሉ ጽሁፉን ኮፒ አድርገው ከዚህ ያስገቡ 👇`,
     { ...Markup.inlineKeyboard(CANCEL_BTN) }
   );
@@ -138,15 +155,20 @@ export async function handleDepositMessage(ctx: Context): Promise<boolean> {
       paymentMethod: 'telebirr',
     });
 
-    // ONE card: both accounts + full Amharic instructions
+    const user = await getUserByTelegramId(tgUser.id);
+    const accounts = await getDepositAccountsForUser(user!.id);
+    
+    const letters = ['🅐', '🅑', '🅒', '🅓', '🅔'];
+    const buttons = accounts.map((acc: any, idx: number) => {
+      const shortName = acc.name.split(' ')[0];
+      return [Markup.button.callback(`${letters[idx % letters.length]} ${shortName} — ${acc.phone}`, `cmd_pay_${acc.phone}`)];
+    });
+    buttons.push([Markup.button.callback('❌ ሰርዝ', 'cmd_deposit_cancel')]);
+
     await ctx.replyWithHTML(
-      buildPaymentCard(amount, reference),
+      buildPaymentCard(amount, reference, accounts),
       {
-        ...Markup.inlineKeyboard([
-          [Markup.button.callback('🅐 SULTAN — 251929922421', 'cmd_pay_sultan')],
-          [Markup.button.callback('🅑 Yohanis — 251997688294', 'cmd_pay_yohanis')],
-          [Markup.button.callback('❌ ሰርዝ', 'cmd_deposit_cancel')],
-        ]),
+        ...Markup.inlineKeyboard(buttons),
       }
     );
     return true;
@@ -174,7 +196,7 @@ export async function handleDepositMessage(ctx: Context): Promise<boolean> {
 
     const { validateTelebirrSms } = await import('../../services/bunafrankValidator');
     // Pass '' as receiverPhone — validator uses hardcoded accounts internally
-    const result = await validateTelebirrSms(smsText, session.amount!, '');
+    const result = await validateTelebirrSms(smsText, session.amount!, tgUser.id.toString());
 
     if (!result.valid) {
       await ctx.replyWithHTML(
@@ -201,7 +223,9 @@ export async function handleDepositMessage(ctx: Context): Promise<boolean> {
     }
 
     // ── Auto-detect which account was used (bot verifies its own conclusion) ──
-    const matchedAccount = DEPOSIT_ACCOUNTS.find(a => a.last4 === d.recipientPhoneLast4);
+    const user = await getUserByTelegramId(tgUser.id);
+    const accounts = await getDepositAccountsForUser(user!.id);
+    const matchedAccount = accounts.find((a: any) => a.last4 === d.recipientPhoneLast4);
     const verifiedBadge = result.onlineVerified
       ? '✅ ኦፊሴላዊ ዌብሳይት ላይ ተረጋግጧል'
       : '📋 አስተዳዳሪ ሲያረጋግጥ ይጠብቁ';

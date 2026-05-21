@@ -41,11 +41,11 @@ export const config = {
     // Legacy alias — equals companyCommissionRate + agentProfitRate = 25% total
     commissionRate: 0.25,
     countdown: {
-      default: 30,
-      DEMO: 10,
-      CASUAL: 30,
-      STANDARD: 30,
-      PRO: 30,
+      default: 0,
+      DEMO: 0,
+      CASUAL: 0,
+      STANDARD: 0,
+      PRO: 0,
       JACKPOT: 0,
       VIP: 0,
     } as Record<string, number>,
