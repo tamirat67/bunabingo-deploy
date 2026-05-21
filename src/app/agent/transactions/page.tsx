@@ -144,7 +144,7 @@ export default function AgentTransactionsPage() {
             <span style={{ fontSize: '10px', fontWeight: '900', color: '#eab308', background: 'rgba(234,179,8,0.1)', padding: '4px 10px', borderRadius: '8px', textTransform: 'uppercase' }}>Pending</span>
           </div>
           <div style={{ fontSize: '11px', fontWeight: '800', color: 'var(--agent-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Pending Deposits</div>
-          <div style={{ fontSize: '24px', fontWeight: '900', color: 'white' }}>{summary.pendingDepositsSum.toLocaleString()} <span style={{ fontSize: '13px', color: 'var(--agent-muted)' }}>ETB</span></div>
+          <div style={{ fontSize: '24px', fontWeight: '900', color: '#1c1917' }}>{summary.pendingDepositsSum.toLocaleString()} <span style={{ fontSize: '13px', color: 'var(--agent-muted)' }}>ETB</span></div>
           <div style={{ fontSize: '12px', color: 'var(--agent-muted)', marginTop: '4px' }}>{summary.pendingDepositsCount} pending request{summary.pendingDepositsCount !== 1 ? 's' : ''}</div>
         </div>
 
@@ -155,7 +155,7 @@ export default function AgentTransactionsPage() {
             <span style={{ fontSize: '10px', fontWeight: '900', color: '#ef4444', background: 'rgba(239,68,68,0.1)', padding: '4px 10px', borderRadius: '8px', textTransform: 'uppercase' }}>Pending</span>
           </div>
           <div style={{ fontSize: '11px', fontWeight: '800', color: 'var(--agent-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Pending Withdrawals</div>
-          <div style={{ fontSize: '24px', fontWeight: '900', color: 'white' }}>{summary.pendingWithdrawalsSum.toLocaleString()} <span style={{ fontSize: '13px', color: 'var(--agent-muted)' }}>ETB</span></div>
+          <div style={{ fontSize: '24px', fontWeight: '900', color: '#1c1917' }}>{summary.pendingWithdrawalsSum.toLocaleString()} <span style={{ fontSize: '13px', color: 'var(--agent-muted)' }}>ETB</span></div>
           <div style={{ fontSize: '12px', color: 'var(--agent-muted)', marginTop: '4px' }}>{summary.pendingWithdrawalsCount} pending request{summary.pendingWithdrawalsCount !== 1 ? 's' : ''}</div>
         </div>
 
@@ -166,7 +166,7 @@ export default function AgentTransactionsPage() {
             <span style={{ fontSize: '10px', fontWeight: '900', color: '#22c55e', background: 'rgba(34,197,94,0.1)', padding: '4px 10px', borderRadius: '8px', textTransform: 'uppercase' }}>Volume</span>
           </div>
           <div style={{ fontSize: '11px', fontWeight: '800', color: 'var(--agent-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Total Deposited</div>
-          <div style={{ fontSize: '24px', fontWeight: '900', color: 'white' }}>{summary.totalDeposited.toLocaleString()} <span style={{ fontSize: '13px', color: 'var(--agent-muted)' }}>ETB</span></div>
+          <div style={{ fontSize: '24px', fontWeight: '900', color: '#1c1917' }}>{summary.totalDeposited.toLocaleString()} <span style={{ fontSize: '13px', color: 'var(--agent-muted)' }}>ETB</span></div>
           <div style={{ fontSize: '12px', color: 'var(--agent-muted)', marginTop: '4px' }}>Approved and credited</div>
         </div>
 
@@ -177,7 +177,7 @@ export default function AgentTransactionsPage() {
             <span style={{ fontSize: '10px', fontWeight: '900', color: '#3b82f6', background: 'rgba(59,130,246,0.1)', padding: '4px 10px', borderRadius: '8px', textTransform: 'uppercase' }}>Volume</span>
           </div>
           <div style={{ fontSize: '11px', fontWeight: '800', color: 'var(--agent-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Total Withdrawn</div>
-          <div style={{ fontSize: '24px', fontWeight: '900', color: 'white' }}>{summary.totalWithdrawn.toLocaleString()} <span style={{ fontSize: '13px', color: 'var(--agent-muted)' }}>ETB</span></div>
+          <div style={{ fontSize: '24px', fontWeight: '900', color: '#1c1917' }}>{summary.totalWithdrawn.toLocaleString()} <span style={{ fontSize: '13px', color: 'var(--agent-muted)' }}>ETB</span></div>
           <div style={{ fontSize: '12px', color: 'var(--agent-muted)', marginTop: '4px' }}>Approved and paid out</div>
         </div>
       </div>
@@ -193,7 +193,7 @@ export default function AgentTransactionsPage() {
 
           {/* ── Pending Deposits ── */}
           <section>
-            <h2 style={{ fontSize: '16px', fontWeight: '900', color: 'white', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <h2 style={{ fontSize: '16px', fontWeight: '900', color: '#1c1917', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
               <FiArrowDownLeft style={{ color: '#22c55e' }} /> Deposit Requests
               <span style={{ background: 'rgba(34,197,94,0.15)', color: '#22c55e', padding: '3px 10px', borderRadius: '8px', fontSize: '12px' }}>{pendingDeposits.length}</span>
             </h2>
@@ -216,7 +216,7 @@ export default function AgentTransactionsPage() {
                     ) : pendingDeposits.map((d: any) => (
                       <tr key={d.id}>
                         <td>
-                          <div style={{ fontWeight: '700', color: 'white' }}>{d.user?.firstName || 'Player'}</div>
+                          <div style={{ fontWeight: '700', color: '#1c1917' }}>{d.user?.firstName || 'Player'}</div>
                           <div style={{ fontSize: '11px', color: 'var(--agent-muted)' }}>ID: {d.user?.telegramId?.toString()}</div>
                         </td>
                         <td style={{ fontWeight: '800', color: '#22c55e' }}>+{parseFloat(d.amount).toLocaleString()} ETB</td>
@@ -260,7 +260,7 @@ export default function AgentTransactionsPage() {
 
           {/* ── Pending Withdrawals ── */}
           <section>
-            <h2 style={{ fontSize: '16px', fontWeight: '900', color: 'white', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <h2 style={{ fontSize: '16px', fontWeight: '900', color: '#1c1917', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
               <FiArrowUpRight style={{ color: '#3b82f6' }} /> Withdrawal Requests
               <span style={{ background: 'rgba(59,130,246,0.15)', color: '#3b82f6', padding: '3px 10px', borderRadius: '8px', fontSize: '12px' }}>{pendingWithdrawals.length}</span>
             </h2>
@@ -284,12 +284,12 @@ export default function AgentTransactionsPage() {
                     ) : pendingWithdrawals.map((w: any) => (
                       <tr key={w.id}>
                         <td>
-                          <div style={{ fontWeight: '700', color: 'white' }}>{w.user?.firstName || 'Player'}</div>
+                          <div style={{ fontWeight: '700', color: '#1c1917' }}>{w.user?.firstName || 'Player'}</div>
                           <div style={{ fontSize: '11px', color: 'var(--agent-muted)' }}>ID: {w.user?.telegramId?.toString()}</div>
                         </td>
                         <td style={{ fontWeight: '800', color: '#ef4444' }}>-{parseFloat(w.amount).toLocaleString()} ETB</td>
                         <td>
-                          <div style={{ fontWeight: '700', color: 'white' }}>{w.accountName}</div>
+                          <div style={{ fontWeight: '700', color: '#1c1917' }}>{w.accountName}</div>
                           <div style={{ fontSize: '12px', fontFamily: 'monospace', color: 'var(--agent-muted)' }}>{w.accountNumber}</div>
                         </td>
                         <td>
@@ -357,7 +357,7 @@ export default function AgentTransactionsPage() {
                     return (
                       <tr key={tx.id}>
                         <td>
-                          <div style={{ fontWeight: '700', color: 'white' }}>{tx.user?.firstName || 'Player'}</div>
+                          <div style={{ fontWeight: '700', color: '#1c1917' }}>{tx.user?.firstName || 'Player'}</div>
                           <div style={{ fontSize: '11px', color: 'var(--agent-muted)' }}>@{tx.user?.telegramUsername || '—'}</div>
                         </td>
                         <td>
@@ -374,7 +374,7 @@ export default function AgentTransactionsPage() {
                         <td style={{ fontWeight: '800', color: isCredit ? '#22c55e' : '#ef4444' }}>
                           {isCredit ? '+' : '-'}{parseFloat(tx.amount).toLocaleString()} ETB
                         </td>
-                        <td style={{ fontWeight: '700', color: 'white' }}>{parseFloat(tx.balanceAfter).toLocaleString()} ETB</td>
+                        <td style={{ fontWeight: '700', color: '#1c1917' }}>{parseFloat(tx.balanceAfter).toLocaleString()} ETB</td>
                         <td>
                           <span style={{
                             fontSize: '11px', fontWeight: '800', padding: '3px 10px', borderRadius: '8px',

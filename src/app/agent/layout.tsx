@@ -97,7 +97,7 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
             </div>
             {isSidebarOpen && (
               <div style={{ overflow: 'hidden', flex: 1 }}>
-                <p style={{ fontSize: '13px', fontWeight: '900', color: 'white', margin: 0 }}>{user.firstName}</p>
+                <p style={{ fontSize: '13px', fontWeight: '900', color: '#1c1917', margin: 0 }}>{user.firstName}</p>
                 <p style={{ fontSize: '10px', color: 'var(--admin-text-muted)', margin: 0, textTransform: 'uppercase', fontWeight: '800' }}>Agent</p>
               </div>
             )}
