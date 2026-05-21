@@ -27,7 +27,9 @@ export default function PlayersPage() {
 
   const filteredPlayers = players.filter(p =>
     p.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.firstName?.toLowerCase().includes(searchTerm.toLowerCase())
+    p.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (p.phone || p.phoneNumber || '').includes(searchTerm)
   );
 
   if (loading) return (
@@ -84,12 +86,12 @@ export default function PlayersPage() {
                       </div>
                     </div>
                   </td>
-                  <td style={{ color: '#d1d5db' }}>{player.phoneNumber}</td>
+                  <td style={{ color: '#d1d5db' }}>{player.phone || player.phoneNumber || 'N/A'}</td>
                   <td style={{ color: 'var(--agent-muted)' }}>
                     {new Date(player.createdAt).toLocaleDateString()}
                   </td>
                   <td className="right agent-text-gold" style={{ fontWeight: 900 }}>
-                    {Number(player._count?.deposits * 100 || 0).toLocaleString()} ETB
+                    {Number(player.wallet?.totalDeposited || 0).toLocaleString()} ETB
                   </td>
                 </tr>
               )) : (
