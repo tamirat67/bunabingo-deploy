@@ -499,12 +499,9 @@ function SelectionContent() {
               }}>
                 {isLive ? 'GAME STARTING IN' : 'LOBBY CLOSING IN'}
               </div>
-              <motion.div
-                key={isLive ? countdown : fakeCountdown}
-                initial={{ scale: 1.15, color: (isLive ? countdown! : fakeCountdown) <= 10 ? '#E74C3C' : 'white' }}
-                animate={{ scale: 1, color: (isLive ? countdown! : fakeCountdown) <= 10 ? '#E74C3C' : 'white' }}
-                transition={{ duration: 0.2 }}
+              <div
                 style={{
+                  color: (isLive ? countdown! : fakeCountdown) <= 10 ? '#E74C3C' : 'white',
                   fontSize: '30px',
                   fontWeight: '900',
                   fontVariantNumeric: 'tabular-nums',
@@ -513,7 +510,7 @@ function SelectionContent() {
                 }}
               >
                 {formatCountdown(isLive ? countdown! : fakeCountdown)}
-              </motion.div>
+              </div>
             </>
           ) : (
             <>
