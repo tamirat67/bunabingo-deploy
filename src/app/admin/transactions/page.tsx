@@ -223,7 +223,7 @@ export default function TransactionsPage() {
                       <td style={{ fontFamily: 'monospace', fontWeight: '600' }}>{d.reference || d.txnId || 'N/A'}</td>
                       <td>
                         {d.receiptUrl ? (
-                          <a href={d.receiptUrl} target="_blank" rel="noopener noreferrer" className="badge badge-gold" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                          <a href={d.receiptUrl.startsWith('http') ? d.receiptUrl : `${api.defaults.baseURL?.replace('/api', '')}/api/file/${d.receiptUrl}`} target="_blank" rel="noopener noreferrer" className="badge badge-gold" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                             <FiEye size={12} /> View Slip
                           </a>
                         ) : 'No Proof'}

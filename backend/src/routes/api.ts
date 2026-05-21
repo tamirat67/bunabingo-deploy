@@ -43,6 +43,32 @@ router.get('/rooms', async (_req: Request, res: Response) => {
   }
 });
 
+import axios from 'axios';
+
+// ─── Serve Telegram Files ──────────────────────────────────────
+router.get('/file/:fileId', async (req: Request, res: Response) => {
+  try {
+    const fileId = req.params.fileId;
+    // Don't proxy if it's already an http URL
+    if (fileId.startsWith('http')) {
+      return res.redirect(fileId);
+    }
+    
+    // Get file info from Telegram
+    const response = await axios.get(`https://api.telegram.org/bot${config.bot.token}/getFile?file_id=${fileId}`);
+    if (response.data?.ok && response.data?.result?.file_path) {
+      const filePath = response.data.result.file_path;
+      const fileUrl = `https://api.telegram.org/file/bot${config.bot.token}/${filePath}`;
+      res.redirect(fileUrl);
+    } else {
+      res.status(404).send('File not found');
+    }
+  } catch (err) {
+    logger.error(`[API] Failed to proxy Telegram file:`, err);
+    res.status(500).send('Error fetching file');
+  }
+});
+
 // ─── Auth for all routes ──────────────────────────────────────
 router.use(telegramAuthMiddleware);
 

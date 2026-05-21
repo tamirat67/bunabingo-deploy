@@ -223,7 +223,7 @@ export default function AgentTransactionsPage() {
                         <td style={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--agent-muted)' }}>{d.txnId || 'N/A'}</td>
                         <td>
                           {d.receiptUrl ? (
-                            <a href={d.receiptUrl} target="_blank" rel="noopener noreferrer"
+                            <a href={d.receiptUrl.startsWith('http') ? d.receiptUrl : `${api.defaults.baseURL?.replace('/api', '')}/api/file/${d.receiptUrl}`} target="_blank" rel="noopener noreferrer"
                               style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: 'rgba(212,175,55,0.15)', color: 'var(--agent-accent)', padding: '4px 10px', borderRadius: '8px', textDecoration: 'none', fontSize: '12px', fontWeight: '700' }}>
                               <FiEye size={12} /> View Slip
                             </a>

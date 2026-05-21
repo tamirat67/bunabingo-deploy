@@ -402,7 +402,7 @@ export async function getAgents(page = 1, limit = 20) {
         const ticketPurchasesSum = await prisma.transaction.aggregate({
           where: {
             type: 'TICKET_PURCHASE',
-            status: 'completed',
+            status: { in: ['completed', 'COMPLETED'] },
             userId: { in: referredUserIds },
           },
           _sum: { amount: true },
