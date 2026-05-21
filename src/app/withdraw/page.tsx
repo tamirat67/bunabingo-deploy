@@ -24,7 +24,7 @@ export default function WithdrawPage() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [amount, setAmount] = useState('');
-  const [bankName, setBankName] = useState('Commercial Bank of Ethiopia (CBE)');
+  const [bankName, setBankName] = useState('Telebirr');
   const [accountNumber, setAccountNumber] = useState('');
   const [accountName, setAccountName] = useState('');
   const [error, setError] = useState('');
@@ -131,12 +131,7 @@ export default function WithdrawPage() {
                onChange={(e) => setBankName(e.target.value)}
                style={{ width: '100%', padding: '15px', borderRadius: '16px', background: T.card, border: `1px solid ${T.border}`, color: T.text, fontSize: '16px', fontWeight: '900', outline: 'none' }}
              >
-                <option>Commercial Bank of Ethiopia (CBE)</option>
-                <option>Telebirr</option>
-                <option>Abyssinia Bank</option>
-                <option>Awash Bank</option>
-                <option>Dashen Bank</option>
-                <option>CBE Birr</option>
+                <option value="Telebirr">Telebirr</option>
              </select>
           </div>
 

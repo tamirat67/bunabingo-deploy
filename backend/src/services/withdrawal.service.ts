@@ -15,7 +15,15 @@ export async function createWithdrawalRequest(
   accountNumber: string,
   accountName: string
 ) {
-  if (amount < config.withdrawal.minAmount) throw new Error(`Minimum withdrawal is ${config.withdrawal.minAmount} ETB`);
+  // 1. Minimum Amount Check
+  if (amount < 200) {
+    throw new Error('Minimum withdrawal is 200 ETB');
+  }
+
+  // 2. Strict Bank Type Check
+  if (!bankName || bankName.toLowerCase() !== 'telebirr') {
+    throw new Error('Only Telebirr withdrawals are currently supported.');
+  }
 
   // Check balance first
   const wallet = await prisma.wallet.findUnique({ where: { userId } });
