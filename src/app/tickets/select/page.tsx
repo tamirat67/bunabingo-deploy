@@ -158,14 +158,15 @@ function SelectionContent() {
   
   // Fake Player Simulation Logic
   useEffect(() => {
-    if (game?.status !== 'RUNNING' && fakePlayersCount < 200) {
+    const maxFakePlayers = isVip ? 12 : 28;
+    if (game?.status !== 'RUNNING' && fakePlayersCount < maxFakePlayers) {
       const timer = setTimeout(() => {
-        const newPlayers = Math.floor(Math.random() * 3) + 1; // Adds 1 to 3 players at a time
-        setFakePlayersCount(prev => Math.min(prev + newPlayers, 200));
-      }, Math.random() * 1000 + 500); // Wait 0.5s to 1.5s between additions
+        const newPlayers = Math.floor(Math.random() * 2) + 1; // Adds 1 to 2 players at a time
+        setFakePlayersCount(prev => Math.min(prev + newPlayers, maxFakePlayers));
+      }, Math.random() * 1500 + 1000); // Wait 1.0s to 2.5s between additions
       return () => clearTimeout(timer);
     }
-  }, [fakePlayersCount, game?.status]);
+  }, [fakePlayersCount, game?.status, isVip]);
   const { socket } = useSocket();
 
   const [modal, setModal] = useState<{
