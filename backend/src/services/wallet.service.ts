@@ -209,12 +209,20 @@ export async function convertCoinsToBonus(userId: string): Promise<{
   };
 }
 
+/**
+ * Debit player wallet.
+ *
+ * @param txStatus - 'completed' for normal debits; 'pending' for withdrawal escrow
+ *                   (the stat totalWithdrawn is NOT updated here for withdrawals —
+ *                    it is updated atomically in approveWithdrawal after the agent pays out).
+ */
 export async function debitWallet(
   userId: string,
   amount: number | Decimal,
   type: 'WITHDRAWAL' | 'TICKET_PURCHASE',
   referenceId?: string,
-  description?: string
+  description?: string,
+  txStatus: 'completed' | 'pending' = 'completed'
 ): Promise<void> {
   const amt = new Decimal(amount.toString());
 
@@ -239,41 +247,41 @@ export async function debitWallet(
     let newBonus = bonus;
 
     if (type === 'TICKET_PURCHASE') {
-      // Use bonus balance first (Nice, best player-friendly logic!)
+      // Use bonus balance first (player-friendly)
       if (bonus.greaterThan(0)) {
         const bonusToUse = Decimal.min(bonus, remainingToDebit);
         newBonus = bonus.sub(bonusToUse);
         remainingToDebit = remainingToDebit.sub(bonusToUse);
       }
-      
       // Use main balance for the remainder
       if (remainingToDebit.greaterThan(0)) {
         newBalance = balance.sub(remainingToDebit);
         remainingToDebit = new Decimal(0);
       }
     } else {
-      // Withdrawal: ONLY use main balance
+      // WITHDRAWAL: ONLY use main balance (bonus is non-withdrawable)
       newBalance = balance.sub(remainingToDebit);
     }
 
-    // 2. Update wallet
+    // 2. Update wallet balances
+    //    NOTE: For WITHDRAWAL, totalWithdrawn is NOT updated here.
+    //    It is only updated when the agent approves the payout (approveWithdrawal).
+    //    This prevents inflating totalWithdrawn if the request is rejected.
     await tx.wallet.update({
       where: { userId },
       data: {
         balance: newBalance,
         bonusBalance: newBonus,
-        totalWithdrawn: type === 'WITHDRAWAL'
-          ? new Decimal(wallet.totalWithdrawn.toString()).add(amt)
-          : wallet.totalWithdrawn,
         totalSpent: type === 'TICKET_PURCHASE'
           ? new Decimal(wallet.totalSpent.toString()).add(amt)
           : wallet.totalSpent,
+        // totalWithdrawn intentionally NOT updated here for WITHDRAWAL type
       },
     });
 
-    logger.info(`[Wallet] Debiting user ${userId}: -${amt} ETB (${type}). Balance: ${balance} -> ${newBalance}, Bonus: ${bonus} -> ${newBonus}`);
+    logger.info(`[Wallet] Debiting user ${userId}: -${amt} ETB (${type}, status=${txStatus}). Balance: ${balance} -> ${newBalance}, Bonus: ${bonus} -> ${newBonus}`);
 
-    // 3. Create log
+    // 3. Create transaction log with the given status
     await tx.transaction.create({
       data: {
         userId,
@@ -281,7 +289,7 @@ export async function debitWallet(
         amount: amt,
         balanceBefore: balance,
         balanceAfter: newBalance,
-        status: 'completed',
+        status: txStatus,
         referenceId,
         description,
       },
@@ -290,5 +298,3 @@ export async function debitWallet(
     triggerUserEvent(userId, 'balance-updated', { newBalance: newBalance.toFixed(2) }).catch(() => {});
   });
 }
-
-

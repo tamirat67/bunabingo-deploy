@@ -68,17 +68,34 @@ async function checkSuspiciousWithdrawals(): Promise<void> {
 
 async function checkHighWinRate(): Promise<void> {
   const users = await prisma.user.findMany({
+    where: { isBot: false },
     include: {
       tickets: { where: { game: { status: 'FINISHED' } } },
-      winners: true,
+      winners: {
+        include: {
+          game: {
+            select: { status: true }
+          }
+        }
+      },
     },
   });
 
   for (const user of users) {
-    const totalGames = user.tickets.length;
+    // Unique games played (since a user can buy multiple tickets in the same game)
+    const uniqueGamesPlayed = new Set(user.tickets.map(t => t.gameId));
+    const totalGames = uniqueGamesPlayed.size;
     if (totalGames < THRESHOLDS.minGamesForWinRateCheck) continue;
 
-    const winRate = user.winners.length / totalGames;
+    // Unique finished games won
+    const uniqueGamesWon = new Set(
+      user.winners
+        .filter(w => w.game?.status === 'FINISHED')
+        .map(w => w.gameId)
+    );
+    const totalWins = uniqueGamesWon.size;
+
+    const winRate = totalWins / totalGames;
     if (winRate > THRESHOLDS.suspiciousWinRate) {
       const msg = `⚠️ FRAUD ALERT: User ${user.firstName} has ${(winRate * 100).toFixed(0)}% win rate over ${totalGames} games`;
       logger.warn(msg);

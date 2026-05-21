@@ -27,12 +27,12 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-        <Script 
-          src="https://telegram.org/js/telegram-web-app.js" 
-          strategy="beforeInteractive" 
-        />
       </head>
       <body>
+        <Script 
+          src="https://telegram.org/js/telegram-web-app.js" 
+          strategy="afterInteractive" 
+        />
         <SocketProvider>
           <ThemeProvider>
             <Suspense fallback={<div></div>}>
