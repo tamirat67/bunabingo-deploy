@@ -268,6 +268,60 @@ router.get('/withdrawals/pending', async (req, res) => {
 });
 
 /**
+ * GET /api/agent/transactions/summary
+ * Returns financial summary for all players under this agent's branch
+ */
+router.get('/transactions/summary', async (req: Request, res: Response) => {
+  const agent = (req as any).user;
+
+  try {
+    const [
+      pendingDepositsAgg,
+      pendingDepositsCount,
+      pendingWithdrawalsAgg,
+      pendingWithdrawalsCount,
+      totalDepositedAgg,
+      totalWithdrawnAgg
+    ] = await Promise.all([
+      prisma.deposit.aggregate({
+        where: { user: { referredBy: agent.id }, status: 'pending' },
+        _sum: { amount: true }
+      }),
+      prisma.deposit.count({
+        where: { user: { referredBy: agent.id }, status: 'pending' }
+      }),
+      prisma.withdrawal.aggregate({
+        where: { user: { referredBy: agent.id }, status: 'pending' },
+        _sum: { amount: true }
+      }),
+      prisma.withdrawal.count({
+        where: { user: { referredBy: agent.id }, status: 'pending' }
+      }),
+      prisma.deposit.aggregate({
+        where: { user: { referredBy: agent.id }, status: 'approved' },
+        _sum: { amount: true }
+      }),
+      prisma.withdrawal.aggregate({
+        where: { user: { referredBy: agent.id }, status: 'approved' },
+        _sum: { amount: true }
+      })
+    ]);
+
+    res.json({
+      pendingDepositsCount,
+      pendingDepositsSum: Number(pendingDepositsAgg._sum.amount || 0),
+      pendingWithdrawalsCount,
+      pendingWithdrawalsSum: Number(pendingWithdrawalsAgg._sum.amount || 0),
+      totalDeposited: Number(totalDepositedAgg._sum.amount || 0),
+      totalWithdrawn: Number(totalWithdrawnAgg._sum.amount || 0)
+    });
+  } catch (err) {
+    logger.error(`[AgentAPI] Failed to fetch branch transaction summary:`, err);
+    res.status(500).json({ error: 'Failed to fetch transaction summary' });
+  }
+});
+
+/**
  * GET /api/agent/transactions
  * Returns a detailed log of all transactions for players under this agent
  */
@@ -282,7 +336,7 @@ router.get('/transactions', async (req: Request, res: Response) => {
         user: { referredBy: agent.id }
       },
       include: { 
-        user: { select: { firstName: true, telegramUsername: true } }
+        user: { select: { firstName: true, telegramUsername: true, telegramId: true } }
       },
       skip: (page - 1) * limit,
       take: limit,

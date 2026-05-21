@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { 
   FiPieChart, FiUsers, FiDollarSign, 
-  FiSettings, FiLogOut, FiMenu, FiX, FiAward, FiArrowLeft
+  FiSettings, FiLogOut, FiMenu, FiX, FiAward, FiArrowLeft, FiActivity
 } from 'react-icons/fi';
 import api from '@/lib/api';
 import '../admin.css';
@@ -52,6 +52,7 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
   const navItems = [
     { name: 'Branch Stats', icon: FiPieChart, path: '/agent' },
     { name: 'My Players', icon: FiUsers, path: '/agent/players' },
+    { name: 'Transactions', icon: FiActivity, path: '/agent/transactions' },
     { name: 'Commissions', icon: FiDollarSign, path: '/agent/commissions' },
     { name: 'Settings', icon: FiSettings, path: '/agent/settings' },
   ];
