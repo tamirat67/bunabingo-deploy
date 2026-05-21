@@ -200,7 +200,7 @@ function AgentDashboardContent() {
 
       {/* Pre-Deposit Status Banner */}
       {stats.preDeposit && (
-        <div className={`agent-status-banner ${stats.preDeposit.state.toLowerCase()}`} style={{
+        <div className={`agent-status-banner ${(stats.preDeposit.state || 'GREEN').toLowerCase()}`} style={{
           padding: '1rem 1.5rem',
           borderRadius: '1rem',
           marginBottom: '2rem',

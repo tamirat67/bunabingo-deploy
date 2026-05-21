@@ -35,7 +35,7 @@ export default function RootLayout({
       <body>
         <SocketProvider>
           <ThemeProvider>
-            <Suspense fallback={null}>
+            <Suspense fallback={<div></div>}>
               {children}
             </Suspense>
             <Navbar />
