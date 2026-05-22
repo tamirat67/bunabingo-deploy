@@ -72,38 +72,42 @@ export async function broadcastMessage(message: string, imageUrl?: string | null
     const path = require('path');
     const fs = require('fs');
 
-    // Post to the Telegram Channel @buna_bingobot1
-    try {
-      logger.info(`[Notifier] Broadcasting announcement to Telegram channel @buna_bingobot1...`);
-      if (imageUrl) {
-        let photoInput: any = imageUrl;
-        if (imageUrl.startsWith('/uploads/')) {
-          const dockerPath = path.join(process.cwd(), imageUrl);
-          const devPath = path.join(process.cwd(), 'backend', imageUrl);
-          const compiledPath = path.join(__dirname, '../..', imageUrl);
-          
-          if (fs.existsSync(dockerPath)) {
-            photoInput = { source: dockerPath };
-          } else if (fs.existsSync(devPath)) {
-            photoInput = { source: devPath };
-          } else if (fs.existsSync(compiledPath)) {
-            photoInput = { source: compiledPath };
+    // Post to the Telegram Channels @buna_bingobot1 and @buna_bingobot
+    const targetChannels = ['@buna_bingobot1', '@buna_bingobot'];
+    
+    for (const channelUsername of targetChannels) {
+      try {
+        logger.info(`[Notifier] Broadcasting announcement to Telegram channel ${channelUsername}...`);
+        if (imageUrl) {
+          let photoInput: any = imageUrl;
+          if (imageUrl.startsWith('/uploads/')) {
+            const dockerPath = path.join(process.cwd(), imageUrl);
+            const devPath = path.join(process.cwd(), 'backend', imageUrl);
+            const compiledPath = path.join(__dirname, '../..', imageUrl);
+            
+            if (fs.existsSync(dockerPath)) {
+              photoInput = { source: dockerPath };
+            } else if (fs.existsSync(devPath)) {
+              photoInput = { source: devPath };
+            } else if (fs.existsSync(compiledPath)) {
+              photoInput = { source: compiledPath };
+            }
           }
+          await bot.telegram.sendPhoto(channelUsername, photoInput, {
+            caption: message,
+            parse_mode: 'HTML',
+            ...(buttons ? buttons : {})
+          });
+        } else {
+          await bot.telegram.sendMessage(channelUsername, message, {
+            parse_mode: 'HTML',
+            ...(buttons ? buttons : {})
+          });
         }
-        await bot.telegram.sendPhoto('@buna_bingobot1', photoInput, {
-          caption: message,
-          parse_mode: 'HTML',
-          ...(buttons ? buttons : {})
-        });
-      } else {
-        await bot.telegram.sendMessage('@buna_bingobot1', message, {
-          parse_mode: 'HTML',
-          ...(buttons ? buttons : {})
-        });
+        logger.info(`[Notifier] Successfully posted announcement to Telegram channel ${channelUsername}`);
+      } catch (channelErr) {
+        logger.error(`[Notifier] Failed to post announcement to Telegram channel ${channelUsername}:`, channelErr);
       }
-      logger.info(`[Notifier] Successfully posted announcement to Telegram channel @buna_bingobot1`);
-    } catch (channelErr) {
-      logger.error(`[Notifier] Failed to post announcement to Telegram channel @buna_bingobot1:`, channelErr);
     }
 
     for (const user of users) {
