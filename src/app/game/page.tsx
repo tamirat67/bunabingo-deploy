@@ -227,6 +227,11 @@ function GameContent() {
             const stopAudio = document.getElementById('audio-stop') as HTMLAudioElement;
             if (stopAudio) stopAudio.play().catch(e => console.warn('Stop sound blocked:', e));
           }
+          // Auto-redirect to cartela selection after 6 seconds
+          setTimeout(() => {
+            const nextType = game?.room?.type || spType || 'STANDARD';
+            router.push(`/tickets/select?type=${nextType}&price=${stake}`);
+          }, 6000);
         }
       });
 
@@ -943,8 +948,9 @@ function GameContent() {
             <motion.div initial={{ scale: 0.5 }} animate={{ scale: 1 }} style={{ background: T.card, border: `5px solid ${T.gold}`, borderRadius: '32px', padding: '45px 30px', textAlign: 'center', maxWidth: '320px' }}>
               <div style={{ fontSize: '70px' }}>🏆</div>
               <h2 style={{ color: T.header, fontSize: '28px', fontWeight: '900' }}>WINNER!</h2>
-              <div style={{ color: T.header, fontSize: '18px', margin: '10px 0 30px' }}>{winMsg}</div>
-              <button onClick={() => router.push('/')} style={{ width: '100%', background: T.gold, color: T.header, padding: '16px', borderRadius: '16px', fontWeight: '900', border: 'none' }}>BACK TO LOBBY</button>
+              <div style={{ color: T.header, fontSize: '18px', margin: '10px 0 10px' }}>{winMsg}</div>
+              <div style={{ color: T.text, fontSize: '14px', marginBottom: '20px', opacity: 0.8 }}>Redirecting to next game in 6s...</div>
+              <button onClick={() => router.push(`/tickets/select?type=${game?.room?.type || spType || 'STANDARD'}&price=${stake}`)} style={{ width: '100%', background: T.gold, color: T.header, padding: '16px', borderRadius: '16px', fontWeight: '900', border: 'none', cursor: 'pointer' }}>NEXT GAME</button>
             </motion.div>
           </motion.div>
         )}
