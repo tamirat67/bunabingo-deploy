@@ -343,7 +343,33 @@ function SelectionContent() {
       return;
     }
 
-    // 2. Normal select/deselect flow (freely allow changing owned cards)
+    // 2. Check if we are selecting a new card (not deselecting)
+    if (!selected.includes(num)) {
+      // Check maximum limit
+      if (selected.length >= 5) {
+        showAlert('Limit Reached', 'Maximum of 5 cards allowed per player', 'info');
+        return;
+      }
+
+      // Check balance limit
+      const currentBalance = Number(user?.wallet?.balance || 0);
+      const proposedSelected = [...selected, num];
+      const newCardsToBuy = proposedSelected.filter(id => !ownedCardIds.includes(id));
+      const proposedCost = newCardsToBuy.length * stake;
+
+      if (roomType !== 'DEMO' && proposedCost > currentBalance) {
+        setModal({
+          isOpen: true,
+          title: 'Insufficient Balance / የኪስዎ ቀሪ በቂ አይደለም ⚠️',
+          message: `You need ${proposedCost} ETB to select these cards. You currently have ${currentBalance.toFixed(2)} ETB. Please deposit first to continue. / እነዚህን ካርዶች ለመምረጥ ${proposedCost} ETB ያስፈልግዎታል። በአሁኑ ጊዜ ${currentBalance.toFixed(2)} ETB ነው ያለዎት። እባክዎ መጀመሪያ ተቀማጭ ያድርጉ።`,
+          type: 'balance',
+          onConfirm: () => router.push('/wallet')
+        });
+        return;
+      }
+    }
+
+    // 3. Normal select/deselect flow (freely allow changing owned cards)
     setSelected(prev => {
       if (prev.includes(num)) return prev.filter(n => n !== num);
       if (prev.length >= 5) {
@@ -373,11 +399,11 @@ function SelectionContent() {
     }
 
     // Selection has changed, we must send joinGame to update tickets in the database
-    if (newCardsToBuy.length > 0 && balance < totalCost && roomType !== 'DEMO') {
+    if (newCardsToBuy.length > 0 && Number(balance) < totalCost && roomType !== 'DEMO') {
       setModal({
         isOpen: true,
-        title: 'Insufficient Balance',
-        message: `You need ${totalCost} ETB to purchase ${newCardsToBuy.length} new card(s). You currently have ${Number(balance).toFixed(2)} ETB.`,
+        title: 'Insufficient Balance / የኪስዎ ቀሪ በቂ አይደለም ⚠️',
+        message: `You need ${totalCost} ETB to purchase ${newCardsToBuy.length} new card(s). You currently have ${Number(balance).toFixed(2)} ETB. Please deposit first to continue. / እነዚህን ካርዶች ለመግዛት ${totalCost} ETB ያስፈልግዎታል። በአሁኑ ጊዜ ${Number(balance).toFixed(2)} ETB ነው ያለዎት። እባክዎ መጀመሪያ ተቀማጭ ያድርጉ።`,
         type: 'balance',
         onConfirm: () => router.push('/wallet')
       });
