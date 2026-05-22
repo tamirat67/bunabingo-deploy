@@ -78,24 +78,42 @@ function GameContent() {
   const [audioUnlocked, setAudioUnlocked] = useState(false);
   const [isAutoMode, setIsAutoMode] = useState(true);
 
-  const toastTimer = useRef<any>(null);
+  const toastTimer           = useRef<any>(null);
   const lastStartAudioPlayed = useRef<number>(0);
-  // ─── soundOn ref so socket handlers always see latest value (fixes stale closure) ─
+  // soundOn ref so socket handlers always see latest value (no stale closure)
   const soundOnRef = useRef(true);
-  // Track last drawn number to avoid repaints
+  // Track last drawn number to avoid duplicate sounds
   const lastDrawnRef = useRef<number>(0);
 
+  // ─── Audio helpers ───────────────────────────────────────────────────────────
+  // Simple new Audio() approach — works in Telegram WebApp trusted context.
+  // soundOnRef is used (not soundOn state) to avoid the stale-closure bug.
+  const playBallSound = useCallback((num: number) => {
+    if (!soundOnRef.current) return;
+    const col = colLabel(num);
+    try {
+      const a = new Audio(`/audio/${col}${num}.mp3`);
+      a.play().catch(() => {});
+    } catch (e) {}
+  }, []);
+
   const playStartAudio = useCallback(() => {
-    if (localStorage.getItem('game_sound') === 'false') return;
+    if (!soundOnRef.current) return;
     const now = Date.now();
     if (now - lastStartAudioPlayed.current < 2500) return;
     lastStartAudioPlayed.current = now;
-    
-    const startAudio = document.getElementById('audio-start') as HTMLAudioElement;
-    if (startAudio) {
-      startAudio.currentTime = 0;
-      startAudio.play().catch(e => console.warn('Start sound blocked:', e));
-    }
+    try {
+      const a = new Audio('/audio/start.mp3');
+      a.play().catch(() => {});
+    } catch (e) {}
+  }, []);
+
+  const playStopAudio = useCallback(() => {
+    if (!soundOnRef.current) return;
+    try {
+      const a = new Audio('/audio/stop.mp3');
+      a.play().catch(() => {});
+    } catch (e) {}
   }, []);
 
   // Modal State
@@ -117,7 +135,10 @@ function GameContent() {
 
   const loadData = useCallback(() => {
     if (!gameId) return;
-    Promise.all([getGame(gameId), getMyCard(gameId)]).then(([g, t]) => {
+    Promise.all([
+      getGame(gameId), 
+      getMyCard(gameId).catch(() => ({ tickets: [] }))
+    ]).then(([g, t]) => {
       setGame(g);
       if (g.endTime && g.serverTime) {
         const offset = g.serverTime - Date.now();
@@ -144,23 +165,6 @@ function GameContent() {
 
   // Keep soundOnRef in sync with soundOn state so socket handlers never use stale value
   useEffect(() => { soundOnRef.current = soundOn; }, [soundOn]);
-
-  // Ball audio helper: reuses a small DOM-based audio pool to avoid autoplay blocks
-  const playBallSound = useCallback((num: number) => {
-    if (!soundOnRef.current) return;
-    const col = colLabel(num);
-    const poolId = `audio-ball-${col}${num}`;
-    let el = document.getElementById(poolId) as HTMLAudioElement | null;
-    if (!el) {
-      el = document.createElement('audio');
-      el.id = poolId;
-      el.src = `/audio/${col}${num}.mp3`;
-      el.preload = 'auto';
-      document.body.appendChild(el);
-    }
-    el.currentTime = 0;
-    el.play().catch(() => {});
-  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -223,10 +227,8 @@ function GameContent() {
           const w = d.winners[0];
           const name = w.user?.firstName || w.user?.telegramUsername || 'A player';
           setWinMsg(`${name} won ${w.prizeAmount} ETB! (${w.winMode})`);
-          if (soundOnRef.current) {
-            const stopAudio = document.getElementById('audio-stop') as HTMLAudioElement;
-            if (stopAudio) stopAudio.play().catch(e => console.warn('Stop sound blocked:', e));
-          }
+          // Play stop sound via new Audio() — same as all other sounds
+          playStopAudio();
           // Auto-redirect to cartela selection after 6 seconds
           setTimeout(() => {
             const nextType = game?.room?.type || spType || 'STANDARD';
@@ -261,7 +263,7 @@ function GameContent() {
       clearTimeout(retryTimer1);
       clearTimeout(retryTimer2);
     };
-  }, [gameId, mounted, loadData, socket, playBallSound]);
+  }, [gameId, mounted, loadData, socket, playBallSound, playStopAudio]);
 
   // Local countdown fallback for smoothness
   useEffect(() => {
@@ -285,10 +287,11 @@ function GameContent() {
   // (to catch missed socket events if mobile network drops).
   useEffect(() => {
     const status = game?.status;
-    if (status === 'FINISHED' || !status) return;
+    if (status === 'FINISHED') return;
     
     let intervalMs = 4000; // Slow sync for RUNNING
-    if (status === 'WAITING') intervalMs = 800;
+    if (!status) intervalMs = 2000; // Fast sync if not loaded yet
+    else if (status === 'WAITING') intervalMs = 800;
     else if (status === 'COUNTDOWN') intervalMs = 2000;
     
     const poll = setInterval(() => {
@@ -313,27 +316,15 @@ function GameContent() {
 
   const unlockAudio = () => {
     if (audioUnlocked) return;
+    setAudioUnlocked(true);
     try {
-      const startAudio = document.getElementById('audio-start') as HTMLAudioElement;
-      const stopAudio = document.getElementById('audio-stop') as HTMLAudioElement;
-      
-      if (startAudio) {
-        startAudio.play().then(() => {
-          startAudio.pause();
-          startAudio.currentTime = 0;
-        }).catch(() => {});
-      }
-      if (stopAudio) {
-        stopAudio.play().then(() => {
-          stopAudio.pause();
-          stopAudio.currentTime = 0;
-        }).catch(() => {});
-      }
-      setAudioUnlocked(true);
-      console.log('DOM Audio explicitly unlocked for mobile');
-    } catch (e) {
-      console.warn('Audio unlock failed:', e);
-    }
+      const a = new Audio('/audio/start.mp3');
+      a.volume = 0;
+      a.play().then(() => {
+        a.pause();
+        a.currentTime = 0;
+      }).catch(() => {});
+    } catch (e) {}
   };
 
   const hideCard   = (id: string) => setHidden(p => new Set([...p, id]));
@@ -413,6 +404,7 @@ function GameContent() {
   return (
     <div 
       onClick={unlockAudio}
+      onTouchStart={unlockAudio}
       style={{
         background: isVip ? 'radial-gradient(circle at top, #2D1442 0%, #1C0A35 60%, #0F041A 100%)' : T.bg,
         minHeight: '100vh',

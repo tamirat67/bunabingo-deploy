@@ -343,8 +343,22 @@ function SelectionContent() {
       return;
     }
 
+    const currentBalance = Number(user?.wallet?.balance || 0);
+
     // 2. Check if we are selecting a new card (not deselecting)
     if (!selected.includes(num)) {
+      // Check for 0 wallet immediately
+      if (roomType !== 'DEMO' && currentBalance === 0 && !ownedCardIds.includes(num)) {
+        setModal({
+          isOpen: true,
+          title: 'DEPOSIT WALLET / ተቀማጭ ያድርጉ ⚠️',
+          message: 'WARNING: Your wallet balance is 0. Please deposit money to play. / ማስጠንቀቂያ፡ የኪስዎ ቀሪ 0 ነው። ለመጫወት እባክዎ ተቀማጭ ያድርጉ።',
+          type: 'balance',
+          onConfirm: () => router.push('/wallet')
+        });
+        return;
+      }
+
       // Check maximum limit
       if (selected.length >= 5) {
         showAlert('Limit Reached', 'Maximum of 5 cards allowed per player', 'info');
@@ -352,7 +366,6 @@ function SelectionContent() {
       }
 
       // Check balance limit
-      const currentBalance = Number(user?.wallet?.balance || 0);
       const proposedSelected = [...selected, num];
       const newCardsToBuy = proposedSelected.filter(id => !ownedCardIds.includes(id));
       const proposedCost = newCardsToBuy.length * stake;
