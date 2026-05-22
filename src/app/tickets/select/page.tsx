@@ -450,9 +450,6 @@ function SelectionContent() {
   const totalOccupiedList = Array.from(new Set([...occupied, ...fakeOccupied]));
   const occupiedCount = totalOccupiedList.filter(id => !ownedCardIds.includes(id)).length;
 
-  const BOT_COUNTS_FRONTEND: Record<string, number> = { CASUAL: 30, STANDARD: 30, PRO: 30, JACKPOT: 10, VIP: 10 };
-  const botCount = BOT_COUNTS_FRONTEND[roomType] ?? 30;
-
   // Real prize pool = displayed players × stake × 75%
   // Align calculations perfectly with player count displayed in the UI:
   // e.g. 34 visible players * 10 stake = 340 ETB pool, keeping company commission 25% (85 ETB) and prize pool 75% (255 ETB)
