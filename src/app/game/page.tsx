@@ -276,11 +276,16 @@ function GameContent() {
 
   // ─── Polling: aggressive re-sync while WAITING (catches 0-second countdown miss) ─
   // All countdown values are 0 — game jumps WAITING→RUNNING instantly on server.
-  // Poll every 800ms while WAITING, every 2s while COUNTDOWN, stop when RUNNING.
+  // Poll every 800ms while WAITING, every 2s while COUNTDOWN, and 4s while RUNNING 
+  // (to catch missed socket events if mobile network drops).
   useEffect(() => {
     const status = game?.status;
-    if (status === 'RUNNING' || status === 'FINISHED' || !status) return;
-    const intervalMs = status === 'WAITING' ? 800 : 2000;
+    if (status === 'FINISHED' || !status) return;
+    
+    let intervalMs = 4000; // Slow sync for RUNNING
+    if (status === 'WAITING') intervalMs = 800;
+    else if (status === 'COUNTDOWN') intervalMs = 2000;
+    
     const poll = setInterval(() => {
       loadData();
     }, intervalMs);

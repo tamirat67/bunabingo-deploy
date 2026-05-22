@@ -609,6 +609,25 @@ async function checkAllTickets(gameId: string, drawnNumbers: number[]): Promise<
     const result = checkWin(rows as BingoCard, drawnNumbers);
     if (result.won) {
         logger.debug(`[Game ${gameId}] Ticket ${ticket.id} HAS ${result.modes.join(', ')}.`);
+        
+        // Auto-claim for house bots
+        if (ticket.user?.isBot) {
+           logger.info(`[Game ${gameId}] BOT WINNER DETECTED! Auto-claiming ${result.modes[0]}...`);
+           
+           if (state?.drawInterval) {
+             clearInterval(state.drawInterval);
+             state.drawInterval = undefined;
+           }
+           
+           try {
+             await processWinner(gameId, ticket.userId, ticket.id, result.modes[0], drawnNumbers);
+             await finishGame(gameId, `House Bot Bingo claimed: ${result.modes[0]}`);
+           } catch (err) {
+             logger.error(`[Game ${gameId}] Bot auto-claim failed:`, err);
+           }
+           
+           return; // Stop checking further tickets for this draw
+        }
     }
   }
 }
