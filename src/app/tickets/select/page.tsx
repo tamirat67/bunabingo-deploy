@@ -408,12 +408,14 @@ function SelectionContent() {
   const botCount = BOT_COUNTS_FRONTEND[roomType] ?? 30;
   
   // Calculate based on visually occupied cards + selected cards to match UI perfectly
-  const allCards = game?.tickets?.length || Math.max(botCount, occupiedCount) + displayPlayerCount + selected.length || 1;
+  const visualCards = Math.max(botCount, occupiedCount) + selected.length;
+  const allCards = Math.max(game?.tickets?.length || 0, visualCards) || 1;
   const totalStake = allCards * stake;
   const houseComm = Math.round(totalStake * 0.25);
-  const prize = game?.totalPrize && Number(game.totalPrize) > 0
-    ? Number(game.totalPrize)
-    : Math.round(totalStake * 0.75);
+  const prize = Math.max(
+    game?.totalPrize && Number(game.totalPrize) > 0 ? Number(game.totalPrize) : 0,
+    Math.round(totalStake * 0.75)
+  );
 
   const formatCountdown = (secs: number) => {
     const m = Math.floor(secs / 60);

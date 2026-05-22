@@ -184,7 +184,7 @@ export default function LobbyPage() {
         id: r.id,
         type: r.type,
         price: price || 10,
-        win: livePrize > 0 ? livePrize : minPrize,
+        win: Math.max(livePrize, minPrize),
         players: livePlayerCount,
         active: r.games?.filter((g: any) => g.status === 'RUNNING').length || 0,
         isBonus: ['CASUAL', 'JACKPOT'].includes(r.type),

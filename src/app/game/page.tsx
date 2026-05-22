@@ -314,19 +314,24 @@ function GameContent() {
   const roomTypeName = game?.room?.type || spType || 'STANDARD';
   const botCount     = BOT_COUNTS_FRONTEND[roomTypeName] ?? 30;
   
+  const fallbackPrize = Math.round((botCount + tickets.length) * stake * 0.75);
   const prize = isDemo
     ? (game?.totalPrize ? Number(game.totalPrize) : 100)
-    : (game?.totalPrize && Number(game.totalPrize) > 0
-        ? Number(game.totalPrize)
-        : Math.round((botCount + tickets.length) * stake * 0.75));
+    : Math.max(
+        game?.totalPrize && Number(game.totalPrize) > 0 ? Number(game.totalPrize) : 0,
+        fallbackPrize
+      );
 
+  const fallbackHouseComm = Math.round((botCount + tickets.length) * stake * 0.25);
   const houseComm = isDemo
     ? 0
-    : (game?.houseEdge && Number(game.houseEdge) > 0
-        ? Number(game.houseEdge)
-        : Math.round((botCount + tickets.length) * stake * 0.25));
+    : Math.max(
+        game?.houseEdge && Number(game.houseEdge) > 0 ? Number(game.houseEdge) : 0,
+        fallbackHouseComm
+      );
 
-  const allCards = game?.tickets?.length || (prize + houseComm) / stake || (botCount + tickets.length) || 1;
+  const fallbackCards = botCount + tickets.length;
+  const allCards = Math.max(game?.tickets?.length || 0, fallbackCards) || 1;
   const totalStake = isDemo ? 0 : allCards * stake;
   const cdText  = countdown !== null ? `${countdown}s` : (game?.status === 'WAITING' ? 'WAIT' : 'LIVE');
   const visible = tickets.filter(t => !hidden.has(t.id));
