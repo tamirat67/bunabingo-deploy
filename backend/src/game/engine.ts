@@ -1012,7 +1012,10 @@ export async function joinGame(
 
       await tx.game.update({
         where: { id: gameId },
-        data: { totalPrize: prizePool }
+        data: { 
+          totalPrize: prizePool,
+          houseEdge: houseEdge
+        }
       });
 
       const userCreatedTickets = allTickets.filter(t => t.userId === userId);
@@ -1219,7 +1222,10 @@ export async function leaveGame(userId: string, gameId: string): Promise<void> {
 
     await tx.game.update({
       where: { id: gameId },
-      data: { totalPrize: prizePool }
+      data: { 
+        totalPrize: prizePool,
+        houseEdge: houseEdge
+      }
     });
   });
 

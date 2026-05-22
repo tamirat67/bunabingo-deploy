@@ -478,10 +478,9 @@ function GameContent() {
 
       {/* ── Commission / Total Stake sub-row ── */}
       {!isDemo && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', padding: '0 8px 8px', background: isVip ? 'rgba(255,255,255,0.02)' : T.statBg }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px', padding: '0 8px 8px', background: isVip ? 'rgba(255,255,255,0.02)' : T.statBg }}>
           {[
             ['TOTAL STAKE', `${totalStake} ETB`],
-            ['COMMISSION 25%', `${houseComm} ETB`],
             ['WINNER GETS 75%', `${prize.toFixed ? prize.toFixed(0) : prize} ETB`]
           ].map(([l, v]) => (
             <div key={l as string} style={{ background: isVip ? 'rgba(255,255,255,0.04)' : T.card, border: isVip ? '1px solid rgba(255,215,0,0.15)' : `1px solid ${T.gold}22`, padding: '4px 4px', textAlign: 'center', borderRadius: '6px' }}>
