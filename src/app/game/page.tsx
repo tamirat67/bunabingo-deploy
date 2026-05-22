@@ -85,16 +85,15 @@ function GameContent() {
   const lastDrawnRef = useRef<number>(0);
 
   // ─── Audio helpers ────────────────────────────────────────────────────────────
-  // Two separate Audio elements:
-  //   ballAudioRef → plays B1.mp3 … O75.mp3 (unlocked on first user touch)
-  //   sfxAudioRef  → plays start.mp3 / stop.mp3
+  // ballAudioRef: single persistent element for B1-O75 ball calls.
+  //   Must be unlocked by a user gesture before socket/polling can trigger it.
+  // start.mp3 / stop.mp3: use new Audio() — works in Telegram WebApp trusted
+  //   context without requiring an explicit user gesture unlock.
   const ballAudioRef = useRef<HTMLAudioElement | null>(null);
-  const sfxAudioRef  = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      if (!ballAudioRef.current) ballAudioRef.current = new Audio();
-      if (!sfxAudioRef.current)  sfxAudioRef.current  = new Audio();
+    if (typeof window !== 'undefined' && !ballAudioRef.current) {
+      ballAudioRef.current = new Audio();
     }
   }, []);
 
@@ -107,7 +106,12 @@ function GameContent() {
         el.pause();
         el.currentTime = 0;
         el.src = `/audio/${col}${num}.mp3`;
-        el.play().catch(() => {});
+        el.play().catch(() => {
+          // Fallback: fresh Audio element in case ref is locked
+          try { new Audio(`/audio/${col}${num}.mp3`).play().catch(() => {}); } catch (_) {}
+        });
+      } else {
+        new Audio(`/audio/${col}${num}.mp3`).play().catch(() => {});
       }
     } catch (e) {}
   }, []);
@@ -117,28 +121,12 @@ function GameContent() {
     const now = Date.now();
     if (now - lastStartAudioPlayed.current < 2500) return;
     lastStartAudioPlayed.current = now;
-    try {
-      const el = sfxAudioRef.current;
-      if (el) {
-        el.pause();
-        el.currentTime = 0;
-        el.src = '/audio/start.mp3';
-        el.play().catch(() => {});
-      }
-    } catch (e) {}
+    try { new Audio('/audio/start.mp3').play().catch(() => {}); } catch (e) {}
   }, []);
 
   const playStopAudio = useCallback(() => {
     if (!soundOnRef.current) return;
-    try {
-      const el = sfxAudioRef.current;
-      if (el) {
-        el.pause();
-        el.currentTime = 0;
-        el.src = '/audio/stop.mp3';
-        el.play().catch(() => {});
-      }
-    } catch (e) {}
+    try { new Audio('/audio/stop.mp3').play().catch(() => {}); } catch (e) {}
   }, []);
 
   // Modal State
@@ -360,7 +348,7 @@ function GameContent() {
   const unlockAudio = () => {
     if (audioUnlocked) return;
     setAudioUnlocked(true);
-    // Unlock BOTH audio elements with a silent play on first user gesture
+    // Unlock ballAudioRef with a silent play on first user gesture
     const unlock = (el: HTMLAudioElement | null, src: string) => {
       if (!el) return;
       el.volume = 0;
@@ -371,7 +359,6 @@ function GameContent() {
       }
     };
     try { unlock(ballAudioRef.current, '/audio/B1.mp3'); } catch (e) {}
-    try { unlock(sfxAudioRef.current,  '/audio/start.mp3'); } catch (e) {}
   };
 
   const hideCard   = (id: string) => setHidden(p => new Set([...p, id]));
