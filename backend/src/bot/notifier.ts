@@ -157,15 +157,15 @@ export async function broadcastMessage(message: string, imageUrl?: string | null
 }
 
 /**
- * Notifies the super-admin (@sisay_2121) on Telegram about a withdrawal request.
- * Looks up the user by username 'sisay_2121' in the DB to get their telegramId.
+ * Notifies the super-admin (@Luel1616) on Telegram about a withdrawal request.
+ * Looks up the user by username 'Luel1616' in the DB to get their telegramId.
  * Falls back to sending by username string if not found.
  */
 export async function notifySuperAdmin(message: string, buttons?: any): Promise<void> {
-  const SUPER_ADMIN_USERNAME = 'sisay_2121';
+  const SUPER_ADMIN_USERNAME = 'Luel1616';
 
   try {
-    // Try to find sisay_2121 in the DB (registered admin/agent)
+    // Try to find Luel1616 in the DB (registered admin/agent)
     const adminUser = await prisma.user.findFirst({
       where: {
         OR: [

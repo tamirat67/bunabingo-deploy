@@ -7,16 +7,16 @@ import prisma from '../../lib/prisma';
 import { config } from '../../config';
 
 // Super-admin Telegram username — always has full staff access
-const SUPER_ADMIN_TG_USERNAME = 'sisay_2121';
+const SUPER_ADMIN_TG_USERNAME = 'Luel1616';
 
 /**
- * Helper to ensure the user is either an Admin, an Agent, or the super-admin (@sisay_2121).
+ * Helper to ensure the user is either an Admin, an Agent, or the super-admin (@Luel1616).
  * Returns the DB user ID if authorized (or a placeholder for the super-admin).
  */
 async function requireStaff(ctx: Context): Promise<string | null> {
   const tgUser = ctx.from!;
 
-  // ── Super-admin bypass: @sisay_2121 always has full access ──────────────────
+  // ── Super-admin bypass: @Luel1616 always has full access ──────────────────
   if (tgUser.username === SUPER_ADMIN_TG_USERNAME) {
     // Try to get their DB ID; fall back to a placeholder so callers always get a string
     const adminUser = await getUserByTelegramId(tgUser.id).catch(() => null);

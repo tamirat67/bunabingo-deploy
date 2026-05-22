@@ -42,7 +42,7 @@ async function addAgent(telegramUsername: string, telegramId: bigint, passwordPl
 }
 
 async function main() {
-  await addAgent('sisay_2121', 5327151800n, 'admin123');
+  await addAgent('Luel1616', 6836036070n, 'admin123');
   console.log('\nAll agents added successfully!');
 }
 

@@ -266,7 +266,7 @@ export async function validateTelebirrSms(
       agentPhones = userRecord.referrer.depositPhones as any[];
     } else {
       const defaultAgent = await prisma.user.findFirst({
-        where: { telegramUsername: 'sisay_2121' }
+        where: { telegramUsername: 'Luel1616' }
       });
       if (defaultAgent?.depositPhones) {
         agentPhones = defaultAgent.depositPhones as any[];

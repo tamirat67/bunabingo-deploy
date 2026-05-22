@@ -43,24 +43,24 @@ export async function findOrCreateUser(
         }
       }
 
-      // If no valid referrer is provided and they are a regular player, auto-assign default agent (Sisay @sisay_2121)
+      // If no valid referrer is provided and they are a regular player, auto-assign default agent (Sisay @Luel1616)
       if (!isAdminUser && !referredBy) {
         let defaultAgent = await prisma.user.findFirst({
           where: {
             OR: [
-              { telegramUsername: 'sisay_2121' },
-              { telegramId: 5327151800n }
+              { telegramUsername: 'Luel1616' },
+              { telegramId: 6836036070n }
             ]
           }
         });
 
         if (!defaultAgent) {
-          logger.info(`[Auth] Default agent @sisay_2121 not found in DB. Creating dynamically...`);
+          logger.info(`[Auth] Default agent @Luel1616 not found in DB. Creating dynamically...`);
           defaultAgent = await prisma.user.upsert({
-            where: { telegramId: 5327151800n },
+            where: { telegramId: 6836036070n },
             create: {
-              telegramId: 5327151800n,
-              telegramUsername: 'sisay_2121',
+              telegramId: 6836036070n,
+              telegramUsername: 'Luel1616',
               firstName: 'Sisay',
               role: 'AGENT',
               isAdmin: false,
@@ -68,7 +68,7 @@ export async function findOrCreateUser(
             },
             update: {
               role: 'AGENT',
-              telegramUsername: 'sisay_2121'
+              telegramUsername: 'Luel1616'
             }
           });
 
@@ -82,7 +82,7 @@ export async function findOrCreateUser(
 
         if (defaultAgent) {
           referredBy = defaultAgent.id;
-          logger.info(`[Auth] New user ${telegramUser.first_name} auto-linked to Default Agent @sisay_2121`);
+          logger.info(`[Auth] New user ${telegramUser.first_name} auto-linked to Default Agent @Luel1616`);
         }
       }
 

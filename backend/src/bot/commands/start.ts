@@ -166,7 +166,7 @@ export async function handleStart(ctx: Context) {
         // ── Row 4: Wallet & Support ──────────────────────────────────────────
         [
           Markup.button.callback('ሂሳብ ማውጫ 💰', 'cmd_balance'),
-          Markup.button.url('ድጋፍ ያግኙ 📞', 'https://t.me/sisay_2121'),
+          Markup.button.url('ድጋፍ ያግኙ 📞', 'https://t.me/Luel1616'),
         ],
         // ── Row 5: Channel ───────────────────────────────────────────────────
         [
@@ -199,7 +199,7 @@ export async function handleStart(ctx: Context) {
           ],
           [
             Markup.button.callback('ሂሳብ ማውጫ 💰', 'cmd_balance'),
-            Markup.button.url('ድጋፍ ያግኙ 📞', 'https://t.me/sisay_2121'),
+            Markup.button.url('ድጋፍ ያግኙ 📞', 'https://t.me/Luel1616'),
           ],
           [
             Markup.button.url('📢 ቻናላችንን ይቀላቀሉ (Join Channel)', 'https://t.me/buna_bingobot1'),

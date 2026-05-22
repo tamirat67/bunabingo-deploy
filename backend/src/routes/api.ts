@@ -1114,9 +1114,9 @@ staffRouter.get('/analytics', restrictToAdmin, async (req, res) => {
         }
       }
     }),
-    // Pre-deposit wallets sum (ONLY for default agent sisay_2121)
+    // Pre-deposit wallets sum (ONLY for default agent Luel1616)
     prisma.user.findFirst({
-      where: { telegramUsername: 'sisay_2121' },
+      where: { telegramUsername: 'Luel1616' },
       select: { agentPreDepositWallet: true }
     }),
     // Buna (System) Wallet

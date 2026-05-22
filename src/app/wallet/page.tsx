@@ -193,7 +193,7 @@ export default function WalletPage() {
                     onClick={() => {
                       const tg = (window as any).Telegram?.WebApp;
                       const agentUsername = user?.referrer?.telegramUsername;
-                      const supportLink = 'https://t.me/sisay_2121';
+                      const supportLink = 'https://t.me/Luel1616';
                       
                       const link = agentUsername 
                         ? `https://t.me/${agentUsername.replace('@', '')}` 
