@@ -132,7 +132,7 @@ function DashboardContent() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <h1 style={{ fontSize: '36px', fontWeight: '900', margin: 0, color: '#3d2b1f', fontFamily: 'Inter, sans-serif' }}>
-            WELCOME, {(user.firstName || 'TAME').toUpperCase()} 👋
+            WELCOME, {(user.firstName || 'ADMIN').toUpperCase()} 👋
           </h1>
           <p style={{ color: '#8c857b', marginTop: '4px', fontSize: '15px', fontWeight: '500' }}>
             Here is your {isAdmin ? 'platform' : 'branch'} performance overview for today.

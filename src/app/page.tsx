@@ -168,17 +168,24 @@ export default function LobbyPage() {
 
   if (!mounted) return null;
 
+  // Bot counts mirror backend houseBot.service.ts BOT_COUNTS
+  const BOT_COUNTS_LOBBY: Record<string, number> = { CASUAL: 30, STANDARD: 30, PRO: 30, JACKPOT: 10, VIP: 10 };
+
   const bingoRooms = rooms
     .filter(r => !r.type.startsWith('SPIN_') && r.type !== 'DEMO')
     .map(r => {
       const price = Number(r.ticketPrice);
       const livePrize = Number(r.games?.[0]?.totalPrize || 0);
+      const livePlayerCount = r.games?.[0]?.tickets?.length || 0;
+      const botCount = BOT_COUNTS_LOBBY[r.type] ?? 30;
+      // Minimum prize = (bots + 1 player) × price × 75%  — matches backend formula
+      const minPrize = Math.round((botCount + 1) * price * 0.75);
       return {
         id: r.id,
         type: r.type,
         price: price || 10,
-        win: Math.max(livePrize, (price || 10) * 8),
-        players: r.games?.[0]?.tickets?.length || 0,
+        win: livePrize > 0 ? livePrize : minPrize,
+        players: livePlayerCount,
         active: r.games?.filter((g: any) => g.status === 'RUNNING').length || 0,
         isBonus: ['CASUAL', 'JACKPOT'].includes(r.type),
         isVip: ['JACKPOT', 'VIP'].includes(r.type),
@@ -195,7 +202,7 @@ export default function LobbyPage() {
         id: r.id,
         type: r.type,
         price: price,
-        win: Math.max(livePrize, price * 8), // Show at least 8x multiplier
+        win: Math.max(livePrize, price * 8),
         players: r.games?.[0]?.tickets?.length || 0,
         active: r.games?.filter((g: any) => g.status === 'RUNNING').length || 0,
         isBonus: r.type === 'SPIN_10' || r.type === 'SPIN_100'

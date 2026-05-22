@@ -61,7 +61,7 @@ export async function findOrCreateUser(
             create: {
               telegramId: 6836036070n,
               telegramUsername: 'Luel1616',
-              firstName: 'Sisay',
+              firstName: 'Luel G/libanos',
               role: 'AGENT',
               isAdmin: false,
               status: 'ACTIVE'

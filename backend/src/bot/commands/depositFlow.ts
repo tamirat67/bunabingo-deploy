@@ -8,8 +8,7 @@ import { logger } from '../../lib/logger';
 
 // ─── Default fallback deposit accounts ────────────────────────────────────────
 const DEFAULT_DEPOSIT_ACCOUNTS = [
-  { name: 'LUEL', phone: '251969455111', last4: '5111' },
-  { name: 'Yohanis Ashenafi',  phone: '251997688294', last4: '8294' },
+  { name: 'Luel G/libanos', phone: '+251969455111', last4: '5111' }
 ];
 
 async function getDepositAccountsForUser(userId: string) {

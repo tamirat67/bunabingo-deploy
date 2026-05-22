@@ -58,9 +58,9 @@ export const config = {
     maxAmount: parseFloat(process.env.MAX_WITHDRAWAL || '10000'),
   },
   payment: {
-    receiverName:  process.env.PAYMENT_RECEIVER_NAME   || 'Tame',
-    receiverPhone: process.env.PAYMENT_RECEIVER_PHONE  || '251966129707',
-    telebirrPhone: process.env.PAYMENT_TELEBIRR_PHONE  || '0997688294',
+    receiverName:  process.env.PAYMENT_RECEIVER_NAME   || 'Luel G/libanos',
+    receiverPhone: process.env.PAYMENT_RECEIVER_PHONE  || '+251969455111',
+    telebirrPhone: process.env.PAYMENT_TELEBIRR_PHONE  || '+251969455111',
     supportAgent1: process.env.PAYMENT_SUPPORT_AGENT1  || '@Luel1616',
     supportAgent2: process.env.PAYMENT_SUPPORT_AGENT2  || '@Luel1616',
     bunaEngineHost: process.env.BUNA_ENGINE_HOST || 'http://rexhetmfgnf.aabte.com.et',
