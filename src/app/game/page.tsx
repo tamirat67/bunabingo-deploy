@@ -86,13 +86,25 @@ function GameContent() {
 
   // ─── Audio helpers ───────────────────────────────────────────────────────────
   // Simple new Audio() approach — works in Telegram WebApp trusted context.
-  // soundOnRef is used (not soundOn state) to avoid the stale-closure bug.
+  const ballAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !ballAudioRef.current) {
+      ballAudioRef.current = new Audio();
+    }
+  }, []);
+
   const playBallSound = useCallback((num: number) => {
     if (!soundOnRef.current) return;
     const col = colLabel(num);
     try {
-      const a = new Audio(`/audio/${col}${num}.mp3`);
-      a.play().catch(() => {});
+      if (ballAudioRef.current) {
+        ballAudioRef.current.src = `/audio/${col}${num}.mp3`;
+        ballAudioRef.current.play().catch(() => {});
+      } else {
+        const a = new Audio(`/audio/${col}${num}.mp3`);
+        a.play().catch(() => {});
+      }
     } catch (e) {}
   }, []);
 
@@ -102,16 +114,26 @@ function GameContent() {
     if (now - lastStartAudioPlayed.current < 2500) return;
     lastStartAudioPlayed.current = now;
     try {
-      const a = new Audio('/audio/start.mp3');
-      a.play().catch(() => {});
+      if (ballAudioRef.current) {
+        ballAudioRef.current.src = '/audio/start.mp3';
+        ballAudioRef.current.play().catch(() => {});
+      } else {
+        const a = new Audio('/audio/start.mp3');
+        a.play().catch(() => {});
+      }
     } catch (e) {}
   }, []);
 
   const playStopAudio = useCallback(() => {
     if (!soundOnRef.current) return;
     try {
-      const a = new Audio('/audio/stop.mp3');
-      a.play().catch(() => {});
+      if (ballAudioRef.current) {
+        ballAudioRef.current.src = '/audio/stop.mp3';
+        ballAudioRef.current.play().catch(() => {});
+      } else {
+        const a = new Audio('/audio/stop.mp3');
+        a.play().catch(() => {});
+      }
     } catch (e) {}
   }, []);
 
@@ -317,12 +339,18 @@ function GameContent() {
     if (audioUnlocked) return;
     setAudioUnlocked(true);
     try {
-      const a = new Audio('/audio/start.mp3');
-      a.volume = 0;
-      a.play().then(() => {
-        a.pause();
-        a.currentTime = 0;
-      }).catch(() => {});
+      if (ballAudioRef.current) {
+        ballAudioRef.current.volume = 0;
+        ballAudioRef.current.src = '/audio/start.mp3';
+        const p = ballAudioRef.current.play();
+        if (p !== undefined) {
+          p.then(() => {
+            ballAudioRef.current!.pause();
+            ballAudioRef.current!.currentTime = 0;
+            ballAudioRef.current!.volume = 1;
+          }).catch(() => {});
+        }
+      }
     } catch (e) {}
   };
 
