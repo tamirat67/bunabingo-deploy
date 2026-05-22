@@ -249,7 +249,7 @@ export async function validateTelebirrSms(
   // Default fallback (always in sync with depositFlow.ts)
   const DEFAULT_ACCOUNTS = [
     { name: 'Yohanis Ashenafi',  phone: '251997688294', last4: '8294', keywords: ['yohanis', 'ashenafi'] },
-    { name: 'SULTAN MEBRAHETOM', phone: '251929922421', last4: '2421', keywords: ['sultan', 'mebrahetom'] },
+    { name: 'LUEL', phone: '251969455111', last4: '5111', keywords: ['luel'] },
   ];
 
   let authorizedAccounts = DEFAULT_ACCOUNTS;

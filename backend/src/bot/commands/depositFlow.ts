@@ -8,7 +8,7 @@ import { logger } from '../../lib/logger';
 
 // ─── Default fallback deposit accounts ────────────────────────────────────────
 const DEFAULT_DEPOSIT_ACCOUNTS = [
-  { name: 'SULTAN MEBRAHETOM', phone: '251929922421', last4: '2421' },
+  { name: 'LUEL', phone: '251969455111', last4: '5111' },
   { name: 'Yohanis Ashenafi',  phone: '251997688294', last4: '8294' },
 ];
 

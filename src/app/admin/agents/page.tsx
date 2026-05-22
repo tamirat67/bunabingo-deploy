@@ -401,7 +401,7 @@ export default function AgentsPage() {
               <div key={index} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 60px 40px', gap: '8px', marginBottom: '12px', alignItems: 'end' }}>
                 <div>
                   <label style={{ fontSize: '10px', fontWeight: '800', color: '#78716c', display: 'block', marginBottom: '4px' }}>Account Name</label>
-                  <input type="text" className="login-input" placeholder="e.g. SULTAN MEBRAHETOM" value={phoneEntry.name} onChange={e => {
+                  <input type="text" className="login-input" placeholder="e.g. LUEL" value={phoneEntry.name} onChange={e => {
                     const newPhones = [...agentDepositPhones];
                     newPhones[index].name = e.target.value;
                     setAgentDepositPhones(newPhones);
@@ -409,7 +409,7 @@ export default function AgentsPage() {
                 </div>
                 <div>
                   <label style={{ fontSize: '10px', fontWeight: '800', color: '#78716c', display: 'block', marginBottom: '4px' }}>Phone Number</label>
-                  <input type="text" className="login-input" placeholder="e.g. 251929922421" value={phoneEntry.phone} onChange={e => {
+                  <input type="text" className="login-input" placeholder="e.g. 251969455111" value={phoneEntry.phone} onChange={e => {
                     const newPhones = [...agentDepositPhones];
                     newPhones[index].phone = e.target.value;
                     if (e.target.value.length >= 4) {
