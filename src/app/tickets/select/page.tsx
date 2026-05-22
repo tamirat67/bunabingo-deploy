@@ -453,10 +453,10 @@ function SelectionContent() {
   const BOT_COUNTS_FRONTEND: Record<string, number> = { CASUAL: 30, STANDARD: 30, PRO: 30, JACKPOT: 10, VIP: 10 };
   const botCount = BOT_COUNTS_FRONTEND[roomType] ?? 30;
 
-  // Real prize pool = (bots + displayed players + user's selections) × stake × 75%
-  // Bots and displayed players are additive — jackpot scales with lobby activity.
-  // e.g. 30 bots + 34 visible players + 1 selected = 65 cards → 65×10×75% = 487 ETB
-  const baseCards = botCount + displayPlayerCount + selected.length;
+  // Real prize pool = displayed players × stake × 75%
+  // Align calculations perfectly with player count displayed in the UI:
+  // e.g. 34 visible players * 10 stake = 340 ETB pool, keeping company commission 25% (85 ETB) and prize pool 75% (255 ETB)
+  const baseCards = displayPlayerCount || 1;
   const allCards = Math.max(game?.tickets?.length || 0, baseCards) || 1;
   const totalStake = allCards * stake;
   // 25% company commission kept; 75% goes to winner as prize pool
