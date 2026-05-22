@@ -80,6 +80,10 @@ function GameContent() {
 
   const toastTimer = useRef<any>(null);
   const lastStartAudioPlayed = useRef<number>(0);
+  // ─── soundOn ref so socket handlers always see latest value (fixes stale closure) ─
+  const soundOnRef = useRef(true);
+  // Track last drawn number to avoid repaints
+  const lastDrawnRef = useRef<number>(0);
 
   const playStartAudio = useCallback(() => {
     if (localStorage.getItem('game_sound') === 'false') return;
@@ -138,19 +142,43 @@ function GameContent() {
     }).catch(console.error);
   }, [gameId]);
 
+  // Keep soundOnRef in sync with soundOn state so socket handlers never use stale value
+  useEffect(() => { soundOnRef.current = soundOn; }, [soundOn]);
+
+  // Ball audio helper: reuses a small DOM-based audio pool to avoid autoplay blocks
+  const playBallSound = useCallback((num: number) => {
+    if (!soundOnRef.current) return;
+    const col = colLabel(num);
+    const poolId = `audio-ball-${col}${num}`;
+    let el = document.getElementById(poolId) as HTMLAudioElement | null;
+    if (!el) {
+      el = document.createElement('audio');
+      el.id = poolId;
+      el.src = `/audio/${col}${num}.mp3`;
+      el.preload = 'auto';
+      document.body.appendChild(el);
+    }
+    el.currentTime = 0;
+    el.play().catch(() => {});
+  }, []);
+
   useEffect(() => {
     setMounted(true);
     
     // Load local sound preference
     const savedSound = localStorage.getItem('game_sound');
-    if (savedSound !== null) setSoundOn(savedSound === 'true');
+    if (savedSound !== null) {
+      const val = savedSound === 'true';
+      setSoundOn(val);
+      soundOnRef.current = val;
+    }
 
     if (!gameId) return;
 
     loadData();
-    // Retry after 1.5s to catch countdown state that may not be set yet
-    // when the server's startCountdown() runs after joinGame() returns
-    const retryTimer = setTimeout(loadData, 1500);
+    // Retry after 800ms and 2s to catch game state that fires right after joinGame()
+    const retryTimer1 = setTimeout(loadData, 800);
+    const retryTimer2 = setTimeout(loadData, 2500);
 
     // ─── Socket.io Handlers (VPS) ───
     if (socket) {
@@ -158,11 +186,12 @@ function GameContent() {
       
       socket.on('number-drawn', (d: { number: number }) => {
         const num = Number(d.number);
+        if (num === lastDrawnRef.current) return; // deduplicate
+        lastDrawnRef.current = num;
         setDrawn(p => p.includes(num) ? p : [...p, num]);
         setLastBall(num);
-        if (soundOn) {
-          new Audio(`/audio/${colLabel(num)}${num}.mp3`).play().catch(() => {});
-        }
+        // Always use ref so we always have fresh soundOn value
+        playBallSound(num);
       });
 
       socket.on('countdown-start', (d: any) => {
@@ -171,13 +200,15 @@ function GameContent() {
           setServerOff(d.serverTime - Date.now());
           setEndTime(d.endTime);
         }
+        // If countdown is 0 the game starts immediately — reload now
+        if (d.seconds === 0) setTimeout(loadData, 300);
       });
 
       socket.on('countdown-tick', (d: any) => {
         setCountdown(d.secondsRemaining);
-        // Play start sound exactly when countdown hits 0
         if (d.secondsRemaining === 0) {
           playStartAudio();
+          setTimeout(loadData, 300);
         }
       });
 
@@ -192,7 +223,7 @@ function GameContent() {
           const w = d.winners[0];
           const name = w.user?.firstName || w.user?.telegramUsername || 'A player';
           setWinMsg(`${name} won ${w.prizeAmount} ETB! (${w.winMode})`);
-          if (localStorage.getItem('game_sound') !== 'false') {
+          if (soundOnRef.current) {
             const stopAudio = document.getElementById('audio-stop') as HTMLAudioElement;
             if (stopAudio) stopAudio.play().catch(e => console.warn('Stop sound blocked:', e));
           }
@@ -201,6 +232,12 @@ function GameContent() {
 
       socket.on('game-update', (d: any) => {
         setGame((p: any) => p ? { ...p, ...d } : p);
+      });
+
+      // Re-join after reconnect (handles VPS socket drops)
+      socket.on('connect', () => {
+        socket.emit('join-game', gameId);
+        loadData();
       });
     }
 
@@ -213,11 +250,13 @@ function GameContent() {
         socket.off('game-started');
         socket.off('game-finished');
         socket.off('game-update');
+        socket.off('connect');
       }
       if (toastTimer.current) clearTimeout(toastTimer.current);
-      clearTimeout(retryTimer);
+      clearTimeout(retryTimer1);
+      clearTimeout(retryTimer2);
     };
-  }, [gameId, mounted, soundOn, loadData, socket]);
+  }, [gameId, mounted, loadData, socket, playBallSound]);
 
   // Local countdown fallback for smoothness
   useEffect(() => {
@@ -235,16 +274,16 @@ function GameContent() {
     return () => clearInterval(timer);
   }, [endTime, serverOff, loadData]);
 
-  // ─── Polling: re-fetch state while waiting for game to start ───────────────
-  // Catches countdown events missed due to race between joinGame() returning
-  // and startCountdown() completing on the backend.
+  // ─── Polling: aggressive re-sync while WAITING (catches 0-second countdown miss) ─
+  // All countdown values are 0 — game jumps WAITING→RUNNING instantly on server.
+  // Poll every 800ms while WAITING, every 2s while COUNTDOWN, stop when RUNNING.
   useEffect(() => {
     const status = game?.status;
-    if (status !== 'WAITING' && status !== 'COUNTDOWN') return;
-    // Poll every 2s until game is RUNNING
+    if (status === 'RUNNING' || status === 'FINISHED' || !status) return;
+    const intervalMs = status === 'WAITING' ? 800 : 2000;
     const poll = setInterval(() => {
       loadData();
-    }, 2000);
+    }, intervalMs);
     return () => clearInterval(poll);
   }, [game?.status, loadData]);
 
