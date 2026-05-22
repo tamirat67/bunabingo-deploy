@@ -317,6 +317,25 @@ function SelectionContent() {
     setSelected(prev => prev.filter(id => !occupied.includes(id)));
   }, [occupied]);
 
+  // ─── Auto-redirect to bingo calling page when game launches (30+1 trigger) ───
+  // Catches cases where the game-started socket event was missed due to timing.
+  useEffect(() => {
+    if (game?.status === 'RUNNING' && ownedCardIds.length > 0 && activeGameId) {
+      if (roomType.startsWith('SPIN_')) {
+        router.push(`/play/spin?id=${activeGameId}&stake=${stake}`);
+      } else {
+        router.push(`/game?id=${activeGameId}&type=${roomType}&price=${stake}`);
+      }
+    }
+  }, [game?.status]);
+
+  // ─── Poll game status while WAITING so we never miss the auto-launch ─────────
+  useEffect(() => {
+    if (game?.status !== 'WAITING' && game?.status !== 'COUNTDOWN') return;
+    const poll = setInterval(() => { loadGameData(); }, 1500);
+    return () => clearInterval(poll);
+  }, [game?.status, loadGameData]);
+
   const toggleSelect = (num: number) => {
     // 1. If the card is owned/occupied by another player
     if (occupied.includes(num) || fakeOccupied.includes(num)) {
@@ -401,17 +420,22 @@ function SelectionContent() {
   const displayPlayerCount = playerCount + fakePlayersCount;
   
   // ─── Prize / Stake / Commission calculation ─────────────────────────────
+  // occupiedCount is used by the UI to show "X held" and "X cards snatched"
   const totalOccupiedList = Array.from(new Set([...occupied, ...fakeOccupied]));
   const occupiedCount = totalOccupiedList.filter(id => !ownedCardIds.includes(id)).length;
 
   const BOT_COUNTS_FRONTEND: Record<string, number> = { CASUAL: 30, STANDARD: 30, PRO: 30, JACKPOT: 10, VIP: 10 };
   const botCount = BOT_COUNTS_FRONTEND[roomType] ?? 30;
-  
-  // Calculate based on visually occupied cards + selected cards to match UI perfectly
-  const visualCards = Math.max(botCount, occupiedCount) + selected.length;
-  const allCards = Math.max(game?.tickets?.length || 0, visualCards) || 1;
+
+  // Real prize pool = (bots + displayed players + user's selections) × stake × 75%
+  // Bots and displayed players are additive — jackpot scales with lobby activity.
+  // e.g. 30 bots + 34 visible players + 1 selected = 65 cards → 65×10×75% = 487 ETB
+  const baseCards = botCount + displayPlayerCount + selected.length;
+  const allCards = Math.max(game?.tickets?.length || 0, baseCards) || 1;
   const totalStake = allCards * stake;
-  const houseComm = Math.round(totalStake * 0.25);
+  // 25% company commission kept; 75% goes to winner as prize pool
+  const companyComm = Math.round(totalStake * 0.25);
+  const houseComm = companyComm; // alias for any existing references
   const prize = Math.max(
     game?.totalPrize && Number(game.totalPrize) > 0 ? Number(game.totalPrize) : 0,
     Math.round(totalStake * 0.75)
@@ -474,8 +498,9 @@ function SelectionContent() {
         {/* Shimmer sweep */}
         <div className="jackpot-shimmer" />
 
-        {/* Left — Jackpot Amount */}
+        {/* Left — Real Prize Pool */}
         <div>
+          {/* Badge: PRIZE POOL */}
           <div style={{
             background: urgencyColor,
             color: '#1C0A35',
@@ -486,12 +511,13 @@ function SelectionContent() {
             display: 'inline-flex',
             alignItems: 'center',
             gap: '4px',
-            marginBottom: '8px',
+            marginBottom: '6px',
             letterSpacing: '1.2px',
             boxShadow: `0 2px 8px ${urgencyColor}66`,
           }}>
-            <Trophy size={9} /> JACKPOT LIVE
+            <Trophy size={9} /> PRIZE POOL
           </div>
+          {/* Main prize amount — this is what the winner receives */}
           <motion.div
             key={prize}
             initial={{ opacity: 0.6, y: 4 }}
@@ -507,6 +533,31 @@ function SelectionContent() {
           >
             {prize.toFixed(0)} ETB
           </motion.div>
+          {/* Commission breakdown — transparent for players */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            marginTop: '5px',
+          }}>
+            <div style={{
+              fontSize: '9px',
+              fontWeight: '700',
+              color: 'rgba(255,255,255,0.45)',
+              letterSpacing: '0.5px',
+            }}>
+              Pool: {totalStake.toFixed(0)} ETB
+            </div>
+            <div style={{ width: '1px', height: '10px', background: 'rgba(255,255,255,0.2)' }} />
+            <div style={{
+              fontSize: '9px',
+              fontWeight: '700',
+              color: 'rgba(255,165,0,0.7)',
+              letterSpacing: '0.5px',
+            }}>
+              House: {companyComm.toFixed(0)} ETB (25%)
+            </div>
+          </div>
         </div>
 
         {/* Right — Countdown / Player Count */}

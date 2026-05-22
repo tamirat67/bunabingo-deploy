@@ -178,8 +178,8 @@ export default function LobbyPage() {
       const livePrize = Number(r.games?.[0]?.totalPrize || 0);
       const livePlayerCount = r.games?.[0]?.tickets?.length || 0;
       const botCount = BOT_COUNTS_LOBBY[r.type] ?? 30;
-      // Minimum prize = (bots + 1 player) × price × 75%  — matches backend formula
-      const minPrize = Math.round((botCount + 1) * price * 0.75);
+      // Prize floor = (bots + live players, min 1) × price × 75% — scales with lobby activity
+      const minPrize = Math.round((botCount + Math.max(1, livePlayerCount)) * price * 0.75);
       return {
         id: r.id,
         type: r.type,
