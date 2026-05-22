@@ -8,10 +8,12 @@ export const getSocket = (userId?: string) => {
   if (!socket) {
     socket = io(SOCKET_URL, {
       query: userId ? { userId } : {},
-      transports: ['websocket', 'polling'],
+      transports: ['websocket'],       // websocket only — fastest, no polling upgrade delay
       reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
+      reconnectionAttempts: Infinity,  // always try to reconnect
+      reconnectionDelay: 500,          // retry fast (was 1000ms)
+      reconnectionDelayMax: 3000,
+      timeout: 8000,
     });
   }
   return socket;

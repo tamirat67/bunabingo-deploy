@@ -161,11 +161,19 @@ function GameContent() {
       getMyCard(gameId).catch(() => ({ tickets: [] }))
     ]).then(([g, t]) => {
       setGame(g);
+
+      // Cache in sessionStorage for instant re-open without flicker
+      try {
+        sessionStorage.setItem(`game_state_${gameId}`, JSON.stringify({
+          status: g.status, totalPrize: g.totalPrize, room: g.room,
+          drawHistory: g.drawHistory, currentPlayers: g.currentPlayers,
+        }));
+      } catch (e) {}
+
       if (g.endTime && g.serverTime) {
         const offset = g.serverTime - Date.now();
         setServerOff(offset);
         setEndTime(g.endTime);
-        // Also set a direct countdown as backup
         if (g.status === 'COUNTDOWN') {
           const rem = Math.max(0, Math.ceil((g.endTime - Date.now() - offset) / 1000));
           if (rem > 0) setCountdown(rem);
@@ -178,6 +186,8 @@ function GameContent() {
       }
       const sorted = (t.tickets || []).sort((a: any, b: any) => (a.card?.id || 0) - (b.card?.id || 0));
       setTickets(sorted);
+      // Cache tickets so they appear instantly on next visit
+      try { sessionStorage.setItem(`game_tickets_${gameId}`, JSON.stringify(sorted)); } catch (e) {}
       const hist = (g.drawHistory || []).map((d: any) => d.number);
       setDrawn(hist);
       setLastBall(hist.at(-1) ?? null);
@@ -187,6 +197,7 @@ function GameContent() {
   // Keep soundOnRef in sync with soundOn state so socket handlers never use stale value
   useEffect(() => { soundOnRef.current = soundOn; }, [soundOn]);
 
+  // ─── Initial Mount: load data + sound prefs ───────────────────────────────
   useEffect(() => {
     setMounted(true);
     
@@ -201,90 +212,91 @@ function GameContent() {
     if (!gameId) return;
 
     loadData();
-    // Retry after 800ms and 2s to catch game state that fires right after joinGame()
-    const retryTimer1 = setTimeout(loadData, 800);
-    const retryTimer2 = setTimeout(loadData, 2500);
+    // One retry at 1.5s to catch any state that was mid-update on first load
+    const retryTimer = setTimeout(loadData, 1500);
 
-    // ─── Socket.io Handlers (VPS) ───
-    if (socket) {
-      socket.emit('join-game', gameId);
-      
-      socket.on('number-drawn', (d: { number: number }) => {
-        const num = Number(d.number);
-        if (num === lastDrawnRef.current) return; // deduplicate
-        lastDrawnRef.current = num;
-        setDrawn(p => p.includes(num) ? p : [...p, num]);
-        setLastBall(num);
-        // Always use ref so we always have fresh soundOn value
-        playBallSound(num);
-      });
-
-      socket.on('countdown-start', (d: any) => {
-        setCountdown(d.seconds);
-        if (d.endTime && d.serverTime) {
-          setServerOff(d.serverTime - Date.now());
-          setEndTime(d.endTime);
-        }
-        // If countdown is 0 the game starts immediately — reload now
-        if (d.seconds === 0) setTimeout(loadData, 300);
-      });
-
-      socket.on('countdown-tick', (d: any) => {
-        setCountdown(d.secondsRemaining);
-        if (d.secondsRemaining === 0) {
-          playStartAudio();
-          setTimeout(loadData, 300);
-        }
-      });
-
-      socket.on('game-started', () => {
-        loadData();
-        playStartAudio();
-      });
-
-      socket.on('game-finished', (d: any) => {
-        loadData();
-        if (d.winners && d.winners.length > 0) {
-          const w = d.winners[0];
-          const name = w.user?.firstName || w.user?.telegramUsername || 'A player';
-          setWinMsg(`${name} won ${w.prizeAmount} ETB! (${w.winMode})`);
-          // Play stop sound via new Audio() — same as all other sounds
-          playStopAudio();
-          // Auto-redirect to cartela selection after 6 seconds
-          setTimeout(() => {
-            const nextType = game?.room?.type || spType || 'STANDARD';
-            router.push(`/tickets/select?type=${nextType}&price=${stake}`);
-          }, 6000);
-        }
-      });
-
-      socket.on('game-update', (d: any) => {
-        setGame((p: any) => p ? { ...p, ...d } : p);
-      });
-
-      // Re-join after reconnect (handles VPS socket drops)
-      socket.on('connect', () => {
-        socket.emit('join-game', gameId);
-        loadData();
-      });
-    }
-
-    return () => { 
-      if (socket) {
-        socket.emit('leave-game', gameId);
-        socket.off('number-drawn');
-        socket.off('countdown-start');
-        socket.off('countdown-tick');
-        socket.off('game-started');
-        socket.off('game-finished');
-        socket.off('game-update');
-        socket.off('connect');
-      }
+    return () => {
+      clearTimeout(retryTimer);
       if (toastTimer.current) clearTimeout(toastTimer.current);
-      clearTimeout(retryTimer1);
-      clearTimeout(retryTimer2);
     };
-  }, [gameId, mounted, loadData, socket, playBallSound, playStopAudio]);
+  }, [gameId]); // intentionally only on gameId — loadData is stable via useCallback
+
+  // ─── Socket.io Handlers — run whenever socket becomes available ──────────
+  // This is a SEPARATE effect from mount so it re-runs as soon as the
+  // async socket init finishes (fixes: numbers not arriving without refresh).
+  useEffect(() => {
+    if (!socket || !gameId) return;
+
+    // Join the game room immediately
+    socket.emit('join-game', gameId);
+
+    socket.on('number-drawn', (d: { number: number }) => {
+      const num = Number(d.number);
+      if (num === lastDrawnRef.current) return; // deduplicate
+      lastDrawnRef.current = num;
+      setDrawn(p => p.includes(num) ? p : [...p, num]);
+      setLastBall(num);
+      playBallSound(num);
+    });
+
+    socket.on('countdown-start', (d: any) => {
+      setCountdown(d.seconds);
+      if (d.endTime && d.serverTime) {
+        setServerOff(d.serverTime - Date.now());
+        setEndTime(d.endTime);
+      }
+      if (d.seconds === 0) setTimeout(loadData, 300);
+    });
+
+    socket.on('countdown-tick', (d: any) => {
+      setCountdown(d.secondsRemaining);
+      if (d.secondsRemaining === 0) {
+        playStartAudio();
+        setTimeout(loadData, 300);
+      }
+    });
+
+    socket.on('game-started', () => {
+      loadData();
+      playStartAudio();
+    });
+
+    socket.on('game-finished', (d: any) => {
+      loadData();
+      if (d.winners && d.winners.length > 0) {
+        const w = d.winners[0];
+        const name = w.user?.firstName || w.user?.telegramUsername || 'A player';
+        setWinMsg(`${name} won ${w.prizeAmount} ETB! (${w.winMode})`);
+        playStopAudio();
+        setTimeout(() => {
+          const nextType = game?.room?.type || spType || 'STANDARD';
+          router.push(`/tickets/select?type=${nextType}&price=${stake}`);
+        }, 6000);
+      }
+    });
+
+    socket.on('game-update', (d: any) => {
+      setGame((p: any) => p ? { ...p, ...d } : p);
+    });
+
+    // Re-join and reload after reconnect (handles VPS socket drops)
+    socket.on('connect', () => {
+      socket.emit('join-game', gameId);
+      loadData();
+    });
+
+    return () => {
+      socket.emit('leave-game', gameId);
+      socket.off('number-drawn');
+      socket.off('countdown-start');
+      socket.off('countdown-tick');
+      socket.off('game-started');
+      socket.off('game-finished');
+      socket.off('game-update');
+      socket.off('connect');
+    };
+  }, [socket, gameId, loadData, playBallSound, playStartAudio, playStopAudio]);
+
 
   // Local countdown fallback for smoothness
   useEffect(() => {
