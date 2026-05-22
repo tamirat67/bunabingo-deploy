@@ -84,13 +84,17 @@ function GameContent() {
   // Track last drawn number to avoid duplicate sounds
   const lastDrawnRef = useRef<number>(0);
 
-  // ─── Audio helpers ───────────────────────────────────────────────────────────
-  // Simple new Audio() approach — works in Telegram WebApp trusted context.
+  // ─── Audio helpers ────────────────────────────────────────────────────────────
+  // Two separate Audio elements:
+  //   ballAudioRef → plays B1.mp3 … O75.mp3 (unlocked on first user touch)
+  //   sfxAudioRef  → plays start.mp3 / stop.mp3
   const ballAudioRef = useRef<HTMLAudioElement | null>(null);
+  const sfxAudioRef  = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && !ballAudioRef.current) {
-      ballAudioRef.current = new Audio();
+    if (typeof window !== 'undefined') {
+      if (!ballAudioRef.current) ballAudioRef.current = new Audio();
+      if (!sfxAudioRef.current)  sfxAudioRef.current  = new Audio();
     }
   }, []);
 
@@ -98,12 +102,12 @@ function GameContent() {
     if (!soundOnRef.current) return;
     const col = colLabel(num);
     try {
-      if (ballAudioRef.current) {
-        ballAudioRef.current.src = `/audio/${col}${num}.mp3`;
-        ballAudioRef.current.play().catch(() => {});
-      } else {
-        const a = new Audio(`/audio/${col}${num}.mp3`);
-        a.play().catch(() => {});
+      const el = ballAudioRef.current;
+      if (el) {
+        el.pause();
+        el.currentTime = 0;
+        el.src = `/audio/${col}${num}.mp3`;
+        el.play().catch(() => {});
       }
     } catch (e) {}
   }, []);
@@ -114,12 +118,12 @@ function GameContent() {
     if (now - lastStartAudioPlayed.current < 2500) return;
     lastStartAudioPlayed.current = now;
     try {
-      if (ballAudioRef.current) {
-        ballAudioRef.current.src = '/audio/start.mp3';
-        ballAudioRef.current.play().catch(() => {});
-      } else {
-        const a = new Audio('/audio/start.mp3');
-        a.play().catch(() => {});
+      const el = sfxAudioRef.current;
+      if (el) {
+        el.pause();
+        el.currentTime = 0;
+        el.src = '/audio/start.mp3';
+        el.play().catch(() => {});
       }
     } catch (e) {}
   }, []);
@@ -127,12 +131,12 @@ function GameContent() {
   const playStopAudio = useCallback(() => {
     if (!soundOnRef.current) return;
     try {
-      if (ballAudioRef.current) {
-        ballAudioRef.current.src = '/audio/stop.mp3';
-        ballAudioRef.current.play().catch(() => {});
-      } else {
-        const a = new Audio('/audio/stop.mp3');
-        a.play().catch(() => {});
+      const el = sfxAudioRef.current;
+      if (el) {
+        el.pause();
+        el.currentTime = 0;
+        el.src = '/audio/stop.mp3';
+        el.play().catch(() => {});
       }
     } catch (e) {}
   }, []);
@@ -314,18 +318,17 @@ function GameContent() {
     return () => clearInterval(timer);
   }, [endTime, serverOff, loadData]);
 
-  // ─── Polling: aggressive re-sync while WAITING (catches 0-second countdown miss) ─
-  // All countdown values are 0 — game jumps WAITING→RUNNING instantly on server.
-  // Poll every 800ms while WAITING, every 2s while COUNTDOWN, and 4s while RUNNING 
-  // (to catch missed socket events if mobile network drops).
+  // ─── Polling fallback: syncs state when socket events are missed ─────────
+  // RUNNING uses 3s poll = catches missed number-drawn events within 1 draw cycle.
+  // WAITING/COUNTDOWN use 3s poll = detects game start quickly.
   useEffect(() => {
     const status = game?.status;
     if (status === 'FINISHED') return;
     
-    let intervalMs = 15000; // Very slow sync for RUNNING (socket handles real-time)
-    if (!status) intervalMs = 3000; // Fast sync if not loaded yet
-    else if (status === 'WAITING') intervalMs = 8000;
-    else if (status === 'COUNTDOWN') intervalMs = 8000;
+    let intervalMs = 2000; // 2s fallback for RUNNING (matches 1.5s draw interval)
+    if (!status) intervalMs = 2000; // Fast sync if not loaded yet
+    else if (status === 'WAITING') intervalMs = 3000;
+    else if (status === 'COUNTDOWN') intervalMs = 3000;
     
     const poll = setInterval(() => {
       loadData();
@@ -350,20 +353,18 @@ function GameContent() {
   const unlockAudio = () => {
     if (audioUnlocked) return;
     setAudioUnlocked(true);
-    try {
-      if (ballAudioRef.current) {
-        ballAudioRef.current.volume = 0;
-        ballAudioRef.current.src = '/audio/start.mp3';
-        const p = ballAudioRef.current.play();
-        if (p !== undefined) {
-          p.then(() => {
-            ballAudioRef.current!.pause();
-            ballAudioRef.current!.currentTime = 0;
-            ballAudioRef.current!.volume = 1;
-          }).catch(() => {});
-        }
+    // Unlock BOTH audio elements with a silent play on first user gesture
+    const unlock = (el: HTMLAudioElement | null, src: string) => {
+      if (!el) return;
+      el.volume = 0;
+      el.src = src;
+      const p = el.play();
+      if (p !== undefined) {
+        p.then(() => { el.pause(); el.currentTime = 0; el.volume = 1; }).catch(() => {});
       }
-    } catch (e) {}
+    };
+    try { unlock(ballAudioRef.current, '/audio/B1.mp3'); } catch (e) {}
+    try { unlock(sfxAudioRef.current,  '/audio/start.mp3'); } catch (e) {}
   };
 
   const hideCard   = (id: string) => setHidden(p => new Set([...p, id]));

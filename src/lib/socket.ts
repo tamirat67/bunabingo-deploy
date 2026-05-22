@@ -8,12 +8,12 @@ export const getSocket = (userId?: string) => {
   if (!socket) {
     socket = io(SOCKET_URL, {
       query: userId ? { userId } : {},
-      transports: ['websocket'],       // websocket only — fastest, no polling upgrade delay
+      transports: ['websocket', 'polling'],  // polling fallback for nginx proxies
       reconnection: true,
-      reconnectionAttempts: Infinity,  // always try to reconnect
-      reconnectionDelay: 500,          // retry fast (was 1000ms)
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 500,
       reconnectionDelayMax: 3000,
-      timeout: 8000,
+      timeout: 10000,
     });
   }
   return socket;
