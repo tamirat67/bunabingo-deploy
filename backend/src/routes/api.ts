@@ -1337,6 +1337,7 @@ staffRouter.post('/promotions', restrictToAdmin, upload.single('image'), async (
 
     res.json(promotion);
   } catch (err) {
+    console.error('Promotion creation error:', err);
     res.status(500).json({ error: 'Failed to create promotion' });
   }
 });
@@ -1371,6 +1372,7 @@ staffRouter.patch('/promotions/:id', restrictToAdmin, upload.single('image'), as
     });
     res.json(promotion);
   } catch (err) {
+    console.error('Promotion update error:', err);
     res.status(500).json({ error: 'Failed to update promotion' });
   }
 });
