@@ -157,8 +157,17 @@ async function runGame(gameId: string): Promise<void> {
   // ─── Player count validation (skip for DEMO) ─────────────────────────────
   if (!isDemo) {
     const uniquePlayerRows = await prisma.ticket.groupBy({ where: { gameId }, by: ['userId'] });
-    if (ticketCount < game.room.minPlayers || uniquePlayerRows.length < 2) {
-      logger.info(`[Game ${gameId}] Loop: Not enough players/tickets (${ticketCount}/${game.room.minPlayers}). Restarting countdown.`);
+    // Count real (non-bot) players separately
+    const ticketsWithUsers = await prisma.ticket.findMany({
+      where: { gameId },
+      select: { userId: true, user: { select: { isBot: true } } }
+    });
+    const realPlayerCount = new Set(
+      ticketsWithUsers.filter(t => !t.user.isBot).map(t => t.userId)
+    ).size;
+    // Need at least 1 real player and total unique users >= 2 (real + bots)
+    if (ticketCount < game.room.minPlayers || realPlayerCount < 1 || uniquePlayerRows.length < 2) {
+      logger.info(`[Game ${gameId}] Loop: Not enough players/tickets (${ticketCount}/${game.room.minPlayers}, real=${realPlayerCount}). Restarting countdown.`);
       await startCountdown(gameId, ticketCount);
       return;
     }
@@ -303,7 +312,21 @@ async function runGame(gameId: string): Promise<void> {
   }
 
   // ─── Mark game as RUNNING (both real and DEMO) ────────────────────────────
-  const displayPrizePool = isDemo ? new Decimal(100) : totalPrizePool;
+  // Prize pool = 75% of ALL sold cards (real players + house bots)
+  // House commission = 25% of ALL sold cards
+  // Agent commission (calculated above) stays based on real player sales only
+  let displayPrizePool: Decimal;
+  let displayHouseEdge: Decimal;
+  if (isDemo) {
+    displayPrizePool = new Decimal(100);
+    displayHouseEdge = new Decimal(0);
+  } else {
+    // ticketCount includes ALL tickets (real + bots) since bots are injected before runGame
+    const totalStakeAll = new Decimal(unitPrice).mul(ticketCount);
+    displayHouseEdge  = totalStakeAll.mul(houseEdgePercent).div(100);         // 25% of all stakes
+    displayPrizePool  = totalStakeAll.sub(displayHouseEdge);                  // 75% of all stakes
+    logger.info(`[Game ${gameId}] Total stake (${ticketCount} cards × ${unitPrice} ETB) = ${totalStakeAll} ETB | House 25% = ${displayHouseEdge} ETB | Prize 75% = ${displayPrizePool} ETB`);
+  }
 
   await prisma.game.update({
     where: { id: gameId },
@@ -311,7 +334,7 @@ async function runGame(gameId: string): Promise<void> {
       status: GameStatus.RUNNING,
       startedAt: new Date(),
       totalPrize: displayPrizePool,
-      houseEdge: totalHouseEdge,
+      houseEdge: displayHouseEdge,
     },
   });
 
@@ -326,8 +349,8 @@ async function runGame(gameId: string): Promise<void> {
     activeGames.set(gameId, state);
   }
 
-  await triggerGameEvent(gameId, 'game-started', { gameId, playerCount: game.tickets.length });
-  logger.info(`[Game ${gameId}] Game RUNNING with ${game.tickets.length} tickets. Prize pool: ${totalPrizePool} ETB`);
+  await triggerGameEvent(gameId, 'game-started', { gameId, playerCount: game.tickets.length, prizePool: displayPrizePool.toFixed(2) });
+  logger.info(`[Game ${gameId}] Game RUNNING with ${ticketCount} tickets (real + bots). Prize pool: ${displayPrizePool} ETB (75% of all stakes)`);
 
   // ─── Load tickets + Rig Draw Sequence (House Bot System) ────────────────────
   // Fetch all tickets including the isBot flag from the joined user
@@ -1114,8 +1137,9 @@ export async function joinGame(
         );
         const realPlayerCount = realUserIds.size;
 
-        // Auto-start and inject bots ONLY when we have at least 10 real players
-        if (realPlayerCount >= 10) {
+        // Auto-start and inject bots as soon as 1 real player joins
+        // VIP rooms get a 60s countdown (set in config); all others start immediately
+        if (realPlayerCount >= 1) {
           // Get all currently taken card IDs (including this player's)
           const takenCardIds = allTickets.map(t => (t.card as any).id as number);
 
@@ -1129,7 +1153,7 @@ export async function joinGame(
               const botCount = BOT_COUNTS[game.room.type] ?? 30;
               const displayCount = fullCount; // includes real + bots
 
-              logger.info(`[HouseBot] Auto-starting game ${gameId} with ${displayCount} total tickets (${botCount} bots injected)`);
+              logger.info(`[HouseBot] Auto-starting game ${gameId} (${game.room.type}) with ${displayCount} total tickets (${botCount} bots injected, 1 real player triggered)`);
 
               // Broadcast updated player count so clients see the full lobby
               await triggerGameEvent(gameId, 'player-joined', {
@@ -1141,7 +1165,7 @@ export async function joinGame(
               });
               await triggerGameEvent(game.roomId, 'player-count-update', { playerCount: displayCount });
 
-              // Kick off the countdown with the total player count
+              // Kick off the countdown — VIP gets 60s, others get 0s (immediate)
               await startCountdown(gameId, fullCount);
             } catch (e) {
               logger.error('[HouseBot] Bot injection / auto-start error:', e);

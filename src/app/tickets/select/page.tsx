@@ -386,10 +386,16 @@ function SelectionContent() {
   const isDark = activeThemeKey === 'DARK' || activeThemeKey === 'GRAY';
 
   const displayPlayerCount = playerCount + fakePlayersCount;
-  const basePrize = game?.totalPrize
+  
+  // ─── Prize / Stake / Commission calculation ─────────────────────────────
+  const BOT_COUNTS_FRONTEND: Record<string, number> = { CASUAL: 30, STANDARD: 30, PRO: 30, JACKPOT: 10, VIP: 10 };
+  const botCount = BOT_COUNTS_FRONTEND[roomType] ?? 30;
+  const allCards = game?.tickets?.length || (botCount + displayPlayerCount) || (botCount + 1);
+  const totalStake = allCards * stake;
+  const houseComm = Math.round(totalStake * 0.25);
+  const prize = game?.totalPrize && Number(game.totalPrize) > 0
     ? Number(game.totalPrize)
-    : Math.max(stake * 2, (playerCount || 1) * stake * 0.75);
-  const prize = basePrize + (fakePlayersCount * stake * 0.75);
+    : Math.round(totalStake * 0.75);
 
   const formatCountdown = (secs: number) => {
     const m = Math.floor(secs / 60);

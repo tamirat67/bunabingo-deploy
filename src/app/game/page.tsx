@@ -307,11 +307,20 @@ function GameContent() {
 
   if (!mounted) return null;
 
-  const prize   = isDemo 
-                  ? (game?.totalPrize ? Number(game.totalPrize) : 100) 
-                  : ((game?.totalPrize && Number(game.totalPrize) > 0) 
-                      ? Number(game.totalPrize) 
-                      : Math.max(80, (tickets.length || 1) * stake * 0.75));
+  // ─── Prize / Stake / Commission calculation ─────────────────────────────
+  // Prize pool = 75% of ALL sold cards (real + bots), set by backend in game.totalPrize.
+  // Fallback estimate uses bot counts while game data is loading.
+  const BOT_COUNTS_FRONTEND: Record<string, number> = { CASUAL: 30, STANDARD: 30, PRO: 30, JACKPOT: 10, VIP: 10 };
+  const roomTypeName = game?.room?.type || spType || 'STANDARD';
+  const botCount     = BOT_COUNTS_FRONTEND[roomTypeName] ?? 30;
+  const allCards     = game?.tickets?.length || (botCount + tickets.length) || (botCount + 1);
+  const totalStake   = isDemo ? 0 : allCards * stake;
+  const houseComm    = isDemo ? 0 : Math.round(totalStake * 0.25);
+  const prize        = isDemo
+    ? (game?.totalPrize ? Number(game.totalPrize) : 100)
+    : (game?.totalPrize && Number(game.totalPrize) > 0
+        ? Number(game.totalPrize)
+        : Math.round(totalStake * 0.75));
   const cdText  = countdown !== null ? `${countdown}s` : (game?.status === 'WAITING' ? 'WAIT' : 'LIVE');
   const visible = tickets.filter(t => !hidden.has(t.id));
 
@@ -421,44 +430,60 @@ function GameContent() {
       {/* ── Stats Row ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', padding: '8px', background: isVip ? 'rgba(255,255,255,0.02)' : T.statBg, borderBottom: isVip ? '1px solid rgba(255,215,0,0.2)' : `1px solid ${T.gold}44` }}>
         {[
-          ['GAME ID', gameId?.slice(-6).toUpperCase() || '--'],
-          ['PLAYERS', game?.currentPlayers || game?.tickets?.length || (tickets.length > 0 ? tickets.length : '-')],
-          ['STAKE', `${stake} ETB`],
-          ['POOL', `${prize} ETB`]
+          ['GAME ID',   gameId?.slice(-6).toUpperCase() || '--'],
+          ['CARDS',     `${allCards}`],
+          ['STAKE/CARD',`${stake} ETB`],
+          ['PRIZE 75%', `${prize.toFixed ? prize.toFixed(0) : prize} ETB`]
         ].map(([l, v]) => {
-          const isStake = l === 'STAKE';
+          const isPrize = l === 'PRIZE 75%';
           return (
             <div key={l as string} style={{ 
               background: isVip 
-                ? (isStake ? 'linear-gradient(90deg, #FFD700, #FFA500)' : 'rgba(255, 255, 255, 0.05)') 
-                : T.card, 
+                ? (isPrize ? 'linear-gradient(90deg, #FFD700, #FFA500)' : 'rgba(255, 255, 255, 0.05)') 
+                : (isPrize ? T.gold : T.card), 
               border: isVip 
-                ? (isStake ? 'none' : '1px solid rgba(255, 215, 0, 0.25)') 
+                ? (isPrize ? 'none' : '1px solid rgba(255, 215, 0, 0.25)') 
                 : `1px solid ${T.gold}33`, 
               padding: '6px 4px', 
               textAlign: 'center', 
               borderRadius: '8px',
-              backdropFilter: isVip && !isStake ? 'blur(10px)' : 'none',
-              boxShadow: isVip && isStake ? '0 4px 15px rgba(255, 215, 0, 0.3)' : 'none',
+              backdropFilter: isVip && !isPrize ? 'blur(10px)' : 'none',
+              boxShadow: isVip && isPrize ? '0 4px 15px rgba(255, 215, 0, 0.3)' : 'none',
             }}>
               <div style={{ 
                 fontSize: '8px', 
                 fontWeight: 'bold', 
                 color: isVip 
-                  ? (isStake ? 'rgba(28, 10, 53, 0.7)' : '#FFD700') 
-                  : T.brown 
+                  ? (isPrize ? 'rgba(28, 10, 53, 0.8)' : '#FFD700') 
+                  : (isPrize ? T.header : T.brown)
               }}>{l}</div>
               <div style={{ 
                 fontSize: '12px', 
                 fontWeight: '900', 
                 color: isVip 
-                  ? (isStake ? '#1C0A35' : 'white') 
-                  : T.text 
+                  ? (isPrize ? '#1C0A35' : 'white') 
+                  : (isPrize ? T.header : T.text)
               }}>{v}</div>
             </div>
           );
         })}
       </div>
+
+      {/* ── Commission / Total Stake sub-row ── */}
+      {!isDemo && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', padding: '0 8px 8px', background: isVip ? 'rgba(255,255,255,0.02)' : T.statBg }}>
+          {[
+            ['TOTAL STAKE', `${totalStake} ETB`],
+            ['COMMISSION 25%', `${houseComm} ETB`],
+            ['WINNER GETS 75%', `${prize.toFixed ? prize.toFixed(0) : prize} ETB`]
+          ].map(([l, v]) => (
+            <div key={l as string} style={{ background: isVip ? 'rgba(255,255,255,0.04)' : T.card, border: isVip ? '1px solid rgba(255,215,0,0.15)' : `1px solid ${T.gold}22`, padding: '4px 4px', textAlign: 'center', borderRadius: '6px' }}>
+              <div style={{ fontSize: '7px', fontWeight: 'bold', color: isVip ? '#C471ED' : T.brown, marginBottom: '1px' }}>{l}</div>
+              <div style={{ fontSize: '11px', fontWeight: '900', color: isVip ? 'white' : T.text }}>{v}</div>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div style={{ display: 'flex', gap: '10px', padding: '10px', alignItems: 'flex-start' }}>
         {/* Master Board (Left) */}

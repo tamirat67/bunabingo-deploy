@@ -47,7 +47,7 @@ export const config = {
       STANDARD: 0,
       PRO: 0,
       JACKPOT: 0,
-      VIP: 0,
+      VIP: 0,   // start instantly like all other rooms
     } as Record<string, number>,
     drawIntervalMs: 3000,         // 3 seconds between draws
     houseEdgePercent: parseFloat(process.env.HOUSE_EDGE_PERCENT || '25'),
