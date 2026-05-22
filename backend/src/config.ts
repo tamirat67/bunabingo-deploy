@@ -41,13 +41,13 @@ export const config = {
     // Legacy alias — equals companyCommissionRate + agentProfitRate = 25% total
     commissionRate: 0.25,
     countdown: {
-      default: 0,
-      DEMO: 0,
-      CASUAL: 0,
-      STANDARD: 0,
-      PRO: 0,
-      JACKPOT: 0,
-      VIP: 0,   // start instantly like all other rooms
+      default: 15,
+      DEMO: 15,
+      CASUAL: 15,
+      STANDARD: 15,
+      PRO: 15,
+      JACKPOT: 15,
+      VIP: 15,
     } as Record<string, number>,
     drawIntervalMs: 3000,         // 3 seconds between draws
     houseEdgePercent: parseFloat(process.env.HOUSE_EDGE_PERCENT || '25'),

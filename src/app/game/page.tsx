@@ -76,7 +76,6 @@ function GameContent() {
   const [marked,    setMarked]    = useState<Set<number>>(new Set());
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [audioUnlocked, setAudioUnlocked] = useState(false);
-  const [isAutoMode, setIsAutoMode] = useState(true);
 
   const toastTimer           = useRef<any>(null);
   const lastStartAudioPlayed = useRef<number>(0);
@@ -289,10 +288,10 @@ function GameContent() {
     const status = game?.status;
     if (status === 'FINISHED') return;
     
-    let intervalMs = 4000; // Slow sync for RUNNING
-    if (!status) intervalMs = 2000; // Fast sync if not loaded yet
-    else if (status === 'WAITING') intervalMs = 800;
-    else if (status === 'COUNTDOWN') intervalMs = 2000;
+    let intervalMs = 15000; // Very slow sync for RUNNING (socket handles real-time)
+    if (!status) intervalMs = 3000; // Fast sync if not loaded yet
+    else if (status === 'WAITING') intervalMs = 8000;
+    else if (status === 'COUNTDOWN') intervalMs = 8000;
     
     const poll = setInterval(() => {
       loadData();
@@ -371,7 +370,7 @@ function GameContent() {
       );
 
   const fallbackCards = botCount + tickets.length;
-  const allCards = Math.max(game?.tickets?.length || 0, fallbackCards) || 1;
+  const allCards = Math.max(game?.currentPlayers || 0, fallbackCards) || 1;
   const totalStake = isDemo ? 0 : allCards * stake;
   const cdText  = countdown !== null ? `${countdown}s` : (game?.status === 'WAITING' ? 'WAIT' : 'LIVE');
   const visible = tickets.filter(t => !hidden.has(t.id));
@@ -431,28 +430,8 @@ function GameContent() {
           <div style={{ background: game?.status === 'RUNNING' ? '#27AE60' : '#E67E22', color: 'white', fontSize: '10px', fontWeight: '900', padding: '3px 10px', borderRadius: '20px' }}>
             {game?.status || 'LOADING'}
           </div>
-          {/* Auto / Manual Mode Toggle */}
-          <motion.div 
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setIsAutoMode(!isAutoMode)}
-            style={{
-              background: isAutoMode ? 'linear-gradient(135deg, #27AE60, #2ECC71)' : '#7F8C8D',
-              color: 'white',
-              fontSize: '10px',
-              fontWeight: '900',
-              padding: '4.5px 12px',
-              borderRadius: '20px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
-              userSelect: 'none'
-            }}
-          >
-            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'white' }}></div>
-            <span>{isAutoMode ? 'AUTO' : 'MAN'}</span>
-          </motion.div>
+          {/* Auto / Manual Mode Toggle Removed */}
+
           <motion.div 
             whileTap={{ scale: 0.9 }}
             onClick={(e) => {
@@ -522,20 +501,7 @@ function GameContent() {
         })}
       </div>
 
-      {/* ── Commission / Total Stake sub-row ── */}
-      {!isDemo && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px', padding: '0 8px 8px', background: isVip ? 'rgba(255,255,255,0.02)' : T.statBg }}>
-          {[
-            ['TOTAL STAKE', `${totalStake} ETB`],
-            ['WINNER GETS 75%', `${prize.toFixed ? prize.toFixed(0) : prize} ETB`]
-          ].map(([l, v]) => (
-            <div key={l as string} style={{ background: isVip ? 'rgba(255,255,255,0.04)' : T.card, border: isVip ? '1px solid rgba(255,215,0,0.15)' : `1px solid ${T.gold}22`, padding: '4px 4px', textAlign: 'center', borderRadius: '6px' }}>
-              <div style={{ fontSize: '7px', fontWeight: 'bold', color: isVip ? '#C471ED' : T.brown, marginBottom: '1px' }}>{l}</div>
-              <div style={{ fontSize: '11px', fontWeight: '900', color: isVip ? 'white' : T.text }}>{v}</div>
-            </div>
-          ))}
-        </div>
-      )}
+
 
       <div style={{ display: 'flex', gap: '10px', padding: '10px', alignItems: 'flex-start' }}>
         {/* Master Board (Left) */}
@@ -781,8 +747,6 @@ function GameContent() {
                       const numVal = Number(cell);
                       const isFree = cell === 'FREE' || cell === 0 || cell === null;
                       const userMarked = !isFree && marked.has(numVal);
-                      const callMarked = !isFree && isCalled(numVal);
-                      const isHinted   = isAutoMode && callMarked && !userMarked;
                       const colKey     = colLabel(numVal);
                       
                       return (
@@ -801,39 +765,21 @@ function GameContent() {
                               ? '#27AE60' 
                               : userMarked 
                                 ? (isVip ? 'linear-gradient(135deg, #FFD700, #C471ED)' : T.gold) 
-                                : (isHinted ? '#E67E22' : (isVip ? 'rgba(255,255,255,0.06)' : T.statBg)), 
-                            color: (isFree || isHinted) 
+                                : (isVip ? 'rgba(255,255,255,0.06)' : T.statBg), 
+                            color: isFree 
                               ? 'white' 
                               : userMarked 
                                 ? (isVip ? '#1C0A35' : T.header) 
                                 : (isVip ? 'white' : T.text), 
                             border: userMarked 
                               ? (isVip ? '3px solid #FFD700' : '3px solid white') 
-                              : (isHinted ? '2px solid white' : 'none'),
+                              : 'none',
                             position: 'relative',
                             overflow: 'hidden',
-                            boxShadow: isHinted ? `0 0 10px rgba(230, 126, 34, 0.6)` : 'none',
                             transition: 'all 0.3s ease'
                           }}
                         >
                           {isFree ? '★' : cell}
-                          
-                          {/* Animated hint indicator for new balls */}
-                          {isHinted && lastBall === numVal && (
-                            <motion.div 
-                              initial={{ scale: 0, opacity: 0 }} 
-                              animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }} 
-                              transition={{ repeat: Infinity, duration: 1.5 }}
-                              style={{ 
-                                position: 'absolute', 
-                                width: '100%', 
-                                height: '100%', 
-                                background: COL_COLOR[colKey], 
-                                borderRadius: '4px',
-                                zIndex: 0
-                              }} 
-                            />
-                          )}
 
                           {userMarked && (
                              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} style={{ position: 'absolute', width: '80%', height: '80%', border: `2px solid ${T.header}`, borderRadius: '50%', opacity: 0.5 }} />

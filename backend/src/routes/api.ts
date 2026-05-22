@@ -684,7 +684,7 @@ router.get('/games/:gameId', async (req: Request, res: Response) => {
       room: true,
       drawHistory: { orderBy: { sequence: 'asc' } },
       winners: { include: { user: { select: { firstName: true, telegramUsername: true } } } },
-      tickets: { select: { userId: true, isWinner: true } },
+      _count: { select: { tickets: true } },
     },
   });
   if (!game) return res.status(404).json({ error: 'Game not found' });
@@ -694,10 +694,12 @@ router.get('/games/:gameId', async (req: Request, res: Response) => {
   const activeGames = getActiveGames();
   const state = activeGames.get(game.id);
   
+  const { _count, ...gameData } = game as any;
+  
   res.json({
-    ...game,
-    countdownSeconds: state?.secondsRemaining ?? (game as any).countdownSeconds,
-    currentPlayers: state?.secondsRemaining !== undefined ? (game as any).tickets?.length : (game as any).currentPlayers,
+    ...gameData,
+    countdownSeconds: state?.secondsRemaining ?? gameData.countdownSeconds,
+    currentPlayers: state?.secondsRemaining !== undefined ? _count.tickets : gameData.currentPlayers,
     endTime: state?.secondsRemaining ? (Date.now() + state.secondsRemaining * 1000) : undefined,
     serverTime: Date.now()
   });
