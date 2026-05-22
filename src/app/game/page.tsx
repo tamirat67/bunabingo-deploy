@@ -313,14 +313,21 @@ function GameContent() {
   const BOT_COUNTS_FRONTEND: Record<string, number> = { CASUAL: 30, STANDARD: 30, PRO: 30, JACKPOT: 10, VIP: 10 };
   const roomTypeName = game?.room?.type || spType || 'STANDARD';
   const botCount     = BOT_COUNTS_FRONTEND[roomTypeName] ?? 30;
-  const allCards     = game?.tickets?.length || (botCount + tickets.length) || (botCount + 1);
-  const totalStake   = isDemo ? 0 : allCards * stake;
-  const houseComm    = isDemo ? 0 : Math.round(totalStake * 0.25);
-  const prize        = isDemo
+  
+  const prize = isDemo
     ? (game?.totalPrize ? Number(game.totalPrize) : 100)
     : (game?.totalPrize && Number(game.totalPrize) > 0
         ? Number(game.totalPrize)
-        : Math.round(totalStake * 0.75));
+        : Math.round((botCount + tickets.length) * stake * 0.75));
+
+  const houseComm = isDemo
+    ? 0
+    : (game?.houseEdge && Number(game.houseEdge) > 0
+        ? Number(game.houseEdge)
+        : Math.round((botCount + tickets.length) * stake * 0.25));
+
+  const allCards = game?.tickets?.length || (prize + houseComm) / stake || (botCount + tickets.length) || 1;
+  const totalStake = isDemo ? 0 : allCards * stake;
   const cdText  = countdown !== null ? `${countdown}s` : (game?.status === 'WAITING' ? 'WAIT' : 'LIVE');
   const visible = tickets.filter(t => !hidden.has(t.id));
 

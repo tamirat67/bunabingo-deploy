@@ -401,9 +401,14 @@ function SelectionContent() {
   const displayPlayerCount = playerCount + fakePlayersCount;
   
   // ─── Prize / Stake / Commission calculation ─────────────────────────────
+  const totalOccupiedList = Array.from(new Set([...occupied, ...fakeOccupied]));
+  const occupiedCount = totalOccupiedList.filter(id => !ownedCardIds.includes(id)).length;
+
   const BOT_COUNTS_FRONTEND: Record<string, number> = { CASUAL: 30, STANDARD: 30, PRO: 30, JACKPOT: 10, VIP: 10 };
   const botCount = BOT_COUNTS_FRONTEND[roomType] ?? 30;
-  const allCards = game?.tickets?.length || (botCount + displayPlayerCount) || (botCount + 1);
+  
+  // Calculate based on visually occupied cards + selected cards to match UI perfectly
+  const allCards = game?.tickets?.length || Math.max(botCount, occupiedCount) + displayPlayerCount + selected.length || 1;
   const totalStake = allCards * stake;
   const houseComm = Math.round(totalStake * 0.25);
   const prize = game?.totalPrize && Number(game.totalPrize) > 0
@@ -418,8 +423,6 @@ function SelectionContent() {
 
   const isLive = countdown !== null && countdown > 0;
   const urgencyColor = countdown !== null && countdown <= 10 ? '#E74C3C' : T.gold;
-  const totalOccupiedList = Array.from(new Set([...occupied, ...fakeOccupied]));
-  const occupiedCount = totalOccupiedList.filter(id => !ownedCardIds.includes(id)).length;
 
   return (
     <div className={`selection-container ${isVip ? 'vip-theme' : 'brown'} ${isSpin ? 'spin-theme' : ''}`}>
