@@ -6,10 +6,12 @@ async function main() {
   console.log("ASSIGNING ALL PLATFORM PLAYERS TO AGENT @sisay_2121");
   console.log("==================================================");
 
-  // 1. Find user sisay_2121
+  // 1. Find user luel1616 (or sisay_2121 fallback)
   const agent = await prisma.user.findFirst({
     where: {
       OR: [
+        { telegramUsername: { equals: 'luel1616', mode: 'insensitive' } },
+        { username: { equals: 'luel1616', mode: 'insensitive' } },
         { telegramUsername: { equals: 'sisay_2121', mode: 'insensitive' } },
         { username: { equals: 'sisay_2121', mode: 'insensitive' } }
       ]
@@ -17,7 +19,7 @@ async function main() {
   });
 
   if (!agent) {
-    console.error("❌ ERROR: Could not find user with username or telegramUsername 'sisay_2121' in the database!");
+    console.error("❌ ERROR: Could not find user with username or telegramUsername 'luel1616' or 'sisay_2121' in the database!");
     console.error("Please make sure the agent is registered via the bot or admin panel first.");
     return;
   }

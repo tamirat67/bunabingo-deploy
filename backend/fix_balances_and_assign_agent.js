@@ -93,30 +93,33 @@ async function fixBalances() {
 
 async function assignToAgent() {
   console.log('\n' + '='.repeat(60));
-  console.log('TASK 2: ASSIGN ALL UNASSIGNED PLAYERS → @sisay_2121');
+  console.log('TASK 2: ASSIGN ALL UNASSIGNED PLAYERS → @luel1616');
   console.log('='.repeat(60));
 
   // Find the agent by telegram username
   const agent = await prisma.user.findFirst({
     where: {
-      telegramUsername: { equals: 'sisay_2121', mode: 'insensitive' },
+      telegramUsername: { equals: 'luel1616', mode: 'insensitive' },
       role: 'AGENT'
     }
   });
 
   if (!agent) {
-    // Try by any role, maybe role is uppercase or different
+    // Try fallback to sisay_2121 or find by any role
     const agentAny = await prisma.user.findFirst({
       where: {
-        telegramUsername: { equals: 'sisay_2121', mode: 'insensitive' }
+        OR: [
+          { telegramUsername: { equals: 'luel1616', mode: 'insensitive' } },
+          { telegramUsername: { equals: 'sisay_2121', mode: 'insensitive' } }
+        ]
       }
     });
     if (!agentAny) {
-      console.error('❌ Agent @sisay_2121 not found in the database!');
+      console.error('❌ Agent @luel1616 or @sisay_2121 not found in the database!');
       console.error('   Make sure the agent has registered via the bot first.');
       return;
     }
-    console.log(`⚠️  Found @sisay_2121 but role is "${agentAny.role}" (not AGENT). Proceeding anyway.`);
+    console.log(`⚠️  Found @${agentAny.telegramUsername} but role is "${agentAny.role}" (not AGENT). Proceeding anyway.`);
     await doAssign(agentAny);
   } else {
     await doAssign(agent);
