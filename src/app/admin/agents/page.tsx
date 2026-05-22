@@ -28,6 +28,8 @@ export default function AgentsPage() {
   // Deposit Phones Modal State
   const [showDepositPhonesModal, setShowDepositPhonesModal] = useState(false);
   const [depositPhonesLoading, setDepositPhonesLoading] = useState(false);
+  const [depositPhonesSuccess, setDepositPhonesSuccess] = useState('');
+  const [depositPhonesError, setDepositPhonesError] = useState('');
   const [agentDepositPhones, setAgentDepositPhones] = useState<{name: string, phone: string, last4: string}[]>([]);
 
   useEffect(() => {
@@ -96,22 +98,42 @@ export default function AgentsPage() {
 
   const openDepositPhonesModal = (agent: any) => {
     setSelectedAgent(agent);
-    setAgentDepositPhones(agent.depositPhones || []);
+    setDepositPhonesSuccess('');
+    setDepositPhonesError('');
+    
+    // Safely parse depositPhones in case it's stringified JSON from the database
+    let phones = [];
+    if (Array.isArray(agent.depositPhones)) {
+      phones = [...agent.depositPhones];
+    } else if (typeof agent.depositPhones === 'string') {
+      try {
+        phones = JSON.parse(agent.depositPhones);
+      } catch (e) {}
+    }
+    
+    // Auto-populate with at least one empty row if no phones exist
+    if (phones.length === 0) {
+      phones = [{ name: '', phone: '', last4: '' }];
+    }
+    
+    setAgentDepositPhones(phones);
     setShowDepositPhonesModal(true);
   };
 
   const handleSaveDepositPhones = async () => {
     if (!selectedAgent) return;
     setDepositPhonesLoading(true);
+    setDepositPhonesSuccess('');
+    setDepositPhonesError('');
     try {
       await api.patch(`/admin/agents/${selectedAgent.id}/deposit-phones`, {
         depositPhones: agentDepositPhones
       });
-      setShowDepositPhonesModal(false);
       fetchAgents();
-      alert(`Successfully updated deposit phones for ${selectedAgent.firstName}!`);
+      setDepositPhonesSuccess(`Successfully updated deposit phones for ${selectedAgent.firstName}!`);
+      setTimeout(() => setShowDepositPhonesModal(false), 2000);
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Failed to update deposit phones.');
+      setDepositPhonesError(err.response?.data?.error || 'Failed to update deposit phones.');
     } finally {
       setDepositPhonesLoading(false);
     }
@@ -397,6 +419,9 @@ export default function AgentsPage() {
               Manage Telebirr/CBE deposit phone numbers for <b>{selectedAgent?.firstName}</b>. These will be shown to players depositing under this agent.
             </p>
 
+            {depositPhonesError && <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px', padding: '10px 14px', marginBottom: '14px', fontSize: '13px', color: '#dc2626', fontWeight: '600' }}>{depositPhonesError}</div>}
+            {depositPhonesSuccess && <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', padding: '10px 14px', marginBottom: '14px', fontSize: '13px', color: '#16a34a', fontWeight: '600' }}>{depositPhonesSuccess}</div>}
+
             {agentDepositPhones.map((phoneEntry, index) => (
               <div key={index} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 60px 40px', gap: '8px', marginBottom: '12px', alignItems: 'end' }}>
                 <div>
@@ -410,11 +435,14 @@ export default function AgentsPage() {
                 <div>
                   <label style={{ fontSize: '10px', fontWeight: '800', color: '#78716c', display: 'block', marginBottom: '4px' }}>Phone Number</label>
                   <input type="text" className="login-input" placeholder="e.g. 251969455111" value={phoneEntry.phone} onChange={e => {
+                    const val = e.target.value;
                     const newPhones = [...agentDepositPhones];
-                    newPhones[index].phone = e.target.value;
-                    if (e.target.value.length >= 4) {
-                      newPhones[index].last4 = e.target.value.slice(-4);
-                    }
+                    newPhones[index] = {
+                      ...newPhones[index],
+                      phone: val,
+                      // Automate 'Last 4' extraction reliably
+                      last4: val.length >= 4 ? val.slice(-4) : val
+                    };
                     setAgentDepositPhones(newPhones);
                   }} style={{ padding: '8px', fontSize: '13px' }} />
                 </div>

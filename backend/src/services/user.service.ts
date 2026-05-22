@@ -370,8 +370,11 @@ export async function getAgents(page = 1, limit = 20) {
       include: { 
         wallet: true, 
         agentPreDepositWallet: true,
-        referrals: { select: { id: true } } 
+        referrals: { select: { id: true } },
+        // Include depositPhones so the admin modal can pre-populate existing entries
       },
+      // depositPhones is a JSON field on user — select it explicitly
+
       orderBy: { createdAt: 'desc' },
     }),
     prisma.user.count({ where: { role: 'AGENT' } }),
