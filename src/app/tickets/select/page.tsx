@@ -286,6 +286,18 @@ function SelectionContent() {
         }
       });
 
+      socket.on('game-started', (d: any) => {
+        setGame((prev: any) => prev ? { ...prev, status: 'RUNNING' } : { status: 'RUNNING' });
+        // Automatically redirect to the game if the user has purchased tickets
+        if (ownedRef.current.length > 0) {
+          if (roomType.startsWith('SPIN_')) {
+            router.push(`/play/spin?id=${d.gameId || activeGameId}&stake=${stake}`);
+          } else {
+            router.push(`/game?id=${d.gameId || activeGameId}&type=${roomType}&price=${stake}`);
+          }
+        }
+      });
+
       socket.on('countdown-tick', (d: any) => {
         setCountdown(d.secondsRemaining);
       });
@@ -296,9 +308,10 @@ function SelectionContent() {
         socket.off('occupied-sync');
         socket.off('countdown-start');
         socket.off('countdown-tick');
+        socket.off('game-started');
       }
     };
-  }, [roomType, activeGameId, socket, loadGameData, user?.id]);
+  }, [roomType, activeGameId, socket, loadGameData, user?.id, router, stake]);
 
   useEffect(() => {
     setSelected(prev => prev.filter(id => !occupied.includes(id)));
