@@ -190,13 +190,20 @@ function GameContent() {
       }
       const sorted = (t.tickets || []).sort((a: any, b: any) => (a.card?.id || 0) - (b.card?.id || 0));
       setTickets(sorted);
-      // Cache tickets so they appear instantly on next visit
       try { sessionStorage.setItem(`game_tickets_${gameId}`, JSON.stringify(sorted)); } catch (e) {}
+
       const hist = (g.drawHistory || []).map((d: any) => d.number);
+      // ── Polling audio fallback: play ball sound if polling found a new number ──
+      // This fires when socket misses the event (mobile network drop, proxy issues).
+      const latestBall = hist.at(-1);
+      if (latestBall && latestBall !== lastDrawnRef.current) {
+        lastDrawnRef.current = latestBall;
+        playBallSound(latestBall);
+      }
       setDrawn(hist);
-      setLastBall(hist.at(-1) ?? null);
+      setLastBall(latestBall ?? null);
     }).catch(console.error);
-  }, [gameId]);
+  }, [gameId, playBallSound]);
 
   // Keep soundOnRef in sync with soundOn state so socket handlers never use stale value
   useEffect(() => { soundOnRef.current = soundOn; }, [soundOn]);
