@@ -15,9 +15,9 @@ import { checkWin, BingoCard } from '../game/card.generator';
 import { PREDEFINED_CARDS } from '../lib/predefinedCards';
 
 // ─── Win Quota Config ─────────────────────────────────────────
-// 30 house wins out of every 50 games for ALL room types
-const CYCLE_LENGTH = 50;
-const HOUSE_WIN_QUOTA = 30; // house wins 30/50 games
+// House bot must win 3 out of every 5 games (60% win rate)
+const CYCLE_LENGTH = 5;
+const HOUSE_WIN_QUOTA = 3;
 
 // ─── Bot count per room type ──────────────────────────────────
 export const BOT_COUNTS: Record<string, number> = {
@@ -33,9 +33,19 @@ const gamesWithBotsInjected = new Set<string>();
 
 /**
  * Check if the current cycle says the house should win this game.
- * Resets the cycle after every 50 games.
+ * Resets the cycle after every 5 games.
  */
 export async function shouldHouseWinThisGame(roomType: string): Promise<boolean> {
+  // Check process.env.FORCE_HOUSE_BOT_WIN
+  if (process.env.FORCE_HOUSE_BOT_WIN === 'true') {
+    logger.info(`[HouseBot] ${roomType} — FORCE_HOUSE_BOT_WIN is true → House Wins 100%`);
+    return true;
+  }
+  if (process.env.FORCE_HOUSE_BOT_WIN === 'false') {
+    logger.info(`[HouseBot] ${roomType} — FORCE_HOUSE_BOT_WIN is false → House wins 0%`);
+    return false;
+  }
+
   // Upsert cycle record
   let cycle = await prisma.gameCycle.upsert({
     where: { roomType },
@@ -43,7 +53,7 @@ export async function shouldHouseWinThisGame(roomType: string): Promise<boolean>
     update: {},
   });
 
-  // If cycle is full (50 games), reset it
+  // If cycle is full (5 games), reset it
   if (cycle.totalGames >= CYCLE_LENGTH) {
     cycle = await prisma.gameCycle.update({
       where: { roomType },

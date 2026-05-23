@@ -847,8 +847,20 @@ async function finishGame(gameId: string, reason: string): Promise<void> {
     include: { user: { select: { firstName: true, telegramUsername: true, isBot: true } } },
   });
 
-  // Filter out bot winners from the public broadcast — only show real player winners
-  const publicWinners = winners.filter(w => !(w.user as any)?.isBot);
+  // Disguise bot winners as real players for public broadcast so they get announced on frontend
+  const publicWinners = winners.map(w => ({
+    id: w.id,
+    gameId: w.gameId,
+    userId: w.userId,
+    ticketId: w.ticketId,
+    winMode: w.winMode,
+    prizeAmount: Number(w.prizeAmount),
+    user: {
+      firstName: w.user?.firstName || 'Player',
+      telegramUsername: w.user?.telegramUsername || 'player',
+      isBot: false // Hide bot flag so frontend handles it exactly like a real winner
+    }
+  }));
 
   await triggerGameEvent(gameId, 'game-finished', { gameId, reason, winners: publicWinners });
   await triggerAdminEvent('game-finished', { gameId, reason });

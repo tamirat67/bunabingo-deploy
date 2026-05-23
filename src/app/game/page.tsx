@@ -355,8 +355,7 @@ function GameContent() {
         setWinMsg(`${name} won ${w.prizeAmount} ETB! (${w.winMode})`);
         playStopAudio();
         setTimeout(() => {
-          const nextType = game?.room?.type || spType || 'STANDARD';
-          router.push(`/tickets/select?type=${nextType}&price=${stake}`);
+          router.push('/');
         }, 6000);
       }
     });
