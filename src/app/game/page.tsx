@@ -84,6 +84,11 @@ function GameContent() {
   // Track last drawn number to avoid duplicate sounds
   const lastDrawnRef = useRef<number>(0);
 
+  // Audio queue refs to manage sequential ball announcements without overlaps
+  const audioQueueRef = useRef<number[]>([]);
+  const isPlayingQueueRef = useRef<boolean>(false);
+  const isFirstLoadRef = useRef<boolean>(true);
+
   // ─── Audio helpers ────────────────────────────────────────────────────────────
   // ballAudioRef: single persistent element for B1-O75 ball calls.
   //   Must be unlocked by a user gesture before socket/polling can trigger it.
@@ -115,6 +120,39 @@ function GameContent() {
       }
     } catch (e) {}
   }, []);
+
+  const processAudioQueue = useCallback(() => {
+    if (!soundOnRef.current || audioQueueRef.current.length === 0) {
+      isPlayingQueueRef.current = false;
+      return;
+    }
+    isPlayingQueueRef.current = true;
+    const nextBall = audioQueueRef.current.shift();
+    if (nextBall) {
+      lastDrawnRef.current = nextBall;
+      playBallSound(nextBall);
+      // Wait for the ball audio to finish before checking/playing next.
+      // Average ball call pronunciation ("B 5", "O 75") takes ~1.5 seconds.
+      // Spacing them by 1.8 seconds provides a natural gap.
+      setTimeout(() => {
+        processAudioQueue();
+      }, 1800);
+    } else {
+      isPlayingQueueRef.current = false;
+    }
+  }, [playBallSound]);
+
+  const queueBallSounds = useCallback((numbers: number[]) => {
+    if (!soundOnRef.current) return;
+    const currentQueue = audioQueueRef.current;
+    // Avoid queueing any balls already in the queue or already played
+    const toAdd = numbers.filter(n => !currentQueue.includes(n) && n !== lastDrawnRef.current);
+    if (toAdd.length === 0) return;
+    audioQueueRef.current = [...currentQueue, ...toAdd];
+    if (!isPlayingQueueRef.current) {
+      processAudioQueue();
+    }
+  }, [processAudioQueue]);
 
   const playStartAudio = useCallback(() => {
     if (!soundOnRef.current) return;
@@ -162,7 +200,10 @@ function GameContent() {
         }));
       } catch (e) {}
 
-      if (g.endTime && g.serverTime) {
+      if (g.status === 'RUNNING' || g.status === 'FINISHED') {
+        setCountdown(null);
+        setEndTime(null);
+      } else if (g.endTime && g.serverTime) {
         const offset = g.serverTime - Date.now();
         setServerOff(offset);
         setEndTime(g.endTime);
@@ -181,20 +222,68 @@ function GameContent() {
       try { sessionStorage.setItem(`game_tickets_${gameId}`, JSON.stringify(sorted)); } catch (e) {}
 
       const hist = (g.drawHistory || []).map((d: any) => d.number);
-      // ── Polling audio fallback: play ball sound if polling found a new number ──
-      // This fires when socket misses the event (mobile network drop, proxy issues).
-      const latestBall = hist.at(-1);
-      if (latestBall && latestBall !== lastDrawnRef.current) {
-        lastDrawnRef.current = latestBall;
-        playBallSound(latestBall);
-      }
+      // Sync UI drawn states immediately
       setDrawn(hist);
+      const latestBall = hist.at(-1);
       setLastBall(latestBall ?? null);
-    }).catch(console.error);
-  }, [gameId, playBallSound]);
 
-  // Keep soundOnRef in sync with soundOn state so socket handlers never use stale value
-  useEffect(() => { soundOnRef.current = soundOn; }, [soundOn]);
+      // ── Polling audio fallback: queue ball sounds if polling found new numbers ──
+      // This fires when socket misses the event (mobile network drop, proxy issues).
+      const isFirstLoad = isFirstLoadRef.current;
+      if (isFirstLoad) {
+        isFirstLoadRef.current = false;
+        if (latestBall) {
+          lastDrawnRef.current = latestBall;
+        }
+      } else {
+        let newBalls: number[] = [];
+        if (lastDrawnRef.current === 0) {
+          newBalls = hist;
+        } else {
+          const playedIndex = hist.indexOf(lastDrawnRef.current);
+          if (playedIndex !== -1) {
+            newBalls = hist.slice(playedIndex + 1);
+          } else {
+            // Fallback: if last played ball isn't in history but latest ball is new
+            if (latestBall && latestBall !== lastDrawnRef.current) {
+              newBalls = [latestBall];
+            }
+          }
+        }
+
+        if (newBalls.length > 0) {
+          queueBallSounds(newBalls);
+        }
+      }
+    }).catch(console.error);
+  }, [gameId, queueBallSounds]);
+
+  // Keep soundOnRef in sync with soundOn state and clear queue if turned off
+  useEffect(() => {
+    soundOnRef.current = soundOn;
+    if (!soundOn) {
+      audioQueueRef.current = [];
+      isPlayingQueueRef.current = false;
+    }
+  }, [soundOn]);
+
+  // Reset refs/states on gameId change
+  useEffect(() => {
+    isFirstLoadRef.current = true;
+    lastDrawnRef.current = 0;
+    audioQueueRef.current = [];
+    isPlayingQueueRef.current = false;
+  }, [gameId]);
+
+  // Reset/clear audio queue when game is not actively running
+  useEffect(() => {
+    const status = game?.status;
+    if (status === 'WAITING' || status === 'COUNTDOWN' || status === 'FINISHED') {
+      lastDrawnRef.current = 0;
+      audioQueueRef.current = [];
+      isPlayingQueueRef.current = false;
+    }
+  }, [game?.status]);
 
   // ─── Initial Mount: load data + sound prefs ───────────────────────────────
   useEffect(() => {
@@ -231,11 +320,9 @@ function GameContent() {
 
     socket.on('number-drawn', (d: { number: number }) => {
       const num = Number(d.number);
-      if (num === lastDrawnRef.current) return; // deduplicate
-      lastDrawnRef.current = num;
       setDrawn(p => p.includes(num) ? p : [...p, num]);
       setLastBall(num);
-      playBallSound(num);
+      queueBallSounds([num]);
     });
 
     socket.on('countdown-start', (d: any) => {
@@ -294,7 +381,7 @@ function GameContent() {
       socket.off('game-update');
       socket.off('connect');
     };
-  }, [socket, gameId, loadData, playBallSound, playStartAudio, playStopAudio]);
+  }, [socket, gameId, loadData, queueBallSounds, playStartAudio, playStopAudio]);
 
 
   // Local countdown fallback for smoothness
