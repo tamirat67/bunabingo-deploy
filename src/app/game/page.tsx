@@ -121,7 +121,7 @@ function GameContent() {
     } catch (e) {}
   }, []);
 
-  const processAudioQueue = useCallback(() => {
+  const processAudioQueue = useCallback((setLastBallFn: (n: number) => void) => {
     if (!soundOnRef.current || audioQueueRef.current.length === 0) {
       isPlayingQueueRef.current = false;
       return;
@@ -130,19 +130,21 @@ function GameContent() {
     const nextBall = audioQueueRef.current.shift();
     if (nextBall) {
       lastDrawnRef.current = nextBall;
+      // ✅ Sync displayed ball with audio — show ball WHEN its audio plays
+      setLastBallFn(nextBall);
       playBallSound(nextBall);
       // Wait for the ball audio to finish before checking/playing next.
       // Average ball call pronunciation ("B 5", "O 75") takes ~1.5 seconds.
       // Spacing them by 1.8 seconds provides a natural gap.
       setTimeout(() => {
-        processAudioQueue();
+        processAudioQueue(setLastBallFn);
       }, 1800);
     } else {
       isPlayingQueueRef.current = false;
     }
   }, [playBallSound]);
 
-  const queueBallSounds = useCallback((numbers: number[]) => {
+  const queueBallSounds = useCallback((numbers: number[], setLastBallFn: (n: number) => void) => {
     if (!soundOnRef.current) return;
     const currentQueue = audioQueueRef.current;
     // Avoid queueing any balls already in the queue or already played
@@ -150,7 +152,7 @@ function GameContent() {
     if (toAdd.length === 0) return;
     audioQueueRef.current = [...currentQueue, ...toAdd];
     if (!isPlayingQueueRef.current) {
-      processAudioQueue();
+      processAudioQueue(setLastBallFn);
     }
   }, [processAudioQueue]);
 
@@ -222,20 +224,22 @@ function GameContent() {
       try { sessionStorage.setItem(`game_tickets_${gameId}`, JSON.stringify(sorted)); } catch (e) {}
 
       const hist = (g.drawHistory || []).map((d: any) => d.number);
-      // Sync UI drawn states immediately
+      // Sync UI drawn states immediately (board highlights)
       setDrawn(hist);
       const latestBall = hist.at(-1);
-      setLastBall(latestBall ?? null);
 
       // ── Polling audio fallback: queue ball sounds if polling found new numbers ──
       // This fires when socket misses the event (mobile network drop, proxy issues).
       const isFirstLoad = isFirstLoadRef.current;
       if (isFirstLoad) {
         isFirstLoadRef.current = false;
+        // On first load, show latest historical ball immediately (no audio needed)
         if (latestBall) {
           lastDrawnRef.current = latestBall;
+          setLastBall(latestBall);
         }
       } else {
+        // During active game: only update lastBall via audio queue so display stays in sync
         let newBalls: number[] = [];
         if (lastDrawnRef.current === 0) {
           newBalls = hist;
@@ -252,7 +256,8 @@ function GameContent() {
         }
 
         if (newBalls.length > 0) {
-          queueBallSounds(newBalls);
+          // Pass setLastBall so queue updates display when each ball's audio plays
+          queueBallSounds(newBalls, setLastBall);
         }
       }
     }).catch(console.error);
@@ -320,9 +325,10 @@ function GameContent() {
 
     socket.on('number-drawn', (d: { number: number }) => {
       const num = Number(d.number);
+      // Update the board immediately so called numbers are highlighted
       setDrawn(p => p.includes(num) ? p : [...p, num]);
-      setLastBall(num);
-      queueBallSounds([num]);
+      // ✅ Do NOT setLastBall here — audio queue will update display when audio plays
+      queueBallSounds([num], setLastBall);
     });
 
     socket.on('countdown-start', (d: any) => {
