@@ -398,9 +398,14 @@ async function runGame(gameId: string): Promise<void> {
     state.numberPool = riggedPool; // override the random pool with the rigged one
   }
 
-  // Start draw loop
+  // Start draw loop with an initial delay to allow `start.mp3` to finish playing
   if (state.drawInterval) clearInterval(state.drawInterval);
-  state.drawInterval = setInterval(() => drawNumber(gameId), config.game.drawIntervalMs);
+  setTimeout(() => {
+    const currentState = activeGames.get(gameId);
+    if (currentState) {
+      currentState.drawInterval = setInterval(() => drawNumber(gameId), config.game.drawIntervalMs);
+    }
+  }, 3500);
 }
 
 /**
