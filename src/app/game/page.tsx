@@ -69,6 +69,10 @@ function GameContent() {
   const [soundOn,   setSoundOn]   = useState(true);
   const [hidden,    setHidden]    = useState<Set<string>>(new Set());
   const [winMsg,    setWinMsg]    = useState<string | null>(null);
+  const [gameFinished, setGameFinished] = useState<{ winnerName: string; prize: number; mode: string; isWinner: boolean } | null>(null);
+  const [redirectSecs, setRedirectSecs] = useState(5);
+  const redirectTimerRef = useRef<any>(null);
+  const redirectCountdownRef = useRef<any>(null);
   const [toast,     setToast]     = useState<string | null>(null);
   const [mounted,   setMounted]   = useState(false);
   const [endTime,   setEndTime]   = useState<number | null>(null);
@@ -359,15 +363,29 @@ function GameContent() {
 
     socket.on('game-finished', (d: any) => {
       loadData();
-      if (d.winners && d.winners.length > 0) {
-        const w = d.winners[0];
-        const name = w.user?.firstName || w.user?.telegramUsername || 'A player';
-        setWinMsg(`${name} won ${w.prizeAmount} ETB! (${w.winMode})`);
-        playStopAudio();
-        setTimeout(() => {
-          router.push('/');
-        }, 6000);
-      }
+      playStopAudio();
+      const w = d.winners?.[0];
+      const name = w?.user?.firstName || w?.user?.telegramUsername || 'Someone';
+      setGameFinished({
+        winnerName: name,
+        prize: w?.prizeAmount || 0,
+        mode: w?.winMode || '',
+        isWinner: !!w,
+      });
+      // Start 5-second countdown then redirect to cartela selection
+      setRedirectSecs(5);
+      redirectCountdownRef.current = setInterval(() => {
+        setRedirectSecs(s => {
+          if (s <= 1) {
+            clearInterval(redirectCountdownRef.current);
+            return 0;
+          }
+          return s - 1;
+        });
+      }, 1000);
+      redirectTimerRef.current = setTimeout(() => {
+        router.push('/tickets/select');
+      }, 5000);
     });
 
     socket.on('game-update', (d: any) => {
@@ -410,14 +428,40 @@ function GameContent() {
   }, [endTime, serverOff, loadData]);
 
   // ─── Polling fallback: syncs state when socket events are missed ─────────
-  // RUNNING uses 3s poll = catches missed number-drawn events within 1 draw cycle.
+  // RUNNING uses 2s poll = catches missed number-drawn events within 1 draw cycle.
   // WAITING/COUNTDOWN use 3s poll = detects game start quickly.
+  // FINISHED: show popup & redirect to cartela selection (socket may have been missed).
   useEffect(() => {
     const status = game?.status;
-    if (status === 'FINISHED') return;
+    if (status === 'FINISHED') {
+      // Socket may have missed game-finished — show popup and redirect as fallback
+      if (!gameFinished) {
+        const winners = game?.winners || [];
+        const w = winners[0];
+        const name = w?.user?.firstName || w?.user?.telegramUsername || 'Someone';
+        setGameFinished({
+          winnerName: name,
+          prize: w?.prizeAmount || 0,
+          mode: w?.winMode || '',
+          isWinner: !!w,
+        });
+        playStopAudio();
+        setRedirectSecs(5);
+        redirectCountdownRef.current = setInterval(() => {
+          setRedirectSecs(s => {
+            if (s <= 1) { clearInterval(redirectCountdownRef.current); return 0; }
+            return s - 1;
+          });
+        }, 1000);
+        redirectTimerRef.current = setTimeout(() => {
+          router.push('/tickets/select');
+        }, 5000);
+      }
+      return;
+    }
     
-    let intervalMs = 2000; // 2s fallback for RUNNING (matches 1.5s draw interval)
-    if (!status) intervalMs = 2000; // Fast sync if not loaded yet
+    let intervalMs = 2000;
+    if (!status) intervalMs = 2000;
     else if (status === 'WAITING') intervalMs = 3000;
     else if (status === 'COUNTDOWN') intervalMs = 3000;
     
@@ -425,7 +469,7 @@ function GameContent() {
       loadData();
     }, intervalMs);
     return () => clearInterval(poll);
-  }, [game?.status, loadData]);
+  }, [game?.status, loadData, router, gameFinished, playStopAudio]);
 
   const isCalled   = (n: number) => drawn.includes(n);
   const isMarkedLocal = (n: number) => marked.has(n);
@@ -1017,14 +1061,112 @@ function GameContent() {
       </motion.div>
 
       <AnimatePresence>
-        {winMsg && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ position: 'fixed', inset: 0, background: 'rgba(61,43,31,0.95)', zIndex: 5000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <motion.div initial={{ scale: 0.5 }} animate={{ scale: 1 }} style={{ background: T.card, border: `5px solid ${T.gold}`, borderRadius: '32px', padding: '45px 30px', textAlign: 'center', maxWidth: '320px' }}>
-              <div style={{ fontSize: '70px' }}>🏆</div>
-              <h2 style={{ color: T.header, fontSize: '28px', fontWeight: '900' }}>WINNER!</h2>
-              <div style={{ color: T.header, fontSize: '18px', margin: '10px 0 10px' }}>{winMsg}</div>
-              <div style={{ color: T.text, fontSize: '14px', marginBottom: '20px', opacity: 0.8 }}>Redirecting to next game in 6s...</div>
-              <button onClick={() => router.push(`/tickets/select?type=${game?.room?.type || spType || 'STANDARD'}&price=${stake}`)} style={{ width: '100%', background: T.gold, color: T.header, padding: '16px', borderRadius: '16px', fontWeight: '900', border: 'none', cursor: 'pointer' }}>NEXT GAME</button>
+        {gameFinished && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(10,5,0,0.96)', zIndex: 5000, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}
+          >
+            {/* Confetti stars */}
+            {['🎉','⭐','🌟','✨','🎊','💫','🎉','⭐'].map((e, i) => (
+              <motion.div key={i}
+                initial={{ y: -20, opacity: 0, x: (i - 4) * 40 }}
+                animate={{ y: [0, -60, 0], opacity: [0, 1, 0] }}
+                transition={{ delay: i * 0.15, duration: 1.5, repeat: Infinity, repeatDelay: 2 }}
+                style={{ position: 'absolute', top: '10%', fontSize: '28px', left: `${10 + i * 11}%` }}
+              >{e}</motion.div>
+            ))}
+
+            <motion.div
+              initial={{ scale: 0.4, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+              style={{
+                background: `linear-gradient(160deg, ${T.card} 0%, #1a0f00 100%)`,
+                border: `4px solid ${T.gold}`,
+                borderRadius: '28px',
+                padding: '36px 28px 28px',
+                textAlign: 'center',
+                maxWidth: '320px',
+                width: '90%',
+                boxShadow: `0 0 60px ${T.gold}55`,
+                position: 'relative',
+              }}
+            >
+              <div style={{ fontSize: '72px', lineHeight: 1, marginBottom: '8px' }}>
+                {gameFinished.isWinner ? '🏆' : '🎯'}
+              </div>
+              <h2 style={{ color: T.gold, fontSize: '26px', fontWeight: '900', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: 2 }}>
+                {gameFinished.isWinner ? 'BINGO!' : 'GAME OVER'}
+              </h2>
+              {gameFinished.isWinner ? (
+                <>
+                  <div style={{ color: T.header, fontSize: '16px', fontWeight: '700', margin: '6px 0 4px' }}>
+                    🥇 {gameFinished.winnerName}
+                  </div>
+                  <div style={{ color: T.gold, fontSize: '22px', fontWeight: '900', margin: '4px 0 12px' }}>
+                    +{gameFinished.prize} ETB
+                  </div>
+                  {gameFinished.mode && (
+                    <div style={{ color: T.text, fontSize: '13px', opacity: 0.7, marginBottom: '16px' }}>
+                      Pattern: {gameFinished.mode}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div style={{ color: T.text, fontSize: '15px', margin: '10px 0 16px', opacity: 0.8 }}>
+                  No winner this round.
+                </div>
+              )}
+
+              <div style={{ color: T.text, fontSize: '13px', marginBottom: '18px', opacity: 0.7 }}>
+                Redirecting in <span style={{ color: T.gold, fontWeight: '900' }}>{redirectSecs}s</span>...
+              </div>
+
+              {/* Action buttons */}
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  onClick={() => {
+                    clearTimeout(redirectTimerRef.current);
+                    clearInterval(redirectCountdownRef.current);
+                    router.push(`/tickets/select?type=${game?.room?.type || spType || 'STANDARD'}&price=${stake}`);
+                  }}
+                  style={{
+                    flex: 1,
+                    background: `linear-gradient(135deg, ${T.gold}, #c47a1e)`,
+                    color: '#1a0a00',
+                    padding: '14px 8px',
+                    borderRadius: '14px',
+                    fontWeight: '900',
+                    fontSize: '13px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    boxShadow: `0 4px 16px ${T.gold}55`,
+                  }}
+                >
+                  🎮 PLAY AGAIN
+                </button>
+                <button
+                  onClick={() => {
+                    clearTimeout(redirectTimerRef.current);
+                    clearInterval(redirectCountdownRef.current);
+                    router.push('/');
+                  }}
+                  style={{
+                    flex: 1,
+                    background: 'rgba(255,255,255,0.08)',
+                    color: T.header,
+                    padding: '14px 8px',
+                    borderRadius: '14px',
+                    fontWeight: '700',
+                    fontSize: '13px',
+                    border: `1px solid ${T.gold}44`,
+                    cursor: 'pointer',
+                  }}
+                >
+                  🏠 LOBBY
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}
