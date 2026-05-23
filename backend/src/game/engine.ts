@@ -405,7 +405,7 @@ async function runGame(gameId: string): Promise<void> {
     if (currentState) {
       currentState.drawInterval = setInterval(() => drawNumber(gameId), config.game.drawIntervalMs);
     }
-  }, 3500);
+  }, 2000);
 }
 
 /**
