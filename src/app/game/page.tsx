@@ -76,6 +76,7 @@ function GameContent() {
   const [marked,    setMarked]    = useState<Set<number>>(new Set());
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [audioUnlocked, setAudioUnlocked] = useState(false);
+  const [claiming,      setClaiming]      = useState(false);
 
   const toastTimer           = useRef<any>(null);
   const lastStartAudioPlayed = useRef<number>(0);
@@ -455,7 +456,8 @@ function GameContent() {
 
   const hideCard   = (id: string) => setHidden(p => new Set([...p, id]));
   const handleBingo = async () => {
-    if (!gameId) return;
+    if (!gameId || claiming) return;
+    setClaiming(true);
     try { 
       const res = await claimBingo(gameId);
       if (res.won) {
@@ -468,6 +470,8 @@ function GameContent() {
     }
     catch (e: any) { 
       showAlert('Error', e.response?.data?.error || 'No Bingo yet! Keep playing.', 'error'); 
+    } finally {
+      setClaiming(false);
     }
   };
 
@@ -919,35 +923,37 @@ function GameContent() {
                 {/* Per-card BINGO! Action Claim Button */}
                 <div style={{ padding: '0 5px 6px 5px' }}>
                   <motion.button
-                    whileTap={game?.status === 'RUNNING' ? { scale: 0.96 } : {}}
+                    whileTap={game?.status === 'RUNNING' && !claiming ? { scale: 0.96 } : {}}
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (game?.status === 'RUNNING') handleBingo();
+                      if (game?.status === 'RUNNING' && !claiming) handleBingo();
                     }}
-                    disabled={game?.status !== 'RUNNING'}
+                    disabled={game?.status !== 'RUNNING' || claiming}
                     style={{
                       width: '100%',
                       background: game?.status === 'RUNNING' 
-                        ? (isVip ? 'linear-gradient(135deg, #FFD700, #C471ED)' : 'linear-gradient(135deg, #F39C12, #E67E22)') 
+                        ? (claiming 
+                            ? '#7F8C8D' 
+                            : (isVip ? 'linear-gradient(135deg, #FFD700, #C471ED)' : 'linear-gradient(135deg, #F39C12, #E67E22)'))
                         : (isVip ? 'rgba(255,255,255,0.05)' : 'rgba(150,150,150,0.1)'),
                       color: game?.status === 'RUNNING' 
                         ? (isVip ? '#1C0A35' : 'white') 
                         : (isVip ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.3)'),
-                      border: isVip && game?.status === 'RUNNING' ? '2px solid #FFFFFF' : 'none',
+                      border: isVip && game?.status === 'RUNNING' && !claiming ? '2px solid #FFFFFF' : 'none',
                       borderRadius: '12px',
                       height: '36px',
                       fontWeight: '900',
                       fontSize: '13px',
-                      cursor: game?.status === 'RUNNING' ? 'pointer' : 'not-allowed',
+                      cursor: game?.status === 'RUNNING' && !claiming ? 'pointer' : 'not-allowed',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      boxShadow: game?.status === 'RUNNING' 
+                      boxShadow: game?.status === 'RUNNING' && !claiming
                         ? (isVip ? '0 4px 15px rgba(255,215,0,0.4)' : '0 4px 10px rgba(230,126,34,0.3)') 
                         : 'none'
                     }}
                   >
-                    ☕ BINGO! ({cardId})
+                    {claiming ? '⏳ CLAIMING...' : `☕ BINGO! (${cardId})`}
                   </motion.button>
                 </div>
               </motion.div>

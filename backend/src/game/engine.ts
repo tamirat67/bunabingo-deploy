@@ -645,6 +645,15 @@ async function checkAllTickets(gameId: string, drawnNumbers: number[]): Promise<
 
 // ─── Claim Bingo Win (Optimized) ─────────────────────────────────
 export async function claimBingoWin(gameId: string, userId: string): Promise<{ won: boolean; mode?: string; prize?: number; error?: string }> {
+  // Immediately pause the draw interval in memory to stop calling new balls
+  const state = activeGames.get(gameId);
+  const oldInterval = state?.drawInterval;
+  if (state?.drawInterval) {
+    clearInterval(state.drawInterval);
+    state.drawInterval = undefined;
+    logger.info(`[Game ${gameId}] Claim initiated by user ${userId}. Paused ball drawing.`);
+  }
+
   // Use a targeted query to get game and user tickets in one go if possible, or just optimize the game fetch
   const game = await prisma.game.findUnique({
     where: { id: gameId },
@@ -692,18 +701,17 @@ export async function claimBingoWin(gameId: string, userId: string): Promise<{ w
     // Process everything fast!
     await processWinner(gameId, userId, ticketId, mode, drawnNumbers);
     
-    // Stop the draw loop immediately
-    const state = activeGames.get(gameId);
-    if (state?.drawInterval) {
-      clearInterval(state.drawInterval);
-      state.drawInterval = undefined;
-    }
-    
     // Finalize game
     await finishGame(gameId, `Bingo claimed: ${mode}`);
     
     const prizeAmount = new Decimal(game.totalPrize);
     return { won: true, mode, prize: Number(prizeAmount) };
+  }
+
+  // If claim was invalid, resume the draw loop
+  if (state && !state.drawInterval && oldInterval) {
+    state.drawInterval = setInterval(() => drawNumber(gameId), config.game.drawIntervalMs);
+    logger.info(`[Game ${gameId}] Claim validation failed for user ${userId}. Resumed ball drawing.`);
   }
 
   return { 

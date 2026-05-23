@@ -499,20 +499,8 @@ router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
 router.post('/games/:gameId/bingo', async (req: Request, res: Response) => {
   const user = (req as any).user;
   const { gameId } = req.params;
-  const { checkWin } = await import('../game/card.generator');
   
   try {
-    const game = await prisma.game.findUnique({
-      where: { id: gameId },
-      include: { drawHistory: true }
-    });
-    
-    if (!game) return res.status(404).json({ error: 'Game not found' });
-    
-    const tickets = await prisma.ticket.findMany({
-      where: { userId: user.id, gameId }
-    });
-    
     const { claimBingoWin } = await import('../game/engine');
     const result = await claimBingoWin(gameId, user.id);
     
