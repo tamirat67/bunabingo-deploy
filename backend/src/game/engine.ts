@@ -612,19 +612,30 @@ async function checkAllTickets(gameId: string, drawnNumbers: number[]): Promise<
         
         // Auto-claim for house bots
         if (ticket.user?.isBot) {
-           logger.info(`[Game ${gameId}] BOT WINNER DETECTED! Auto-claiming ${result.modes[0]}...`);
-           
+           // Clear draw interval immediately to pause drawings (simulates thinking/clicking claim)
            if (state?.drawInterval) {
              clearInterval(state.drawInterval);
              state.drawInterval = undefined;
            }
            
-           try {
-             await processWinner(gameId, ticket.userId, ticket.id, result.modes[0], drawnNumbers);
-             await finishGame(gameId, `House Bot Bingo claimed: ${result.modes[0]}`);
-           } catch (err) {
-             logger.error(`[Game ${gameId}] Bot auto-claim failed:`, err);
-           }
+           const delayMs = 3000 + Math.floor(Math.random() * 1500); // 3.0s to 4.5s delay
+           logger.info(`[Game ${gameId}] BOT WINNER DETECTED! Scheduling human-like auto-claim in ${delayMs}ms for ${result.modes[0]}...`);
+           
+           setTimeout(async () => {
+             // Check if game is still running (e.g. hasn't been finished/cancelled by a faster human claim)
+             const game = await prisma.game.findUnique({ where: { id: gameId } });
+             if (!game || game.status !== GameStatus.RUNNING) {
+               logger.info(`[Game ${gameId}] Scheduled bot claim cancelled: Game status is ${game?.status ?? 'UNKNOWN'}`);
+               return;
+             }
+
+             try {
+               await processWinner(gameId, ticket.userId, ticket.id, result.modes[0], drawnNumbers);
+               await finishGame(gameId, `House Bot Bingo claimed: ${result.modes[0]}`);
+             } catch (err) {
+               logger.error(`[Game ${gameId}] Bot auto-claim failed:`, err);
+             }
+           }, delayMs);
            
            return; // Stop checking further tickets for this draw
         }
