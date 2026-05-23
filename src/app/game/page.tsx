@@ -32,18 +32,20 @@ function GameContent() {
   const { socket } = useSocket();
 
   const [game,      setGame]      = useState<any>(null);
-  const [tickets,   setTickets]   = useState<any[]>(() => {
+  const [tickets,   setTickets]   = useState<any[]>([]);
+
+  // Hydrate from cache only on client to avoid Next.js SSR mismatch
+  useEffect(() => {
     if (typeof window !== 'undefined' && gameId) {
-      const cached = sessionStorage.getItem(`game_tickets_${gameId}`);
-      if (cached) {
-        try {
+      try {
+        const cached = sessionStorage.getItem(`game_tickets_${gameId}`);
+        if (cached) {
           const parsed = JSON.parse(cached);
-          return parsed.sort((a: any, b: any) => (a.card?.id || 0) - (b.card?.id || 0));
-        } catch (e) {}
-      }
+          setTickets(parsed.sort((a: any, b: any) => (a.card?.id || 0) - (b.card?.id || 0)));
+        }
+      } catch (e) {}
     }
-    return [];
-  });
+  }, [gameId]);
 
   const spType  = sp.get('type') || '';
   const spPrice = sp.get('price');

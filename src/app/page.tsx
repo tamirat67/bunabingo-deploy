@@ -14,33 +14,27 @@ import { useSocket } from '../context/SocketContext';
 export default function LobbyPage() {
   const router = useRouter();
   const { T } = useTheme();
-  const [user, setUser] = useState<any>(() => {
+  const [user, setUser] = useState<any>(null);
+  const [wallet, setWallet] = useState<any>(null);
+  const [rooms, setRooms] = useState<any[]>([]);
+
+  // Hydrate from cache only on client to avoid Next.js SSR mismatch (white screen crash)
+  useEffect(() => {
     if (typeof window !== 'undefined') {
-      const cached = sessionStorage.getItem('lobby_user');
-      if (cached) {
-        try { return JSON.parse(cached); } catch (e) {}
-      }
+      try {
+        const cachedUser = sessionStorage.getItem('lobby_user');
+        if (cachedUser) {
+          const parsed = JSON.parse(cachedUser);
+          setUser(parsed);
+          if (parsed.wallet) setWallet(parsed.wallet);
+        }
+        const cachedRooms = sessionStorage.getItem('lobby_rooms');
+        if (cachedRooms) {
+          setRooms(JSON.parse(cachedRooms));
+        }
+      } catch (e) {}
     }
-    return null;
-  });
-  const [wallet, setWallet] = useState<any>(() => {
-    if (typeof window !== 'undefined') {
-      const cached = sessionStorage.getItem('lobby_user');
-      if (cached) {
-        try { return JSON.parse(cached).wallet; } catch (e) {}
-      }
-    }
-    return null;
-  });
-  const [rooms, setRooms] = useState<any[]>(() => {
-    if (typeof window !== 'undefined') {
-      const cached = sessionStorage.getItem('lobby_rooms');
-      if (cached) {
-        try { return JSON.parse(cached); } catch (e) {}
-      }
-    }
-    return [];
-  });
+  }, []);
   const [activeGame, setActiveGame] = useState<any>(null);
   const [mounted, setMounted] = useState(false);
   const [showJackpot, setShowJackpot] = useState(false);
