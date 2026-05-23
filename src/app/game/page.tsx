@@ -77,6 +77,7 @@ function GameContent() {
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [audioUnlocked, setAudioUnlocked] = useState(false);
   const [claiming,      setClaiming]      = useState(false);
+  const [calledHistory, setCalledHistory] = useState<number[]>([]);
 
   const toastTimer           = useRef<any>(null);
   const lastStartAudioPlayed = useRef<number>(0);
@@ -123,7 +124,7 @@ function GameContent() {
   }, []);
 
   const processAudioQueue = useCallback((setLastBallFn: (n: number) => void) => {
-    if (!soundOnRef.current || audioQueueRef.current.length === 0) {
+    if (audioQueueRef.current.length === 0) {
       isPlayingQueueRef.current = false;
       return;
     }
@@ -133,6 +134,8 @@ function GameContent() {
       lastDrawnRef.current = nextBall;
       // ✅ Sync displayed ball with audio — show ball WHEN its audio plays
       setLastBallFn(nextBall);
+      // ✅ Sync recent balls history with audio call sequence
+      setCalledHistory(prev => prev.includes(nextBall) ? prev : [...prev, nextBall]);
       playBallSound(nextBall);
       // Wait for the ball audio to finish before checking/playing next.
       // Average ball call pronunciation ("B 5", "O 75") takes ~1.5 seconds.
@@ -146,7 +149,6 @@ function GameContent() {
   }, [playBallSound]);
 
   const queueBallSounds = useCallback((numbers: number[], setLastBallFn: (n: number) => void) => {
-    if (!soundOnRef.current) return;
     const currentQueue = audioQueueRef.current;
     // Avoid queueing any balls already in the queue or already played
     const toAdd = numbers.filter(n => !currentQueue.includes(n) && n !== lastDrawnRef.current);
@@ -238,6 +240,7 @@ function GameContent() {
         if (latestBall) {
           lastDrawnRef.current = latestBall;
           setLastBall(latestBall);
+          setCalledHistory(hist);
         }
       } else {
         // During active game: only update lastBall via audio queue so display stays in sync
@@ -264,13 +267,9 @@ function GameContent() {
     }).catch(console.error);
   }, [gameId, queueBallSounds]);
 
-  // Keep soundOnRef in sync with soundOn state and clear queue if turned off
+  // Keep soundOnRef in sync with soundOn state
   useEffect(() => {
     soundOnRef.current = soundOn;
-    if (!soundOn) {
-      audioQueueRef.current = [];
-      isPlayingQueueRef.current = false;
-    }
   }, [soundOn]);
 
   // Reset refs/states on gameId change
@@ -279,6 +278,7 @@ function GameContent() {
     lastDrawnRef.current = 0;
     audioQueueRef.current = [];
     isPlayingQueueRef.current = false;
+    setCalledHistory([]);
   }, [gameId]);
 
   // Reset/clear audio queue when game is not actively running
@@ -288,6 +288,9 @@ function GameContent() {
       lastDrawnRef.current = 0;
       audioQueueRef.current = [];
       isPlayingQueueRef.current = false;
+      if (status !== 'FINISHED') {
+        setCalledHistory([]);
+      }
     }
   }, [game?.status]);
 
@@ -685,7 +688,7 @@ function GameContent() {
           <div style={{ background: isVip ? 'rgba(255,255,255,0.02)' : T.statBg, borderRadius: '12px', padding: '6px 10px', border: isVip ? '1px solid rgba(255,215,0,0.2)' : `1px solid ${T.gold}33`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={{ color: isVip ? '#FFD700' : T.brown, fontSize: '9px', fontWeight: '900', letterSpacing: '0.5px' }}>RECENT BALLS</span>
             <div style={{ display: 'flex', gap: '5px' }}>
-              {drawn.slice(-4).reverse().map((ball) => {
+              {calledHistory.slice(-4).reverse().map((ball) => {
                 const label = colLabel(ball);
                 const color = isVip ? 'linear-gradient(135deg, #FFD700, #C471ED)' : COL_COLOR[label];
                 return (
@@ -713,7 +716,7 @@ function GameContent() {
                   </motion.div>
                 );
               })}
-              {drawn.length === 0 && <span style={{ color: isVip ? 'rgba(255,255,255,0.4)' : T.brown, fontSize: '9px', fontWeight: '800', opacity: 0.6 }}>Waiting for draw...</span>}
+              {calledHistory.length === 0 && <span style={{ color: isVip ? 'rgba(255,255,255,0.4)' : T.brown, fontSize: '9px', fontWeight: '800', opacity: 0.6 }}>Waiting for draw...</span>}
             </div>
           </div>
 
