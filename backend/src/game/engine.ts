@@ -194,8 +194,25 @@ async function runGame(gameId: string): Promise<void> {
   }
 
   if (!isDemo) {
+    // Fetch all user isBot flags to avoid checking or charging bots
+    const userIds = Array.from(ticketsByUser.keys());
+    const users = await prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, isBot: true }
+    });
+    const botUserMap = new Map<string, boolean>();
+    for (const u of users) {
+      botUserMap.set(u.id, u.isBot);
+    }
+
     // ─── CHARGE PLAYERS (real game only) ───────────────────────────────────
     for (const [userId, userTickets] of ticketsByUser) {
+      // Skip charging house bots
+      if (botUserMap.get(userId) === true) {
+        logger.debug(`[Game ${gameId}] User ${userId} is a house bot — skipping balance check and charging`);
+        continue;
+      }
+
       const numTickets = userTickets.length;
       const totalCharge = new Decimal(unitPrice).mul(numTickets);
       const houseEdge = totalCharge.mul(houseEdgePercent).div(100);
@@ -289,6 +306,9 @@ async function runGame(gameId: string): Promise<void> {
     } catch (commissionErr: any) {
       logger.error(`[Game ${gameId}] Commission debit FAILED — cancelling game:`, commissionErr);
       for (const [userId, userTickets] of ticketsByUser) {
+        // Skip house bots during refunds
+        if (botUserMap.get(userId) === true) continue;
+
         const numTickets = userTickets.length;
         const totalCharge = new Decimal(unitPrice).mul(numTickets);
         await prisma.wallet.update({ where: { userId }, data: { balance: { increment: totalCharge }, totalSpent: { decrement: totalCharge } } });
