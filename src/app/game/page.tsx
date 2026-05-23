@@ -136,11 +136,10 @@ function GameContent() {
     const nextBall = audioQueueRef.current.shift();
     if (nextBall) {
       lastDrawnRef.current = nextBall;
-      // ✅ Update big ball display WHEN audio plays (visual sync with sound)
+      // ✅ Big ball display + Recent Balls update TOGETHER when audio plays
+      // This ensures Recent Balls always follows Big Ball Display in exact order
       setLastBallFn(nextBall);
-      // NOTE: calledHistory is updated immediately on number-drawn socket event.
-      // For polling fallback balls, calledHistory is set from full drawHistory.
-      // We only need to play the sound here.
+      setCalledHistory(prev => prev.includes(nextBall) ? prev : [...prev, nextBall]);
       playBallSound(nextBall);
       // Wait for ball audio to finish before playing next (~1.8s natural gap)
       setTimeout(() => {
@@ -246,11 +245,11 @@ function GameContent() {
           setCalledHistory(hist); // Show all previously called balls in recent history
         }
       } else {
-        // During active game: sync calledHistory with full server history immediately
-        // so recent balls strip never lags behind the board highlights.
-        setCalledHistory(hist);
+        // During active game: board highlights sync from server history immediately.
+        // calledHistory (Recent Balls) and Big Ball Display are driven by audio queue
+        // together inside processAudioQueue — so they always match in order.
 
-        // Queue audio only for NEW balls (not yet played)
+        // Queue audio only for NEW balls not yet played
         let newBalls: number[] = [];
         if (lastDrawnRef.current === 0) {
           newBalls = hist;
@@ -259,7 +258,7 @@ function GameContent() {
           if (playedIndex !== -1) {
             newBalls = hist.slice(playedIndex + 1);
           } else {
-            // Fallback: if last played ball isn't in history but latest ball is new
+            // Fallback: last played ball not in history — queue latest if new
             if (latestBall && latestBall !== lastDrawnRef.current) {
               newBalls = [latestBall];
             }
@@ -267,7 +266,7 @@ function GameContent() {
         }
 
         if (newBalls.length > 0) {
-          // Pass setLastBall so queue updates big ball display when each ball's audio plays
+          // processAudioQueue will update both setLastBall + calledHistory together
           queueBallSounds(newBalls, setLastBall);
         }
       }
@@ -336,11 +335,10 @@ function GameContent() {
 
     socket.on('number-drawn', (d: { number: number }) => {
       const num = Number(d.number);
-      // Update board highlights and recent balls immediately together
+      // Board highlights update immediately (so card numbers are marked)
       setDrawn(p => p.includes(num) ? p : [...p, num]);
-      // ✅ Recent balls: add immediately so board and recent balls are always in sync
-      setCalledHistory(prev => prev.includes(num) ? prev : [...prev, num]);
-      // ✅ Big ball display: still driven by audio queue (visual + audio sync)
+      // Big ball display + Recent Balls: driven by audio queue together
+      // (calledHistory is updated inside processAudioQueue with setLastBall)
       queueBallSounds([num], setLastBall);
     });
 
@@ -350,7 +348,11 @@ function GameContent() {
         setServerOff(d.serverTime - Date.now());
         setEndTime(d.endTime);
       }
-      if (d.seconds === 0) setTimeout(loadData, 300);
+      if (d.seconds === 0) {
+        // Immediate start (no countdown) — play start sound now
+        playStartAudio();
+        setTimeout(loadData, 300);
+      }
     });
 
     socket.on('countdown-tick', (d: any) => {
