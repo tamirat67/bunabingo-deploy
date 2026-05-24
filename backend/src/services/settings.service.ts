@@ -6,6 +6,7 @@ import { logger } from '../lib/logger';
 const DEFAULT_SETTINGS: Record<string, string> = {
   COMPANY_COMMISSION_RATE: '12.5',
   AGENT_PROFIT_RATE: '12.5',
+  HOUSE_BOT_ENABLED: 'true',
 };
 
 /**
@@ -41,6 +42,11 @@ export async function getAgentProfitRate(): Promise<number> {
   const rateStr = await getSystemSetting('AGENT_PROFIT_RATE');
   const rate = parseFloat(rateStr);
   return isNaN(rate) ? config.game.agentProfitRate : rate / 100;
+}
+
+export async function getHouseBotEnabled(): Promise<boolean> {
+  const enabled = await getSystemSetting('HOUSE_BOT_ENABLED');
+  return enabled !== 'false'; // Defaults to true
 }
 
 export async function getReceiverPhone(): Promise<string> {

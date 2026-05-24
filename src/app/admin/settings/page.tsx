@@ -17,6 +17,7 @@ interface SystemSettings {
   BONUS_PERCENT: string;
   BONUS_MIN_DEPOSIT: string;
   BONUS_EXPIRY: string;
+  HOUSE_BOT_ENABLED: boolean;
 }
 
 interface Promotion {
@@ -45,6 +46,7 @@ export default function SettingsPage() {
     BONUS_PERCENT: '100',
     BONUS_MIN_DEPOSIT: '50',
     BONUS_EXPIRY: '',
+    HOUSE_BOT_ENABLED: true,
   });
   const [loadingSettings, setLoadingSettings] = useState(true);
   const [savingSettings, setSavingSettings] = useState(false);
@@ -88,6 +90,7 @@ export default function SettingsPage() {
         BONUS_PERCENT: res.data.BONUS_PERCENT || '100',
         BONUS_MIN_DEPOSIT: res.data.BONUS_MIN_DEPOSIT || '50',
         BONUS_EXPIRY: res.data.BONUS_EXPIRY || '',
+        HOUSE_BOT_ENABLED: res.data.HOUSE_BOT_ENABLED !== false,
       });
     } catch (err) {
       console.error('Failed to fetch settings:', err);
@@ -383,6 +386,64 @@ export default function SettingsPage() {
                   </button>
                 </>
               )}
+            </div>
+
+            {/* Game Engine Mode */}
+            <div className="stat-card-m" style={{ padding: '32px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+                <div>
+                  <h2 style={{ fontSize: '16px', fontWeight: '900', color: '#3d2b1f', margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <FiSettings style={{ color: '#d4af37' }} /> Game Engine Mode
+                  </h2>
+                  <p style={{ color: '#78716c', margin: '6px 0 0', fontSize: '13px' }}>
+                    Switch between automated bots or wait for real players
+                  </p>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  {settings.HOUSE_BOT_ENABLED ? (
+                    <span style={{ background: 'rgba(212, 175, 55, 0.1)', color: '#d4af37', padding: '6px 14px', borderRadius: '999px', fontSize: '12px', fontWeight: '900' }}>🤖 AUTOMATED BOT MODE</span>
+                  ) : (
+                    <span style={{ background: 'rgba(34, 197, 94, 0.1)', color: '#22c55e', padding: '6px 14px', borderRadius: '999px', fontSize: '12px', fontWeight: '900' }}>👥 REAL PLAYERS ONLY</span>
+                  )}
+                </div>
+              </div>
+
+              <div style={{
+                background: settings.HOUSE_BOT_ENABLED ? 'rgba(212, 175, 55, 0.04)' : 'rgba(34, 197, 94, 0.04)',
+                border: `2px solid ${settings.HOUSE_BOT_ENABLED ? '#d4af37' : '#22c55e'}`,
+                borderRadius: '20px',
+                padding: '24px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                transition: 'all 0.3s ease',
+              }}>
+                <div>
+                  <div style={{ fontWeight: '900', color: '#3d2b1f', fontSize: '16px' }}>
+                    {settings.HOUSE_BOT_ENABLED ? 'House Bot Injection: ON' : 'House Bot Injection: OFF'}
+                  </div>
+                  <div style={{ fontSize: '13px', color: '#78716c', marginTop: '6px', maxWidth: '380px', lineHeight: '1.5' }}>
+                    {settings.HOUSE_BOT_ENABLED 
+                      ? 'The game automatically injects 30 bots and starts immediately when 1 real player buys a ticket. Guarantees 60% house win rate.'
+                      : 'The game waits in the Lobby until the minimum required real players (e.g. 2 players) buy tickets before starting the countdown.'}
+                  </div>
+                </div>
+                <div
+                  onClick={() => setSettings(s => ({ ...s, HOUSE_BOT_ENABLED: !s.HOUSE_BOT_ENABLED }))}
+                  style={{
+                    width: '56px', height: '30px',
+                    background: settings.HOUSE_BOT_ENABLED ? '#d4af37' : '#e7e5e4',
+                    borderRadius: '20px', position: 'relative', cursor: 'pointer', transition: '0.3s',
+                    flexShrink: 0,
+                  }}
+                >
+                  <div style={{
+                    width: '22px', height: '22px', background: 'white', borderRadius: '50%',
+                    position: 'absolute', top: '4px', left: settings.HOUSE_BOT_ENABLED ? '30px' : '4px', transition: '0.3s',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
+                  }} />
+                </div>
+              </div>
             </div>
 
             {/* Game Room Pricing */}

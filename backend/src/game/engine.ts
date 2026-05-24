@@ -1190,12 +1190,14 @@ export async function joinGame(
       ]);
 
       // ─── House Bot Injection + Auto-Start ───────────────────────────────
+      const { getHouseBotEnabled } = await import('../services/settings.service');
+      const houseBotEnabled = await getHouseBotEnabled();
       const isBotRoom = game.room.type in BOT_COUNTS;
 
       if (game.status === GameStatus.WAITING && isDemo) {
         await startCountdown(gameId, currentTicketCount);
 
-      } else if (game.status === GameStatus.WAITING && isBotRoom && !isDemo) {
+      } else if (game.status === GameStatus.WAITING && !isDemo) {
         const joiningUser = await prisma.user.findUnique({ where: { id: userId }, select: { isBot: true } });
         const joinerIsReal = !joiningUser?.isBot;
 
@@ -1209,36 +1211,44 @@ export async function joinGame(
           );
           const realPlayerCount = realUserIds.size;
 
-          if (realPlayerCount >= 1) {
-            const takenCardIds = allTickets.map(t => (t.card as any).id as number);
-            gamesWithBotsInjectedPublic.add(gameId);
+          if (houseBotEnabled && isBotRoom) {
+            // AUTOMATED BOT MODE
+            if (realPlayerCount >= 1) {
+              const takenCardIds = allTickets.map(t => (t.card as any).id as number);
+              gamesWithBotsInjectedPublic.add(gameId);
 
-            setImmediate(async () => {
-              try {
-                await injectBotTickets(gameId, game.room.type, takenCardIds);
-                const fullCount = await prisma.ticket.count({ where: { gameId } });
-                const botCount = BOT_COUNTS[game.room.type] ?? 30;
-                logger.info(`[HouseBot] Auto-starting game ${gameId} (${game.room.type}) with ${fullCount} total tickets (${botCount} bots injected)`);
+              setImmediate(async () => {
+                try {
+                  await injectBotTickets(gameId, game.room.type, takenCardIds);
+                  const fullCount = await prisma.ticket.count({ where: { gameId } });
+                  const botCount = BOT_COUNTS[game.room.type] ?? 30;
+                  logger.info(`[HouseBot] Auto-starting game ${gameId} (${game.room.type}) with ${fullCount} total tickets (${botCount} bots injected)`);
 
-                await Promise.all([
-                  triggerGameEvent(gameId, 'player-joined', {
-                    userId: 'bots',
-                    playerCount: fullCount,
-                    numTickets: botCount,
-                    totalPrize: totalPrize.toString(),
-                    serverTime: Date.now(),
-                  }),
-                  triggerGameEvent(game.roomId, 'player-count-update', { playerCount: fullCount }),
-                ]);
+                  await Promise.all([
+                    triggerGameEvent(gameId, 'player-joined', {
+                      userId: 'bots',
+                      playerCount: fullCount,
+                      numTickets: botCount,
+                      totalPrize: totalPrize.toString(),
+                      serverTime: Date.now(),
+                    }),
+                    triggerGameEvent(game.roomId, 'player-count-update', { playerCount: fullCount }),
+                  ]);
 
-                await startCountdown(gameId, fullCount);
-              } catch (e) {
-                logger.error('[HouseBot] Bot injection / auto-start error:', e);
-              }
-            });
+                  await startCountdown(gameId, fullCount);
+                } catch (e) {
+                  logger.error('[HouseBot] Bot injection / auto-start error:', e);
+                }
+              });
+            }
+          } else {
+            // REAL PLAYERS ONLY MODE
+            if (realPlayerCount >= game.room.minPlayers) {
+              logger.info(`[Game ${gameId}] Minimum real players reached (${realPlayerCount}/${game.room.minPlayers}). Auto-starting countdown.`);
+              await startCountdown(gameId, currentTicketCount);
+            }
           }
         }
-
       } else if (game.status === GameStatus.COUNTDOWN) {
         await triggerGameEvent(gameId, 'game-update', { playerCount });
       }

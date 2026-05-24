@@ -1233,7 +1233,8 @@ staffRouter.get('/settings', restrictToAdmin, async (_req, res) => {
       bonusActive,
       bonusPercent,
       bonusMinDeposit,
-      bonusExpiry
+      bonusExpiry,
+      houseBotEnabled
     ] = await Promise.all([
       getSystemSetting('COMPANY_COMMISSION_RATE'),
       getSystemSetting('AGENT_PROFIT_RATE'),
@@ -1241,6 +1242,7 @@ staffRouter.get('/settings', restrictToAdmin, async (_req, res) => {
       getSystemSetting('BONUS_PERCENT'),
       getSystemSetting('BONUS_MIN_DEPOSIT'),
       getSystemSetting('BONUS_EXPIRY'),
+      getSystemSetting('HOUSE_BOT_ENABLED'),
     ]);
     res.json({
       COMPANY_COMMISSION_RATE: companyCommissionRate || '12.5',
@@ -1249,6 +1251,7 @@ staffRouter.get('/settings', restrictToAdmin, async (_req, res) => {
       BONUS_PERCENT: bonusPercent || '100',
       BONUS_MIN_DEPOSIT: bonusMinDeposit || '50',
       BONUS_EXPIRY: bonusExpiry || '',
+      HOUSE_BOT_ENABLED: houseBotEnabled !== 'false', // Defaults to true
     });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch settings' });
@@ -1264,6 +1267,7 @@ staffRouter.put('/settings', restrictToAdmin, async (req, res) => {
     'BONUS_PERCENT',
     'BONUS_MIN_DEPOSIT',
     'BONUS_EXPIRY',
+    'HOUSE_BOT_ENABLED',
   ];
   try {
     for (const key of allowed) {
