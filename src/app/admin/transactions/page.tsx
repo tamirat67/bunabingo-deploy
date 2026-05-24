@@ -213,17 +213,29 @@ export default function TransactionsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {pendingDeposits.map((d: any) => (
+                  {pendingDeposits.map((d: any) => {
+                    const telebirrUrlMatch = typeof d.reference === 'string' ? d.reference.match(/(https:\/\/transactioninfo\.ethiotelecom\.et\/receipt\/[A-Z0-9]+)/i) : null;
+                    const telebirrUrl = telebirrUrlMatch ? telebirrUrlMatch[1] : null;
+                    
+                    const txIdMatch = typeof d.reference === 'string' ? d.reference.match(/transaction number is ([A-Z0-9]+)/i) : null;
+                    const rawRef = d.reference || d.txnId || 'N/A';
+                    const displayRef = txIdMatch ? txIdMatch[1] : (rawRef.length > 20 ? rawRef.substring(0, 15) + '...' : rawRef);
+
+                    return (
                     <tr key={d.id}>
                       <td>
                         <div style={{ fontWeight: '700' }}>{d.user?.firstName || 'Player'}</div>
                         <div style={{ fontSize: '12px', color: '#78716c' }}>ID: {d.user?.telegramId?.toString()}</div>
                       </td>
                       <td style={{ fontWeight: '800', color: '#22c55e' }}>+{parseFloat(d.amount).toLocaleString()} ETB</td>
-                      <td style={{ fontFamily: 'monospace', fontWeight: '600' }}>{d.reference || d.txnId || 'N/A'}</td>
+                      <td style={{ fontFamily: 'monospace', fontWeight: '600' }} title={rawRef}>{displayRef}</td>
                       <td>
                         {d.receiptUrl ? (
                           <a href={d.receiptUrl.startsWith('http') ? d.receiptUrl : `${api.defaults.baseURL?.replace('/api', '')}/api/file/${d.receiptUrl}`} target="_blank" rel="noopener noreferrer" className="badge badge-gold" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                            <FiEye size={12} /> View Slip
+                          </a>
+                        ) : telebirrUrl ? (
+                          <a href={telebirrUrl} target="_blank" rel="noopener noreferrer" className="badge badge-gold" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                             <FiEye size={12} /> View Slip
                           </a>
                         ) : 'No Proof'}
@@ -236,7 +248,8 @@ export default function TransactionsPage() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                   {pendingDeposits.length === 0 && <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: '#78716c' }}>No pending deposits.</td></tr>}
                 </tbody>
               </table>
