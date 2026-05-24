@@ -124,7 +124,7 @@ export default function CommissionsPage() {
                     </div>
                   </td>
                   <td>Deposit Reward</td>
-                  <td style={{ fontWeight:900, color:'#fff' }}>{(item.totalDeposited || 500).toLocaleString()} ETB</td>
+                  <td style={{ fontWeight:900, color:'#1c1917' }}>{(item.totalDeposited || 500).toLocaleString()} ETB</td>
                   <td className="agent-text-gold" style={{ fontWeight:900 }}>+{(item.totalDeposited ? item.totalDeposited * 0.1 : 50).toLocaleString()} ETB</td>
                   <td className="right">
                     <span className="agent-pill gold">CREDITED</span>
