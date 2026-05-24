@@ -1106,164 +1106,149 @@ export async function joinGame(
     });
   });
 
-  // ─── Broadcast Updates (Outside Transaction) ───────────────────────────
-  const currentState = activeGames.get(gameId);
-  if (currentState) {
-    currentState.ticketCount = currentTicketCount;
-  }
-
-  // ─── Live Jackpot & Cache Invalidation (Outside Transaction - Async/Background) ───
-  const isDemo = game.room.type === 'DEMO';
-  const netTickets = numTickets - existingCount;
-
-  if (!isDemo && netTickets > 0) {
-    (async () => {
-      try {
-        const jackpot = await prisma.jackpot.findUnique({ where: { id: 'GLOBAL' } });
-        if (jackpot) {
-          const contribution = new Decimal(unitPrice).mul(netTickets).mul(jackpot.contributionPercent).div(100);
-          const updatedJackpot = await prisma.jackpot.update({
-            where: { id: 'GLOBAL' },
-            data: { currentAmount: { increment: contribution } }
-          });
-          if (updatedJackpot) {
-            await triggerAdminEvent('jackpot-updated', {
-              amount: updatedJackpot.currentAmount.toString(),
-              target: updatedJackpot.targetAmount.toString()
-            });
-            logger.info(`[Jackpot] Live Auto-Increment. New amount: ${updatedJackpot.currentAmount}`);
-          }
-        }
-      } catch (e) {
-        logger.error(`[Jackpot] Failed to update live jackpot:`, e);
-      }
-    })();
-  }
-
-  // Invalidate the cache for this active room
-  try {
-    const { clearActiveRoomCache } = await import('./room.manager');
-    clearActiveRoomCache(game.room.type);
-  } catch (e) {
-    logger.warn('Failed to clear active room cache:', e);
-  }
-  try {
-    const endTime = currentState?.secondsRemaining ? (Date.now() + currentState.secondsRemaining * 1000) : undefined;
-    
-    // Broadcast high-performance occupied-sync for instant zero-HTTP ticket sync!
-    const ticketData = allTickets.map(t => ({
-      cardId: (t.card as any).id,
-      userId: t.userId
-    }));
-
-    await triggerGameEvent(gameId, 'occupied-sync', {
-      tickets: ticketData,
-      playerCount,
-      gameId
-    });
-
-    await triggerGameEvent(game.room.type, 'occupied-sync', {
-      tickets: ticketData,
-      playerCount,
-      gameId
-    });
-
-    await triggerGameEvent(gameId, 'player-joined', { 
-      userId, 
-      playerCount, 
-      numTickets,
-      totalPrize: totalPrize.toString(),
-      secondsRemaining: currentState?.secondsRemaining,
-      endTime,
-      serverTime: Date.now()
-    });
-
-    await triggerUserEvent(userId, 'join-success', { gameId, numTickets });
-    
-    // Update lobby/room subscribers
-    await triggerGameEvent(game.roomId, 'player-count-update', { playerCount });
-    
-    await triggerAdminEvent('player-joined', {
-      gameId,
-      userId,
-      room: game.room.type,
-      totalTickets: numTickets,
-      pool: totalPrize.toString()
-    });
-
-    // ─── House Bot Injection + Auto-Start ──────────────────────────────────────
-    const isDemo = game.room.type === 'DEMO';
-    const isBotRoom = game.room.type in BOT_COUNTS;
-
-    if (game.status === GameStatus.WAITING && isDemo) {
-      // DEMO: start immediately
-      await startCountdown(gameId, currentTicketCount);
-
-    } else if (game.status === GameStatus.WAITING && isBotRoom && !isDemo) {
-      // Check if the joining user is real (not a bot)
-      const joiningUser = await prisma.user.findUnique({ where: { id: userId }, select: { isBot: true } });
-      const joinerIsReal = !joiningUser?.isBot;
-
-      if (joinerIsReal && !gamesWithBotsInjectedPublic.has(gameId)) {
-        // Count how many unique real players have bought tickets in this game
-        const ticketsWithUsers = await prisma.ticket.findMany({
-          where: { gameId },
-          select: { userId: true, user: { select: { isBot: true } } }
-        });
-        const realUserIds = new Set(
-          ticketsWithUsers.filter(t => !t.user.isBot).map(t => t.userId)
-        );
-        const realPlayerCount = realUserIds.size;
-
-        // Auto-start and inject bots as soon as 1 real player joins
-        // VIP rooms get a 60s countdown (set in config); all others start immediately
-        if (realPlayerCount >= 1) {
-          // Get all currently taken card IDs (including this player's)
-          const takenCardIds = allTickets.map(t => (t.card as any).id as number);
-
-          // Inject bot cartelas (non-blocking, run after this tick)
-          setImmediate(async () => {
-            try {
-              await injectBotTickets(gameId, game.room.type, takenCardIds);
-
-              // After injection, fetch the full updated ticket count (real + bots)
-              const fullCount = await prisma.ticket.count({ where: { gameId } });
-              const botCount = BOT_COUNTS[game.room.type] ?? 30;
-              const displayCount = fullCount; // includes real + bots
-
-              logger.info(`[HouseBot] Auto-starting game ${gameId} (${game.room.type}) with ${displayCount} total tickets (${botCount} bots injected, 1 real player triggered)`);
-
-              // Broadcast updated player count so clients see the full lobby
-              await triggerGameEvent(gameId, 'player-joined', {
-                userId: 'bots',
-                playerCount: displayCount,
-                numTickets: botCount,
-                totalPrize: totalPrize.toString(),
-                serverTime: Date.now(),
-              });
-              await triggerGameEvent(game.roomId, 'player-count-update', { playerCount: displayCount });
-
-              // Kick off the countdown — VIP gets 60s, others get 0s (immediate)
-              await startCountdown(gameId, fullCount);
-            } catch (e) {
-              logger.error('[HouseBot] Bot injection / auto-start error:', e);
-            }
-          });
-          gamesWithBotsInjectedPublic.add(gameId);
-        }
-      }
-
-    } else if (game.status === GameStatus.COUNTDOWN) {
-      await triggerGameEvent(gameId, 'game-update', { playerCount });
-    }
-  } catch (e) {
-    logger.error('JOIN POST-PROCESS ERROR:', e);
-  }
-
-  return { 
+  // ─── Return to client IMMEDIATELY after DB transaction ───────────────────
+  // All broadcasts and bot injection run in the background so the client
+  // navigates to the game page without waiting for socket events.
+  const result = { 
     tickets, 
     cards: preparedCards.map(c => c.pattern) 
   } as any;
+
+  // ─── All post-processing is fire-and-forget (non-blocking) ───────────────
+  setImmediate(async () => {
+    try {
+      // ─── Update in-memory state ─────────────────────────────────────────
+      const currentState = activeGames.get(gameId);
+      if (currentState) {
+        currentState.ticketCount = currentTicketCount;
+      }
+
+      // ─── Invalidate active room cache ───────────────────────────────────
+      try {
+        const { clearActiveRoomCache } = await import('./room.manager');
+        clearActiveRoomCache(game.room.type);
+      } catch (e) {
+        logger.warn('Failed to clear active room cache:', e);
+      }
+
+      // ─── Live Jackpot contribution (background) ─────────────────────────
+      const isDemo = game.room.type === 'DEMO';
+      const netTickets = numTickets - existingCount;
+      if (!isDemo && netTickets > 0) {
+        (async () => {
+          try {
+            const jackpot = await prisma.jackpot.findUnique({ where: { id: 'GLOBAL' } });
+            if (jackpot) {
+              const contribution = new Decimal(unitPrice).mul(netTickets).mul(jackpot.contributionPercent).div(100);
+              const updatedJackpot = await prisma.jackpot.update({
+                where: { id: 'GLOBAL' },
+                data: { currentAmount: { increment: contribution } }
+              });
+              if (updatedJackpot) {
+                await triggerAdminEvent('jackpot-updated', {
+                  amount: updatedJackpot.currentAmount.toString(),
+                  target: updatedJackpot.targetAmount.toString()
+                });
+                logger.info(`[Jackpot] Live Auto-Increment. New amount: ${updatedJackpot.currentAmount}`);
+              }
+            }
+          } catch (e) {
+            logger.error(`[Jackpot] Failed to update live jackpot:`, e);
+          }
+        })();
+      }
+
+      // ─── Socket Broadcasts ───────────────────────────────────────────────
+      const endTime = currentState?.secondsRemaining ? (Date.now() + currentState.secondsRemaining * 1000) : undefined;
+      const ticketData = allTickets.map(t => ({
+        cardId: (t.card as any).id,
+        userId: t.userId
+      }));
+
+      // Run all broadcasts in parallel for maximum speed
+      await Promise.all([
+        triggerGameEvent(gameId, 'occupied-sync', { tickets: ticketData, playerCount, gameId }),
+        triggerGameEvent(game.room.type, 'occupied-sync', { tickets: ticketData, playerCount, gameId }),
+        triggerGameEvent(gameId, 'player-joined', { 
+          userId, 
+          playerCount, 
+          numTickets,
+          totalPrize: totalPrize.toString(),
+          secondsRemaining: currentState?.secondsRemaining,
+          endTime,
+          serverTime: Date.now()
+        }),
+        triggerUserEvent(userId, 'join-success', { gameId, numTickets }),
+        triggerGameEvent(game.roomId, 'player-count-update', { playerCount }),
+        triggerAdminEvent('player-joined', {
+          gameId,
+          userId,
+          room: game.room.type,
+          totalTickets: numTickets,
+          pool: totalPrize.toString()
+        }),
+      ]);
+
+      // ─── House Bot Injection + Auto-Start ───────────────────────────────
+      const isBotRoom = game.room.type in BOT_COUNTS;
+
+      if (game.status === GameStatus.WAITING && isDemo) {
+        await startCountdown(gameId, currentTicketCount);
+
+      } else if (game.status === GameStatus.WAITING && isBotRoom && !isDemo) {
+        const joiningUser = await prisma.user.findUnique({ where: { id: userId }, select: { isBot: true } });
+        const joinerIsReal = !joiningUser?.isBot;
+
+        if (joinerIsReal && !gamesWithBotsInjectedPublic.has(gameId)) {
+          const ticketsWithUsers = await prisma.ticket.findMany({
+            where: { gameId },
+            select: { userId: true, user: { select: { isBot: true } } }
+          });
+          const realUserIds = new Set(
+            ticketsWithUsers.filter(t => !t.user.isBot).map(t => t.userId)
+          );
+          const realPlayerCount = realUserIds.size;
+
+          if (realPlayerCount >= 1) {
+            const takenCardIds = allTickets.map(t => (t.card as any).id as number);
+            gamesWithBotsInjectedPublic.add(gameId);
+
+            setImmediate(async () => {
+              try {
+                await injectBotTickets(gameId, game.room.type, takenCardIds);
+                const fullCount = await prisma.ticket.count({ where: { gameId } });
+                const botCount = BOT_COUNTS[game.room.type] ?? 30;
+                logger.info(`[HouseBot] Auto-starting game ${gameId} (${game.room.type}) with ${fullCount} total tickets (${botCount} bots injected)`);
+
+                await Promise.all([
+                  triggerGameEvent(gameId, 'player-joined', {
+                    userId: 'bots',
+                    playerCount: fullCount,
+                    numTickets: botCount,
+                    totalPrize: totalPrize.toString(),
+                    serverTime: Date.now(),
+                  }),
+                  triggerGameEvent(game.roomId, 'player-count-update', { playerCount: fullCount }),
+                ]);
+
+                await startCountdown(gameId, fullCount);
+              } catch (e) {
+                logger.error('[HouseBot] Bot injection / auto-start error:', e);
+              }
+            });
+          }
+        }
+
+      } else if (game.status === GameStatus.COUNTDOWN) {
+        await triggerGameEvent(gameId, 'game-update', { playerCount });
+      }
+
+    } catch (e) {
+      logger.error('JOIN POST-PROCESS ERROR:', e);
+    }
+  });
+
+  return result;
 }
 
 // ─── Leave Game ────────────────────────────────────────────────
