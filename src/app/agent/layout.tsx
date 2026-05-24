@@ -156,7 +156,7 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
                 <p style={{ fontSize: '20px', fontWeight: '900', color: 'var(--agent-accent)', margin: 0 }}>{Number(user.wallet?.commissionBalance || 0).toLocaleString()} <span style={{ fontSize: '12px' }}>ETB</span></p>
              </div>
              <div style={{ width: '1px', height: '40px', background: 'var(--cmd-border)' }}></div>
-             <Link href="/" className="hover:text-gold transition-colors" style={{ color: 'white', textDecoration: 'none', fontSize: '12px', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+             <Link href="/" className="hover:text-gold transition-colors" style={{ color: '#1c1917', textDecoration: 'none', fontSize: '12px', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>
                 <FiArrowLeft size={18} /> BACK TO GAME
              </Link>
           </div>

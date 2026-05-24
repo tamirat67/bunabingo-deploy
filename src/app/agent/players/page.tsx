@@ -86,7 +86,7 @@ export default function PlayersPage() {
                       </div>
                     </div>
                   </td>
-                  <td style={{ color: '#d1d5db' }}>{player.phone || player.phoneNumber || 'N/A'}</td>
+                  <td style={{ color: 'var(--agent-muted2)' }}>{player.phone || player.phoneNumber || 'N/A'}</td>
                   <td style={{ color: 'var(--agent-muted)' }}>
                     {new Date(player.createdAt).toLocaleDateString()}
                   </td>

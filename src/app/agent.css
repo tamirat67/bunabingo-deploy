@@ -569,8 +569,8 @@
 }
 .agent-player-name {
   font-weight: 700;
-  color: #ffffff;
   font-size: 0.875rem;
+  color: #1c1917;
   transition: color 0.15s;
 }
 .agent-table tbody tr:hover .agent-player-name { color: var(--agent-gold); }
