@@ -985,7 +985,10 @@ export async function joinGame(
 
   if (!game) throw new Error('Game not found');
   if (game.status !== GameStatus.WAITING && game.status !== GameStatus.COUNTDOWN) {
-    throw new Error('Game is not accepting players');
+    const err: any = new Error('Game is not accepting players');
+    err.code = 'GAME_IN_PROGRESS';
+    err.roomId = game.roomId;
+    throw err;
   }
 
   const numTickets = cardIds.length;

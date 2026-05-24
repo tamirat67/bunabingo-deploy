@@ -34,6 +34,9 @@ function SelectionContent() {
   const [newlyOccupied, setNewlyOccupied] = useState<number[]>([]);
   const [fakePlayersCount, setFakePlayersCount] = useState(0);
   const [fakeOccupied, setFakeOccupied] = useState<number[]>([]);
+  // ── Live game state: true when the room has a RUNNING game and player is queued for next session
+  const [isGameRunning, setIsGameRunning] = useState(false);
+  const [liveGameDismissed, setLiveGameDismissed] = useState(false);
   const prevOccupied = useRef<number[]>([]);
   
   const selectedRef = useRef<number[]>([]);
@@ -242,8 +245,13 @@ function SelectionContent() {
         setSelected(res.myCardIds);
         setOwnedCardIds(res.myCardIds);
       }
+      // Auto-switch to next WAITING game if current is RUNNING
       if (res.gameId) {
         setActiveGameId(res.gameId);
+      }
+      if (res.isGameRunning) {
+        setIsGameRunning(true);
+        setLiveGameDismissed(false);
       }
     }).catch(() => {});
 
@@ -301,6 +309,19 @@ function SelectionContent() {
       socket.on('countdown-tick', (d: any) => {
         setCountdown(d.secondsRemaining);
       });
+
+      // ── When the RUNNING game finishes, this lobby wakes up as next game ──
+      socket.on('game-finished', () => {
+        setIsGameRunning(false);
+        setLiveGameDismissed(true);
+        // Reload occupied + game state for the now-active WAITING game
+        loadGameData();
+        getOccupiedCards(roomType, activeGameId).then(res => {
+          if (res.gameId) setActiveGameId(res.gameId);
+          setOccupied(res.occupiedIds || []);
+          setPlayerCount(res.playerCount || 0);
+        }).catch(() => {});
+      });
     }
 
     return () => {
@@ -309,6 +330,7 @@ function SelectionContent() {
         socket.off('countdown-start');
         socket.off('countdown-tick');
         socket.off('game-started');
+        socket.off('game-finished');
       }
     };
   }, [roomType, activeGameId, socket, loadGameData, user?.id, router, stake]);
@@ -426,6 +448,22 @@ function SelectionContent() {
 
     try {
       const res = await joinGame(roomType, selected);
+
+      // ── GAME_IN_PROGRESS: backend returned 202 — player is queued for next session ──
+      if (res.error === 'GAME_IN_PROGRESS' || res.nextGameId) {
+        setIsGameRunning(true);
+        setLiveGameDismissed(false);
+        if (res.nextGameId) setActiveGameId(res.nextGameId);
+        setModal({
+          isOpen: true,
+          title: '🔴 Game In Progress!',
+          message: 'A bingo game is currently live. Your cartelas have been reserved for the NEXT session. Stay on this page — it will automatically activate when the current game finishes!',
+          type: 'info',
+        });
+        setJoining(false);
+        return;
+      }
+
       if (typeof window !== 'undefined' && res.gameId && res.tickets) {
         sessionStorage.setItem(`game_tickets_${res.gameId}`, JSON.stringify(res.tickets));
       }
@@ -436,7 +474,18 @@ function SelectionContent() {
       const errCode = errData?.error;
       const msg = errData?.message || err.message || 'Failed to join';
 
-      if (errCode === 'DEMO_LIMIT_REACHED') {
+      // ── Graceful handling of GAME_IN_PROGRESS via axios error response ──
+      if (errCode === 'GAME_IN_PROGRESS') {
+        setIsGameRunning(true);
+        setLiveGameDismissed(false);
+        if (errData?.nextGameId) setActiveGameId(errData.nextGameId);
+        setModal({
+          isOpen: true,
+          title: '🔴 Game In Progress!',
+          message: msg || 'A bingo game is currently live. Your cartelas are reserved for the next session. Stay on this page!',
+          type: 'info',
+        });
+      } else if (errCode === 'DEMO_LIMIT_REACHED') {
         setModal({
           isOpen: true,
           title: '🎮 Demo Limit Reached / ዲሞ ጊዜ አልቋል',
@@ -514,6 +563,49 @@ function SelectionContent() {
         <div className="capsule-white"><div className="l">PLAYERS</div><div className="v">{displayPlayerCount}</div></div>
         <div className="capsule-brown total-box"><div className="l" style={{ color: 'rgba(255,255,255,0.5)' }}>STAKE</div><div className="v">{stake}</div></div>
       </div>
+
+      {/* ── LIVE GAME IN PROGRESS BANNER ── */}
+      <AnimatePresence>
+        {isGameRunning && !liveGameDismissed && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, height: 0 }}
+            animate={{ opacity: 1, y: 0, height: 'auto' }}
+            exit={{ opacity: 0, height: 0, marginTop: 0, marginBottom: 0 }}
+            style={{
+              background: 'linear-gradient(135deg, #E74C3C 0%, #C0392B 100%)',
+              border: '2px solid #FF7675',
+              borderRadius: '16px',
+              padding: '16px',
+              margin: '12px 0',
+              boxShadow: '0 8px 32px rgba(231,76,60,0.5), inset 0 2px 0 rgba(255,255,255,0.2)',
+              color: 'white',
+              position: 'relative',
+              overflow: 'hidden',
+              display: 'flex',
+              gap: '16px',
+              alignItems: 'center'
+            }}
+          >
+            {/* Pulsing indicator */}
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: '48px', height: '48px', background: 'rgba(255,255,255,0.2)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Zap size={24} color="white" fill="white" />
+              </div>
+              <div style={{ position: 'absolute', inset: 0, border: '2px solid white', borderRadius: '50%', animation: 'snatchFlash 1.5s infinite ease-out' }} />
+            </div>
+            
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '16px', fontWeight: '900', letterSpacing: '0.5px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                🔴 LIVE GAME IN PROGRESS
+              </div>
+              <div style={{ fontSize: '13px', fontWeight: '600', color: 'rgba(255,255,255,0.9)', lineHeight: 1.4 }}>
+                You are reserving cartelas for the <strong style={{ color: '#FFEAA7', fontWeight: '900' }}>NEXT</strong> game session.<br/>
+                Your spots will be held until the current game finishes.
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── PREMIUM JACKPOT + COUNTDOWN BANNER ── */}
       <div style={{
@@ -835,10 +927,12 @@ function SelectionContent() {
           </button>
           <button
             className={`btn-start-game ${selected.length > 0 ? 'active' : ''}`}
-            disabled={selected.length === 0 || joining}
+            disabled={selected.length === 0 || joining || isGameRunning}
             onClick={handleStart}
+            style={isGameRunning ? { background: '#E74C3C', borderBottomColor: '#C0392B', opacity: 0.9 } : undefined}
           >
             <Play size={16} fill="white" /> {(() => {
+              if (isGameRunning) return 'RESERVED FOR NEXT ROUND';
               const isSelectionChanged = selected.length !== ownedCardIds.length || selected.some(id => !ownedCardIds.includes(id));
               if (joining) return 'CONFIRMING...';
               if (isSelectionChanged) return ownedCardIds.length > 0 ? 'CONFIRM SELECTION' : 'START GAME';

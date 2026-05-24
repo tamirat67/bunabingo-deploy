@@ -411,6 +411,21 @@ router.post('/games/join', joinGameLimiter, async (req: Request, res: Response) 
     const { tickets, cards } = await joinGame(user.id, gameId, cardIds);
     res.json({ success: true, tickets, cards, gameId });
   } catch (e: any) {
+    // ── Structured handling: game is currently RUNNING ────────────────────────
+    if (e.code === 'GAME_IN_PROGRESS') {
+      try {
+        // Find or create a next WAITING game for the room so the player can queue
+        const nextGameId = await createWaitingGame(e.roomId || (await prisma.room.findFirst({ where: { type: req.body.roomType as any, isActive: true } }))?.id || '');
+        logger.info(`[JOIN] Game in progress — queued player ${(req as any).user?.id} for next game ${nextGameId}`);
+        return res.status(202).json({
+          error: 'GAME_IN_PROGRESS',
+          message: 'A game is currently in progress. Your cartelas are reserved for the next session!',
+          nextGameId,
+        });
+      } catch (innerErr) {
+        logger.error('Failed to find next waiting game:', innerErr);
+      }
+    }
     logger.error('JOIN GAME ERROR:', e);
     res.status(400).json({ 
       error: e.message || 'Server error during join',
@@ -454,17 +469,34 @@ router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
   try {
     let gameId: string | undefined;
     let room: any;
+    let isGameRunning = false;
 
     if (gameIdFromQuery) {
-      gameId = gameIdFromQuery;
       room = await prisma.room.findFirst({ where: { type: type as any } });
+      // Check if the requested game is RUNNING — if so, resolve to the next WAITING game
+      const requestedGame = await prisma.game.findUnique({ where: { id: gameIdFromQuery }, select: { status: true, roomId: true } });
+      if (requestedGame && (requestedGame.status === 'RUNNING' || requestedGame.status === 'FINISHED')) {
+        isGameRunning = true;
+        // Find or auto-create the next WAITING game for this room
+        const nextWaiting = await prisma.game.findFirst({
+          where: { roomId: requestedGame.roomId, status: 'WAITING' },
+          orderBy: { createdAt: 'desc' },
+        });
+        gameId = nextWaiting?.id;
+        if (!gameId) {
+          const { createWaitingGame } = await import('../game/engine');
+          gameId = await createWaitingGame(requestedGame.roomId);
+        }
+      } else {
+        gameId = gameIdFromQuery;
+      }
     } else {
       room = await getRoomWithActiveGame(type as any);
       gameId = room?.games[0]?.id;
     }
     
     if (!gameId || !room) {
-      const responseData = { occupiedIds: [], myCardIds: [] };
+      const responseData = { occupiedIds: [], myCardIds: [], isGameRunning: false };
       occupiedCache.set(cacheKey, { data: responseData, timestamp: now });
       return res.json(responseData);
     }
@@ -485,7 +517,8 @@ router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
       myCardIds, 
       gameId, 
       roomId: room.id, 
-      playerCount 
+      playerCount,
+      isGameRunning,
     };
 
     occupiedCache.set(cacheKey, { data: responseData, timestamp: now });
