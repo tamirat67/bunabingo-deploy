@@ -888,7 +888,10 @@ async function finishGame(gameId: string, reason: string): Promise<void> {
 
   const winners = await prisma.winner.findMany({
     where: { gameId },
-    include: { user: { select: { firstName: true, telegramUsername: true, isBot: true } } },
+    include: { 
+      user: { select: { firstName: true, telegramUsername: true, isBot: true } },
+      ticket: { select: { card: true } }
+    },
   });
 
   // Disguise bot winners as real players for public broadcast so they get announced on frontend
@@ -899,6 +902,7 @@ async function finishGame(gameId: string, reason: string): Promise<void> {
     ticketId: w.ticketId,
     winMode: w.winMode,
     prizeAmount: Number(w.prizeAmount),
+    card: w.ticket?.card,
     user: {
       firstName: w.user?.firstName || 'Player',
       telegramUsername: w.user?.telegramUsername || 'player',

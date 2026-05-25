@@ -71,7 +71,7 @@ function GameContent() {
   const [soundOn,   setSoundOn]   = useState(true);
   const [hidden,    setHidden]    = useState<Set<string>>(new Set());
   const [winMsg,    setWinMsg]    = useState<string | null>(null);
-  const [gameFinished, setGameFinished] = useState<{ winnerName: string; prize: number; mode: string; isWinner: boolean } | null>(null);
+  const [gameFinished, setGameFinished] = useState<{ winnerName: string; prize: number; mode: string; isWinner: boolean; card?: any } | null>(null);
   const [redirectSecs, setRedirectSecs] = useState(5);
   const redirectTimerRef = useRef<any>(null);
   const redirectCountdownRef = useRef<any>(null);
@@ -380,6 +380,7 @@ function GameContent() {
         prize: w?.prizeAmount || 0,
         mode: w?.winMode || '',
         isWinner: !!w,
+        card: w?.card,
       });
       // Start 5-second countdown then redirect to cartela selection
       setRedirectSecs(5);
@@ -453,6 +454,7 @@ function GameContent() {
           prize: w?.prizeAmount || 0,
           mode: w?.winMode || '',
           isWinner: !!w,
+          card: w?.ticket?.card || w?.card,
         });
         playStopAudio();
         setRedirectSecs(5);
@@ -1117,8 +1119,51 @@ function GameContent() {
                     +{gameFinished.prize} ETB
                   </div>
                   {gameFinished.mode && (
-                    <div style={{ color: T.text, fontSize: '13px', opacity: 0.7, marginBottom: '16px' }}>
-                      Pattern: {gameFinished.mode}
+                    <div style={{ color: T.text, fontSize: '13px', opacity: 0.9, marginBottom: '8px', fontWeight: '800' }}>
+                      WINNING PATTERN: <span style={{ color: '#2ECC71' }}>{gameFinished.mode.replace('_', ' ')}</span>
+                    </div>
+                  )}
+                  {gameFinished.card && (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '16px' }}>
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(5, 1fr)',
+                        gap: '3px',
+                        background: 'rgba(0,0,0,0.4)',
+                        padding: '6px',
+                        borderRadius: '10px',
+                        border: `2px solid ${T.gold}44`,
+                        boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.5)'
+                      }}>
+                        {(() => {
+                           const rows = Array.isArray(gameFinished.card) ? gameFinished.card : gameFinished.card.rows;
+                           if (!rows || rows.length !== 5) return null;
+                           return rows.map((row: any[], ri: number) => 
+                             row.map((cell: any, ci: number) => {
+                               const isFree = cell === 0;
+                               const isCalled = isFree || calledHistory.includes(cell);
+                               return (
+                                 <div key={`${ri}-${ci}`} style={{
+                                   width: '28px',
+                                   height: '28px',
+                                   display: 'flex',
+                                   alignItems: 'center',
+                                   justifyContent: 'center',
+                                   fontSize: '11px',
+                                   fontWeight: '900',
+                                   backgroundColor: isCalled ? '#2ECC71' : 'rgba(255,255,255,0.05)',
+                                   color: isCalled ? '#1a0f00' : 'rgba(255,255,255,0.3)',
+                                   borderRadius: '6px',
+                                   boxShadow: isCalled ? '0 0 10px rgba(46,204,113,0.6)' : 'none',
+                                   textShadow: isCalled ? 'none' : '0 1px 2px rgba(0,0,0,0.8)'
+                                 }}>
+                                   {isFree ? '★' : cell}
+                                 </div>
+                               )
+                             })
+                           );
+                        })()}
+                      </div>
                     </div>
                   )}
                 </>
