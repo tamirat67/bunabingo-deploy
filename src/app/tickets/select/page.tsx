@@ -706,7 +706,7 @@ function SelectionContent() {
                 ✅ READY
               </div>
             </>
-          ) : (isLive || game?.status === 'WAITING') ? (
+          ) : isLive ? (
             <>
               <div style={{
                 color: 'rgba(255,255,255,0.55)',
@@ -716,20 +716,46 @@ function SelectionContent() {
                 marginBottom: '6px',
                 textTransform: 'uppercase',
               }}>
-                {isLive ? 'GAME STARTING IN' : 'LOBBY CLOSING IN'}
+                GAME STARTING IN
               </div>
               <div
                 style={{
-                  color: (isLive ? countdown! : fakeCountdown) <= 10 ? '#E74C3C' : 'white',
+                  color: countdown! <= 10 ? '#E74C3C' : 'white',
                   fontSize: '30px',
                   fontWeight: '900',
                   fontVariantNumeric: 'tabular-nums',
                   letterSpacing: '-0.5px',
-                  textShadow: (isLive ? countdown! : fakeCountdown) <= 10 ? '0 0 15px rgba(231,76,60,0.8)' : `0 0 12px ${T.gold}44`,
+                  textShadow: countdown! <= 10 ? '0 0 15px rgba(231,76,60,0.8)' : `0 0 12px ${T.gold}44`,
                 }}
               >
-                {formatCountdown(isLive ? countdown! : fakeCountdown)}
+                {formatCountdown(countdown!)}
               </div>
+            </>
+          ) : game?.status === 'WAITING' ? (
+            <>
+              <div style={{
+                color: 'rgba(255,255,255,0.55)',
+                fontSize: '9px',
+                fontWeight: '900',
+                letterSpacing: '1.5px',
+                marginBottom: '6px',
+                textTransform: 'uppercase',
+              }}>
+                LOBBY STATUS
+              </div>
+              <motion.div
+                animate={{ opacity: [0.5, 1, 0.5] }}
+                transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
+                style={{
+                  color: T.gold,
+                  fontSize: '18px',
+                  fontWeight: '900',
+                  letterSpacing: '0.5px',
+                  textShadow: `0 0 12px ${T.gold}44`,
+                }}
+              >
+                WAITING FOR PLAYERS
+              </motion.div>
             </>
           ) : (
             <>

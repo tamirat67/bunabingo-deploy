@@ -126,6 +126,15 @@ export async function startCountdown(gameId: string, playerCount: number): Promi
         endTime,
         serverTime: Date.now()
       });
+
+      // Immediate transition when countdown hits 0s, avoiding the 1-second lag!
+      if (existing!.secondsRemaining === 0) {
+        if (existing!.countdownInterval) {
+          clearInterval(existing!.countdownInterval);
+          existing!.countdownInterval = undefined;
+        }
+        runGame(gameId);
+      }
     } else {
       if (existing!.countdownInterval) {
         clearInterval(existing!.countdownInterval);

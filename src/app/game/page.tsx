@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState, useRef, Suspense, useCallback } from 'react';
+import { useEffect, useState, useRef, Suspense, useCallback, Fragment } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { getGame, getMyCard, claimBingo } from '../../lib/api';
 import { useSocket } from '../../context/SocketContext';
@@ -71,7 +71,7 @@ function GameContent() {
   const [soundOn,   setSoundOn]   = useState(true);
   const [hidden,    setHidden]    = useState<Set<string>>(new Set());
   const [winMsg,    setWinMsg]    = useState<string | null>(null);
-  const [gameFinished, setGameFinished] = useState<{ winnerName: string; prize: number; mode: string; isWinner: boolean; card?: any } | null>(null);
+  const [gameFinished, setGameFinished] = useState<{ winnerName: string; prize: number; mode: string; isWinner: boolean; card?: any; isCurrentUserWinner?: boolean } | null>(null);
   const [redirectSecs, setRedirectSecs] = useState(5);
   const redirectTimerRef = useRef<any>(null);
   const redirectCountdownRef = useRef<any>(null);
@@ -96,6 +96,11 @@ function GameContent() {
   const audioQueueRef = useRef<number[]>([]);
   const isPlayingQueueRef = useRef<boolean>(false);
   const isFirstLoadRef = useRef<boolean>(true);
+
+  const ticketsRef = useRef<any[]>([]);
+  useEffect(() => {
+    ticketsRef.current = tickets;
+  }, [tickets]);
 
   // ─── Audio helpers ────────────────────────────────────────────────────────────
   // ballAudioRef: single persistent element for B1-O75 ball calls.
@@ -373,7 +378,15 @@ function GameContent() {
     socket.on('game-finished', (d: any) => {
       loadData();
       playStopAudio();
-      const w = d.winners?.[0];
+      const tgUserId = typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.initDataUnsafe?.user?.id
+        ? String((window as any).Telegram.WebApp.initDataUnsafe.user.id)
+        : '';
+      const myWinnerObj = (d.winners || []).find((winner: any) => 
+        (tgUserId && String(winner.userId) === tgUserId) ||
+        ticketsRef.current.some(t => String(t.id) === String(winner.ticketId) || String(t.userId) === String(winner.userId))
+      );
+      const isCurrentUserWinner = !!myWinnerObj;
+      const w = myWinnerObj || d.winners?.[0];
       const name = w?.user?.firstName || w?.user?.telegramUsername || 'Someone';
       setGameFinished({
         winnerName: name,
@@ -381,6 +394,7 @@ function GameContent() {
         mode: w?.winMode || '',
         isWinner: !!w,
         card: w?.card,
+        isCurrentUserWinner,
       });
       // Start 5-second countdown then redirect to cartela selection
       setRedirectSecs(5);
@@ -447,7 +461,15 @@ function GameContent() {
       // Socket may have missed game-finished — show popup and redirect as fallback
       if (!gameFinished) {
         const winners = game?.winners || [];
-        const w = winners[0];
+        const tgUserId = typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.initDataUnsafe?.user?.id
+          ? String((window as any).Telegram.WebApp.initDataUnsafe.user.id)
+          : '';
+        const myWinnerObj = winners.find((winner: any) => 
+          (tgUserId && String(winner.userId) === tgUserId) ||
+          tickets.some(t => String(t.id) === String(winner.ticketId) || String(t.userId) === String(winner.userId))
+        );
+        const isCurrentUserWinner = !!myWinnerObj;
+        const w = myWinnerObj || winners[0];
         const name = w?.user?.firstName || w?.user?.telegramUsername || 'Someone';
         setGameFinished({
           winnerName: name,
@@ -455,6 +477,7 @@ function GameContent() {
           mode: w?.winMode || '',
           isWinner: !!w,
           card: w?.ticket?.card || w?.card,
+          isCurrentUserWinner,
         });
         playStopAudio();
         setRedirectSecs(5);
@@ -1107,18 +1130,35 @@ function GameContent() {
               }}
             >
               <div style={{ fontSize: '54px', lineHeight: 1, marginBottom: '4px' }}>
-                {gameFinished.isWinner ? '🏆' : '🎯'}
+                {gameFinished.isCurrentUserWinner ? '🏆' : '🎯'}
               </div>
-              <h2 style={{ color: T.gold, fontSize: '22px', fontWeight: '900', margin: '0 0 3px', textTransform: 'uppercase', letterSpacing: 2 }}>
-                {gameFinished.isWinner ? 'BINGO!' : 'GAME OVER'}
+              <h2 style={{ 
+                color: gameFinished.isCurrentUserWinner ? T.gold : '#E74C3C', 
+                fontSize: '24px', 
+                fontWeight: '900', 
+                margin: '0 0 3px', 
+                textTransform: 'uppercase', 
+                letterSpacing: 2,
+                textShadow: gameFinished.isCurrentUserWinner ? `0 0 15px ${T.gold}aa` : 'none'
+              }}>
+                {gameFinished.isCurrentUserWinner ? 'YOU WON!' : (gameFinished.isWinner ? 'BINGO!' : 'GAME OVER')}
               </h2>
               {gameFinished.isWinner ? (
                 <>
                   <div style={{ color: T.header, fontSize: '14px', fontWeight: '700', margin: '3px 0 2px' }}>
-                    🥇 {gameFinished.winnerName}
+                    {gameFinished.isCurrentUserWinner ? (
+                      <span style={{ color: '#2ECC71' }}>🎉 Congratulations! You won!</span>
+                    ) : (
+                      <span>🥇 Winner: {gameFinished.winnerName}</span>
+                    )}
                   </div>
-                  <div style={{ color: T.gold, fontSize: '20px', fontWeight: '900', margin: '2px 0 8px' }}>
-                    +{gameFinished.prize} ETB
+                  <div style={{ 
+                    color: gameFinished.isCurrentUserWinner ? T.gold : 'rgba(255,255,255,0.7)', 
+                    fontSize: '20px', 
+                    fontWeight: '900', 
+                    margin: '2px 0 8px' 
+                  }}>
+                    {gameFinished.isCurrentUserWinner ? `+${gameFinished.prize} ETB` : `Prize: ${gameFinished.prize} ETB`}
                   </div>
 
                   {/* Pattern badge — shows specific row/column/diagonal */}
@@ -1283,7 +1323,7 @@ function GameContent() {
                           boxShadow: 'inset 0 2px 12px rgba(0,0,0,0.6)',
                         }}>
                           {grid.map((row, ri) => (
-                            <>
+                            <Fragment key={ri}>
                               {/* Row number label for ROW wins */}
                               {mode === 'ROW' && (
                                 <div key={`lbl-${ri}`} style={{
@@ -1351,7 +1391,7 @@ function GameContent() {
                                 </motion.div>
                               );
                             })}
-                          </>
+                          </Fragment>
                         ))}
                         </div>
 
