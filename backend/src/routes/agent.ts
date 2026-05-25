@@ -396,5 +396,31 @@ router.post('/withdrawals/:id/reject', async (req, res) => {
   }
 });
 
+/**
+ * PATCH /api/agent/profile
+ * Allows agents to self-manage their deposit phones and support link (telegramUsername)
+ */
+router.patch('/profile', async (req, res) => {
+  const agent = (req as any).user;
+  try {
+    const { depositPhones, telegramUsername, firstName, lastName } = req.body;
+    
+    const updateData: any = {};
+    if (depositPhones !== undefined) updateData.depositPhones = depositPhones;
+    if (telegramUsername !== undefined) updateData.telegramUsername = telegramUsername;
+    if (firstName !== undefined) updateData.firstName = firstName;
+    if (lastName !== undefined) updateData.lastName = lastName;
+
+    const updated = await prisma.user.update({
+      where: { id: agent.id },
+      data: updateData,
+    });
+
+    res.json({ success: true, user: updated });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to update agent profile', details: err.message });
+  }
+});
+
 export default router;
 

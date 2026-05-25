@@ -145,6 +145,20 @@ router.get('/me', async (req: Request, res: Response) => {
 
     const jackpot = await getJackpot();
 
+    let referrerData = null;
+    if (user.referredBy) {
+      const ref = await prisma.user.findUnique({
+        where: { id: user.referredBy },
+        select: { telegramUsername: true, depositPhones: true }
+      });
+      if (ref) {
+        referrerData = {
+          telegramUsername: ref.telegramUsername,
+          depositPhones: ref.depositPhones,
+        };
+      }
+    }
+
     res.json({
       id: user.id,
       firstName: user.firstName,
@@ -155,6 +169,7 @@ router.get('/me', async (req: Request, res: Response) => {
       isAdmin: user.isAdmin,
       role: user.role,
       hasSeenJackpot: user.hasSeenJackpot,
+      referrer: referrerData,
       jackpot: {
         amount: jackpot.currentAmount.toString(),
         target: jackpot.targetAmount.toString()

@@ -46,5 +46,8 @@ export const markJackpotSeen = () => api.post('/me/jackpot/seen').then(res => re
 export const getOccupiedCards = (roomType: string, gameId?: string) => 
   api.get(`/rooms/${roomType}/occupied${gameId ? `?gameId=${gameId}` : ''}`).then(res => res.data);
 export const getAgentStats = () => api.get('/agent/stats').then(res => res.data).catch(() => null);
+export const getDeposits = () => api.get('/deposits').then(res => res.data).catch(() => []);
+export const getWithdrawals = () => api.get('/withdrawals').then(res => res.data).catch(() => []);
+export const getTransactions = (page = 1) => api.get(`/transactions?page=${page}`).then(res => res.data).catch(() => []);
 
 export default api;

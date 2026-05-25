@@ -335,7 +335,7 @@ async function submitDeposit(
       );
     }
 
-    // ── Notify admins ──────────────────────────────────────────────────────────
+    // ── Notify Agent / Admins ────────────────────────────────────────────────
     const userName = tgUser.username ? `@${tgUser.username}` : user.firstName;
     let adminCaption = autoComplete
       ? `🤖 *[AUTO-APPROVED] — ${methodLabel}*\n\n`
@@ -357,9 +357,23 @@ async function submitDeposit(
           Markup.button.callback('❌ Reject',  `reject_dep_${deposit.id}`),
         ]]);
 
-    for (const adminIdStr of config.bot.adminIds) {
+    let notifyTgIds: number[] = [];
+
+    // Prioritize notifying the agent
+    if (user.referredBy) {
+      const agent = await prisma.user.findUnique({ where: { id: user.referredBy } });
+      if (agent?.telegramId) {
+        notifyTgIds.push(Number(agent.telegramId));
+      }
+    }
+
+    // Fallback to global admins if no agent was found
+    if (notifyTgIds.length === 0) {
+      notifyTgIds = config.bot.adminIds.map(id => parseInt(id, 10));
+    }
+
+    for (const adminTgId of notifyTgIds) {
       try {
-        const adminTgId = parseInt(adminIdStr, 10);
         if (screenshotFileId) {
           await ctx.telegram.sendPhoto(adminTgId, screenshotFileId, {
             caption: adminCaption, parse_mode: 'Markdown', ...adminKeyboard,
@@ -370,7 +384,7 @@ async function submitDeposit(
           });
         }
       } catch (e) {
-        logger.warn(`[Deposit] Could not notify admin ${adminIdStr}:`, e);
+        logger.warn(`[Deposit] Could not notify TG ID ${adminTgId}:`, e);
       }
     }
   } catch (err: any) {
