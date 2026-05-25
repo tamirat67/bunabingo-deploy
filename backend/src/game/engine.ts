@@ -394,7 +394,7 @@ async function runGame(gameId: string): Promise<void> {
     }));
 
     logger.info(`[RiggedDraw] Game ${gameId} (${game.room.type}) — House should win: ${houseShouldWin}`);
-    const riggedPool = rigDrawSequence(ticketsForSim, houseShouldWin);
+    const riggedPool = rigDrawSequence(ticketsForSim, houseShouldWin, 500, config.game.minBallsBeforeWin);
     state.numberPool = riggedPool; // override the random pool with the rigged one
   }
 
@@ -635,6 +635,12 @@ async function checkAllTickets(gameId: string, drawnNumbers: number[]): Promise<
     if (result.won) {
         logger.debug(`[Game ${gameId}] Ticket ${ticket.id} HAS ${result.modes.join(', ')}.`);
         
+        // Guard: don't allow any win before minimum balls drawn
+        if (drawnNumbers.length < config.game.minBallsBeforeWin) {
+          logger.info(`[Game ${gameId}] Win detected too early (ball #${drawnNumbers.length}/${config.game.minBallsBeforeWin} min) — skipping`);
+          continue;
+        }
+        
         // Auto-claim for house bots
         if (ticket.user?.isBot) {
            // Clear draw interval immediately to pause drawings (simulates thinking/clicking claim)
@@ -691,6 +697,16 @@ export async function claimBingoWin(gameId: string, userId: string): Promise<{ w
 
   if (!game || game.status !== GameStatus.RUNNING) {
     return { won: false, error: 'Game is not running or already finished' };
+  }
+
+  // Guard: minimum balls must be drawn before any real player can claim
+  const drawnCount = await prisma.drawHistory.count({ where: { gameId } });
+  if (drawnCount < config.game.minBallsBeforeWin) {
+    // Resume the draw interval if we paused it
+    if (state && !state.drawInterval && oldInterval) {
+      state.drawInterval = setInterval(() => drawNumber(gameId), config.game.drawIntervalMs);
+    }
+    return { won: false, error: `Game just started — wait for more balls! (${drawnCount}/${config.game.minBallsBeforeWin} minimum)` };
   }
 
   const tickets = await prisma.ticket.findMany({

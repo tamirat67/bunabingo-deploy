@@ -50,6 +50,7 @@ export const config = {
       VIP: 15,
     } as Record<string, number>,
     drawIntervalMs: 2500,         // 2.5 seconds between draws
+    minBallsBeforeWin: 20,        // at least 20 balls must be drawn before any win is valid (~50 seconds minimum game)
     houseEdgePercent: parseFloat(process.env.HOUSE_EDGE_PERCENT || '25'),
     totalNumbers: 75,             // standard bingo 1-75
   },
