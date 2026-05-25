@@ -928,14 +928,17 @@ function SelectionContent() {
           </button>
           <button
             className={`btn-start-game ${selected.length > 0 ? 'active' : ''}`}
-            disabled={selected.length === 0 || joining || isGameRunning}
+            disabled={selected.length === 0 || joining}
             onClick={handleStart}
             style={isGameRunning ? { background: '#E74C3C', borderBottomColor: '#C0392B', opacity: 0.9 } : undefined}
           >
             <Play size={16} fill="white" /> {(() => {
-              if (isGameRunning) return 'RESERVED FOR NEXT ROUND';
               const isSelectionChanged = selected.length !== ownedCardIds.length || selected.some(id => !ownedCardIds.includes(id));
               if (joining) return 'CONFIRMING...';
+              if (isGameRunning) {
+                if (!isSelectionChanged && ownedCardIds.length > 0) return 'ENTER NEXT ROUND LOBBY';
+                return 'RESERVE FOR NEXT ROUND';
+              }
               if (isSelectionChanged) return ownedCardIds.length > 0 ? 'CONFIRM SELECTION' : 'START GAME';
               return ownedCardIds.length > 0 ? 'ENTER GAME ROOM' : 'START GAME';
             })()}
