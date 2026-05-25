@@ -1076,7 +1076,7 @@ function GameContent() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            style={{ position: 'fixed', inset: 0, background: 'rgba(10,5,0,0.96)', zIndex: 5000, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(10,5,0,0.96)', zIndex: 5000, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', padding: '12px' }}
           >
             {/* Confetti stars */}
             {['🎉','⭐','🌟','✨','🎊','💫','🎉','⭐'].map((e, i) => (
@@ -1084,7 +1084,7 @@ function GameContent() {
                 initial={{ y: -20, opacity: 0, x: (i - 4) * 40 }}
                 animate={{ y: [0, -60, 0], opacity: [0, 1, 0] }}
                 transition={{ delay: i * 0.15, duration: 1.5, repeat: Infinity, repeatDelay: 2 }}
-                style={{ position: 'absolute', top: '10%', fontSize: '28px', left: `${10 + i * 11}%` }}
+                style={{ position: 'absolute', top: '8%', fontSize: '24px', left: `${10 + i * 11}%`, pointerEvents: 'none' }}
               >{e}</motion.div>
             ))}
 
@@ -1094,78 +1094,221 @@ function GameContent() {
               transition={{ type: 'spring', stiffness: 200, damping: 15 }}
               style={{
                 background: `linear-gradient(160deg, ${T.card} 0%, #1a0f00 100%)`,
-                border: `4px solid ${T.gold}`,
-                borderRadius: '28px',
-                padding: '36px 28px 28px',
+                border: `3px solid ${T.gold}`,
+                borderRadius: '24px',
+                padding: '20px 18px 18px',
                 textAlign: 'center',
-                maxWidth: '320px',
-                width: '90%',
+                maxWidth: '380px',
+                width: '100%',
                 boxShadow: `0 0 60px ${T.gold}55`,
                 position: 'relative',
+                overflowY: 'auto',
+                maxHeight: '88vh',
               }}
             >
-              <div style={{ fontSize: '72px', lineHeight: 1, marginBottom: '8px' }}>
+              <div style={{ fontSize: '54px', lineHeight: 1, marginBottom: '4px' }}>
                 {gameFinished.isWinner ? '🏆' : '🎯'}
               </div>
-              <h2 style={{ color: T.gold, fontSize: '26px', fontWeight: '900', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: 2 }}>
+              <h2 style={{ color: T.gold, fontSize: '22px', fontWeight: '900', margin: '0 0 3px', textTransform: 'uppercase', letterSpacing: 2 }}>
                 {gameFinished.isWinner ? 'BINGO!' : 'GAME OVER'}
               </h2>
               {gameFinished.isWinner ? (
                 <>
-                  <div style={{ color: T.header, fontSize: '16px', fontWeight: '700', margin: '6px 0 4px' }}>
+                  <div style={{ color: T.header, fontSize: '14px', fontWeight: '700', margin: '3px 0 2px' }}>
                     🥇 {gameFinished.winnerName}
                   </div>
-                  <div style={{ color: T.gold, fontSize: '22px', fontWeight: '900', margin: '4px 0 12px' }}>
+                  <div style={{ color: T.gold, fontSize: '20px', fontWeight: '900', margin: '2px 0 8px' }}>
                     +{gameFinished.prize} ETB
                   </div>
-                  {gameFinished.mode && (
-                    <div style={{ color: T.text, fontSize: '13px', opacity: 0.9, marginBottom: '8px', fontWeight: '800' }}>
-                      WINNING PATTERN: <span style={{ color: '#2ECC71' }}>{gameFinished.mode.replace('_', ' ')}</span>
-                    </div>
-                  )}
-                  {gameFinished.card && (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '16px' }}>
-                      <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(5, 1fr)',
-                        gap: '3px',
-                        background: 'rgba(0,0,0,0.4)',
-                        padding: '6px',
-                        borderRadius: '10px',
-                        border: `2px solid ${T.gold}44`,
-                        boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.5)'
-                      }}>
-                        {(() => {
-                           const rows = Array.isArray(gameFinished.card) ? gameFinished.card : gameFinished.card.rows;
-                           if (!rows || rows.length !== 5) return null;
-                           return rows.map((row: any[], ri: number) => 
-                             row.map((cell: any, ci: number) => {
-                               const isFree = cell === 0;
-                               const isCalled = isFree || calledHistory.includes(cell);
-                               return (
-                                 <div key={`${ri}-${ci}`} style={{
-                                   width: '28px',
-                                   height: '28px',
-                                   display: 'flex',
-                                   alignItems: 'center',
-                                   justifyContent: 'center',
-                                   fontSize: '11px',
-                                   fontWeight: '900',
-                                   backgroundColor: isCalled ? '#2ECC71' : 'rgba(255,255,255,0.05)',
-                                   color: isCalled ? '#1a0f00' : 'rgba(255,255,255,0.3)',
-                                   borderRadius: '6px',
-                                   boxShadow: isCalled ? '0 0 10px rgba(46,204,113,0.6)' : 'none',
-                                   textShadow: isCalled ? 'none' : '0 1px 2px rgba(0,0,0,0.8)'
-                                 }}>
-                                   {isFree ? '★' : cell}
-                                 </div>
-                               )
-                             })
-                           );
-                        })()}
+
+                  {/* Pattern badge */}
+                  {gameFinished.mode && (() => {
+                    const patternMeta: Record<string, { icon: string; label: string; color: string }> = {
+                      FULL_HOUSE:   { icon: '🃏', label: 'FULL HOUSE',   color: '#FF6B35' },
+                      FOUR_CORNERS: { icon: '🔷', label: 'FOUR CORNERS', color: '#8B5CF6' },
+                      DIAGONAL:     { icon: '⟋',  label: 'DIAGONAL',     color: '#06B6D4' },
+                      COLUMN:       { icon: '⬆',  label: 'COLUMN',       color: '#10B981' },
+                      ROW:          { icon: '➡',  label: 'ROW',          color: '#F59E0B' },
+                    };
+                    const meta = patternMeta[gameFinished.mode] || { icon: '🎯', label: gameFinished.mode.replace(/_/g, ' '), color: '#2ECC71' };
+                    return (
+                      <motion.div
+                        animate={{ boxShadow: [`0 0 0px ${meta.color}00`, `0 0 18px ${meta.color}99`, `0 0 0px ${meta.color}00`] }}
+                        transition={{ duration: 1.8, repeat: Infinity }}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: '6px',
+                          background: `${meta.color}22`, border: `2px solid ${meta.color}99`,
+                          borderRadius: '20px', padding: '5px 14px', marginBottom: '10px',
+                          fontSize: '12px', fontWeight: '900', color: meta.color,
+                          letterSpacing: '1px', textTransform: 'uppercase',
+                        }}
+                      >
+                        <span style={{ fontSize: '15px' }}>{meta.icon}</span>
+                        WINNING PATTERN: {meta.label}
+                      </motion.div>
+                    );
+                  })()}
+
+                  {/* Cartela grid */}
+                  {gameFinished.card && (() => {
+                    const rawCard = gameFinished.card;
+                    const rows: any[][] = Array.isArray(rawCard) ? rawCard : (rawCard.rows ?? rawCard);
+                    if (!rows || rows.length !== 5) return null;
+
+                    // Normalise cells: 'FREE' / 0 / null → 0
+                    const grid: number[][] = rows.map((row: any[]) =>
+                      row.map((cell: any) => (cell === 'FREE' || cell === 'free' || cell === null ? 0 : Number(cell)))
+                    );
+
+                    const calledSet = new Set(drawn);
+                    const isMarked = (r: number, c: number) => grid[r][c] === 0 || calledSet.has(grid[r][c]);
+
+                    // Determine which cells are part of the winning pattern
+                    const patternCells = new Set<string>();
+                    const mode = gameFinished.mode;
+
+                    if (mode === 'FULL_HOUSE') {
+                      for (let r = 0; r < 5; r++) for (let c = 0; c < 5; c++) patternCells.add(`${r}-${c}`);
+                    } else if (mode === 'FOUR_CORNERS') {
+                      [[0,0],[0,4],[4,0],[4,4]].forEach(([r,c]) => patternCells.add(`${r}-${c}`));
+                    } else if (mode === 'DIAGONAL') {
+                      const mainDiag = [0,1,2,3,4].every(i => isMarked(i, i));
+                      const antiDiag = [0,1,2,3,4].every(i => isMarked(i, 4-i));
+                      if (mainDiag) [0,1,2,3,4].forEach(i => patternCells.add(`${i}-${i}`));
+                      if (antiDiag) [0,1,2,3,4].forEach(i => patternCells.add(`${i}-${4-i}`));
+                    } else if (mode === 'COLUMN') {
+                      for (let c = 0; c < 5; c++) {
+                        if ([0,1,2,3,4].every(r => isMarked(r, c))) {
+                          [0,1,2,3,4].forEach(r => patternCells.add(`${r}-${c}`)); break;
+                        }
+                      }
+                    } else if (mode === 'ROW') {
+                      for (let r = 0; r < 5; r++) {
+                        if ([0,1,2,3,4].every(c => isMarked(r, c))) {
+                          [0,1,2,3,4].forEach(c => patternCells.add(`${r}-${c}`)); break;
+                        }
+                      }
+                    }
+
+                    const patternColors: Record<string, string> = {
+                      FULL_HOUSE: '#FF6B35', FOUR_CORNERS: '#8B5CF6',
+                      DIAGONAL: '#06B6D4', COLUMN: '#10B981', ROW: '#F59E0B',
+                    };
+                    const patternColor = patternColors[mode] || '#2ECC71';
+                    const COL_LABELS = ['B','I','N','G','O'];
+                    const COL_COLORS: Record<string, string> = {
+                      B:'#E74C3C', I:'#E67E22', N:'#D4AF37', G:'#27AE60', O:'#8E44AD'
+                    };
+
+                    return (
+                      <div style={{ marginBottom: '12px' }}>
+                        {/* Title */}
+                        <div style={{ fontSize: '11px', fontWeight: '800', color: 'rgba(255,255,255,0.45)', marginBottom: '6px', letterSpacing: '1px', textTransform: 'uppercase' }}>
+                          📋 Winning Cartela
+                        </div>
+
+                        {/* Column headers B-I-N-G-O */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '3px', marginBottom: '3px', padding: '0 6px' }}>
+                          {COL_LABELS.map(lbl => (
+                            <div key={lbl} style={{
+                              fontSize: '14px', fontWeight: '900', color: COL_COLORS[lbl],
+                              textAlign: 'center', letterSpacing: '1px',
+                              textShadow: `0 0 8px ${COL_COLORS[lbl]}88`,
+                            }}>{lbl}</div>
+                          ))}
+                        </div>
+
+                        {/* 5×5 grid */}
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(5, 1fr)',
+                          gap: '3px',
+                          background: 'rgba(0,0,0,0.5)',
+                          padding: '6px',
+                          borderRadius: '12px',
+                          border: `2px solid ${T.gold}44`,
+                          boxShadow: 'inset 0 2px 12px rgba(0,0,0,0.6)',
+                        }}>
+                          {grid.map((row, ri) =>
+                            row.map((cell, ci) => {
+                              const key = `${ri}-${ci}`;
+                              const isFree = cell === 0;
+                              const called = isFree || calledSet.has(cell);
+                              const isPatternCell = patternCells.has(key);
+                              const colLabel = COL_LABELS[ci];
+                              const colColor = COL_COLORS[colLabel];
+
+                              let bg = 'rgba(255,255,255,0.04)';
+                              let textColor = 'rgba(255,255,255,0.2)';
+                              let shadow = 'none';
+                              let border = '1px solid rgba(255,255,255,0.07)';
+                              let fontSz = '12px';
+
+                              if (isPatternCell) {
+                                bg = `${patternColor}ee`;
+                                textColor = '#fff';
+                                shadow = `0 0 16px ${patternColor}cc, 0 0 5px ${patternColor}`;
+                                border = `2px solid ${patternColor}`;
+                              } else if (called) {
+                                bg = `${colColor}28`;
+                                textColor = colColor;
+                                shadow = `0 0 6px ${colColor}44`;
+                                border = `1px solid ${colColor}55`;
+                              }
+
+                              return (
+                                <motion.div
+                                  key={key}
+                                  initial={{ opacity: 0, scale: 0.7 }}
+                                  animate={isPatternCell
+                                    ? { opacity: 1, scale: [1, 1.1, 1] }
+                                    : { opacity: 1, scale: 1 }
+                                  }
+                                  transition={isPatternCell
+                                    ? { duration: 0.9, repeat: Infinity, repeatDelay: 1.2, delay: (ri + ci) * 0.03 }
+                                    : { delay: (ri * 5 + ci) * 0.02 }
+                                  }
+                                  style={{
+                                    aspectRatio: '1',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: fontSz,
+                                    fontWeight: '900',
+                                    background: bg,
+                                    color: textColor,
+                                    borderRadius: '7px',
+                                    boxShadow: shadow,
+                                    border,
+                                    position: 'relative',
+                                    minWidth: '0',
+                                  }}
+                                >
+                                  {isFree ? <span style={{ fontSize: '13px' }}>★</span> : cell}
+                                </motion.div>
+                              );
+                            })
+                          )}
+                        </div>
+
+                        {/* Legend */}
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '7px', flexWrap: 'wrap' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: 'rgba(255,255,255,0.5)' }}>
+                            <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: patternColor, boxShadow: `0 0 5px ${patternColor}` }} />
+                            Winning cells
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: 'rgba(255,255,255,0.5)' }}>
+                            <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: 'rgba(231,76,60,0.3)', border: '1px solid #E74C3C88' }} />
+                            Called
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: 'rgba(255,255,255,0.5)' }}>
+                            <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }} />
+                            Not called
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
                 </>
               ) : (
                 <div style={{ color: T.text, fontSize: '15px', margin: '10px 0 16px', opacity: 0.8 }}>
@@ -1173,7 +1316,7 @@ function GameContent() {
                 </div>
               )}
 
-              <div style={{ color: T.text, fontSize: '13px', marginBottom: '18px', opacity: 0.7 }}>
+              <div style={{ color: T.text, fontSize: '13px', marginBottom: '16px', opacity: 0.7 }}>
                 Redirecting in <span style={{ color: T.gold, fontWeight: '900' }}>{redirectSecs}s</span>...
               </div>
 
