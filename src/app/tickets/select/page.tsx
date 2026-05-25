@@ -184,9 +184,10 @@ function SelectionContent() {
     setModal({ isOpen: true, title, message, type });
   };
 
-  const loadGameData = useCallback(() => {
-    if (!activeGameId) return;
-    getGame(activeGameId).then(g => {
+  const loadGameData = useCallback((forcedGameId?: string) => {
+    const gid = forcedGameId || activeGameId;
+    if (!gid) return;
+    getGame(gid).then(g => {
       setGame(g);
       if (g.endTime && g.serverTime) {
         const offset = g.serverTime - Date.now();
@@ -195,12 +196,18 @@ function SelectionContent() {
         if (g.status === 'COUNTDOWN') {
           const rem = Math.max(0, Math.ceil((g.endTime - Date.now() - offset) / 1000));
           if (rem > 0) setCountdown(rem);
+        } else {
+          setCountdown(null);
+          setEndTime(null);
         }
       } else if (g.status === 'COUNTDOWN' && g.countdownSeconds) {
         const estimatedEnd = Date.now() + (g.countdownSeconds * 1000);
         setEndTime(estimatedEnd);
         setServerOff(0);
         setCountdown(g.countdownSeconds);
+      } else {
+        setCountdown(null);
+        setEndTime(null);
       }
     }).catch(() => {});
   }, [activeGameId]);
@@ -314,12 +321,21 @@ function SelectionContent() {
       socket.on('game-finished', () => {
         setIsGameRunning(false);
         setLiveGameDismissed(true);
-        // Reload occupied + game state for the now-active WAITING game
-        loadGameData();
+        setCountdown(null);
+        setEndTime(null);
+        
         getOccupiedCards(roomType, activeGameId).then(res => {
-          if (res.gameId) setActiveGameId(res.gameId);
+          if (res.gameId) {
+            setActiveGameId(res.gameId);
+            loadGameData(res.gameId); // Force load the new waiting game data!
+            if (socket) socket.emit('join-game', res.gameId);
+          }
           setOccupied(res.occupiedIds || []);
           setPlayerCount(res.playerCount || 0);
+          
+          // CRITICAL: Update owned card IDs for the new game!
+          const myNewCardIds = res.myCardIds || [];
+          setOwnedCardIds(myNewCardIds);
         }).catch(() => {});
       });
     }
