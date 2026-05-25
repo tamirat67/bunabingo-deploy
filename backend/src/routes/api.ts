@@ -712,7 +712,12 @@ router.get('/games/:gameId', async (req: Request, res: Response) => {
     include: {
       room: true,
       drawHistory: { orderBy: { sequence: 'asc' } },
-      winners: { include: { user: { select: { firstName: true, telegramUsername: true } } } },
+      winners: {
+        include: {
+          user: { select: { firstName: true, telegramUsername: true } },
+          ticket: { select: { card: true } }
+        }
+      },
       _count: { select: { tickets: true } },
     },
   });
