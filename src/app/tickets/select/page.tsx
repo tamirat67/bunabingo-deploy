@@ -564,48 +564,7 @@ function SelectionContent() {
         <div className="capsule-brown total-box"><div className="l" style={{ color: 'rgba(255,255,255,0.5)' }}>STAKE</div><div className="v">{stake}</div></div>
       </div>
 
-      {/* ── LIVE GAME IN PROGRESS BANNER ── */}
-      <AnimatePresence>
-        {isGameRunning && !liveGameDismissed && (
-          <motion.div
-            initial={{ opacity: 0, y: -20, height: 0 }}
-            animate={{ opacity: 1, y: 0, height: 'auto' }}
-            exit={{ opacity: 0, height: 0, marginTop: 0, marginBottom: 0 }}
-            style={{
-              background: 'linear-gradient(135deg, #E74C3C 0%, #C0392B 100%)',
-              border: '2px solid #FF7675',
-              borderRadius: '16px',
-              padding: '16px',
-              margin: '12px 0',
-              boxShadow: '0 8px 32px rgba(231,76,60,0.5), inset 0 2px 0 rgba(255,255,255,0.2)',
-              color: 'white',
-              position: 'relative',
-              overflow: 'hidden',
-              display: 'flex',
-              gap: '16px',
-              alignItems: 'center'
-            }}
-          >
-            {/* Pulsing indicator */}
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <div style={{ width: '48px', height: '48px', background: 'rgba(255,255,255,0.2)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Zap size={24} color="white" fill="white" />
-              </div>
-              <div style={{ position: 'absolute', inset: 0, border: '2px solid white', borderRadius: '50%', animation: 'snatchFlash 1.5s infinite ease-out' }} />
-            </div>
-            
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: '16px', fontWeight: '900', letterSpacing: '0.5px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                🔴 LIVE GAME IN PROGRESS
-              </div>
-              <div style={{ fontSize: '13px', fontWeight: '600', color: 'rgba(255,255,255,0.9)', lineHeight: 1.4 }}>
-                You are reserving cartelas for the <strong style={{ color: '#FFEAA7', fontWeight: '900' }}>NEXT</strong> game session.<br/>
-                Your spots will be held until the current game finishes.
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+
 
       {/* ── PREMIUM JACKPOT + COUNTDOWN BANNER ── */}
       <div style={{
@@ -692,18 +651,18 @@ function SelectionContent() {
         <div style={{ textAlign: 'right', minWidth: '90px' }}>
           {isGameRunning ? (
             <>
-              <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: '9px', fontWeight: '900', letterSpacing: '1.5px', marginBottom: '6px', textTransform: 'uppercase' }}>
-                NEXT GAME
+              <div style={{ color: '#FF7675', fontSize: '10px', fontWeight: '900', letterSpacing: '0.5px', marginBottom: '6px', textTransform: 'uppercase', animation: 'liveDot 1.5s infinite' }}>
+                🔴 LIVE GAME
               </div>
               <div style={{
-                fontSize: '18px',
+                fontSize: '14px',
                 fontWeight: '900',
-                color: T.gold,
-                textShadow: `0 0 12px ${T.gold}66`,
+                color: '#FF7675',
+                textShadow: `0 0 12px rgba(255,118,117,0.6)`,
                 fontVariantNumeric: 'tabular-nums',
-                letterSpacing: '-1px'
+                letterSpacing: '-0.5px'
               }}>
-                ✅ READY
+                IN PROGRESS
               </div>
             </>
           ) : isLive ? (
