@@ -729,7 +729,7 @@ function SelectionContent() {
                   textShadow: `0 0 12px ${T.gold}44`,
                 }}
               >
-                WAITING FOR PLAYERS
+                WAITING...
               </motion.div>
             </>
           ) : (
@@ -952,7 +952,7 @@ function SelectionContent() {
               const isSelectionChanged = selected.length !== ownedCardIds.length || selected.some(id => !ownedCardIds.includes(id));
               if (joining) return 'CONFIRMING...';
               if (isGameRunning) {
-                if (!isSelectionChanged && ownedCardIds.length > 0) return 'ENTER NEXT ROUND LOBBY';
+                if (!isSelectionChanged && ownedCardIds.length > 0) return 'NEXT ROUND';
                 return 'RESERVE FOR NEXT ROUND';
               }
               if (isSelectionChanged) return ownedCardIds.length > 0 ? 'CONFIRM SELECTION' : 'START GAME';
