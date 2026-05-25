@@ -493,6 +493,14 @@ router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
     } else {
       room = await getRoomWithActiveGame(type as any);
       gameId = room?.games[0]?.id;
+      if (room) {
+        const runningGame = await prisma.game.findFirst({
+          where: { roomId: room.id, status: 'RUNNING' }
+        });
+        if (runningGame) {
+          isGameRunning = true;
+        }
+      }
     }
     
     if (!gameId || !room) {
