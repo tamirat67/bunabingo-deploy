@@ -2,8 +2,8 @@
 const nextConfig = {
   reactStrictMode: false,
 
-  // Required for Docker standalone output
-  output: 'standalone',
+  // Use 'standalone' for VPS Docker, but disable it for Cloudflare Pages
+  output: process.env.CF_PAGES ? undefined : 'standalone',
 
   async headers() {
     return [

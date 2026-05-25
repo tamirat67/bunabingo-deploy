@@ -6,7 +6,8 @@
     "dev": "next dev -p 3000",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "pages:build": "npx @cloudflare/next-on-pages"
   },
   "engines": {
     "node": ">=18.17.0"
@@ -24,6 +25,7 @@
     "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
+    "@cloudflare/next-on-pages": "^1.11.3",
     "@types/node": "^20.12.7",
     "@types/react": "^18.3.1",
     "@types/react-dom": "^18.3.0",
