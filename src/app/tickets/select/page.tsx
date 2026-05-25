@@ -189,6 +189,14 @@ function SelectionContent() {
     if (!gid) return;
     getGame(gid).then(g => {
       setGame(g);
+      // ── Always sync isGameRunning from actual server game status ──
+      if (g.status === 'RUNNING') {
+        setIsGameRunning(true);
+      } else {
+        // WAITING, COUNTDOWN, READY, FINISHED — not "running" for our purposes
+        setIsGameRunning(false);
+        setLiveGameDismissed(true);
+      }
       if (g.endTime && g.serverTime) {
         const offset = g.serverTime - Date.now();
         setServerOff(offset);
