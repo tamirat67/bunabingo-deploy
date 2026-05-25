@@ -491,7 +491,9 @@ router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
       // Check if the requested game is RUNNING — if so, resolve to the next WAITING game
       const requestedGame = await prisma.game.findUnique({ where: { id: gameIdFromQuery }, select: { status: true, roomId: true } });
       if (requestedGame && (requestedGame.status === 'RUNNING' || requestedGame.status === 'FINISHED')) {
-        isGameRunning = true;
+        if (requestedGame.status === 'RUNNING') {
+          isGameRunning = true;
+        }
         // Find or auto-create the next WAITING game for this room
         const nextWaiting = await prisma.game.findFirst({
           where: { roomId: requestedGame.roomId, status: 'WAITING' },
