@@ -2,7 +2,8 @@
 const nextConfig = {
   reactStrictMode: false,
 
-  // Removed output: 'standalone' for Cloudflare Pages compatibility
+  // Required for Docker standalone output
+  output: 'standalone',
 
   async headers() {
     return [
