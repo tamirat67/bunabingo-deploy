@@ -690,7 +690,23 @@ function SelectionContent() {
 
         {/* Right — Countdown / Player Count */}
         <div style={{ textAlign: 'right', minWidth: '90px' }}>
-          {(isLive || game?.status === 'WAITING') ? (
+          {isGameRunning ? (
+            <>
+              <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: '9px', fontWeight: '900', letterSpacing: '1.5px', marginBottom: '6px', textTransform: 'uppercase' }}>
+                NEXT GAME
+              </div>
+              <div style={{
+                fontSize: '18px',
+                fontWeight: '900',
+                color: T.gold,
+                textShadow: `0 0 12px ${T.gold}66`,
+                fontVariantNumeric: 'tabular-nums',
+                letterSpacing: '-1px'
+              }}>
+                ✅ READY
+              </div>
+            </>
+          ) : (isLive || game?.status === 'WAITING') ? (
             <>
               <div style={{
                 color: 'rgba(255,255,255,0.55)',
