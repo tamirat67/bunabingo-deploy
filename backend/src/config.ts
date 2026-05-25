@@ -49,7 +49,7 @@ export const config = {
       JACKPOT: 15,
       VIP: 15,
     } as Record<string, number>,
-    drawIntervalMs: 1500,         // 1.5 seconds between draws
+    drawIntervalMs: 2500,         // 2.5 seconds between draws
     houseEdgePercent: parseFloat(process.env.HOUSE_EDGE_PERCENT || '25'),
     totalNumbers: 75,             // standard bingo 1-75
   },
