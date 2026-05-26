@@ -72,8 +72,14 @@ export async function broadcastMessage(message: string, imageUrl?: string | null
     const path = require('path');
     const fs = require('fs');
 
-    // Post to the Telegram Channels @buna_bingobot1 and @buna_bingobot
-    const targetChannels = ['@buna_bingobot1', '@buna_bingobot'];
+    // Post to the Telegram Channel @buna_bingobot1
+    const targetChannels = ['@buna_bingobot1'];
+    
+    // Add default button linking to the bot if none provided
+    const defaultButtons = Markup.inlineKeyboard([
+      Markup.button.url('Play Buna Bingo 🎮', 'https://t.me/buna_bingobot')
+    ]);
+    const finalButtons = buttons ? buttons : defaultButtons;
     
     for (const channelUsername of targetChannels) {
       try {
@@ -96,12 +102,12 @@ export async function broadcastMessage(message: string, imageUrl?: string | null
           await bot.telegram.sendPhoto(channelUsername, photoInput, {
             caption: message,
             parse_mode: 'HTML',
-            ...(buttons ? buttons : {})
+            ...finalButtons
           });
         } else {
           await bot.telegram.sendMessage(channelUsername, message, {
             parse_mode: 'HTML',
-            ...(buttons ? buttons : {})
+            ...finalButtons
           });
         }
         logger.info(`[Notifier] Successfully posted announcement to Telegram channel ${channelUsername}`);
@@ -131,12 +137,12 @@ export async function broadcastMessage(message: string, imageUrl?: string | null
           await bot.telegram.sendPhoto(Number(user.telegramId), photoInput, {
             caption: message,
             parse_mode: 'HTML',
-            ...(buttons ? buttons : {})
+            ...finalButtons
           });
         } else {
           await bot.telegram.sendMessage(Number(user.telegramId), message, {
             parse_mode: 'HTML',
-            ...(buttons ? buttons : {})
+            ...finalButtons
           });
         }
         successCount++;
