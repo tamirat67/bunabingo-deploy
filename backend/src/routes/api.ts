@@ -1119,7 +1119,7 @@ staffRouter.get('/agents/:id/report', restrictToAdmin, async (req, res) => {
     ]);
 
     const { getAgentPreDepositStatus } = await import('../services/agentPreDeposit.service');
-    const { getAgentProfitRate } = await import('../services/user.service');
+    const { getAgentProfitRate } = await import('../services/settings.service');
     const preDepositStatus = await getAgentPreDepositStatus(agentId);
     const profitRate = await getAgentProfitRate();
 
