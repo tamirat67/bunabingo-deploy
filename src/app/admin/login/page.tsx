@@ -71,6 +71,7 @@ export default function LoginPage() {
                 className="cmd-input gold-border"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
+                autoComplete="off"
               />
             </div>
           </div>

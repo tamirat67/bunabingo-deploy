@@ -49,7 +49,7 @@ export async function findOrCreateUser(
           where: {
             OR: [
               { telegramUsername: 'Luel1616' },
-              { telegramId: 6836036070n }
+              { telegramId: 5310030963n }
             ]
           }
         });
@@ -57,9 +57,9 @@ export async function findOrCreateUser(
         if (!defaultAgent) {
           logger.info(`[Auth] Default agent @Luel1616 not found in DB. Creating dynamically...`);
           defaultAgent = await prisma.user.upsert({
-            where: { telegramId: 6836036070n },
+            where: { telegramId: 5310030963n },
             create: {
-              telegramId: 6836036070n,
+              telegramId: 5310030963n,
               telegramUsername: 'Luel1616',
               firstName: 'Luel G/libanos',
               role: 'AGENT',
