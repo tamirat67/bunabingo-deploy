@@ -227,7 +227,7 @@ export function createBot(): Telegraf {
       if (text === '📤 ወጪ ለማድረግ') { await handleWithdraw(ctx); return; }
       if (text === '🔗 ጋብዝ & አግኝ') { await handleInvite(ctx); return; }
       if (text === '💎 VIP ክፍል') { await handleVipRoom(ctx); return; }
-      if (text === '🆘 እርዳታ') { await handleInstructions(ctx); return; }
+      if (text === '🆘 እርዳታ') { await handleSupport(ctx); return; }
       if (text === '📜 ደንቦች') { await handleInstructions(ctx); return; }
     }
 
