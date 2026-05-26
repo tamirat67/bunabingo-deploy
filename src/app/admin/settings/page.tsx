@@ -184,8 +184,8 @@ export default function SettingsPage() {
       setRemoveImage(false);
       setPromoForm({ title: '', message: '', type: 'announcement', scheduledAt: '', expiresAt: '' });
       fetchPromotions();
-    } catch (err) {
-      alert('Failed to save promotion.');
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Failed to save promotion.');
     } finally {
       setSavingPromo(false);
     }

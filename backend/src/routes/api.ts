@@ -1576,9 +1576,9 @@ staffRouter.post('/promotions', restrictToAdmin, upload.single('image'), async (
     }
 
     res.json(promotion);
-  } catch (err) {
-    console.error('Promotion creation error:', err);
-    res.status(500).json({ error: 'Failed to create promotion' });
+  } catch (err: any) {
+    logger.error('Promotion creation error:', err);
+    res.status(500).json({ error: `Failed to create promotion: ${err.message || String(err)}` });
   }
 });
 
