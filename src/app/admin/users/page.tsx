@@ -25,6 +25,8 @@ export default function UsersPage() {
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState('');
   const [editSuccess, setEditSuccess] = useState('');
+  
+  const [agentsList, setAgentsList] = useState<any[]>([]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -37,6 +39,22 @@ export default function UsersPage() {
   useEffect(() => {
     fetchUsers(page, debouncedSearch);
   }, [page, debouncedSearch]);
+
+  useEffect(() => {
+    fetchAgents();
+  }, []);
+
+  const fetchAgents = async () => {
+    try {
+      // Fetch agents (limit 100 should be enough for a dropdown)
+      const response = await api.get('/admin/agents?limit=100');
+      if (response.data && response.data.agents) {
+        setAgentsList(response.data.agents);
+      }
+    } catch (err) {
+      console.error('Failed to fetch agents', err);
+    }
+  };
 
   const fetchUsers = async (pageNumber: number, searchQuery: string) => {
     try {
@@ -320,9 +338,22 @@ export default function UsersPage() {
                 </div>
               </div>
 
-              <div>
-                <label style={{ fontSize: '11px', fontWeight: '800', color: '#78716c', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}><FiDollarSign size={10} /> Wallet Balance (ETB)</label>
-                <input type="number" className="login-input" value={editForm.walletBalance} onChange={e => setEditForm(f => ({ ...f, walletBalance: e.target.value }))} placeholder="e.g. 500.00" />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: '800', color: '#78716c', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}><FiDollarSign size={10} /> Wallet Balance (ETB)</label>
+                  <input type="number" className="login-input" value={editForm.walletBalance} onChange={e => setEditForm(f => ({ ...f, walletBalance: e.target.value }))} placeholder="e.g. 500.00" />
+                </div>
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: '800', color: '#78716c', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}><FiShield size={10} /> Assign to Agent</label>
+                  <select className="login-input" value={editForm.referredBy} onChange={e => setEditForm(f => ({ ...f, referredBy: e.target.value }))} style={{ cursor: 'pointer' }}>
+                    <option value="">-- No Agent --</option>
+                    {agentsList.map(agent => (
+                      <option key={agent.id} value={agent.id}>
+                        {agent.firstName || agent.telegramUsername || 'Agent'} ({agent.telegramUsername ? `@${agent.telegramUsername}` : agent.id.slice(0, 8)})
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
 
