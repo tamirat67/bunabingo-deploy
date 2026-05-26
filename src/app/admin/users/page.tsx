@@ -21,7 +21,7 @@ export default function UsersPage() {
   // Edit modal state
   const [editModal, setEditModal] = useState(false);
   const [editUser, setEditUser] = useState<any>(null);
-  const [editForm, setEditForm] = useState({ firstName: '', telegramUsername: '', phone: '', status: 'ACTIVE', walletBalance: '' });
+  const [editForm, setEditForm] = useState({ firstName: '', telegramUsername: '', phone: '', status: 'ACTIVE', walletBalance: '', referredBy: '' });
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState('');
   const [editSuccess, setEditSuccess] = useState('');

@@ -176,6 +176,8 @@ export async function getUserByTelegramId(telegramId: number) {
           telegramId: true,
           telegramUsername: true,
           firstName: true,
+          phone: true,
+          phoneNumber: true,
         }
       },
       _count: { select: { referrals: true } }
