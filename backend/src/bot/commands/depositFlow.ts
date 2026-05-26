@@ -18,14 +18,28 @@ async function getDepositAccountsForUser(userId: string) {
   });
 
   let depositPhones: any[] = [];
-  if (user?.referrer?.depositPhones) {
-    depositPhones = user.referrer.depositPhones as any[];
-  } else {
+
+  if (user?.referrer) {
+    const refPhones = user.referrer.depositPhones as any[];
+    if (refPhones && refPhones.length > 0) {
+      depositPhones = refPhones;
+    } else if (user.referrer.phone || user.referrer.phoneNumber) {
+      const phone = user.referrer.phone || user.referrer.phoneNumber;
+      depositPhones = [{
+        name: user.referrer.firstName || user.referrer.telegramUsername || 'Agent',
+        phone: phone,
+        last4: phone.slice(-4)
+      }];
+    }
+  }
+
+  if (depositPhones.length === 0) {
     const defaultAgent = await prisma.user.findFirst({
       where: { telegramUsername: 'Luel1616' }
     });
-    if (defaultAgent?.depositPhones) {
-      depositPhones = defaultAgent.depositPhones as any[];
+    const defPhones = defaultAgent?.depositPhones as any[];
+    if (defPhones && defPhones.length > 0) {
+      depositPhones = defPhones;
     }
   }
 
