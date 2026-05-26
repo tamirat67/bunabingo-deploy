@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { FiSearch, FiUserPlus, FiTrendingUp, FiUserX, FiX, FiLock, FiPhone, FiUser, FiAlertCircle, FiTrash2, FiPlus, FiEdit2, FiDollarSign } from 'react-icons/fi';
+import Link from 'next/link';
+import { FiSearch, FiUserPlus, FiTrendingUp, FiUserX, FiX, FiLock, FiPhone, FiUser, FiAlertCircle, FiTrash2, FiPlus, FiEdit2, FiDollarSign, FiBarChart2 } from 'react-icons/fi';
 import api from '@/lib/api';
 import { Pagination } from '@/components/Pagination';
 import BunaModal from '@/components/BunaModal';
@@ -321,6 +322,14 @@ export default function AgentsPage() {
                 </td>
                 <td style={{ textAlign: 'right' }}>
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px', flexWrap: 'wrap' }}>
+                    <Link href={`/admin/agents/${agent.id}`}>
+                      <button
+                        style={{ background: '#eff6ff', color: '#3b82f6', padding: '6px 12px', borderRadius: '8px', border: 'none', fontSize: '11px', fontWeight: '900', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                        title="View Full Report"
+                      >
+                        <FiBarChart2 size={12} /> REPORT
+                      </button>
+                    </Link>
                     <button
                       onClick={() => openEditModal(agent)}
                       style={{ background: '#fef9c3', color: '#854d0e', padding: '6px 12px', borderRadius: '8px', border: 'none', fontSize: '11px', fontWeight: '900', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}

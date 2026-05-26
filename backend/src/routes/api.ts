@@ -1040,6 +1040,129 @@ staffRouter.get('/agents', restrictToAdmin, async (req, res) => {
   res.json(await getAgents(page));
 });
 
+// ─── Single Agent Detailed Report ───────────────────────────
+staffRouter.get('/agents/:id/report', restrictToAdmin, async (req, res) => {
+  try {
+    const agentId = req.params.id;
+
+    const agent = await prisma.user.findUnique({
+      where: { id: agentId },
+      include: {
+        wallet: true,
+        agentPreDepositWallet: true,
+        referrals: {
+          select: {
+            id: true,
+            firstName: true,
+            telegramUsername: true,
+            telegramId: true,
+            phone: true,
+            status: true,
+            createdAt: true,
+            wallet: { select: { balance: true } },
+          },
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+    });
+
+    if (!agent || agent.role !== 'AGENT') {
+      return res.status(404).json({ error: 'Agent not found' });
+    }
+
+    const referredUserIds = agent.referrals.map((r) => r.id);
+
+    const [
+      totalDepositsAgg,
+      pendingDepositsAgg,
+      totalTicketSalesAgg,
+      totalWithdrawalsAgg,
+      recentTransactions,
+      recentDeposits,
+      gameCount,
+    ] = await Promise.all([
+      prisma.deposit.aggregate({
+        where: { status: 'APPROVED', userId: { in: referredUserIds } },
+        _sum: { amount: true },
+        _count: { id: true },
+      }),
+      prisma.deposit.aggregate({
+        where: { status: { in: ['PENDING', 'pending'] }, userId: { in: referredUserIds } },
+        _sum: { amount: true },
+        _count: { id: true },
+      }),
+      prisma.transaction.aggregate({
+        where: { type: 'TICKET_PURCHASE', status: { in: ['completed', 'COMPLETED'] }, userId: { in: referredUserIds } },
+        _sum: { amount: true },
+        _count: { id: true },
+      }),
+      prisma.withdrawal.aggregate({
+        where: { status: { in: ['APPROVED', 'COMPLETED', 'approved', 'completed'] }, userId: { in: referredUserIds } },
+        _sum: { amount: true },
+        _count: { id: true },
+      }),
+      prisma.transaction.findMany({
+        where: { userId: { in: referredUserIds } },
+        include: { user: { select: { firstName: true, telegramUsername: true } } },
+        orderBy: { createdAt: 'desc' },
+        take: 30,
+      }),
+      prisma.deposit.findMany({
+        where: { userId: { in: referredUserIds } },
+        include: { user: { select: { firstName: true, telegramUsername: true } } },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+      }),
+      prisma.game.count({
+        where: { tickets: { some: { userId: { in: referredUserIds } } } },
+      }),
+    ]);
+
+    const { getAgentPreDepositStatus } = await import('../services/agentPreDeposit.service');
+    const { getAgentProfitRate } = await import('../services/user.service');
+    const preDepositStatus = await getAgentPreDepositStatus(agentId);
+    const profitRate = await getAgentProfitRate();
+
+    const totalSales = Number(totalTicketSalesAgg._sum.amount || 0);
+    const netProfit = totalSales * profitRate;
+
+    res.json({
+      agent: {
+        id: agent.id,
+        firstName: agent.firstName,
+        telegramUsername: agent.telegramUsername,
+        telegramId: agent.telegramId,
+        phone: agent.phone,
+        role: agent.role,
+        createdAt: agent.createdAt,
+        depositPhones: agent.depositPhones,
+      },
+      preDepositStatus,
+      wallet: agent.wallet,
+      stats: {
+        totalPlayers: referredUserIds.length,
+        totalDeposited: Number(totalDepositsAgg._sum.amount || 0),
+        totalDepositsCount: totalDepositsAgg._count.id,
+        pendingDeposits: Number(pendingDepositsAgg._sum.amount || 0),
+        pendingDepositsCount: pendingDepositsAgg._count.id,
+        totalTicketSales: totalSales,
+        totalTicketsCount: totalTicketSalesAgg._count.id,
+        totalWithdrawn: Number(totalWithdrawalsAgg._sum.amount || 0),
+        totalWithdrawalsCount: totalWithdrawalsAgg._count.id,
+        netProfit,
+        profitRate,
+        gamesPlayed: gameCount,
+      },
+      players: agent.referrals,
+      recentTransactions,
+      recentDeposits,
+    });
+  } catch (err: any) {
+    logger.error('[Agent Report]', err);
+    res.status(500).json({ error: err.message || 'Failed to generate agent report' });
+  }
+});
+
 staffRouter.post('/users/:id/promote', restrictToAdmin, async (req, res) => {
   const admin = (req as any).user;
   const { promoteToAgent } = await import('../services/user.service');
