@@ -257,7 +257,7 @@ model AdminLog {
 model AgentPreDepositWallet {
   id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   agentId         String   @unique @db.Uuid @map("agent_id")
-  balance         Decimal  @default(10000) @db.Decimal(20, 4)
+  balance         Decimal  @default(0) @db.Decimal(20, 4)
   totalDebited    Decimal  @default(0) @db.Decimal(20, 4) @map("total_debited")
   totalRecharged  Decimal  @default(0) @db.Decimal(20, 4) @map("total_recharged")
   createdAt       DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
