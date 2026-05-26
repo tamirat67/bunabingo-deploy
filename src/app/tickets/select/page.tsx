@@ -390,15 +390,17 @@ function SelectionContent() {
     }
 
     const currentBalance = Number(user?.wallet?.balance || 0);
+    const currentBonus = Number(user?.wallet?.bonusBalance || 0);
+    const totalAvailable = currentBalance + currentBonus;
 
     // 2. Check if we are selecting a new card (not deselecting)
     if (!selected.includes(num)) {
-      // Check for 0 wallet immediately
-      if (roomType !== 'DEMO' && currentBalance === 0 && !ownedCardIds.includes(num)) {
+      // Check for 0 total balance (main + bonus)
+      if (roomType !== 'DEMO' && totalAvailable === 0 && !ownedCardIds.includes(num)) {
         setModal({
           isOpen: true,
           title: 'DEPOSIT WALLET / ተቀማጭ ያድርጉ ⚠️',
-          message: 'WARNING: Your wallet balance is 0. Please deposit money to play. / ማስጠንቀቂያ፡ የኪስዎ ቀሪ 0 ነው። ለመጫወት እባክዎ ተቀማጭ ያድርጉ።',
+          message: 'WARNING: Your wallet is empty (Main + Bonus = 0 ETB). Please deposit money to play. / ማስጠንቀቂያ፡ ዋና ሂሳብዎ እና ቦነስዎ ባዶ ነው። ለመጫወት እባክዎ ተቀማጭ ያድርጉ።',
           type: 'balance',
           onConfirm: () => router.push('/wallet')
         });
@@ -411,16 +413,16 @@ function SelectionContent() {
         return;
       }
 
-      // Check balance limit
+      // Check combined balance limit (main + bonus)
       const proposedSelected = [...selected, num];
       const newCardsToBuy = proposedSelected.filter(id => !ownedCardIds.includes(id));
       const proposedCost = newCardsToBuy.length * stake;
 
-      if (roomType !== 'DEMO' && proposedCost > currentBalance) {
+      if (roomType !== 'DEMO' && proposedCost > totalAvailable) {
         setModal({
           isOpen: true,
           title: 'Insufficient Balance / የኪስዎ ቀሪ በቂ አይደለም ⚠️',
-          message: `You need ${proposedCost} ETB to select these cards. You currently have ${currentBalance.toFixed(2)} ETB. Please deposit first to continue. / እነዚህን ካርዶች ለመምረጥ ${proposedCost} ETB ያስፈልግዎታል። በአሁኑ ጊዜ ${currentBalance.toFixed(2)} ETB ነው ያለዎት። እባክዎ መጀመሪያ ተቀማጭ ያድርጉ።`,
+          message: `You need ${proposedCost} ETB to select these cards. You have ${currentBalance.toFixed(2)} ETB (Main) + ${currentBonus.toFixed(2)} ETB (Bonus) = ${totalAvailable.toFixed(2)} ETB total. Please deposit to continue. / ${proposedCost} ETB ያስፈልግዎታል። ዋና: ${currentBalance.toFixed(2)} + ቦነስ: ${currentBonus.toFixed(2)} = ${totalAvailable.toFixed(2)} ETB ብቻ አለ።`,
           type: 'balance',
           onConfirm: () => router.push('/wallet')
         });
@@ -458,11 +460,13 @@ function SelectionContent() {
     }
 
     // Selection has changed, we must send joinGame to update tickets in the database
-    if (newCardsToBuy.length > 0 && Number(balance) < totalCost && roomType !== 'DEMO') {
+    const bonusBalance = Number(user?.wallet?.bonusBalance || 0);
+    const totalAvailableAtJoin = Number(balance) + bonusBalance;
+    if (newCardsToBuy.length > 0 && totalAvailableAtJoin < totalCost && roomType !== 'DEMO') {
       setModal({
         isOpen: true,
         title: 'Insufficient Balance / የኪስዎ ቀሪ በቂ አይደለም ⚠️',
-        message: `You need ${totalCost} ETB to purchase ${newCardsToBuy.length} new card(s). You currently have ${Number(balance).toFixed(2)} ETB. Please deposit first to continue. / እነዚህን ካርዶች ለመግዛት ${totalCost} ETB ያስፈልግዎታል። በአሁኑ ጊዜ ${Number(balance).toFixed(2)} ETB ነው ያለዎት። እባክዎ መጀመሪያ ተቀማጭ ያድርጉ።`,
+        message: `You need ${totalCost} ETB to purchase ${newCardsToBuy.length} card(s). You have ${Number(balance).toFixed(2)} ETB (Main) + ${bonusBalance.toFixed(2)} ETB (Bonus) = ${totalAvailableAtJoin.toFixed(2)} ETB total. / ${totalCost} ETB ያስፈልግዎታል። ዋና: ${Number(balance).toFixed(2)} + ቦነስ: ${bonusBalance.toFixed(2)} = ${totalAvailableAtJoin.toFixed(2)} ETB ብቻ አለ።`,
         type: 'balance',
         onConfirm: () => router.push('/wallet')
       });
@@ -583,7 +587,7 @@ function SelectionContent() {
       {/* ── Stats Row ── */}
       <div className="stats-row-brown">
         <div className="capsule-white"><div className="l">WALLET</div><div className="v">{Number(balance).toFixed(0)}</div></div>
-        <div className="capsule-white"><div className="l">BONUS</div><div className="v">0</div></div>
+        <div className="capsule-white"><div className="l">BONUS</div><div className="v">{Number(user?.wallet?.bonusBalance || 0).toFixed(0)}</div></div>
         <div className="capsule-white"><div className="l">PLAYERS</div><div className="v">{displayPlayerCount}</div></div>
         <div className="capsule-brown total-box"><div className="l" style={{ color: 'rgba(255,255,255,0.5)' }}>STAKE</div><div className="v">{stake}</div></div>
       </div>
