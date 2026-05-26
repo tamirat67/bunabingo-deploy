@@ -66,6 +66,51 @@ export async function handleWithdrawMessage(ctx: Context): Promise<boolean> {
       return true;
     }
 
+    // Check if user actually has enough balance
+    const user = await getUserByTelegramId(tgUser.id);
+    const balance = Number((user as any)?.wallet?.balance ?? 0);
+
+    if (amount > balance) {
+      clearSession(tgUser.id);
+
+      // Get agent's deposit phone for guidance
+      let agentPhone = '';
+      let agentName = '';
+      if ((user as any)?.referrer) {
+        const referrer = (user as any).referrer;
+        const phones = referrer.depositPhones as any[];
+        if (phones && phones.length > 0) {
+          agentPhone = phones[0].phone;
+          agentName = phones[0].name || referrer.firstName || referrer.telegramUsername || 'Agent';
+        } else if (referrer.phone || referrer.phoneNumber) {
+          agentPhone = referrer.phone || referrer.phoneNumber;
+          agentName = referrer.firstName || referrer.telegramUsername || 'Agent';
+        }
+      }
+
+      let depositInfo = '';
+      if (agentPhone) {
+        const localPhone = agentPhone.startsWith('251') ? '0' + agentPhone.slice(3) : agentPhone;
+        depositInfo = `\n\n📥 *ብር ለማስገባት ወደዚህ ቁጥር ይላኩ:*\n👤 ${agentName}\n📞 \`${localPhone}\`\n\n_ቴሌብር → ላኩ → ቁጥሩን ያስገቡ_`;
+      }
+
+      await ctx.reply(
+        `❌ *በቂ ሂሳብ የለዎትም!*\n\n` +
+        `💵 ዋና ሂሳብ (ሊወጣ የሚችል): *${balance.toFixed(2)} ETB*\n` +
+        `🔢 የጠየቁት መጠን: *${amount.toFixed(2)} ETB*\n\n` +
+        `⚠️ _የጠየቁት መጠን ካለዎት ሂሳብ በላይ ነው።_` +
+        depositInfo,
+        {
+          parse_mode: 'Markdown',
+          ...Markup.inlineKeyboard([
+            [Markup.button.callback('📥 ገቢ ለማድረግ', 'cmd_deposit')],
+            [Markup.button.callback('🏠 ዋና ማውጫ', 'cmd_start')],
+          ]),
+        }
+      );
+      return true;
+    }
+
     setSession(tgUser.id, { ...session, step: 'AWAITING_BANK', amount });
     await ctx.reply(`🏦 እባክዎ የባንክ ስም ያስገቡ (ለምሳሌ CBE, Telebirr, M-PESA)፦`, {
       ...Markup.inlineKeyboard(CANCEL_BTN),
