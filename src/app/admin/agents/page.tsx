@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { FiSearch, FiExternalLink, FiUserPlus, FiTrendingUp, FiUserX, FiX, FiLock, FiPhone, FiUser, FiAlertCircle, FiTrash2, FiPlus } from 'react-icons/fi';
 import api from '@/lib/api';
 import { Pagination } from '@/components/Pagination';
+import BunaModal from '@/components/BunaModal';
 import '@/app/admin.css';
 
 export default function AgentsPage() {
@@ -31,6 +32,9 @@ export default function AgentsPage() {
   const [depositPhonesSuccess, setDepositPhonesSuccess] = useState('');
   const [depositPhonesError, setDepositPhonesError] = useState('');
   const [agentDepositPhones, setAgentDepositPhones] = useState<{name: string, phone: string, last4: string}[]>([]);
+
+  // Demote Agent Modal State
+  const [demoteModal, setDemoteModal] = useState<{isOpen: boolean, userId: string}>({ isOpen: false, userId: '' });
 
   useEffect(() => {
     fetchAgents();
@@ -66,13 +70,18 @@ export default function AgentsPage() {
     }
   };
 
-  const handleDemote = async (userId: string) => {
-    if (!confirm('Are you sure you want to remove this agent from the network?')) return;
+  const handleDemote = (userId: string) => {
+    setDemoteModal({ isOpen: true, userId });
+  };
+
+  const executeDemote = async () => {
     try {
-      await api.post(`/admin/users/${userId}/demote`);
+      await api.post(`/admin/users/${demoteModal.userId}/demote`);
       fetchAgents();
     } catch (err) {
       alert('Demotion failed.');
+    } finally {
+      setDemoteModal({ isOpen: false, userId: '' });
     }
   };
 
@@ -307,6 +316,16 @@ export default function AgentsPage() {
         totalPages={totalPages} 
         onPageChange={setPage} 
         loading={loading}
+      />
+
+      <BunaModal 
+        isOpen={demoteModal.isOpen}
+        onClose={() => setDemoteModal({ isOpen: false, userId: '' })}
+        onConfirm={executeDemote}
+        title="Remove Agent"
+        message="Are you sure you want to remove this agent from the network? This action will demote them to a regular user."
+        type="error"
+        confirmText="Remove Agent"
       />
 
       {/* ── Recharge Modal ── */}

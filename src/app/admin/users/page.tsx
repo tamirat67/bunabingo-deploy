@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { FiSearch, FiUserX, FiShield, FiTrendingUp, FiMoreHorizontal, FiUserCheck } from 'react-icons/fi';
 import api from '@/lib/api';
 import { Pagination } from '@/components/Pagination';
+import BunaModal from '@/components/BunaModal';
 import '@/app/admin.css';
 
 export default function UsersPage() {
@@ -15,6 +16,7 @@ export default function UsersPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [stats, setStats] = useState({ total: 0, active: 0, banned: 0 });
+  const [modalState, setModalState] = useState<{isOpen: boolean, action: string, userId: string}>({ isOpen: false, action: '', userId: '' });
 
   // Debounce search query changes to prevent flooding the server
   useEffect(() => {
@@ -49,13 +51,18 @@ export default function UsersPage() {
     }
   };
 
-  const handleAction = async (userId: string, action: string) => {
-    if (!confirm(`Are you sure you want to ${action} this user?`)) return;
+  const handleAction = (userId: string, action: string) => {
+    setModalState({ isOpen: true, action, userId });
+  };
+
+  const executeAction = async () => {
     try {
-      await api.post(`/admin/users/${userId}/${action}`);
+      await api.post(`/admin/users/${modalState.userId}/${modalState.action}`);
       fetchUsers(page, debouncedSearch);
     } catch (err) {
       alert('Action failed. Check permissions.');
+    } finally {
+      setModalState({ isOpen: false, action: '', userId: '' });
     }
   };
 
@@ -220,6 +227,16 @@ export default function UsersPage() {
         totalPages={totalPages} 
         onPageChange={setPage} 
         loading={loading}
+      />
+
+      <BunaModal 
+        isOpen={modalState.isOpen}
+        onClose={() => setModalState({ isOpen: false, action: '', userId: '' })}
+        onConfirm={executeAction}
+        title="Confirm Action"
+        message={`Are you sure you want to ${modalState.action} this user?`}
+        type="confirm"
+        confirmText="Yes, Proceed"
       />
     </div>
   );
