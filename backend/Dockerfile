@@ -41,5 +41,5 @@ ENV NODE_ENV=production
 # Expose port
 EXPOSE 3001
 
-# Start the server
-CMD ["npm", "start"]
+# Start the server (sync db schema first)
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss && npm start"]
