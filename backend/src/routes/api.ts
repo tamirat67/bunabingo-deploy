@@ -1217,12 +1217,15 @@ staffRouter.post('/users/:id/demote', restrictToAdmin, async (req, res) => {
 // ─── Edit User (Admin Only) ──────────────────────────────────
 staffRouter.patch('/users/:id', restrictToAdmin, async (req, res) => {
   try {
-    const { firstName, telegramUsername, phone, status, walletBalance } = req.body;
+    const { firstName, telegramUsername, phone, status, walletBalance, referredBy } = req.body;
     const updateData: any = {};
     if (firstName !== undefined) updateData.firstName = firstName;
     if (telegramUsername !== undefined) updateData.telegramUsername = telegramUsername;
     if (phone !== undefined) updateData.phone = phone;
     if (status !== undefined) updateData.status = status;
+    if (referredBy !== undefined) {
+      updateData.referredBy = referredBy === '' || referredBy === 'none' ? null : referredBy;
+    }
 
     const user = await prisma.user.update({
       where: { id: req.params.id },

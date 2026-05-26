@@ -24,10 +24,16 @@ export async function handleStart(ctx: Context) {
       return handleWithdraw(ctx);
     }
 
-  if (startPayload && startPayload.length > 20) {
-      // UUIDs are 36 chars — quick sanity check
+    if (startPayload && startPayload !== tgUser.id.toString()) {
       try {
-        const referrer = await getUserById(startPayload);
+        let referrer = null;
+        if (startPayload.length > 20) {
+          referrer = await getUserById(startPayload);
+        } else if (!isNaN(Number(startPayload))) {
+          const { getUserByTelegramId } = await import('../../services/user.service');
+          referrer = await getUserByTelegramId(Number(startPayload));
+        }
+
         if (referrer && Number(referrer.telegramId) !== tgUser.id) {
           referrerName   = (referrer as any).firstName;
           validReferrerId = referrer.id;

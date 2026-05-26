@@ -33,11 +33,16 @@ export async function findOrCreateUser(
       const isAdminUser = config.bot.adminIds.includes(telegramUser.id.toString()) || telegramUser.id === 999999999;
       const role = isAdminUser ? 'ADMIN' : 'PLAYER';
 
-      // Check if referredById is an Agent
       let referredBy: string | undefined = undefined;
-      if (referredById && referredById.length > 20) {
-        const referrer = await prisma.user.findUnique({ where: { id: referredById } });
-        if (referrer?.role === 'AGENT' || referrer?.role === 'agent') {
+      if (referredById) {
+        let referrer = null;
+        if (referredById.length > 20) {
+          referrer = await prisma.user.findUnique({ where: { id: referredById } });
+        } else if (!isNaN(Number(referredById))) {
+          referrer = await prisma.user.findUnique({ where: { telegramId: BigInt(referredById) } });
+        }
+        
+        if (referrer?.role === 'AGENT' || referrer?.role === 'admin' || referrer?.role === 'ADMIN') {
           referredBy = referrer.id;
           logger.info(`[Auth] New user ${telegramUser.first_name} linked to Agent ${referrer.username || referrer.firstName}`);
         }

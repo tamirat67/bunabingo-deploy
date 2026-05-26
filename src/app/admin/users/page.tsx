@@ -79,6 +79,7 @@ export default function UsersPage() {
       phone: user.phone || user.phoneNumber || '',
       status: user.status || 'ACTIVE',
       walletBalance: parseFloat(user.wallet?.balance || 0).toFixed(2),
+      referredBy: user.referredBy || '',
     });
     setEditError('');
     setEditSuccess('');
@@ -299,9 +300,15 @@ export default function UsersPage() {
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div>
-                  <label style={{ fontSize: '11px', fontWeight: '800', color: '#78716c', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}><FiPhone size={10} /> Phone</label>
-                  <input type="text" className="login-input" value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} placeholder="e.g. 0911234567" />
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '800', color: '#78716c', fontSize: '12px' }}>Phone Number</label>
+                  <input
+                    type="text"
+                    className="login-input"
+                    value={editForm.phone}
+                    onChange={e => setEditForm({ ...editForm, phone: e.target.value })}
+                    placeholder="e.g. +251912345678"
+                  />
                 </div>
                 <div>
                   <label style={{ fontSize: '11px', fontWeight: '800', color: '#78716c', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Status</label>
