@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { FiSearch, FiUserX, FiShield, FiTrendingUp, FiMoreHorizontal, FiUserCheck } from 'react-icons/fi';
+import { FiSearch, FiUserX, FiShield, FiEdit2, FiUserCheck, FiX, FiUser, FiPhone, FiDollarSign } from 'react-icons/fi';
 import api from '@/lib/api';
 import { Pagination } from '@/components/Pagination';
 import BunaModal from '@/components/BunaModal';
@@ -18,7 +18,14 @@ export default function UsersPage() {
   const [stats, setStats] = useState({ total: 0, active: 0, banned: 0 });
   const [modalState, setModalState] = useState<{isOpen: boolean, action: string, userId: string}>({ isOpen: false, action: '', userId: '' });
 
-  // Debounce search query changes to prevent flooding the server
+  // Edit modal state
+  const [editModal, setEditModal] = useState(false);
+  const [editUser, setEditUser] = useState<any>(null);
+  const [editForm, setEditForm] = useState({ firstName: '', telegramUsername: '', phone: '', status: 'ACTIVE', walletBalance: '' });
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState('');
+  const [editSuccess, setEditSuccess] = useState('');
+
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearch(search);
@@ -39,13 +46,11 @@ export default function UsersPage() {
       const data = response.data;
       setUsers(data.users || []);
       setTotalPages(data.pages || 1);
-      
       const total = data.total || data.users?.length || 0;
       const banned = data.users?.filter((u: any) => u.status === 'BANNED').length || 0;
       setStats({ total, active: total - banned, banned });
     } catch (err: any) {
-      console.error('Failed to fetch users:', err);
-      setError(err?.response?.data?.error || err.message || 'Failed to fetch users. Please make sure you are logged in as an authorized admin.');
+      setError(err?.response?.data?.error || err.message || 'Failed to fetch users.');
     } finally {
       setLoading(false);
     }
@@ -66,6 +71,37 @@ export default function UsersPage() {
     }
   };
 
+  const openEditModal = (user: any) => {
+    setEditUser(user);
+    setEditForm({
+      firstName: user.firstName || '',
+      telegramUsername: user.telegramUsername || '',
+      phone: user.phone || user.phoneNumber || '',
+      status: user.status || 'ACTIVE',
+      walletBalance: parseFloat(user.wallet?.balance || 0).toFixed(2),
+    });
+    setEditError('');
+    setEditSuccess('');
+    setEditModal(true);
+  };
+
+  const handleEditSave = async () => {
+    if (!editUser) return;
+    setEditLoading(true);
+    setEditError('');
+    setEditSuccess('');
+    try {
+      await api.patch(`/admin/users/${editUser.id}`, editForm);
+      setEditSuccess('✅ User updated successfully!');
+      fetchUsers(page, debouncedSearch);
+      setTimeout(() => setEditModal(false), 1500);
+    } catch (err: any) {
+      setEditError(err?.response?.data?.error || 'Failed to save changes.');
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
   return (
     <div className="admin-page">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
@@ -73,7 +109,6 @@ export default function UsersPage() {
           <h1 style={{ fontSize: '28px', fontWeight: '900', color: '#3d2b1f', margin: 0 }}>User Network</h1>
           <p style={{ color: '#78716c', margin: '4px 0 0', fontSize: '14px' }}>Monitor and manage all platform players</p>
         </div>
-        
         <div className="stat-pill" style={{ display: 'flex', gap: '12px' }}>
           <div style={{ background: '#fff', padding: '8px 16px', borderRadius: '12px', border: '1px solid #f5f5f4', fontSize: '12px', fontWeight: '800' }}>
             <span style={{ color: '#d4af37' }}>●</span> {stats.total} TOTAL
@@ -85,27 +120,17 @@ export default function UsersPage() {
       </div>
 
       {error && (
-        <div style={{ 
-          background: '#fef2f2', 
-          border: '1px solid #fca5a5', 
-          color: '#b91c1c', 
-          padding: '16px', 
-          borderRadius: '12px', 
-          marginBottom: '24px', 
-          fontWeight: '600',
-          fontSize: '14px'
-        }}>
+        <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', color: '#b91c1c', padding: '16px', borderRadius: '12px', marginBottom: '24px', fontWeight: '600', fontSize: '14px' }}>
           ⚠️ {error}
         </div>
       )}
 
-      {/* Search & Filters */}
       <div className="stat-card-m" style={{ padding: '20px', marginBottom: '32px', display: 'flex', gap: '16px' }}>
         <div style={{ position: 'relative', flex: 1 }}>
           <FiSearch style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#a8a29e' }} />
-          <input 
-            type="text" 
-            placeholder="Search by ID, Username or Name..." 
+          <input
+            type="text"
+            placeholder="Search by ID, Username or Name..."
             className="login-input"
             style={{ paddingLeft: '48px' }}
             value={search}
@@ -114,7 +139,6 @@ export default function UsersPage() {
         </div>
       </div>
 
-      {/* Users Table */}
       <div className="data-table-container">
         {loading ? (
           <div style={{ padding: '100px', textAlign: 'center' }}>
@@ -166,39 +190,50 @@ export default function UsersPage() {
                     </span>
                   </td>
                   <td>
-                    <div style={{ display: 'flex', gap: '8px' }}>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      {/* Edit Button */}
+                      <button
+                        onClick={() => openEditModal(user)}
+                        className="login-button"
+                        style={{ padding: '7px 12px', background: '#fef9c3', color: '#854d0e', fontSize: '11px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px' }}
+                        title="Edit User"
+                      >
+                        <FiEdit2 size={12} /> EDIT
+                      </button>
+
                       {user.status !== 'BANNED' ? (
-                        <button 
+                        <button
                           onClick={() => handleAction(user.id, 'ban')}
-                          className="login-button" 
+                          className="login-button"
                           style={{ padding: '8px', background: '#fef2f2', color: '#ef4444' }}
                           title="Ban User"
                         >
                           <FiUserX />
                         </button>
                       ) : (
-                        <button 
-                          className="login-button" 
+                        <button
+                          onClick={() => handleAction(user.id, 'unban')}
+                          className="login-button"
                           style={{ padding: '8px', background: '#f0fdf4', color: '#22c55e' }}
                           title="Unban User"
                         >
                           <FiUserCheck />
                         </button>
                       )}
-                      
+
                       {user.role !== 'AGENT' && user.role !== 'ADMIN' ? (
-                        <button 
+                        <button
                           onClick={() => handleAction(user.id, 'promote')}
-                          className="login-button" 
+                          className="login-button"
                           style={{ padding: '8px', background: '#eff6ff', color: '#3b82f6' }}
                           title="Promote to Agent"
                         >
                           <FiShield />
                         </button>
                       ) : user.role === 'AGENT' ? (
-                        <button 
+                        <button
                           onClick={() => handleAction(user.id, 'demote')}
-                          className="login-button" 
+                          className="login-button"
                           style={{ padding: '8px', background: '#fff7ed', color: '#f97316' }}
                           title="Demote from Agent"
                         >
@@ -221,15 +256,10 @@ export default function UsersPage() {
         )}
       </div>
 
-      {/* Pagination */}
-      <Pagination 
-        currentPage={page} 
-        totalPages={totalPages} 
-        onPageChange={setPage} 
-        loading={loading}
-      />
+      <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} loading={loading} />
 
-      <BunaModal 
+      {/* Action Confirm Modal */}
+      <BunaModal
         isOpen={modalState.isOpen}
         onClose={() => setModalState({ isOpen: false, action: '', userId: '' })}
         onConfirm={executeAction}
@@ -238,6 +268,66 @@ export default function UsersPage() {
         type="confirm"
         confirmText="Yes, Proceed"
       />
+
+      {/* ── Edit User Modal ── */}
+      {editModal && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '500px', width: '92%' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <h2 style={{ fontWeight: '900', fontSize: '22px', margin: 0 }}>Edit User</h2>
+              <button onClick={() => setEditModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px', color: '#78716c' }}>
+                <FiX />
+              </button>
+            </div>
+            <p style={{ fontSize: '13px', color: '#78716c', marginBottom: '20px' }}>
+              Editing <b>{editUser?.firstName}</b> — Telegram ID: <code>{editUser?.telegramId}</code>
+            </p>
+
+            {editError && <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px', padding: '10px 14px', marginBottom: '14px', fontSize: '13px', color: '#dc2626', fontWeight: '600' }}>{editError}</div>}
+            {editSuccess && <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', padding: '10px 14px', marginBottom: '14px', fontSize: '13px', color: '#16a34a', fontWeight: '600' }}>{editSuccess}</div>}
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: '800', color: '#78716c', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}><FiUser size={10} /> Full Name</label>
+                  <input type="text" className="login-input" value={editForm.firstName} onChange={e => setEditForm(f => ({ ...f, firstName: e.target.value }))} placeholder="e.g. John Doe" />
+                </div>
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: '800', color: '#78716c', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}><FiUser size={10} /> Username</label>
+                  <input type="text" className="login-input" value={editForm.telegramUsername} onChange={e => setEditForm(f => ({ ...f, telegramUsername: e.target.value }))} placeholder="e.g. john_doe" />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: '800', color: '#78716c', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}><FiPhone size={10} /> Phone</label>
+                  <input type="text" className="login-input" value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} placeholder="e.g. 0911234567" />
+                </div>
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: '800', color: '#78716c', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Status</label>
+                  <select className="login-input" value={editForm.status} onChange={e => setEditForm(f => ({ ...f, status: e.target.value }))} style={{ cursor: 'pointer' }}>
+                    <option value="ACTIVE">ACTIVE</option>
+                    <option value="BANNED">BANNED</option>
+                    <option value="SUSPENDED">SUSPENDED</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '11px', fontWeight: '800', color: '#78716c', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}><FiDollarSign size={10} /> Wallet Balance (ETB)</label>
+                <input type="number" className="login-input" value={editForm.walletBalance} onChange={e => setEditForm(f => ({ ...f, walletBalance: e.target.value }))} placeholder="e.g. 500.00" />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', marginTop: '24px' }}>
+              <button className="login-button" onClick={handleEditSave} disabled={editLoading} style={{ flex: 1, padding: '14px' }}>
+                {editLoading ? 'Saving...' : 'Save Changes'}
+              </button>
+              <button onClick={() => setEditModal(false)} style={{ flex: 1, background: '#eee', border: 'none', borderRadius: '12px', fontWeight: '900', cursor: 'pointer' }}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

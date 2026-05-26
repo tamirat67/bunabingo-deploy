@@ -1091,6 +1091,63 @@ staffRouter.post('/users/:id/demote', restrictToAdmin, async (req, res) => {
   }
 });
 
+// ─── Edit User (Admin Only) ──────────────────────────────────
+staffRouter.patch('/users/:id', restrictToAdmin, async (req, res) => {
+  try {
+    const { firstName, telegramUsername, phone, status, walletBalance } = req.body;
+    const updateData: any = {};
+    if (firstName !== undefined) updateData.firstName = firstName;
+    if (telegramUsername !== undefined) updateData.telegramUsername = telegramUsername;
+    if (phone !== undefined) updateData.phone = phone;
+    if (status !== undefined) updateData.status = status;
+
+    const user = await prisma.user.update({
+      where: { id: req.params.id },
+      data: updateData,
+    });
+
+    // Update wallet balance if provided
+    if (walletBalance !== undefined && !isNaN(parseFloat(walletBalance))) {
+      await prisma.wallet.updateMany({
+        where: { userId: req.params.id },
+        data: { balance: parseFloat(walletBalance) },
+      });
+    }
+
+    res.json({ success: true, user });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to update user' });
+  }
+});
+
+// ─── Edit Agent (Admin Only) ──────────────────────────────────
+staffRouter.patch('/agents/:id', restrictToAdmin, async (req, res) => {
+  try {
+    const { firstName, telegramUsername, phone, preDepositBalance } = req.body;
+    const updateData: any = {};
+    if (firstName !== undefined) updateData.firstName = firstName;
+    if (telegramUsername !== undefined) updateData.telegramUsername = telegramUsername;
+    if (phone !== undefined) updateData.phone = phone;
+
+    const user = await prisma.user.update({
+      where: { id: req.params.id },
+      data: updateData,
+    });
+
+    // Update pre-deposit balance if provided
+    if (preDepositBalance !== undefined && !isNaN(parseFloat(preDepositBalance))) {
+      await prisma.agentPreDepositWallet.updateMany({
+        where: { agentId: req.params.id },
+        data: { balance: parseFloat(preDepositBalance) },
+      });
+    }
+
+    res.json({ success: true, user });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to update agent' });
+  }
+});
+
 staffRouter.get('/analytics', restrictToAdmin, async (req, res) => {
   const dateStr = req.query.date as string; // Optional date 'YYYY-MM-DD'
   let todayStart = new Date();

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { FiSearch, FiExternalLink, FiUserPlus, FiTrendingUp, FiUserX, FiX, FiLock, FiPhone, FiUser, FiAlertCircle, FiTrash2, FiPlus } from 'react-icons/fi';
+import { FiSearch, FiUserPlus, FiTrendingUp, FiUserX, FiX, FiLock, FiPhone, FiUser, FiAlertCircle, FiTrash2, FiPlus, FiEdit2, FiDollarSign } from 'react-icons/fi';
 import api from '@/lib/api';
 import { Pagination } from '@/components/Pagination';
 import BunaModal from '@/components/BunaModal';
@@ -35,6 +35,14 @@ export default function AgentsPage() {
 
   // Demote Agent Modal State
   const [demoteModal, setDemoteModal] = useState<{isOpen: boolean, userId: string}>({ isOpen: false, userId: '' });
+
+  // Edit Agent Modal State
+  const [editModal, setEditModal] = useState(false);
+  const [editAgent, setEditAgent] = useState<any>(null);
+  const [editForm, setEditForm] = useState({ firstName: '', telegramUsername: '', phone: '', preDepositBalance: '' });
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState('');
+  const [editSuccess, setEditSuccess] = useState('');
 
   useEffect(() => {
     fetchAgents();
@@ -82,6 +90,36 @@ export default function AgentsPage() {
       alert('Demotion failed.');
     } finally {
       setDemoteModal({ isOpen: false, userId: '' });
+    }
+  };
+
+  const openEditModal = (agent: any) => {
+    setEditAgent(agent);
+    setEditForm({
+      firstName: agent.firstName || '',
+      telegramUsername: agent.telegramUsername || '',
+      phone: agent.phone || agent.phoneNumber || '',
+      preDepositBalance: Number(agent.preDepositStatus?.balance ?? agent.agentPreDepositWallet?.balance ?? 0).toFixed(2),
+    });
+    setEditError('');
+    setEditSuccess('');
+    setEditModal(true);
+  };
+
+  const handleEditSave = async () => {
+    if (!editAgent) return;
+    setEditLoading(true);
+    setEditError('');
+    setEditSuccess('');
+    try {
+      await api.patch(`/admin/agents/${editAgent.id}`, editForm);
+      setEditSuccess('✅ Agent updated successfully!');
+      fetchAgents();
+      setTimeout(() => setEditModal(false), 1500);
+    } catch (err: any) {
+      setEditError(err?.response?.data?.error || 'Failed to save changes.');
+    } finally {
+      setEditLoading(false);
     }
   };
 
@@ -282,28 +320,35 @@ export default function AgentsPage() {
                    </div>
                 </td>
                 <td style={{ textAlign: 'right' }}>
-                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                     <button 
-                       onClick={() => { setSelectedAgent(agent); setShowRechargeModal(true); }}
-                       className="action-button"
-                       style={{ background: '#fef3c7', color: '#b45309', padding: '6px 12px', borderRadius: '8px', border: 'none', fontSize: '11px', fontWeight: '900', cursor: 'pointer' }}
-                     >
-                        REFILL
-                     </button>
-                     <button 
-                       onClick={() => openDepositPhonesModal(agent)}
-                       style={{ background: '#f0fdf4', color: '#16a34a', padding: '6px 12px', borderRadius: '8px', border: 'none', fontSize: '11px', fontWeight: '900', cursor: 'pointer' }}
-                     >
-                        <FiPhone size={12} style={{ marginRight: '4px' }} /> PHONES
-                     </button>
-                     <button 
-                       onClick={() => handleDemote(agent.id)}
-                       style={{ background: '#fef2f2', border: 'none', color: '#ef4444', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
-                       title="Demote from Agent"
-                     >
-                        <FiUserX />
-                     </button>
-                   </div>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px', flexWrap: 'wrap' }}>
+                    <button
+                      onClick={() => openEditModal(agent)}
+                      style={{ background: '#fef9c3', color: '#854d0e', padding: '6px 12px', borderRadius: '8px', border: 'none', fontSize: '11px', fontWeight: '900', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                      title="Edit Agent"
+                    >
+                      <FiEdit2 size={12} /> EDIT
+                    </button>
+                    <button 
+                      onClick={() => { setSelectedAgent(agent); setShowRechargeModal(true); }}
+                      className="action-button"
+                      style={{ background: '#fef3c7', color: '#b45309', padding: '6px 12px', borderRadius: '8px', border: 'none', fontSize: '11px', fontWeight: '900', cursor: 'pointer' }}
+                    >
+                       REFILL
+                    </button>
+                    <button 
+                      onClick={() => openDepositPhonesModal(agent)}
+                      style={{ background: '#f0fdf4', color: '#16a34a', padding: '6px 12px', borderRadius: '8px', border: 'none', fontSize: '11px', fontWeight: '900', cursor: 'pointer' }}
+                    >
+                       <FiPhone size={12} style={{ marginRight: '4px' }} /> PHONES
+                    </button>
+                    <button 
+                      onClick={() => handleDemote(agent.id)}
+                      style={{ background: '#fef2f2', border: 'none', color: '#ef4444', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+                      title="Demote from Agent"
+                    >
+                       <FiUserX />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -486,6 +531,56 @@ export default function AgentsPage() {
               <button className="login-button" onClick={handleSaveDepositPhones} disabled={depositPhonesLoading} style={{ flex: 1, padding: '14px' }}>
                 {depositPhonesLoading ? 'Saving...' : 'Save Deposit Phones'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Edit Agent Modal ── */}
+      {editModal && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '500px', width: '92%' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <h2 style={{ fontWeight: '900', fontSize: '22px', margin: 0 }}>Edit Agent</h2>
+              <button onClick={() => setEditModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px', color: '#78716c' }}>
+                <FiX />
+              </button>
+            </div>
+            <p style={{ fontSize: '13px', color: '#78716c', marginBottom: '20px' }}>
+              Editing <b>{editAgent?.firstName}</b>{editAgent?.telegramUsername ? ` (@${editAgent.telegramUsername})` : ''}
+            </p>
+
+            {editError && <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px', padding: '10px 14px', marginBottom: '14px', fontSize: '13px', color: '#dc2626', fontWeight: '600' }}>{editError}</div>}
+            {editSuccess && <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', padding: '10px 14px', marginBottom: '14px', fontSize: '13px', color: '#16a34a', fontWeight: '600' }}>{editSuccess}</div>}
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: '800', color: '#78716c', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}><FiUser size={10} /> Full Name</label>
+                  <input type="text" className="login-input" value={editForm.firstName} onChange={e => setEditForm(f => ({ ...f, firstName: e.target.value }))} placeholder="e.g. John" />
+                </div>
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: '800', color: '#78716c', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}><FiUser size={10} /> Username</label>
+                  <input type="text" className="login-input" value={editForm.telegramUsername} onChange={e => setEditForm(f => ({ ...f, telegramUsername: e.target.value }))} placeholder="e.g. agent_john" />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '11px', fontWeight: '800', color: '#78716c', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}><FiPhone size={10} /> Phone</label>
+                <input type="text" className="login-input" value={editForm.phone} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))} placeholder="e.g. 0911234567" />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '11px', fontWeight: '800', color: '#78716c', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}><FiDollarSign size={10} /> Pre-Deposit Balance (ETB)</label>
+                <input type="number" className="login-input" value={editForm.preDepositBalance} onChange={e => setEditForm(f => ({ ...f, preDepositBalance: e.target.value }))} placeholder="e.g. 5000" />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', marginTop: '24px' }}>
+              <button className="login-button" onClick={handleEditSave} disabled={editLoading} style={{ flex: 1, padding: '14px' }}>
+                {editLoading ? 'Saving...' : 'Save Changes'}
+              </button>
+              <button onClick={() => setEditModal(false)} style={{ flex: 1, background: '#eee', border: 'none', borderRadius: '12px', fontWeight: '900', cursor: 'pointer' }}>Cancel</button>
             </div>
           </div>
         </div>
