@@ -269,14 +269,15 @@ export async function handleDepositMessage(ctx: Context): Promise<boolean> {
       return true;
     }
 
-    // ── Instant local validation: all 7 security checks, no external HTTP call ──
+    // ── Layer 1: Parse + internal self-verification ───────────────────────────
     await ctx.replyWithHTML(
       `🔍 <b>SMS እየተረጋገጠ ነው...</b>\n` +
-      `<i>ስርዓቱ በርካታ የማረጋገጫ ደረጃዎችን እያካሄደ ነው — እባክዎ ይጠብቁ።</i>`
+      `<i>(AI Bot)ስርዓቱ በርካታ የማረጋገጫ ደረጃዎችን እያካሄደ ነው — እባክዎ ይጠብቁ።</i>`
     );
 
-    const { validateTelebirrSmsLocal, verifyReceiptOnline } = await import('../../services/bunafrankValidator');
-    const result = await validateTelebirrSmsLocal(smsText, session.amount!, tgUser.id.toString());
+    const { validateTelebirrSms } = await import('../../services/bunafrankValidator');
+    // Pass '' as receiverPhone — validator uses hardcoded accounts internally
+    const result = await validateTelebirrSms(smsText, session.amount!, tgUser.id.toString());
 
     if (!result.valid) {
       await ctx.replyWithHTML(
@@ -290,7 +291,7 @@ export async function handleDepositMessage(ctx: Context): Promise<boolean> {
 
     const d = result.data!;
 
-    // ── Belt-and-suspenders duplicate check (also inside local validator) ──────
+    // ── Layer 2: Duplicate transaction guard ─────────────────────────────────
     const existing = await prisma.deposit.findUnique({ where: { txnId: d.transactionId } });
     if (existing) {
       await ctx.replyWithHTML(
@@ -302,10 +303,13 @@ export async function handleDepositMessage(ctx: Context): Promise<boolean> {
       return true;
     }
 
-    // ── Show confirmed SMS summary IMMEDIATELY ────────────────────────────────
+    // ── Auto-detect which account was used (bot verifies its own conclusion) ──
     const user = await getUserByTelegramId(tgUser.id);
     const accounts = await getDepositAccountsForUser(user!.id);
     const matchedAccount = accounts.find((a: any) => a.last4 === d.recipientPhoneLast4);
+    const verifiedBadge = result.onlineVerified
+      ? '✅ ኦፊሴላዊ ዌብሳይት ላይ ተረጋግጧል'
+      : '📋 አስተዳዳሪ ሲያረጋግጥ ይጠብቁ';
 
     await ctx.replyWithHTML(
       `✅ <b>SMS ተረጋግጧል!</b>\n\n` +
@@ -316,64 +320,12 @@ export async function handleDepositMessage(ctx: Context): Promise<boolean> {
       `📞 <b>ስልክ:</b>        ${d.recipientPhoneMasked}\n` +
       `📅 <b>ቀን:</b>         ${d.dateTime}\n` +
       `💸 <b>ክፍያ አገ.:</b>   ${d.serviceFee.toFixed(2)} ብር\n` +
-      `🔐 <b>ሁኔታ:</b>        ✅ SMS ተቀባይ ላይ ተሰጥቷል\n` +
+      `🔐 <b>ሁኔታ:</b>        ${verifiedBadge}\n` +
       `━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
       `⏳ ገቢዎን እያስተናገድን ነው...`
     );
 
-    // ── Credit wallet IMMEDIATELY (autoComplete = true) ───────────────────────
-    await submitDeposit(ctx, session.amount!, d.transactionId, undefined, 'telebirr', d, true);
-
-    // ── Background online verification (fire-and-forget, zero UX delay) ───────
-    // Security: if online check fails → flag deposit + notify agent/admin for manual review
-    verifyReceiptOnline(d.receiptUrl, d.transactionId).then(async (onlineVerified) => {
-      if (onlineVerified) {
-        logger.info(`[Deposit] ✅ Background online check PASSED for ${d.transactionId}`);
-        // Already credited — nothing more needed
-      } else {
-        logger.warn(`[Deposit] ⚠️ Background online check FAILED for ${d.transactionId} — flagging for review`);
-        try {
-          // Flag the deposit record without reversing (network issues ≠ fraud)
-          await prisma.deposit.update({
-            where: { txnId: d.transactionId },
-            data: {
-              details: `⚠️ Online receipt verification failed. Flagged for manual review. TxnId: ${d.transactionId}`,
-            },
-          });
-
-          // Notify the player's agent (or fallback to global admins)
-          const userRecord = await getUserByTelegramId(tgUser.id);
-          let notifyIds: number[] = [];
-          if (userRecord?.referredBy) {
-            const agent = await prisma.user.findUnique({ where: { id: userRecord.referredBy } });
-            if (agent?.telegramId) notifyIds.push(Number(agent.telegramId));
-          }
-          if (notifyIds.length === 0) {
-            notifyIds = config.bot.adminIds.map(id => parseInt(id, 10));
-          }
-
-          const alertMsg =
-            `⚠️ *[NEEDS REVIEW] Online Verification Failed*\n\n` +
-            `👤 User: ${tgUser.username ? '@' + tgUser.username : String(tgUser.id)}\n` +
-            `💵 Amount: *${d.amount.toFixed(2)} ETB*\n` +
-            `🔖 TxnId: \`${d.transactionId}\`\n` +
-            `📅 Date: ${d.dateTime}\n` +
-            `🔗 Receipt: [View Receipt](https://transactioninfo.ethiotelecom.et/receipt/${d.transactionId})\n\n` +
-            `_Wallet has been credited. Online receipt check failed — please verify manually and reverse if fraudulent._`;
-
-          for (const adminId of notifyIds) {
-            try {
-              await ctx.telegram.sendMessage(adminId, alertMsg, { parse_mode: 'Markdown' });
-            } catch (e) {
-              logger.warn(`[Deposit] Could not notify admin ${adminId}:`, e);
-            }
-          }
-        } catch (updateErr) {
-          logger.error('[Deposit] Background verification update failed:', updateErr);
-        }
-      }
-    }).catch(e => logger.warn('[Deposit] Background online check threw:', e));
-
+    await submitDeposit(ctx, session.amount!, d.transactionId, undefined, 'telebirr', d, result.onlineVerified);
     return true;
   }
 
