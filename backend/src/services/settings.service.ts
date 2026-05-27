@@ -7,6 +7,9 @@ const DEFAULT_SETTINGS: Record<string, string> = {
   COMPANY_COMMISSION_RATE: '12.5',
   AGENT_PROFIT_RATE: '12.5',
   HOUSE_BOT_ENABLED: 'true',
+  BONUS_ACTIVE: 'true',
+  BONUS_PERCENT: '100',
+  BONUS_MIN_DEPOSIT: '50',
 };
 
 /**
