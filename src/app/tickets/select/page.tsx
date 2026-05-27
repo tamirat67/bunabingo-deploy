@@ -924,7 +924,7 @@ function SelectionContent() {
         })}
       </div>
 
-      <div style={{ height: '300px' }} />
+      <div style={{ height: '220px' }} />
 
       {/* ── Footer ── */}
       <div className="selection-footer-smart">

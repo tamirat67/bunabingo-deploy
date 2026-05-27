@@ -193,9 +193,9 @@ h1, h2, h3 { font-weight: 900; text-transform: uppercase; letter-spacing: 1px; }
 .num-brown.selected { background: #D4AF37; color: white; border-color: #D4AF37; transform: scale(1.1); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
 
 .selection-footer-smart {
-  position: fixed; bottom: 85px; left: 0; right: 0;
+  position: fixed; bottom: 0; left: 0; right: 0;
   background: #E8DCC4;
-  padding: 12px 16px;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
   border-top: 2px solid #D4AF37;
   border-bottom: 1px solid rgba(212,175,55,0.2);
   z-index: 999;
