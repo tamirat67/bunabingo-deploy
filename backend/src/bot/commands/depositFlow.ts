@@ -11,6 +11,37 @@ const DEFAULT_DEPOSIT_ACCOUNTS = [
   { name: 'Luel G/libanos', phone: '+251969455111', last4: '5111' }
 ];
 
+interface AgentProfile {
+  displayName: string;
+  contactPhone: string | null;
+  telegramUsername: string | null;
+}
+
+async function getAgentProfileForUser(userId: string): Promise<AgentProfile | null> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { referrer: true }
+  });
+
+  const referrer = user?.referrer;
+  if (!referrer) {
+    // fallback: try default agent
+    const defaultAgent = await prisma.user.findFirst({ where: { telegramUsername: 'Luel1616' } });
+    if (!defaultAgent) return null;
+    return {
+      displayName: defaultAgent.firstName || defaultAgent.telegramUsername || 'Agent',
+      contactPhone: defaultAgent.phone || defaultAgent.phoneNumber || null,
+      telegramUsername: defaultAgent.telegramUsername || null,
+    };
+  }
+
+  return {
+    displayName: [referrer.firstName, referrer.lastName].filter(Boolean).join(' ') || referrer.telegramUsername || 'Agent',
+    contactPhone: referrer.phone || referrer.phoneNumber || null,
+    telegramUsername: referrer.telegramUsername || null,
+  };
+}
+
 async function getDepositAccountsForUser(userId: string) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -62,7 +93,7 @@ function generateReference(length = 10): string {
 const CANCEL_BTN = [[Markup.button.callback('❌ ሰርዝ', 'cmd_deposit_cancel')]];
 
 // ─── Dynamic payment card (supports multiple accounts + full Amharic instructions) ────
-function buildPaymentCard(amount: number, reference: string, accounts: {name: string, phone: string}[]): string {
+function buildPaymentCard(amount: number, reference: string, accounts: {name: string, phone: string}[], agentProfile?: AgentProfile | null): string {
   let accountsList = '';
   const letters = ['🅐', '🅑', '🅒', '🅓', '🅔'];
   accounts.forEach((acc, i) => {
@@ -74,9 +105,25 @@ function buildPaymentCard(amount: number, reference: string, accounts: {name: st
       `  📱 <code>${localPhone}</code>\n\n`;
   });
 
+  let agentHeader = '';
+  if (agentProfile) {
+    agentHeader = `🏦 <b>የእርስዎ ኤጀንት (Agent):</b>\n`;
+    agentHeader += `   👤 <b>${agentProfile.displayName}</b>\n`;
+    if (agentProfile.contactPhone) {
+      const cp = agentProfile.contactPhone;
+      const localCp = cp.startsWith('251') ? '0' + cp.slice(3) : cp;
+      agentHeader += `   📞 <code>${localCp}</code>\n`;
+    }
+    if (agentProfile.telegramUsername) {
+      agentHeader += `   💬 @${agentProfile.telegramUsername}\n`;
+    }
+    agentHeader += `━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+  }
+
   return (
     `💳 <b>የቴሌብር ክፍያ ዝርዝር</b>\n` +
     `━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+    agentHeader +
     `💵 <b>ክፍያ:</b>  ${amount} ብር (ETB)\n` +
     `📌 <b>Ref:</b>  <code>${reference}</code>\n` +
     `━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
@@ -100,8 +147,28 @@ export async function handleDepositManualStart(ctx: Context) {
   const user = await getUserByTelegramId(tgUser.id);
   if (!user) return ctx.reply('❌ እባክዎ አስቀድመው /start ን በመጫን ይመዝገቡ።');
   setSession(tgUser.id, { type: 'MANUAL_DEPOSIT', step: 'AWAITING_AMOUNT' });
+
+  // Show agent info prominently before asking for amount
+  const agentProfile = await getAgentProfileForUser(user.id);
+  let agentLine = '';
+  if (agentProfile) {
+    agentLine = `\n🏦 *የእርስዎ ኤጀንት:* ${agentProfile.displayName}`;
+    if (agentProfile.contactPhone) {
+      const cp = agentProfile.contactPhone;
+      const localCp = cp.startsWith('251') ? '0' + cp.slice(3) : cp;
+      agentLine += `\n📞 *ኤጀንት ስልክ:* \`${localCp}\``;
+    }
+    if (agentProfile.telegramUsername) {
+      agentLine += `\n💬 *ቴሌግራም:* @${agentProfile.telegramUsername}`;
+    }
+    agentLine += `\n`;
+  }
+
   await ctx.reply(
-    `💳 *ብር ማስገቢያ*\n\nእንዲሞላልዎት የሚፈልጉትን የገንዘብ መጠን በብር (ETB) ያስገቡ:\n\nዝቅተኛው መጠን፡ 10 ብር (ETB)`,
+    `💳 *ብር ማስገቢያ*\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━━━━${agentLine}\n` +
+    `እንዲሞላልዎት የሚፈልጉትን የገንዘብ መጠን በብር (ETB) ያስገቡ:\n\n` +
+    `ዝቅተኛው መጠን፡ 10 ብር (ETB)`,
     { parse_mode: 'Markdown', ...Markup.inlineKeyboard(CANCEL_BTN) }
   );
 }
@@ -170,7 +237,8 @@ export async function handleDepositMessage(ctx: Context): Promise<boolean> {
 
     const user = await getUserByTelegramId(tgUser.id);
     const accounts = await getDepositAccountsForUser(user!.id);
-    
+    const agentProfile = await getAgentProfileForUser(user!.id);
+
     const letters = ['🅐', '🅑', '🅒', '🅓', '🅔'];
     const buttons = accounts.map((acc: any, idx: number) => {
       const shortName = acc.name.split(' ')[0];
@@ -179,7 +247,7 @@ export async function handleDepositMessage(ctx: Context): Promise<boolean> {
     buttons.push([Markup.button.callback('❌ ሰርዝ', 'cmd_deposit_cancel')]);
 
     await ctx.replyWithHTML(
-      buildPaymentCard(amount, reference, accounts),
+      buildPaymentCard(amount, reference, accounts, agentProfile),
       {
         ...Markup.inlineKeyboard(buttons),
       }
