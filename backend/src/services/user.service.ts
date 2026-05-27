@@ -42,9 +42,9 @@ export async function findOrCreateUser(
           referrer = await prisma.user.findUnique({ where: { telegramId: BigInt(referredById) } });
         }
         
-        if (referrer?.role === 'AGENT' || referrer?.role === 'admin' || referrer?.role === 'ADMIN') {
+        if (referrer) {
           referredBy = referrer.id;
-          logger.info(`[Auth] New user ${telegramUser.first_name} linked to Agent ${referrer.username || referrer.firstName}`);
+          logger.info(`[Auth] New user ${telegramUser.first_name} linked to Referrer ${referrer.username || referrer.firstName} (Role: ${referrer.role})`);
         }
       }
 

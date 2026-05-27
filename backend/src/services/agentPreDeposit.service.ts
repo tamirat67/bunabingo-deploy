@@ -111,6 +111,14 @@ export async function debitAgentCommissionForGame(
 
   let agentId = ticket?.user?.referredBy ?? null;
 
+  // Verify the referrer is actually an AGENT. If not (e.g. they are a PLAYER), clear agentId so it falls back to default.
+  if (agentId) {
+    const agentUser = await prisma.user.findUnique({ where: { id: agentId }, select: { role: true } });
+    if (agentUser?.role !== 'AGENT' && agentUser?.role !== 'ADMIN' && agentUser?.role !== 'admin') {
+      agentId = null;
+    }
+  }
+
   if (!agentId) {
     // Fall back to the first active agent in the system as the default agent
     const defaultAgent = await prisma.user.findFirst({

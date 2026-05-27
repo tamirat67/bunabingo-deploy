@@ -34,22 +34,25 @@ export async function createDepositRequest(
 
   // If user has an agent (referredBy), notify that specific agent channel too
   if (deposit.user?.referredBy) {
-    await triggerUserEvent(deposit.user.referredBy, 'agent-new-deposit', {
-      depositId: deposit.id,
-      userId,
-      amount,
-      userName: deposit.user?.username || 'User',
-    });
+    const referrer = await prisma.user.findUnique({ where: { id: deposit.user.referredBy }, select: { role: true } });
+    if (referrer && (referrer.role === 'AGENT' || referrer.role === 'ADMIN' || referrer.role === 'admin')) {
+      await triggerUserEvent(deposit.user.referredBy, 'agent-new-deposit', {
+        depositId: deposit.id,
+        userId,
+        amount,
+        userName: deposit.user?.username || 'User',
+      });
 
-    // Notify agent on Telegram
-    await notifyAgent(
-      deposit.user.referredBy,
-      `🔔 <b>አዲስ የብር ገቢ ጥያቄ (New Deposit Request)</b>\n\n` +
-      `👤 <b>ተጫዋች (Player):</b> ${deposit.user?.username || 'Unknown'}\n` +
-      `💰 <b>መጠን (Amount):</b> ${amount} ETB\n` +
-      `🔖 <b>ማጣቀሻ (Ref):</b> ${reference || 'N/A'}\n\n` +
-      `እባክዎ ወደ ኤጀንት ፖርታልዎ በመግባት ያረጋግጡ።`
-    );
+      // Notify agent on Telegram
+      await notifyAgent(
+        deposit.user.referredBy,
+        `🔔 <b>አዲስ የብር ገቢ ጥያቄ (New Deposit Request)</b>\n\n` +
+        `👤 <b>ተጫዋች (Player):</b> ${deposit.user?.username || 'Unknown'}\n` +
+        `💰 <b>መጠን (Amount):</b> ${amount} ETB\n` +
+        `🔖 <b>ማጣቀሻ (Ref):</b> ${reference || 'N/A'}\n\n` +
+        `እባክዎ ወደ ኤጀንት ፖርታልዎ በመግባት ያረጋግጡ።`
+      );
+    }
   }
 
   logger.info(`Deposit request: user ${userId}, amount ${amount}, ref ${reference}`);
