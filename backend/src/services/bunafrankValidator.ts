@@ -262,9 +262,23 @@ export async function validateTelebirrSms(
     });
 
     let agentPhones: any[] = [];
-    if (userRecord?.referrer?.depositPhones) {
-      agentPhones = userRecord.referrer.depositPhones as any[];
-    } else {
+    if (userRecord?.referrer) {
+      const refPhones = userRecord.referrer.depositPhones as any[];
+      if (refPhones && refPhones.length > 0) {
+        agentPhones = refPhones;
+      } else if (userRecord.referrer.phone || userRecord.referrer.phoneNumber) {
+        const phone = userRecord.referrer.phone || userRecord.referrer.phoneNumber;
+        if (phone) {
+          agentPhones = [{
+            name: userRecord.referrer.firstName || userRecord.referrer.telegramUsername || 'Agent',
+            phone: phone,
+            last4: phone.slice(-4)
+          }];
+        }
+      }
+    }
+
+    if (agentPhones.length === 0) {
       const defaultAgent = await prisma.user.findFirst({
         where: { telegramUsername: 'Luel1616' }
       });
@@ -391,9 +405,23 @@ export async function validateTelebirrSmsLocal(
       include: { referrer: true }
     });
     let agentPhones: any[] = [];
-    if (userRecord?.referrer?.depositPhones) {
-      agentPhones = userRecord.referrer.depositPhones as any[];
-    } else {
+    if (userRecord?.referrer) {
+      const refPhones = userRecord.referrer.depositPhones as any[];
+      if (refPhones && refPhones.length > 0) {
+        agentPhones = refPhones;
+      } else if (userRecord.referrer.phone || userRecord.referrer.phoneNumber) {
+        const phone = userRecord.referrer.phone || userRecord.referrer.phoneNumber;
+        if (phone) {
+          agentPhones = [{
+            name: userRecord.referrer.firstName || userRecord.referrer.telegramUsername || 'Agent',
+            phone: phone,
+            last4: phone.slice(-4)
+          }];
+        }
+      }
+    }
+
+    if (agentPhones.length === 0) {
       const defaultAgent = await prisma.user.findFirst({ where: { telegramUsername: 'Luel1616' } });
       if (defaultAgent?.depositPhones) agentPhones = defaultAgent.depositPhones as any[];
     }
