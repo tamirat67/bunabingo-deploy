@@ -123,8 +123,8 @@ export function parseTelebirrSms(smsText: string): TelebirrSmsData | null {
 
 // ─── Online receipt verification ───────────────────────────────────────────────
 export async function verifyReceiptOnline(receiptUrl: string, transactionId: string): Promise<boolean> {
-  const maxRetries = 3;
-  const retryDelay = 5000; // 5 seconds
+  const maxRetries = 1;      // reduced: was 3 — one attempt is enough, we run in background
+  const retryDelay = 1500;   // reduced: was 5000ms
 
   for (let i = 0; i < maxRetries; i++) {
     try {
@@ -142,7 +142,7 @@ export async function verifyReceiptOnline(receiptUrl: string, transactionId: str
           logger.info(`[BunaFrankValidator] Calling scraper: ${scraperUrl}`);
           
           let res = await axios.get(scraperUrl, { 
-            timeout: 10000,
+            timeout: 5000,   // reduced: was 10000ms
             headers: { 'x-api-key': config.payment.bunaEngineKey },
             httpsAgent: new https.Agent({ rejectUnauthorized: false })
           }).catch(() => null);
@@ -150,7 +150,7 @@ export async function verifyReceiptOnline(receiptUrl: string, transactionId: str
           if (!res || !res.data) {
             logger.info(`[BunaFrankValidator] Primary scraper failed, trying alt: ${altScraperUrl}`);
             res = await axios.get(altScraperUrl, { 
-              timeout: 10000,
+              timeout: 5000,   // reduced: was 10000ms
               httpsAgent: new https.Agent({ rejectUnauthorized: false })
             }).catch(() => null);
           }
@@ -176,7 +176,7 @@ export async function verifyReceiptOnline(receiptUrl: string, transactionId: str
       // Direct fallback to official site
       try {
         const res = await axios.get(receiptUrl, {
-          timeout: 15000,
+          timeout: 8000,   // reduced: was 15000ms
           httpsAgent: new https.Agent({ rejectUnauthorized: false }),
           headers: { 
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -353,4 +353,105 @@ export async function validateTelebirrSms(
   const onlineVerified = await verifyReceiptOnline(data.receiptUrl, data.transactionId);
 
   return { valid: true, data, onlineVerified };
+}
+
+// ─── Local-only validator — all 7 security checks, NO external HTTP call ────────
+// Use this for instant UX. Then call verifyReceiptOnline() separately in background.
+export async function validateTelebirrSmsLocal(
+  smsText: string,
+  expectedAmount: number,
+  receiverPhone: string
+): Promise<ValidationResult> {
+
+  // 1. Parse SMS
+  const data = parseTelebirrSms(smsText);
+  if (!data) {
+    return {
+      valid: false,
+      error: '❌ SMS ሊነበብ አልቻለም። "Dear..." ወይም "ውድ..." ብሎ የሚጀምረውን ሙሉ SMS ኮፒ አድርገው ይለጥፉ።',
+    };
+  }
+
+  // 2. Self-verify parsed fields
+  const selfCheck = selfVerifyParsed(data);
+  if (!selfCheck.ok) {
+    logger.warn(`[BunaFrankValidator] Self-verify failed: ${selfCheck.issue}`);
+    return { valid: false, error: selfCheck.issue };
+  }
+
+  // 3. Load agent deposit accounts from DB
+  const DEFAULT_ACCOUNTS = [
+    { name: 'Yohanis Ashenafi', phone: '251997688294', last4: '8294', keywords: ['yohanis', 'ashenafi'] },
+    { name: 'LUEL', phone: '251969455111', last4: '5111', keywords: ['luel'] },
+  ];
+  let authorizedAccounts = DEFAULT_ACCOUNTS;
+  try {
+    const userRecord = await prisma.user.findFirst({
+      where: { telegramId: BigInt(receiverPhone) },
+      include: { referrer: true }
+    });
+    let agentPhones: any[] = [];
+    if (userRecord?.referrer?.depositPhones) {
+      agentPhones = userRecord.referrer.depositPhones as any[];
+    } else {
+      const defaultAgent = await prisma.user.findFirst({ where: { telegramUsername: 'Luel1616' } });
+      if (defaultAgent?.depositPhones) agentPhones = defaultAgent.depositPhones as any[];
+    }
+    if (agentPhones.length > 0) {
+      authorizedAccounts = agentPhones.map(p => ({
+        name: p.name,
+        phone: p.phone.startsWith('0') ? '251' + p.phone.slice(1) : p.phone,
+        last4: p.last4 || p.phone.slice(-4),
+        keywords: p.name.toLowerCase().split(/\s+/)
+      }));
+    }
+  } catch (dbErr) {
+    logger.warn('[BunaFrankValidator] DB lookup failed, using default accounts:', dbErr);
+  }
+
+  // 4. Recipient phone must match an authorized account
+  const matchedAccount = authorizedAccounts.find(a => a.last4 === data.recipientPhoneLast4);
+  if (!matchedAccount) {
+    const allowedLast4s = authorizedAccounts.map(a => `...${a.last4}`).join(', ');
+    return { valid: false, error: `❌ Wrong recipient number. Expected last 4 to match one of: ${allowedLast4s}.` };
+  }
+
+  // 5. Recipient name must match account keywords
+  const normRecipient = data.recipientName.toLowerCase();
+  const nameMatches = matchedAccount.keywords.some((kw: string) => normRecipient.includes(kw));
+  if (!nameMatches) {
+    return { valid: false, error: `❌ Recipient mismatch. Phone (...${matchedAccount.last4}) must belong to ${matchedAccount.name}. Found: ${data.recipientName}` };
+  }
+
+  // 6. Amount must match (within 5 ETB tolerance)
+  const diff = Math.abs(data.amount - expectedAmount);
+  if (diff > 5) {
+    return { valid: false, error: `❌ Amount mismatch. Expected ${expectedAmount.toFixed(2)}, found ${data.amount.toFixed(2)}` };
+  }
+
+  // 7. Duplicate transaction guard
+  const duplicate = await prisma.deposit.findFirst({ where: { txnId: { contains: data.transactionId } } });
+  if (duplicate) {
+    return { valid: false, error: `❌ Transaction \`${data.transactionId}\` already used.` };
+  }
+
+  // 8. Time expiry check (3 hours)
+  if (data.dateTime) {
+    try {
+      const [datePart, timePart] = data.dateTime.split(' ');
+      const [d, m, y] = datePart.split('/').map(Number);
+      const [hh, mm, ss] = timePart.split(':').map(Number);
+      const receiptDate = new Date(y, m - 1, d, hh, mm, ss);
+      const diffHours = (Date.now() - receiptDate.getTime()) / (1000 * 60 * 60);
+      if (diffHours > 3) {
+        logger.warn(`[BunaFrankValidator] Receipt expired: ${data.transactionId} (Age: ${diffHours.toFixed(1)}h)`);
+        return { valid: false, error: `❌ Receipt expired. Transactions must be verified within 3 hours. (Found: ${data.dateTime})` };
+      }
+    } catch (err) {
+      logger.warn('[BunaFrankValidator] Could not parse receipt date for expiry check');
+    }
+  }
+
+  // All local checks passed — online verification will run in background
+  return { valid: true, data, onlineVerified: false };
 }
