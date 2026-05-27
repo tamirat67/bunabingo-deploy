@@ -45,9 +45,9 @@ export async function handleBuyTicket(ctx: Context) {
     await ctx.reply(
       `🎫 *Bingo Ticket ይግዙ*\n\n` +
       `ለመቀላቀል የሚፈልጉትን ክፍል ይምረጡ፡-\n\n` +
-      `🟢 *Casual* — 10 ብር · 30 ሴኮንድ\n` +
-      `🔵 *Standard* — 25 ብር · 15 ሴኮንድ\n` +
-      `💎 *Jackpot* — 100 ብር · 5 ሴኮንድ\n\n` +
+      `🟢 *Casual* — 10 ብር · 60 ሴኮንድ\n` +
+      `🔵 *Standard* — 25 ብር · 60 ሴኮንድ\n` +
+      `💎 *Jackpot* — 100 ብር · 60 ሴኮንድ\n\n` +
       `አነስተኛው የተጫዋች ቁጥር ሲሞላ ጨዋታው በራሱ ይጀምራል!`,
       {
         parse_mode: 'Markdown',
