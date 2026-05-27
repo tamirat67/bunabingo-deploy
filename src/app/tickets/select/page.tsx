@@ -600,9 +600,9 @@ function SelectionContent() {
           ? 'linear-gradient(135deg, #0F0A02 0%, #1C1208 50%, #0F0A02 100%)'
           : 'linear-gradient(135deg, #1C1208 0%, #2D1F0A 60%, #1C1208 100%)',
         border: `2px solid ${urgencyColor}`,
-        borderRadius: '18px',
-        padding: '14px 18px',
-        margin: '8px 0 10px',
+        borderRadius: '16px',
+        padding: '10px 14px',
+        margin: '4px 0 6px',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
@@ -639,7 +639,7 @@ function SelectionContent() {
             animate={{ opacity: 1, y: 0 }}
             style={{
               color: 'white',
-              fontSize: '30px',
+              fontSize: '24px',
               fontWeight: '900',
               lineHeight: 1,
               letterSpacing: '-0.5px',
@@ -708,7 +708,7 @@ function SelectionContent() {
               <div
                 style={{
                   color: countdown! <= 10 ? '#E74C3C' : 'white',
-                  fontSize: '30px',
+                  fontSize: '24px',
                   fontWeight: '900',
                   fontVariantNumeric: 'tabular-nums',
                   letterSpacing: '-0.5px',
@@ -769,8 +769,8 @@ function SelectionContent() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '6px 4px',
-        marginBottom: '6px',
+        padding: '4px',
+        marginBottom: '4px',
       }}>
         {/* Left: card select label */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -820,8 +820,8 @@ function SelectionContent() {
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
-            padding: '5px 10px',
-            marginBottom: '8px',
+            padding: '3px 8px',
+            marginBottom: '4px',
             background: `${T.gold}11`,
             border: `1px solid ${T.gold}33`,
             borderRadius: '10px',
