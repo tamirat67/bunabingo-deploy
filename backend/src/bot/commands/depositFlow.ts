@@ -357,7 +357,8 @@ export async function handleDepositMessage(ctx: Context): Promise<boolean> {
             `👤 User: ${tgUser.username ? '@' + tgUser.username : String(tgUser.id)}\n` +
             `💵 Amount: *${d.amount.toFixed(2)} ETB*\n` +
             `🔖 TxnId: \`${d.transactionId}\`\n` +
-            `📅 Date: ${d.dateTime}\n\n` +
+            `📅 Date: ${d.dateTime}\n` +
+            `🔗 Receipt: [View Receipt](https://transactioninfo.ethiotelecom.et/receipt/${d.transactionId})\n\n` +
             `_Wallet has been credited. Online receipt check failed — please verify manually and reverse if fraudulent._`;
 
           for (const adminId of notifyIds) {
