@@ -1,6 +1,7 @@
 import { Context, Markup } from 'telegraf';
 import { getUserByTelegramId } from '../../services/user.service';
 import { config } from '../../config';
+import { handleDepositManualStart } from './depositFlow';
 
 /**
  * handleDeposit now skips the selection menu and starts the manual deposit flow directly.
@@ -16,15 +17,14 @@ export async function handleDeposit(ctx: Context) {
     if (ctx.callbackQuery) await ctx.answerCbQuery();
 
     // Directly trigger manual deposit flow
-    const { handleDepositManualStart } = await import('./depositFlow');
     await handleDepositManualStart(ctx);
   } catch (err) {
+    console.error('Deposit command error:', err);
     await ctx.reply('❌ ችግር አጋጥሟል፣ እባክዎ እንደገና ይሞክሩ።');
   }
 }
 
 // Keeping handleDepositManual for callback compatibility if needed
 export async function handleDepositManual(ctx: Context) {
-  const { handleDepositManualStart } = await import('./depositFlow');
   await handleDepositManualStart(ctx);
 }

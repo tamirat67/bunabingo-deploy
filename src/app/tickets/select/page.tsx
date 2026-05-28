@@ -59,33 +59,35 @@ function SelectionContent() {
     occupiedRef.current = occupied;
   }, [occupied]);
 
-  // ── Non-looping 60→0 countdown: resets when a new WAITING game is detected ──
+  // ── Global Synchronized Countdown: counts from 3:00 to 00:00 based on game creation time, then freezes ──
   useEffect(() => {
     // Only tick when we have a WAITING game and no real countdown running
     const isRealCountdown = countdown !== null && countdown > 0;
     if (isRealCountdown || isGameRunning) return;
     if (game?.status !== 'WAITING') return;
 
-    // Reset to 60 when a new game arrives in WAITING state
-    if (activeGameId !== waitingGameIdRef.current) {
-      waitingGameIdRef.current = activeGameId;
-      waitingCountdownRef.current = 60;
-      setWaitingCountdown(60);
-      setGameStartedMask(false);
-    }
+    // Use the game's createdAt timestamp so ALL players (phone, tablet, etc.) see the exact same value
+    const gameStartMs = game?.createdAt ? new Date(game.createdAt).getTime() : Date.now();
+    const TOTAL_WAIT_SECONDS = 180; // 3 minutes
 
-    const interval = setInterval(() => {
-      waitingCountdownRef.current = Math.max(0, waitingCountdownRef.current - 1);
-      setWaitingCountdown(waitingCountdownRef.current);
-      if (waitingCountdownRef.current <= 0) {
-        clearInterval(interval);
-        // Show brief "Game Started" mask if game-started socket hasn't fired yet
+    const tick = () => {
+      const now = Date.now() + serverOff;
+      const elapsed = Math.floor(Math.max(0, now - gameStartMs) / 1000);
+      const remaining = Math.max(0, TOTAL_WAIT_SECONDS - elapsed);
+      setWaitingCountdown(remaining);
+
+      // When it hits exactly 00:00 — freeze and show "Waiting for Players" overlay
+      if (remaining === 0) {
         setGameStartedMask(true);
-        setTimeout(() => setGameStartedMask(false), 6000);
+      } else {
+        setGameStartedMask(false);
       }
-    }, 1000);
+    };
+
+    tick(); // run immediately on mount so there is no 1s blank
+    const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
-  }, [game?.status, countdown, isGameRunning, activeGameId]);
+  }, [game?.status, game?.createdAt, countdown, isGameRunning, serverOff]);
 
   // Clean up fakeOccupied if they overlap with selected, owned, or real occupied cards
   useEffect(() => {
@@ -213,9 +215,11 @@ function SelectionContent() {
         setIsGameRunning(false);
         setLiveGameDismissed(true);
       }
+      if (g.serverTime) {
+        setServerOff(g.serverTime - Date.now());
+      }
       if (g.endTime && g.serverTime) {
         const offset = g.serverTime - Date.now();
-        setServerOff(offset);
         setEndTime(g.endTime);
         if (g.status === 'COUNTDOWN') {
           const rem = Math.max(0, Math.ceil((g.endTime - Date.now() - offset) / 1000));
@@ -352,8 +356,8 @@ function SelectionContent() {
         setGameStartedMask(false);
         // Reset the waiting countdown so the next WAITING game gets a fresh 60s
         waitingGameIdRef.current = undefined;
-        waitingCountdownRef.current = 60;
-        setWaitingCountdown(60);
+        waitingCountdownRef.current = 180;
+        setWaitingCountdown(180);
         
         getOccupiedCards(roomType, activeGameId).then(res => {
           if (res.gameId) {
@@ -764,7 +768,7 @@ function SelectionContent() {
                   : `0 0 14px ${T.gold}66`,
                 transition: 'color 0.3s, text-shadow 0.3s',
               }}>
-                {String(waitingCountdown).padStart(2, '0')}s
+                {String(Math.floor(waitingCountdown / 60)).padStart(2, '0')}:{String(waitingCountdown % 60).padStart(2, '0')}
               </div>
             </>
           ) : (
@@ -1023,41 +1027,46 @@ function SelectionContent() {
           )}
         </AnimatePresence>
 
-        {/* ── GAME STARTED FLASH MASK: shown briefly when local countdown hits 0 and game-started socket fires ── */}
+        {/* ── WAITING FOR PLAYERS BANNER: shown when countdown hits 00:00 ── */}
         <AnimatePresence>
           {gameStartedMask && !isGameRunning && (
             <motion.div
-              key="started-mask"
-              initial={{ opacity: 0, scale: 0.92 }}
-              animate={{ opacity: 1, scale: 1 }}
+              key="waiting-mask"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.35 }}
               style={{
                 position: 'absolute',
-                inset: 0,
+                top: 0,
+                left: 0,
+                right: 0,
                 background: 'rgba(10, 5, 2, 0.92)',
                 backdropFilter: 'blur(6px)',
                 WebkitBackdropFilter: 'blur(6px)',
-                borderRadius: '12px',
+                borderRadius: '12px 12px 0 0',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '12px',
+                gap: '8px',
                 zIndex: 20,
                 textAlign: 'center',
-                padding: '24px',
+                padding: '20px 24px',
               }}
             >
-              <div style={{ fontSize: '48px' }}>🎯</div>
-              <div style={{ color: '#2ECC71', fontSize: '22px', fontWeight: '900', letterSpacing: '1px' }}>Game Started!</div>
+              <div style={{ fontSize: '36px' }}>⏳</div>
+              <div style={{ color: '#F1C40F', fontSize: '18px', fontWeight: '900', letterSpacing: '1px' }}>Waiting for Players</div>
               <motion.div
                 animate={{ opacity: [0.4, 1, 0.4] }}
                 transition={{ repeat: Infinity, duration: 1.5 }}
-                style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px', fontWeight: '700' }}
+                style={{ color: 'rgba(255,255,255,0.6)', fontSize: '11px', fontWeight: '700' }}
               >
-                Connecting to game room...
+                Please wait for the next game to begin...
               </motion.div>
+              <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: '10px', marginTop: '2px' }}>
+                ↓ You can still select your cartelas below ↓
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

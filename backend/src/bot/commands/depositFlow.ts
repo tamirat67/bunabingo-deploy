@@ -8,7 +8,7 @@ import { logger } from '../../lib/logger';
 
 // ─── Default fallback deposit accounts ────────────────────────────────────────
 const DEFAULT_DEPOSIT_ACCOUNTS = [
-  { name: 'Luel G/libanos', phone: '+251969455111', last4: '5111' }
+  { name: 'Tame', phone: '+251911000000', last4: '0000' }
 ];
 
 interface AgentProfile {
@@ -25,13 +25,19 @@ async function getAgentProfileForUser(userId: string): Promise<AgentProfile | nu
 
   const referrer = user?.referrer;
   if (!referrer) {
-    // fallback: try default agent
-    const defaultAgent = await prisma.user.findFirst({ where: { telegramUsername: 'Luel1616' } });
-    if (!defaultAgent) return null;
+    // fallback: try default admin
+    const defaultAgent = await prisma.user.findFirst({ where: { telegramId: BigInt('5310030963') } });
+    if (!defaultAgent) {
+      return {
+        displayName: 'Tame',
+        contactPhone: null,
+        telegramUsername: 'tanga_dreams',
+      };
+    }
     return {
-      displayName: defaultAgent.firstName || defaultAgent.telegramUsername || 'Agent',
+      displayName: defaultAgent.firstName || defaultAgent.telegramUsername || 'Tame',
       contactPhone: defaultAgent.phone || defaultAgent.phoneNumber || null,
-      telegramUsername: defaultAgent.telegramUsername || null,
+      telegramUsername: defaultAgent.telegramUsername || 'tanga_dreams',
     };
   }
 
@@ -66,11 +72,18 @@ async function getDepositAccountsForUser(userId: string) {
 
   if (depositPhones.length === 0) {
     const defaultAgent = await prisma.user.findFirst({
-      where: { telegramUsername: 'Luel1616' }
+      where: { telegramId: BigInt('5310030963') }
     });
     const defPhones = defaultAgent?.depositPhones as any[];
     if (defPhones && defPhones.length > 0) {
       depositPhones = defPhones;
+    } else if (defaultAgent && (defaultAgent.phone || defaultAgent.phoneNumber)) {
+      const phone = defaultAgent.phone || defaultAgent.phoneNumber;
+      depositPhones = [{
+        name: defaultAgent.firstName || defaultAgent.telegramUsername || 'Tame',
+        phone: phone,
+        last4: phone.slice(-4)
+      }];
     }
   }
 
