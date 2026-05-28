@@ -28,7 +28,11 @@ function SelectionContent() {
   const [playerCount, setPlayerCount] = useState(0);
   const [game, setGame] = useState<any>(null);
   const [countdown, setCountdown] = useState<number | null>(null);
-  const [fakeCountdown, setFakeCountdown] = useState(60);
+  // ── Non-looping 60→0 WAITING-lobby countdown displayed on the grid mask ──
+  const [waitingCountdown, setWaitingCountdown] = useState(60);
+  const waitingCountdownRef = useRef(60);
+  const waitingGameIdRef = useRef<string | undefined>(undefined); // track which game the 60s belongs to
+  const [gameStartedMask, setGameStartedMask] = useState(false); // brief "Game Started!" flash
   const [endTime, setEndTime] = useState<number | null>(null);
   const [serverOff, setServerOff] = useState(0);
   const [newlyOccupied, setNewlyOccupied] = useState<number[]>([]);
@@ -55,21 +59,33 @@ function SelectionContent() {
     occupiedRef.current = occupied;
   }, [occupied]);
 
-  // A secondary fake suspense countdown for the jackpot banner when in WAITING state, ticking from 60 down to 0
+  // ── Non-looping 60→0 countdown: resets when a new WAITING game is detected ──
   useEffect(() => {
-    const isRealLive = countdown !== null && countdown > 0;
-    if (game?.status === 'WAITING' || !isRealLive) {
-      const interval = setInterval(() => {
-        setFakeCountdown(prev => {
-          if (prev <= 1) {
-            return 60; // reset to 60 to loop the suspense!
-          }
-          return prev - 1;
-        });
-      }, 1000);
-      return () => clearInterval(interval);
+    // Only tick when we have a WAITING game and no real countdown running
+    const isRealCountdown = countdown !== null && countdown > 0;
+    if (isRealCountdown || isGameRunning) return;
+    if (game?.status !== 'WAITING') return;
+
+    // Reset to 60 when a new game arrives in WAITING state
+    if (activeGameId !== waitingGameIdRef.current) {
+      waitingGameIdRef.current = activeGameId;
+      waitingCountdownRef.current = 60;
+      setWaitingCountdown(60);
+      setGameStartedMask(false);
     }
-  }, [game?.status, countdown]);
+
+    const interval = setInterval(() => {
+      waitingCountdownRef.current = Math.max(0, waitingCountdownRef.current - 1);
+      setWaitingCountdown(waitingCountdownRef.current);
+      if (waitingCountdownRef.current <= 0) {
+        clearInterval(interval);
+        // Show brief "Game Started" mask if game-started socket hasn't fired yet
+        setGameStartedMask(true);
+        setTimeout(() => setGameStartedMask(false), 6000);
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [game?.status, countdown, isGameRunning, activeGameId]);
 
   // Clean up fakeOccupied if they overlap with selected, owned, or real occupied cards
   useEffect(() => {
@@ -311,6 +327,8 @@ function SelectionContent() {
 
       socket.on('game-started', (d: any) => {
         setGame((prev: any) => prev ? { ...prev, status: 'RUNNING' } : { status: 'RUNNING' });
+        setGameStartedMask(false); // dismiss the flash mask — game is now truly live
+        setIsGameRunning(true);
         // Automatically redirect to the game if the user has purchased tickets
         if (ownedRef.current.length > 0) {
           if (roomType.startsWith('SPIN_')) {
@@ -331,6 +349,11 @@ function SelectionContent() {
         setLiveGameDismissed(true);
         setCountdown(null);
         setEndTime(null);
+        setGameStartedMask(false);
+        // Reset the waiting countdown so the next WAITING game gets a fresh 60s
+        waitingGameIdRef.current = undefined;
+        waitingCountdownRef.current = 60;
+        setWaitingCountdown(60);
         
         getOccupiedCards(roomType, activeGameId).then(res => {
           if (res.gameId) {
@@ -728,21 +751,21 @@ function SelectionContent() {
                 marginBottom: '6px',
                 textTransform: 'uppercase',
               }}>
-                LOBBY STATUS
+                NEXT GAME IN
               </div>
-              <motion.div
-                animate={{ opacity: [0.5, 1, 0.5] }}
-                transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
-                style={{
-                  color: T.gold,
-                  fontSize: '18px',
-                  fontWeight: '900',
-                  letterSpacing: '0.5px',
-                  textShadow: `0 0 12px ${T.gold}44`,
-                }}
-              >
-                WAITING...
-              </motion.div>
+              <div style={{
+                color: waitingCountdown <= 10 ? '#E74C3C' : T.gold,
+                fontSize: '28px',
+                fontWeight: '900',
+                fontVariantNumeric: 'tabular-nums',
+                letterSpacing: '-1px',
+                textShadow: waitingCountdown <= 10
+                  ? '0 0 18px rgba(231,76,60,0.9)'
+                  : `0 0 14px ${T.gold}66`,
+                transition: 'color 0.3s, text-shadow 0.3s',
+              }}>
+                {String(waitingCountdown).padStart(2, '0')}s
+              </div>
             </>
           ) : (
             <>
@@ -842,7 +865,7 @@ function SelectionContent() {
       )}
 
       {/* ── Card Grid ── */}
-      <div className="grid-brown">
+      <div className="grid-brown" style={{ position: 'relative' }}>
         {Array.from({ length: isVip ? 50 : 250 }, (_, i) => i + 1).map(num => {
           const isOccupied = occupied.includes(num) || fakeOccupied.includes(num);
           const isSelected = selected.includes(num);
@@ -922,6 +945,122 @@ function SelectionContent() {
             </div>
           );
         })}
+
+        {/* ── GAME ONGOING MASK: overlays entire grid when a RUNNING game is detected ── */}
+        <AnimatePresence>
+          {isGameRunning && (
+            <motion.div
+              key="ongoing-mask"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.4 }}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                background: 'rgba(10, 5, 2, 0.88)',
+                backdropFilter: 'blur(4px)',
+                WebkitBackdropFilter: 'blur(4px)',
+                borderRadius: '12px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '14px',
+                zIndex: 20,
+                textAlign: 'center',
+                padding: '24px 20px',
+              }}
+            >
+              {/* Pulsing live dot */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{
+                  width: '12px', height: '12px', borderRadius: '50%',
+                  background: '#E74C3C',
+                  boxShadow: '0 0 0 0 rgba(231,76,60,0.7)',
+                  animation: 'livePulse 1.4s infinite',
+                }} />
+                <span style={{ color: '#FF6B6B', fontSize: '11px', fontWeight: '900', letterSpacing: '2px', textTransform: 'uppercase' }}>
+                  LIVE GAME IN PROGRESS
+                </span>
+              </div>
+
+              {/* Bingo balls animation */}
+              <div style={{ fontSize: '36px', animation: 'bounceBalls 1.6s infinite ease-in-out' }}>🎱</div>
+
+              <div style={{ color: 'white', fontSize: '18px', fontWeight: '900', lineHeight: 1.3 }}>
+                Game Is Ongoing
+              </div>
+              <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px', fontWeight: '700', lineHeight: 1.5, maxWidth: '240px' }}>
+                Bingo balls are being called right now.
+                <br />
+                <span style={{ color: '#F39C12', fontWeight: '900' }}>Wait for the next game</span> — your selected cartelas are reserved!
+              </div>
+
+              {ownedCardIds.length > 0 && (
+                <div style={{
+                  background: 'rgba(212,175,55,0.15)',
+                  border: '1.5px solid rgba(212,175,55,0.4)',
+                  borderRadius: '10px',
+                  padding: '8px 16px',
+                  color: '#F1C40F',
+                  fontSize: '11px',
+                  fontWeight: '900',
+                  letterSpacing: '0.5px',
+                }}>
+                  ✅ {ownedCardIds.length} cartela{ownedCardIds.length > 1 ? 's' : ''} reserved for next round
+                </div>
+              )}
+
+              <motion.div
+                animate={{ opacity: [0.4, 1, 0.4] }}
+                transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
+                style={{ color: 'rgba(255,255,255,0.4)', fontSize: '10px', fontWeight: '700', letterSpacing: '1px' }}
+              >
+                This page will unlock automatically when the game ends
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ── GAME STARTED FLASH MASK: shown briefly when local countdown hits 0 and game-started socket fires ── */}
+        <AnimatePresence>
+          {gameStartedMask && !isGameRunning && (
+            <motion.div
+              key="started-mask"
+              initial={{ opacity: 0, scale: 0.92 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.35 }}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                background: 'rgba(10, 5, 2, 0.92)',
+                backdropFilter: 'blur(6px)',
+                WebkitBackdropFilter: 'blur(6px)',
+                borderRadius: '12px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '12px',
+                zIndex: 20,
+                textAlign: 'center',
+                padding: '24px',
+              }}
+            >
+              <div style={{ fontSize: '48px' }}>🎯</div>
+              <div style={{ color: '#2ECC71', fontSize: '22px', fontWeight: '900', letterSpacing: '1px' }}>Game Started!</div>
+              <motion.div
+                animate={{ opacity: [0.4, 1, 0.4] }}
+                transition={{ repeat: Infinity, duration: 1.5 }}
+                style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px', fontWeight: '700' }}
+              >
+                Connecting to game room...
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <div style={{ height: '250px' }} />
@@ -1019,6 +1158,15 @@ function SelectionContent() {
         @keyframes liveDot {
           0%, 100% { opacity: 1; box-shadow: 0 0 6px #2ECC71; }
           50%       { opacity: 0.4; box-shadow: 0 0 2px #2ECC71; }
+        }
+        @keyframes livePulse {
+          0%   { box-shadow: 0 0 0 0 rgba(231,76,60,0.7); }
+          70%  { box-shadow: 0 0 0 10px rgba(231,76,60,0); }
+          100% { box-shadow: 0 0 0 0 rgba(231,76,60,0); }
+        }
+        @keyframes bounceBalls {
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          50%       { transform: translateY(-8px) rotate(180deg); }
         }
       `}} />
     </div>
