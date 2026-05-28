@@ -96,6 +96,8 @@ function GameContent() {
   const audioQueueRef = useRef<number[]>([]);
   const isPlayingQueueRef = useRef<boolean>(false);
   const isFirstLoadRef = useRef<boolean>(true);
+  const playNextTimeoutRef = useRef<any>(null);
+
 
   const ticketsRef = useRef<any[]>([]);
   useEffect(() => {
@@ -135,7 +137,7 @@ function GameContent() {
   }, []);
 
   const processAudioQueue = useCallback((setLastBallFn: (n: number) => void) => {
-    if (audioQueueRef.current.length === 0) {
+    if (audioQueueRef.current.length === 0 || isPlayingQueueRef.current === false) {
       isPlayingQueueRef.current = false;
       return;
     }
@@ -149,7 +151,7 @@ function GameContent() {
       setCalledHistory(prev => prev.includes(nextBall) ? prev : [...prev, nextBall]);
       playBallSound(nextBall);
       // Wait for ball audio to finish before playing next (~1.8s natural gap, draw interval is 2.0s)
-      setTimeout(() => {
+      playNextTimeoutRef.current = setTimeout(() => {
         processAudioQueue(setLastBallFn);
       }, 1800);
     } else {
@@ -303,6 +305,11 @@ function GameContent() {
       lastDrawnRef.current = 0;
       audioQueueRef.current = [];
       isPlayingQueueRef.current = false;
+      clearTimeout(playNextTimeoutRef.current);
+      if (ballAudioRef.current) {
+        ballAudioRef.current.pause();
+        ballAudioRef.current.currentTime = 0;
+      }
       if (status !== 'FINISHED') {
         setCalledHistory([]);
       }
@@ -1199,67 +1206,6 @@ function GameContent() {
               <div style={{ fontSize: '54px', lineHeight: 1, marginBottom: '4px' }}>
                 {gameFinished.isCurrentUserWinner ? '🏆' : '🎯'}
               </div>
-              <h2 style={{ 
-                color: gameFinished.isCurrentUserWinner ? T.gold : '#E74C3C', 
-                fontSize: '24px', 
-                fontWeight: '900', 
-                margin: '0 0 3px', 
-                textTransform: 'uppercase', 
-                letterSpacing: 2,
-                textShadow: gameFinished.isCurrentUserWinner ? `0 0 15px ${T.gold}aa` : 'none'
-              }}>
-                {gameFinished.isCurrentUserWinner ? 'YOU WON!' : (gameFinished.isWinner ? 'BINGO!' : 'GAME OVER')}
-              </h2>
-              {gameFinished.isWinner ? (
-                <>
-                  <div style={{ color: T.header, fontSize: '14px', fontWeight: '700', margin: '3px 0 2px' }}>
-                    {gameFinished.isCurrentUserWinner ? (
-                      <span style={{ color: '#2ECC71' }}>🎉 Congratulations! You won!</span>
-                    ) : (
-                      <span>🥇 Winner: {gameFinished.winnerName}</span>
-                    )}
-                  </div>
-                  <div style={{ 
-                    color: gameFinished.isCurrentUserWinner ? T.gold : 'rgba(255,255,255,0.7)', 
-                    fontSize: '20px', 
-                    fontWeight: '900', 
-                    margin: '2px 0 8px' 
-                  }}>
-                    {gameFinished.isCurrentUserWinner ? `+${gameFinished.prize} ETB` : `Prize: ${gameFinished.prize} ETB`}
-                  </div>
-
-                  {/* Pattern badge — shows specific row/column/diagonal */}
-                  {gameFinished.mode && gameFinished.card && (() => {
-                    const rawCard2 = gameFinished.card;
-                    const rows2: any[][] = Array.isArray(rawCard2) ? rawCard2 : (rawCard2.rows ?? rawCard2);
-                    const grid2: number[][] = rows2.map((row: any[]) =>
-                      row.map((cell: any) => (cell === 'FREE' || cell === 'free' || cell === null ? 0 : Number(cell)))
-                    );
-                    const calledSet2 = new Set(drawn);
-                    const isM2 = (r: number, c: number) => grid2[r][c] === 0 || calledSet2.has(grid2[r][c]);
-                    const COL_LBL = ['B','I','N','G','O'];
-                    const ROW_ORD = ['1st','2nd','3rd','4th','5th'];
-                    const mode = gameFinished.mode;
-
-                    // Compute specific pattern label
-                    let specificLabel = mode.replace(/_/g, ' ');
-                    let specificIcon = '🎯';
-                    let color = '#2ECC71';
-
-                    if (mode === 'FULL_HOUSE')   { specificLabel = 'FULL HOUSE';    specificIcon = '🃏'; color = '#FF6B35'; }
-                    else if (mode === 'FOUR_CORNERS') { specificLabel = 'FOUR CORNERS'; specificIcon = '🔷'; color = '#8B5CF6'; }
-                    else if (mode === 'DIAGONAL') {
-                      color = '#06B6D4';
-                      const main = [0,1,2,3,4].every(i => isM2(i, i));
-                      const anti = [0,1,2,3,4].every(i => isM2(i, 4-i));
-                      if (main && anti) { specificLabel = 'BOTH DIAGONALS ✕'; specificIcon = '✕'; }
-                      else if (main)    { specificLabel = 'MAIN DIAGONAL ↘';   specificIcon = '↘'; }
-                      else              { specificLabel = 'ANTI-DIAGONAL ↗';   specificIcon = '↗'; }
-                    } else if (mode === 'COLUMN') {
-                      color = '#10B981';
-                      for (let c = 0; c < 5; c++) {
-                        if ([0,1,2,3,4].every(r => isM2(r, c))) {
-
               {gameFinished.isCurrentUserWinner ? (
                 /* ══ WINNER view ══ */
                 <>
@@ -1296,33 +1242,68 @@ function GameContent() {
                 </>
               )}
 
-              {/* ── Winning pattern badge — shown to ALL ── */}
-              {gameFinished.mode && (() => {
-                const patternLabels: Record<string, { label: string; icon: string; color: string }> = {
-                  FULL_HOUSE:   { label: 'FULL HOUSE',    icon: '🃏', color: '#FF6B35' },
-                  FOUR_CORNERS: { label: 'FOUR CORNERS',  icon: '🔷', color: '#8B5CF6' },
-                  DIAGONAL:     { label: 'DIAGONAL',      icon: '✕',  color: '#06B6D4' },
-                  COLUMN:       { label: 'COLUMN',        icon: '▌',  color: '#10B981' },
-                  ROW:          { label: 'ROW',           icon: '━',  color: '#F59E0B' },
-                };
-                const p = patternLabels[gameFinished.mode] || { label: gameFinished.mode, icon: '🎯', color: '#2ECC71' };
-                return (
-                  <motion.div
-                    animate={{ boxShadow: [`0 0 0px ${p.color}00`, `0 0 20px ${p.color}99`, `0 0 0px ${p.color}00`] }}
-                    transition={{ duration: 1.8, repeat: Infinity }}
-                    style={{
-                      display: 'inline-flex', alignItems: 'center', gap: '7px',
-                      background: `${p.color}22`, border: `2px solid ${p.color}99`,
-                      borderRadius: '20px', padding: '6px 16px', marginBottom: '10px',
-                      fontSize: '13px', fontWeight: '900', color: p.color,
-                      letterSpacing: '1px', textTransform: 'uppercase',
-                    }}
-                  >
-                    <span style={{ fontSize: '17px' }}>{p.icon}</span>
-                    <span>WINNING PATTERN: {p.label}</span>
-                  </motion.div>
-                );
-              })()}
+                  {/* Pattern badge — shows specific row/column/diagonal */}
+                  {gameFinished.mode && gameFinished.card && (() => {
+                    const rawCard2 = gameFinished.card;
+                    const rows2: any[][] = Array.isArray(rawCard2) ? rawCard2 : (rawCard2.rows ?? rawCard2);
+                    const grid2: number[][] = rows2.map((row: any[]) =>
+                      row.map((cell: any) => (cell === 'FREE' || cell === 'free' || cell === null ? 0 : Number(cell)))
+                    );
+                    const calledSet2 = new Set(drawn);
+                    const isM2 = (r: number, c: number) => grid2[r][c] === 0 || calledSet2.has(grid2[r][c]);
+                    const COL_LBL = ['B','I','N','G','O'];
+                    const ROW_ORD = ['1st','2nd','3rd','4th','5th'];
+                    const mode = gameFinished.mode;
+
+                    // Compute specific pattern label
+                    let specificLabel = mode.replace(/_/g, ' ');
+                    let specificIcon = '🎯';
+                    let color = '#2ECC71';
+
+                    if (mode === 'FULL_HOUSE')   { specificLabel = 'FULL HOUSE';    specificIcon = '🃏'; color = '#FF6B35'; }
+                    else if (mode === 'FOUR_CORNERS') { specificLabel = 'FOUR CORNERS'; specificIcon = '🔷'; color = '#8B5CF6'; }
+                    else if (mode === 'DIAGONAL') {
+                      color = '#06B6D4';
+                      const main = [0,1,2,3,4].every(i => isM2(i, i));
+                      const anti = [0,1,2,3,4].every(i => isM2(i, 4-i));
+                      if (main && anti) { specificLabel = 'BOTH DIAGONALS ✕'; specificIcon = '✕'; }
+                      else if (main)    { specificLabel = 'MAIN DIAGONAL ↘';   specificIcon = '↘'; }
+                      else              { specificLabel = 'ANTI-DIAGONAL ↗';   specificIcon = '↗'; }
+                    } else if (mode === 'COLUMN') {
+                      color = '#10B981';
+                      for (let c = 0; c < 5; c++) {
+                        if ([0,1,2,3,4].every(r => isM2(r, c))) {
+                          specificLabel = `COLUMN ${c + 1} ▌`; specificIcon = '▌'; break;
+                        }
+                      }
+                    } else if (mode === 'ROW') {
+                      color = '#F59E0B';
+                      for (let r = 0; r < 5; r++) {
+                        if ([0,1,2,3,4].every(c => isM2(r, c))) {
+                          specificLabel = `ROW ${r + 1} ━`; specificIcon = '━'; break;
+                        }
+                      }
+                    }
+
+                    return (
+                      <motion.div
+                        animate={{ boxShadow: [`0 0 0px ${color}00`, `0 0 20px ${color}99`, `0 0 0px ${color}00`] }}
+                        transition={{ duration: 1.8, repeat: Infinity }}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: '7px',
+                          background: `${color}22`, border: `2px solid ${color}99`,
+                          borderRadius: '20px', padding: '6px 16px', marginBottom: '10px',
+                          fontSize: '13px', fontWeight: '900', color: color,
+                          letterSpacing: '1px', textTransform: 'uppercase',
+                        }}
+                      >
+                        <span style={{ fontSize: '17px' }}>{specificIcon}</span>
+                        <span>WINNING PATTERN: {specificLabel}</span>
+                      </motion.div>
+                    );
+                  })()}
+
+
 
               {/* ── Winner's cartela — shown to ALL players ── */}
               {gameFinished.card && (() => {

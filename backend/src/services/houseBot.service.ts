@@ -3,7 +3,7 @@
  * ─────────────────────────────────────────────────────────────────────────────
  * Manages the house simulation bot system:
  *   - Injects fake bot cartelas into real games
- *   - Pre-simulates draw sequences to enforce 30/50 win quota
+ *   - Pre-simulates draw sequences to enforce 70/30 win quota
  *   - Routes bot winnings to the admin "Buna Wallet" (SystemWallet)
  *   - Tracks win cycles per room type
  */
@@ -15,9 +15,9 @@ import { checkWin, BingoCard } from '../game/card.generator';
 import { PREDEFINED_CARDS } from '../lib/predefinedCards';
 
 // ─── Win Quota Config ─────────────────────────────────────────
-// House bot must win 3 out of every 5 games (60% win rate)
-const CYCLE_LENGTH = 5;
-const HOUSE_WIN_QUOTA = 3;
+// House bot must win 7 out of every 10 games (70% win rate)
+const CYCLE_LENGTH = 10;
+const HOUSE_WIN_QUOTA = 7;
 
 // ─── Bot count per room type ──────────────────────────────────
 export const BOT_COUNTS: Record<string, number> = {
@@ -53,7 +53,7 @@ export async function shouldHouseWinThisGame(roomType: string): Promise<boolean>
     update: {},
   });
 
-  // If cycle is full (5 games), reset it
+  // If cycle is full (10 games), reset it
   if (cycle.totalGames >= CYCLE_LENGTH) {
     cycle = await prisma.gameCycle.update({
       where: { roomType },
