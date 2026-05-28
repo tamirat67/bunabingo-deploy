@@ -1001,23 +1001,20 @@ function GameContent() {
                     const userDaubed   = !isFree && marked.has(numVal);
                     const colClr  = COL_COLOR[colLabel(numVal)] || '#888';
 
-                    // ── 4 visual states ────────────────────────────────────
+                    // ── 3 visual states (no automatic hints) ───────────────
+                    // Players must tap numbers themselves — no auto-highlighting
                     let bg: string, txtClr: string, bdr: string, shd: string;
 
                     if (isFree) {
                       bg = '#27AE60'; txtClr = 'white'; bdr = 'none'; shd = `0 0 8px #27AE6055`;
-                    } else if (isBallCalled && userDaubed) {
-                      // Gold confirmed daub
+                    } else if (userDaubed) {
+                      // Player manually daubed this number — gold confirmed
                       bg = isVip ? 'linear-gradient(135deg, #FFD700, #C471ED)' : T.gold;
                       txtClr = isVip ? '#1C0A35' : T.header;
                       bdr = `2px solid ${isVip ? '#FFD700' : 'white'}`;
                       shd = `0 0 10px ${isVip ? '#FFD70099' : T.gold + '88'}`;
-                    } else if (isBallCalled) {
-                      // Called but not yet daubed — col-colour glow
-                      bg = `${colClr}2a`; txtClr = colClr;
-                      bdr = `2px solid ${colClr}99`; shd = `0 0 7px ${colClr}55`;
                     } else {
-                      // Not called
+                      // Not daubed — plain card colour regardless of whether ball was called
                       bg = isVip ? 'rgba(255,255,255,0.06)' : T.statBg;
                       txtClr = isVip ? 'rgba(255,255,255,0.55)' : T.text;
                       bdr = 'none'; shd = 'none';
@@ -1027,8 +1024,8 @@ function GameContent() {
                       <motion.div
                         key={`${ri}-${ci}`}
                         onClick={(e) => { e.stopPropagation(); if (!isFree) toggleMark(numVal); }}
-                        animate={isBallCalled && userDaubed ? { scale: [1, 1.08, 1] } : { scale: 1 }}
-                        transition={isBallCalled && userDaubed ? { duration: 1.0, repeat: Infinity, repeatDelay: 1.5 } : {}}
+                        animate={userDaubed ? { scale: [1, 1.08, 1] } : { scale: 1 }}
+                        transition={userDaubed ? { duration: 1.0, repeat: Infinity, repeatDelay: 1.5 } : {}}
                         style={{
                           height: '26px',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1042,22 +1039,13 @@ function GameContent() {
                       >
                         {isFree ? '★' : cell}
 
-                        {/* Ripple on confirmed daub */}
-                        {isBallCalled && userDaubed && (
+                        {/* Ripple on manually daubed number */}
+                        {userDaubed && (
                           <motion.div
                             initial={{ scale: 0, opacity: 0.7 }}
                             animate={{ scale: 2.4, opacity: 0 }}
                             transition={{ duration: 0.9, repeat: Infinity, repeatDelay: 1.5 }}
                             style={{ position: 'absolute', width: '50%', height: '50%', border: `2px solid ${isVip ? '#FFD700' : T.gold}`, borderRadius: '50%', pointerEvents: 'none' }}
-                          />
-                        )}
-
-                        {/* Blinking dot for called-but-not-daubed */}
-                        {isBallCalled && !userDaubed && (
-                          <motion.div
-                            animate={{ opacity: [1, 0.3, 1] }}
-                            transition={{ duration: 0.9, repeat: Infinity }}
-                            style={{ position: 'absolute', bottom: '2px', right: '2px', width: '5px', height: '5px', borderRadius: '50%', background: colClr, boxShadow: `0 0 4px ${colClr}` }}
                           />
                         )}
                       </motion.div>
