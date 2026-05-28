@@ -467,7 +467,12 @@ function SelectionContent() {
       if (res.error === 'GAME_IN_PROGRESS' || res.nextGameId) {
         setIsGameRunning(true);
         setLiveGameDismissed(false);
-        if (res.nextGameId) setActiveGameId(res.nextGameId);
+        if (res.nextGameId) {
+          setActiveGameId(res.nextGameId);
+          if (typeof window !== 'undefined' && res.tickets) {
+            sessionStorage.setItem(`game_tickets_${res.nextGameId}`, JSON.stringify(res.tickets));
+          }
+        }
         setModal({
           isOpen: true,
           title: '🔴 Game In Progress!',
