@@ -433,7 +433,7 @@ router.post('/games/join', joinGameLimiter, async (req: Request, res: Response) 
         const nextGameId = await createWaitingGame(e.roomId || (await prisma.room.findFirst({ where: { type: req.body.roomType as any, isActive: true } }))?.id || '');
         
         // ACTUALLY reserve the tickets in the NEXT game!
-        const { tickets, cards } = await joinGame(user.id, nextGameId, cardIds);
+        const { tickets, cards } = await joinGame(user.id, nextGameId, req.body.cardIds);
 
         logger.info(`[JOIN] Game in progress — queued player ${(req as any).user?.id} for next game ${nextGameId}`);
         return res.status(202).json({
