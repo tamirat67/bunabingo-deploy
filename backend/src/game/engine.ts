@@ -174,8 +174,8 @@ async function runGame(gameId: string): Promise<void> {
     const realPlayerCount = new Set(
       ticketsWithUsers.filter(t => !t.user.isBot).map(t => t.userId)
     ).size;
-    // Need at least 1 real player and total unique users >= 2 (real + bots)
-    if (ticketCount < game.room.minPlayers || realPlayerCount < 1 || uniquePlayerRows.length < 2) {
+    // Need at least 1 real player and total tickets >= minPlayers
+    if (ticketCount < game.room.minPlayers || realPlayerCount < 1) {
       logger.info(`[Game ${gameId}] Loop: Not enough players/tickets (${ticketCount}/${game.room.minPlayers}, real=${realPlayerCount}). Restarting countdown.`);
       await startCountdown(gameId, ticketCount);
       return;
@@ -189,7 +189,7 @@ async function runGame(gameId: string): Promise<void> {
   let totalHouseEdge = new Decimal(0);
 
   const uniquePlayerIds = Array.from(new Set(game.tickets.map(t => t.userId)));
-  if (!isDemo && uniquePlayerIds.length < 2) {
+  if (!isDemo && uniquePlayerIds.length < 1) {
     logger.warn(`[Game ${gameId}] Loop Guard: Only ${uniquePlayerIds.length} unique players. Aborting.`);
     await startCountdown(gameId, ticketCount);
     return;

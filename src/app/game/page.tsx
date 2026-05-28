@@ -226,16 +226,11 @@ function GameContent() {
           const rem = Math.max(0, Math.ceil((g.endTime - Date.now() - offset) / 1000));
           if (rem > 0) setCountdown(rem);
         }
-      } else if (g.status === 'COUNTDOWN' && g.countdownSeconds && g.countdownSeconds > 0) {
-        // ── Fallback: only start a local timer if one isn't already running ──
-        // This prevents each poll from resetting the countdown to the DB's original 60s value
-        setEndTime(prev => {
-          if (prev !== null) return prev; // already ticking locally — don't reset!
-          const estimatedEnd = Date.now() + (g.countdownSeconds * 1000);
-          setServerOff(0);
-          setCountdown(g.countdownSeconds);
-          return estimatedEnd;
-        });
+      } else if (g.status === 'COUNTDOWN' && g.countdownSeconds) {
+        const estimatedEnd = Date.now() + (g.countdownSeconds * 1000);
+        setEndTime(estimatedEnd);
+        setServerOff(0);
+        setCountdown(g.countdownSeconds);
       }
       const sorted = (t.tickets || []).sort((a: any, b: any) => (a.card?.id || 0) - (b.card?.id || 0));
       setTickets(sorted);
