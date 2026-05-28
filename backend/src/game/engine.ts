@@ -174,12 +174,8 @@ async function runGame(gameId: string): Promise<void> {
     const realPlayerCount = new Set(
       ticketsWithUsers.filter(t => !t.user.isBot).map(t => t.userId)
     ).size;
-    // Need at least 1 real player and total tickets >= minPlayers
-    if (ticketCount < game.room.minPlayers || realPlayerCount < 1) {
-      logger.info(`[Game ${gameId}] Loop: Not enough players/tickets (${ticketCount}/${game.room.minPlayers}, real=${realPlayerCount}). Restarting countdown.`);
-      await startCountdown(gameId, ticketCount);
-      return;
-    }
+    // Player count validation removed - game will always start after countdown
+    // even with only 1 ticket or 1 real player, to prevent endless 60s loops.
   }
 
   // ─── CHARGE PLAYERS NOW (skip entirely for DEMO — no real money) ────────────
@@ -190,7 +186,7 @@ async function runGame(gameId: string): Promise<void> {
 
   const uniquePlayerIds = Array.from(new Set(game.tickets.map(t => t.userId)));
   if (!isDemo && uniquePlayerIds.length < 1) {
-    logger.warn(`[Game ${gameId}] Loop Guard: Only ${uniquePlayerIds.length} unique players. Aborting.`);
+    logger.warn(`[Game ${gameId}] Loop Guard: 0 unique players. Restarting countdown.`);
     await startCountdown(gameId, ticketCount);
     return;
   }
