@@ -444,12 +444,14 @@ function GameContent() {
       const rem = Math.max(0, Math.ceil((endTime - now) / 1000));
       setCountdown(rem);
       if (rem <= 0) {
+        // ✅ Play start.mp3 here too — in case socket 'countdown-tick' at 0 was missed
+        playStartAudio();
         setEndTime(null);
-        setTimeout(loadData, 500);
+        setTimeout(loadData, 300);
       }
     }, 1000);
     return () => clearInterval(timer);
-  }, [endTime, serverOff, loadData]);
+  }, [endTime, serverOff, loadData, playStartAudio]);
 
   // ─── Polling fallback: syncs state when socket events are missed ─────────
   // RUNNING uses 2s poll = catches missed number-drawn events within 1 draw cycle.
