@@ -148,7 +148,7 @@ function GameContent() {
       setLastBallFn(nextBall);
       setCalledHistory(prev => prev.includes(nextBall) ? prev : [...prev, nextBall]);
       playBallSound(nextBall);
-      // Wait for ball audio to finish before playing next (~1.8s natural gap)
+      // Wait for ball audio to finish before playing next (~1.8s natural gap, draw interval is 2.0s)
       setTimeout(() => {
         processAudioQueue(setLastBallFn);
       }, 1800);
