@@ -727,7 +727,7 @@ function SelectionContent() {
                   textShadow: `0 0 14px ${T.gold}66`,
                 }}
               >
-                WAITING FOR PLAYERS
+                WAITING ....
               </motion.div>
             </>
           ) : (
