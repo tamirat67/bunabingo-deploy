@@ -431,11 +431,17 @@ router.post('/games/join', joinGameLimiter, async (req: Request, res: Response) 
       try {
         // Find or create a next WAITING game for the room so the player can queue
         const nextGameId = await createWaitingGame(e.roomId || (await prisma.room.findFirst({ where: { type: req.body.roomType as any, isActive: true } }))?.id || '');
+        
+        // ACTUALLY reserve the tickets in the NEXT game!
+        const { tickets, cards } = await joinGame(user.id, nextGameId, cardIds);
+
         logger.info(`[JOIN] Game in progress — queued player ${(req as any).user?.id} for next game ${nextGameId}`);
         return res.status(202).json({
           error: 'GAME_IN_PROGRESS',
           message: 'A game is currently in progress. Your cartelas are reserved for the next session!',
           nextGameId,
+          tickets,
+          cards
         });
       } catch (innerErr) {
         logger.error('Failed to find next waiting game:', innerErr);
