@@ -3,21 +3,14 @@ import prisma from '../lib/prisma';
 import { logger } from '../lib/logger';
 
 /**
- * Counts users who purchased at least one ticket in the last 30 days.
- * These are "monthly active players" — real bingo game participants.
+ * Counts total real users and agents in the system.
  */
-async function getMonthlyActiveUsers(): Promise<number> {
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-  const result = await prisma.ticket.groupBy({
-    by: ['userId'],
-    where: {
-      purchasedAt: { gte: thirtyDaysAgo },
-    },
-  });
-
-  return result.length;
+async function getUserAndAgentCounts(): Promise<{ users: number; agents: number }> {
+  const [users, agents] = await Promise.all([
+    prisma.user.count({ where: { isBot: false, role: 'PLAYER' } }),
+    prisma.user.count({ where: { isBot: false, role: 'AGENT' } })
+  ]);
+  return { users, agents };
 }
 
 /**
@@ -28,26 +21,27 @@ function formatCount(n: number): string {
 }
 
 /**
- * Updates the bot's Telegram description with the current monthly active user count.
+ * Updates the bot's Telegram description with the current total users and agents count.
  * Telegram shows this text in the bot's info panel, right under the bot name.
  */
 export async function updateBotDescription(bot: Telegraf): Promise<void> {
   try {
-    const count = await getMonthlyActiveUsers();
-    const formatted = formatCount(count);
+    const { users, agents } = await getUserAndAgentCounts();
+    const formattedUsers = formatCount(users);
+    const formattedAgents = formatCount(agents);
 
     // Short description — shown under bot name in chat list / search results
-    await bot.telegram.setMyShortDescription(`${formatted} monthly users`);
+    await bot.telegram.setMyShortDescription(`${formattedUsers} Users & ${formattedAgents} Agents`);
 
     // Full description — shown on the bot's profile page when opened
     await bot.telegram.setMyDescription(
       `☕ Buna Bingo — Ethiopia's #1 Telegram Bingo Game!\n\n` +
       `🎮 Play Bingo & Spin games and win real ETB prizes.\n` +
-      `👥 ${formatted} users active this month.\n\n` +
+      `👥 ${formattedUsers} Users & ${formattedAgents} Agents\n\n` +
       `Tap START to join the fun!`
     );
 
-    logger.info(`[BotDesc] Updated bot description: ${formatted} monthly active users`);
+    logger.info(`[BotDesc] Updated bot description: ${formattedUsers} Users & ${formattedAgents} Agents`);
   } catch (err) {
     logger.error('[BotDesc] Failed to update bot description:', err);
   }
