@@ -943,64 +943,92 @@ function GameContent() {
                 }}
               >
                 <button onClick={(e) => { e.stopPropagation(); hideCard(t.id); }} style={{ position: 'absolute', top: '4px', right: '5px', width: '20px', height: '20px', background: '#C0392B', color: 'white', border: 'none', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}><X size={10} /></button>
-                <div style={{ 
-                  background: isSelected 
-                    ? (isVip ? 'linear-gradient(90deg, #FFD700, #C471ED)' : T.gold) 
-                    : (isVip ? '#1C0A35' : T.header), 
-                  padding: '4px 10px', 
-                  color: isSelected 
-                    ? (isVip ? '#1C0A35' : T.header) 
-                    : (isVip ? '#FFD700' : T.gold), 
-                  fontWeight: '900', 
-                  fontSize: '11px' 
+                {/* Card header */}
+                <div style={{
+                  background: isSelected
+                    ? (isVip ? 'linear-gradient(90deg, #FFD700, #C471ED)' : T.gold)
+                    : (isVip ? '#1C0A35' : T.header),
+                  padding: '4px 10px',
+                  color: isSelected
+                    ? (isVip ? '#1C0A35' : T.header)
+                    : (isVip ? '#FFD700' : T.gold),
+                  fontWeight: '900',
+                  fontSize: '11px'
                 }}>
-                   Cartela #{cardId} {isSelected ? '(SELECTED)' : ''}
+                  Cartela #{cardId} {isSelected ? '(SELECTED)' : ''}
                 </div>
+
+                {/* 5×5 grid */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '2px', padding: '5px' }}>
                   {rows.map((row: any[], ri: number) => row.map((cell: any, ci: number) => {
-                      const numVal = Number(cell);
-                      const isFree = cell === 'FREE' || cell === 0 || cell === null;
-                      const userMarked = !isFree && marked.has(numVal);
-                      const colKey     = colLabel(numVal);
-                      
-                      return (
-                        <div 
-                          key={`${ri}-${ci}`} 
-                          onClick={(e) => { e.stopPropagation(); if (!isFree) toggleMark(numVal); }}
-                          style={{ 
-                            height: '26px', 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            justifyContent: 'center', 
-                            borderRadius: '4px', 
-                            fontSize: '11px', 
-                            fontWeight: '900', 
-                            background: isFree 
-                              ? '#27AE60' 
-                              : userMarked 
-                                ? (isVip ? 'linear-gradient(135deg, #FFD700, #C471ED)' : T.gold) 
-                                : (isVip ? 'rgba(255,255,255,0.06)' : T.statBg), 
-                            color: isFree 
-                              ? 'white' 
-                              : userMarked 
-                                ? (isVip ? '#1C0A35' : T.header) 
-                                : (isVip ? 'white' : T.text), 
-                            border: userMarked 
-                              ? (isVip ? '3px solid #FFD700' : '3px solid white') 
-                              : 'none',
-                            position: 'relative',
-                            overflow: 'hidden',
-                            transition: 'all 0.3s ease'
-                          }}
-                        >
-                          {isFree ? '★' : cell}
+                    const numVal  = Number(cell);
+                    const isFree  = cell === 'FREE' || cell === 0 || cell === null;
+                    const isBallCalled = !isFree && drawn.includes(numVal);
+                    const userDaubed   = !isFree && marked.has(numVal);
+                    const colClr  = COL_COLOR[colLabel(numVal)] || '#888';
 
-                          {userMarked && (
-                             <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} style={{ position: 'absolute', width: '80%', height: '80%', border: `2px solid ${T.header}`, borderRadius: '50%', opacity: 0.5 }} />
-                          )}
-                        </div>
-                      );
-                    }))}
+                    // ── 4 visual states ────────────────────────────────────
+                    let bg: string, txtClr: string, bdr: string, shd: string;
+
+                    if (isFree) {
+                      bg = '#27AE60'; txtClr = 'white'; bdr = 'none'; shd = `0 0 8px #27AE6055`;
+                    } else if (isBallCalled && userDaubed) {
+                      // Gold confirmed daub
+                      bg = isVip ? 'linear-gradient(135deg, #FFD700, #C471ED)' : T.gold;
+                      txtClr = isVip ? '#1C0A35' : T.header;
+                      bdr = `2px solid ${isVip ? '#FFD700' : 'white'}`;
+                      shd = `0 0 10px ${isVip ? '#FFD70099' : T.gold + '88'}`;
+                    } else if (isBallCalled) {
+                      // Called but not yet daubed — col-colour glow
+                      bg = `${colClr}2a`; txtClr = colClr;
+                      bdr = `2px solid ${colClr}99`; shd = `0 0 7px ${colClr}55`;
+                    } else {
+                      // Not called
+                      bg = isVip ? 'rgba(255,255,255,0.06)' : T.statBg;
+                      txtClr = isVip ? 'rgba(255,255,255,0.55)' : T.text;
+                      bdr = 'none'; shd = 'none';
+                    }
+
+                    return (
+                      <motion.div
+                        key={`${ri}-${ci}`}
+                        onClick={(e) => { e.stopPropagation(); if (!isFree) toggleMark(numVal); }}
+                        animate={isBallCalled && userDaubed ? { scale: [1, 1.08, 1] } : { scale: 1 }}
+                        transition={isBallCalled && userDaubed ? { duration: 1.0, repeat: Infinity, repeatDelay: 1.5 } : {}}
+                        style={{
+                          height: '26px',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          borderRadius: '4px', fontSize: '11px', fontWeight: '900',
+                          background: bg, color: txtClr, border: bdr, boxShadow: shd,
+                          position: 'relative', overflow: 'hidden',
+                          cursor: isFree ? 'default' : 'pointer',
+                          transition: 'background 0.25s, box-shadow 0.25s, border 0.25s',
+                          userSelect: 'none',
+                        }}
+                      >
+                        {isFree ? '★' : cell}
+
+                        {/* Ripple on confirmed daub */}
+                        {isBallCalled && userDaubed && (
+                          <motion.div
+                            initial={{ scale: 0, opacity: 0.7 }}
+                            animate={{ scale: 2.4, opacity: 0 }}
+                            transition={{ duration: 0.9, repeat: Infinity, repeatDelay: 1.5 }}
+                            style={{ position: 'absolute', width: '50%', height: '50%', border: `2px solid ${isVip ? '#FFD700' : T.gold}`, borderRadius: '50%', pointerEvents: 'none' }}
+                          />
+                        )}
+
+                        {/* Blinking dot for called-but-not-daubed */}
+                        {isBallCalled && !userDaubed && (
+                          <motion.div
+                            animate={{ opacity: [1, 0.3, 1] }}
+                            transition={{ duration: 0.9, repeat: Infinity }}
+                            style={{ position: 'absolute', bottom: '2px', right: '2px', width: '5px', height: '5px', borderRadius: '50%', background: colClr, boxShadow: `0 0 4px ${colClr}` }}
+                          />
+                        )}
+                      </motion.div>
+                    );
+                  }))}
                 </div>
 
                 {/* Per-card BINGO! Action Claim Button */}
@@ -1194,233 +1222,250 @@ function GameContent() {
                       color = '#10B981';
                       for (let c = 0; c < 5; c++) {
                         if ([0,1,2,3,4].every(r => isM2(r, c))) {
-                          specificLabel = `${COL_LBL[c]} COLUMN`;
-                          specificIcon = COL_LBL[c];
-                          break;
-                        }
-                      }
-                    } else if (mode === 'ROW') {
-                      color = '#F59E0B';
-                      for (let r = 0; r < 5; r++) {
-                        if ([0,1,2,3,4].every(c => isM2(r, c))) {
-                          specificLabel = `${ROW_ORD[r]} ROW`;
-                          specificIcon = `${r + 1}`;
-                          break;
-                        }
-                      }
-                    }
 
-                    return (
-                      <motion.div
-                        animate={{ boxShadow: [`0 0 0px ${color}00`, `0 0 20px ${color}99`, `0 0 0px ${color}00`] }}
-                        transition={{ duration: 1.8, repeat: Infinity }}
-                        style={{
-                          display: 'inline-flex', alignItems: 'center', gap: '7px',
-                          background: `${color}22`, border: `2px solid ${color}99`,
-                          borderRadius: '20px', padding: '6px 16px', marginBottom: '10px',
-                          fontSize: '13px', fontWeight: '900', color,
-                          letterSpacing: '1px', textTransform: 'uppercase',
-                        }}
-                      >
-                        <span style={{ fontSize: '17px', minWidth: '20px', textAlign: 'center' }}>{specificIcon}</span>
-                        <span>WINNING: {specificLabel}</span>
-                      </motion.div>
-                    );
-                  })()}
-
-                  {/* Cartela grid */}
-                  {gameFinished.card && (() => {
-                    const rawCard = gameFinished.card;
-                    const rows: any[][] = Array.isArray(rawCard) ? rawCard : (rawCard.rows ?? rawCard);
-                    if (!rows || rows.length !== 5) return null;
-
-                    // Normalise cells: 'FREE' / 0 / null → 0
-                    const grid: number[][] = rows.map((row: any[]) =>
-                      row.map((cell: any) => (cell === 'FREE' || cell === 'free' || cell === null ? 0 : Number(cell)))
-                    );
-
-                    const calledSet = new Set(drawn);
-                    const isMarked = (r: number, c: number) => grid[r][c] === 0 || calledSet.has(grid[r][c]);
-
-                    // Determine which cells are part of the winning pattern
-                    const patternCells = new Set<string>();
-                    const mode = gameFinished.mode;
-                    let winningRow = -1;
-                    let winningCol = -1;
-
-                    if (mode === 'FULL_HOUSE') {
-                      for (let r = 0; r < 5; r++) for (let c = 0; c < 5; c++) patternCells.add(`${r}-${c}`);
-                    } else if (mode === 'FOUR_CORNERS') {
-                      [[0,0],[0,4],[4,0],[4,4]].forEach(([r,c]) => patternCells.add(`${r}-${c}`));
-                    } else if (mode === 'DIAGONAL') {
-                      const mainDiag = [0,1,2,3,4].every(i => isMarked(i, i));
-                      const antiDiag = [0,1,2,3,4].every(i => isMarked(i, 4-i));
-                      if (mainDiag) [0,1,2,3,4].forEach(i => patternCells.add(`${i}-${i}`));
-                      if (antiDiag) [0,1,2,3,4].forEach(i => patternCells.add(`${i}-${4-i}`));
-                    } else if (mode === 'COLUMN') {
-                      for (let c = 0; c < 5; c++) {
-                        if ([0,1,2,3,4].every(r => isMarked(r, c))) {
-                          winningCol = c;
-                          [0,1,2,3,4].forEach(r => patternCells.add(`${r}-${c}`)); break;
-                        }
-                      }
-                    } else if (mode === 'ROW') {
-                      for (let r = 0; r < 5; r++) {
-                        if ([0,1,2,3,4].every(c => isMarked(r, c))) {
-                          winningRow = r;
-                          [0,1,2,3,4].forEach(c => patternCells.add(`${r}-${c}`)); break;
-                        }
-                      }
-                    }
-
-                    const patternColors: Record<string, string> = {
-                      FULL_HOUSE: '#FF6B35', FOUR_CORNERS: '#8B5CF6',
-                      DIAGONAL: '#06B6D4', COLUMN: '#10B981', ROW: '#F59E0B',
-                    };
-                    const patternColor = patternColors[mode] || '#2ECC71';
-                    const COL_LABELS = ['B','I','N','G','O'];
-                    const ROW_LABELS = ['1st','2nd','3rd','4th','5th'];
-                    const COL_COLORS: Record<string, string> = {
-                      B:'#E74C3C', I:'#E67E22', N:'#D4AF37', G:'#27AE60', O:'#8E44AD'
-                    };
-
-                    return (
-                      <div style={{ marginBottom: '12px' }}>
-                        {/* Title */}
-                        <div style={{ fontSize: '11px', fontWeight: '800', color: 'rgba(255,255,255,0.45)', marginBottom: '6px', letterSpacing: '1px', textTransform: 'uppercase' }}>
-                          📋 Winning Cartela
-                        </div>
-
-                        {/* Column headers B-I-N-G-O — winning column gets glow */}
-                        <div style={{ display: 'grid', gridTemplateColumns: mode === 'ROW' ? '20px repeat(5, 1fr)' : 'repeat(5, 1fr)', gap: '3px', marginBottom: '3px', padding: mode === 'ROW' ? '0 0 0 3px' : '0 6px' }}>
-                          {mode === 'ROW' && <div />}
-                          {COL_LABELS.map((lbl, ci) => {
-                            const isWinCol = winningCol === ci;
-                            return (
-                              <div key={lbl} style={{
-                                fontSize: isWinCol ? '16px' : '13px',
-                                fontWeight: '900',
-                                color: isWinCol ? '#fff' : COL_COLORS[lbl],
-                                textAlign: 'center',
-                                letterSpacing: '1px',
-                                background: isWinCol ? `${patternColor}cc` : 'transparent',
-                                borderRadius: isWinCol ? '6px' : '0',
-                                padding: isWinCol ? '2px 0' : '0',
-                                boxShadow: isWinCol ? `0 0 12px ${patternColor}` : 'none',
-                                textShadow: isWinCol ? 'none' : `0 0 8px ${COL_COLORS[lbl]}88`,
-                              }}>{lbl}</div>
-                            );
-                          })}
-                        </div>
-
-                        {/* 5×5 grid — with optional row number labels on left */}
-                        <div style={{
-                          display: 'grid',
-                          gridTemplateColumns: mode === 'ROW' ? '20px repeat(5, 1fr)' : 'repeat(5, 1fr)',
-                          gap: '3px',
-                          background: 'rgba(0,0,0,0.5)',
-                          padding: '6px',
-                          borderRadius: '12px',
-                          border: `2px solid ${T.gold}44`,
-                          boxShadow: 'inset 0 2px 12px rgba(0,0,0,0.6)',
-                        }}>
-                          {grid.map((row, ri) => (
-                            <Fragment key={ri}>
-                              {/* Row number label for ROW wins */}
-                              {mode === 'ROW' && (
-                                <div key={`lbl-${ri}`} style={{
-                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                  fontSize: '9px', fontWeight: '900',
-                                  color: winningRow === ri ? patternColor : 'rgba(255,255,255,0.2)',
-                                  textShadow: winningRow === ri ? `0 0 8px ${patternColor}` : 'none',
-                                }}>{ri + 1}</div>
-                              )}
-                              {row.map((cell, ci) => {
-                              const key = `${ri}-${ci}`;
-                              const isFree = cell === 0;
-                              const called = isFree || calledSet.has(cell);
-                              const isPatternCell = patternCells.has(key);
-                              const colLabel = COL_LABELS[ci];
-                              const colColor = COL_COLORS[colLabel];
-
-                              let bg = 'rgba(255,255,255,0.04)';
-                              let textColor = 'rgba(255,255,255,0.2)';
-                              let shadow = 'none';
-                              let border = '1px solid rgba(255,255,255,0.07)';
-                              let fontSz = '12px';
-
-                              if (isPatternCell) {
-                                bg = `${patternColor}ee`;
-                                textColor = '#fff';
-                                shadow = `0 0 16px ${patternColor}cc, 0 0 5px ${patternColor}`;
-                                border = `2px solid ${patternColor}`;
-                              } else if (called) {
-                                bg = `${colColor}28`;
-                                textColor = colColor;
-                                shadow = `0 0 6px ${colColor}44`;
-                                border = `1px solid ${colColor}55`;
-                              }
-
-                              return (
-                                <motion.div
-                                  key={key}
-                                  initial={{ opacity: 0, scale: 0.7 }}
-                                  animate={isPatternCell
-                                    ? { opacity: 1, scale: [1, 1.1, 1] }
-                                    : { opacity: 1, scale: 1 }
-                                  }
-                                  transition={isPatternCell
-                                    ? { duration: 0.9, repeat: Infinity, repeatDelay: 1.2, delay: (ri + ci) * 0.03 }
-                                    : { delay: (ri * 5 + ci) * 0.02 }
-                                  }
-                                  style={{
-                                    aspectRatio: '1',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    fontSize: fontSz,
-                                    fontWeight: '900',
-                                    background: bg,
-                                    color: textColor,
-                                    borderRadius: '7px',
-                                    boxShadow: shadow,
-                                    border,
-                                    position: 'relative',
-                                    minWidth: '0',
-                                  }}
-                                >
-                                  {isFree ? <span style={{ fontSize: '13px' }}>★</span> : cell}
-                                </motion.div>
-                              );
-                            })}
-                          </Fragment>
-                        ))}
-                        </div>
-
-                        {/* Legend */}
-                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '7px', flexWrap: 'wrap' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: 'rgba(255,255,255,0.5)' }}>
-                            <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: patternColor, boxShadow: `0 0 5px ${patternColor}` }} />
-                            Winning cells
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: 'rgba(255,255,255,0.5)' }}>
-                            <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: 'rgba(231,76,60,0.3)', border: '1px solid #E74C3C88' }} />
-                            Called
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: 'rgba(255,255,255,0.5)' }}>
-                            <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }} />
-                            Not called
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })()}
+              {gameFinished.isCurrentUserWinner ? (
+                /* ══ WINNER view ══ */
+                <>
+                  <motion.h2
+                    animate={{ textShadow: [`0 0 10px ${T.gold}88`, `0 0 30px ${T.gold}ff`, `0 0 10px ${T.gold}88`] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                    style={{ color: T.gold, fontSize: '26px', fontWeight: '900', margin: '0 0 2px', textTransform: 'uppercase', letterSpacing: 3 }}
+                  >
+                    YOU WON! 🎊
+                  </motion.h2>
+                  <div style={{ color: '#2ECC71', fontSize: '13px', fontWeight: '700', marginBottom: '4px' }}>
+                    🎉 Congratulations! You are the winner!
+                  </div>
+                  <motion.div
+                    animate={{ scale: [1, 1.05, 1] }}
+                    transition={{ duration: 1.2, repeat: Infinity }}
+                    style={{ color: T.gold, fontSize: '24px', fontWeight: '900', margin: '2px 0 10px' }}
+                  >
+                    +{gameFinished.prize} ETB
+                  </motion.div>
                 </>
               ) : (
-                <div style={{ color: T.text, fontSize: '15px', margin: '10px 0 16px', opacity: 0.8 }}>
-                  No winner this round.
-                </div>
+                /* ══ LOSER view ══ */
+                <>
+                  <h2 style={{ color: '#E74C3C', fontSize: '22px', fontWeight: '900', margin: '0 0 2px', textTransform: 'uppercase', letterSpacing: 2 }}>
+                    GAME OVER
+                  </h2>
+                  <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: '13px', fontWeight: '700', marginBottom: '2px' }}>
+                    🥇 Winner: <span style={{ color: T.gold }}>{gameFinished.winnerName}</span>
+                  </div>
+                  <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: '14px', fontWeight: '700', margin: '2px 0 10px' }}>
+                    Prize: <span style={{ color: '#F59E0B' }}>{gameFinished.prize} ETB</span>
+                  </div>
+                </>
               )}
+
+              {/* ── Winning pattern badge — shown to ALL ── */}
+              {gameFinished.mode && (() => {
+                const patternLabels: Record<string, { label: string; icon: string; color: string }> = {
+                  FULL_HOUSE:   { label: 'FULL HOUSE',    icon: '🃏', color: '#FF6B35' },
+                  FOUR_CORNERS: { label: 'FOUR CORNERS',  icon: '🔷', color: '#8B5CF6' },
+                  DIAGONAL:     { label: 'DIAGONAL',      icon: '✕',  color: '#06B6D4' },
+                  COLUMN:       { label: 'COLUMN',        icon: '▌',  color: '#10B981' },
+                  ROW:          { label: 'ROW',           icon: '━',  color: '#F59E0B' },
+                };
+                const p = patternLabels[gameFinished.mode] || { label: gameFinished.mode, icon: '🎯', color: '#2ECC71' };
+                return (
+                  <motion.div
+                    animate={{ boxShadow: [`0 0 0px ${p.color}00`, `0 0 20px ${p.color}99`, `0 0 0px ${p.color}00`] }}
+                    transition={{ duration: 1.8, repeat: Infinity }}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '7px',
+                      background: `${p.color}22`, border: `2px solid ${p.color}99`,
+                      borderRadius: '20px', padding: '6px 16px', marginBottom: '10px',
+                      fontSize: '13px', fontWeight: '900', color: p.color,
+                      letterSpacing: '1px', textTransform: 'uppercase',
+                    }}
+                  >
+                    <span style={{ fontSize: '17px' }}>{p.icon}</span>
+                    <span>WINNING PATTERN: {p.label}</span>
+                  </motion.div>
+                );
+              })()}
+
+              {/* ── Winner's cartela — shown to ALL players ── */}
+              {gameFinished.card && (() => {
+                const rawCard = gameFinished.card;
+                const rows: any[][] = Array.isArray(rawCard) ? rawCard : (rawCard.rows ?? rawCard);
+                if (!rows || rows.length !== 5) return null;
+
+                const grid: number[][] = rows.map((row: any[]) =>
+                  row.map((cell: any) => (cell === 'FREE' || cell === 'free' || cell === null ? 0 : Number(cell)))
+                );
+
+                const calledSet = new Set(drawn);
+                const isM = (r: number, c: number) => grid[r][c] === 0 || calledSet.has(grid[r][c]);
+
+                // Determine winning cells
+                const patternCells = new Set<string>();
+                const mode = gameFinished.mode;
+                let winningRow = -1;
+                let winningCol = -1;
+
+                if (mode === 'FULL_HOUSE') {
+                  for (let r = 0; r < 5; r++) for (let c = 0; c < 5; c++) patternCells.add(`${r}-${c}`);
+                } else if (mode === 'FOUR_CORNERS') {
+                  [[0,0],[0,4],[4,0],[4,4]].forEach(([r,c]) => patternCells.add(`${r}-${c}`));
+                } else if (mode === 'DIAGONAL') {
+                  const mainDiag = [0,1,2,3,4].every(i => isM(i, i));
+                  const antiDiag = [0,1,2,3,4].every(i => isM(i, 4-i));
+                  if (mainDiag) [0,1,2,3,4].forEach(i => patternCells.add(`${i}-${i}`));
+                  if (antiDiag) [0,1,2,3,4].forEach(i => patternCells.add(`${i}-${4-i}`));
+                } else if (mode === 'COLUMN') {
+                  for (let c = 0; c < 5; c++) {
+                    if ([0,1,2,3,4].every(r => isM(r, c))) {
+                      winningCol = c;
+                      [0,1,2,3,4].forEach(r => patternCells.add(`${r}-${c}`)); break;
+                    }
+                  }
+                } else if (mode === 'ROW') {
+                  for (let r = 0; r < 5; r++) {
+                    if ([0,1,2,3,4].every(c => isM(r, c))) {
+                      winningRow = r;
+                      [0,1,2,3,4].forEach(c => patternCells.add(`${r}-${c}`)); break;
+                    }
+                  }
+                }
+
+                const patternColors: Record<string, string> = {
+                  FULL_HOUSE: '#FF6B35', FOUR_CORNERS: '#8B5CF6',
+                  DIAGONAL: '#06B6D4', COLUMN: '#10B981', ROW: '#F59E0B',
+                };
+                const patternColor = patternColors[mode] || '#2ECC71';
+                const COL_LABELS = ['B','I','N','G','O'];
+                const COL_COLORS: Record<string, string> = { B:'#E74C3C', I:'#E67E22', N:'#D4AF37', G:'#27AE60', O:'#8E44AD' };
+
+                return (
+                  <div style={{ marginBottom: '12px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: '800', color: 'rgba(255,255,255,0.45)', marginBottom: '6px', letterSpacing: '1px', textTransform: 'uppercase' }}>
+                      📋 {gameFinished.isCurrentUserWinner ? 'Your Winning Cartela' : `${gameFinished.winnerName}'s Winning Cartela`}
+                    </div>
+
+                    {/* Column headers B-I-N-G-O */}
+                    <div style={{ display: 'grid', gridTemplateColumns: mode === 'ROW' ? '20px repeat(5, 1fr)' : 'repeat(5, 1fr)', gap: '3px', marginBottom: '3px', padding: mode === 'ROW' ? '0 0 0 3px' : '0 6px' }}>
+                      {mode === 'ROW' && <div />}
+                      {COL_LABELS.map((lbl, ci) => {
+                        const isWinCol = winningCol === ci;
+                        return (
+                          <div key={lbl} style={{
+                            fontSize: isWinCol ? '16px' : '13px',
+                            fontWeight: '900',
+                            color: isWinCol ? '#fff' : COL_COLORS[lbl],
+                            textAlign: 'center',
+                            letterSpacing: '1px',
+                            background: isWinCol ? `${patternColor}cc` : 'transparent',
+                            borderRadius: isWinCol ? '6px' : '0',
+                            padding: isWinCol ? '2px 0' : '0',
+                            boxShadow: isWinCol ? `0 0 12px ${patternColor}` : 'none',
+                            textShadow: isWinCol ? 'none' : `0 0 8px ${COL_COLORS[lbl]}88`,
+                          }}>{lbl}</div>
+                        );
+                      })}
+                    </div>
+
+                    {/* 5×5 grid */}
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: mode === 'ROW' ? '20px repeat(5, 1fr)' : 'repeat(5, 1fr)',
+                      gap: '3px',
+                      background: 'rgba(0,0,0,0.5)',
+                      padding: '6px',
+                      borderRadius: '12px',
+                      border: `2px solid ${patternColor}66`,
+                      boxShadow: `inset 0 2px 12px rgba(0,0,0,0.6), 0 0 20px ${patternColor}22`,
+                    }}>
+                      {grid.map((row, ri) => (
+                        <Fragment key={ri}>
+                          {mode === 'ROW' && (
+                            <div key={`lbl-${ri}`} style={{
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              fontSize: '9px', fontWeight: '900',
+                              color: winningRow === ri ? patternColor : 'rgba(255,255,255,0.2)',
+                              textShadow: winningRow === ri ? `0 0 8px ${patternColor}` : 'none',
+                            }}>{ri + 1}</div>
+                          )}
+                          {row.map((cell, ci) => {
+                            const key = `${ri}-${ci}`;
+                            const isFree = cell === 0;
+                            const called = isFree || calledSet.has(cell);
+                            const isPatternCell = patternCells.has(key);
+                            const colColor = COL_COLORS[COL_LABELS[ci]];
+
+                            let bg = 'rgba(255,255,255,0.04)';
+                            let textColor = 'rgba(255,255,255,0.2)';
+                            let shadow = 'none';
+                            let border = '1px solid rgba(255,255,255,0.07)';
+
+                            if (isPatternCell) {
+                              bg = `${patternColor}ee`;
+                              textColor = '#fff';
+                              shadow = `0 0 16px ${patternColor}cc, 0 0 5px ${patternColor}`;
+                              border = `2px solid ${patternColor}`;
+                            } else if (called) {
+                              bg = `${colColor}28`;
+                              textColor = colColor;
+                              shadow = `0 0 6px ${colColor}44`;
+                              border = `1px solid ${colColor}55`;
+                            }
+
+                            return (
+                              <motion.div
+                                key={key}
+                                initial={{ opacity: 0, scale: 0.7 }}
+                                animate={isPatternCell
+                                  ? { opacity: 1, scale: [1, 1.12, 1] }
+                                  : { opacity: 1, scale: 1 }
+                                }
+                                transition={isPatternCell
+                                  ? { duration: 0.9, repeat: Infinity, repeatDelay: 1.2, delay: (ri + ci) * 0.03 }
+                                  : { delay: (ri * 5 + ci) * 0.02 }
+                                }
+                                style={{
+                                  aspectRatio: '1',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontSize: '12px',
+                                  fontWeight: '900',
+                                  background: bg,
+                                  color: textColor,
+                                  borderRadius: '7px',
+                                  boxShadow: shadow,
+                                  border,
+                                  position: 'relative',
+                                  minWidth: '0',
+                                }}
+                              >
+                                {isFree ? <span style={{ fontSize: '13px' }}>★</span> : cell}
+                              </motion.div>
+                            );
+                          })}
+                        </Fragment>
+                      ))}
+                    </div>
+
+                    {/* Legend */}
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '7px', flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: 'rgba(255,255,255,0.5)' }}>
+                        <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: patternColor, boxShadow: `0 0 5px ${patternColor}` }} />
+                        Winning cells
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: 'rgba(255,255,255,0.5)' }}>
+                        <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: 'rgba(231,76,60,0.3)', border: '1px solid #E74C3C88' }} />
+                        Called
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: 'rgba(255,255,255,0.5)' }}>
+                        <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }} />
+                        Not called
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
 
               <div style={{ color: T.text, fontSize: '13px', marginBottom: '16px', opacity: 0.7 }}>
                 Redirecting in <span style={{ color: T.gold, fontWeight: '900' }}>{redirectSecs}s</span>...
