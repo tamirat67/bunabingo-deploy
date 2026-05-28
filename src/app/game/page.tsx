@@ -887,6 +887,33 @@ function GameContent() {
             <span>🏆 YOUR CARTELAS ({visible.length})</span>
           </div>
 
+          {/* ── BINGO DETECTED ALERT — only shown when player daubed a full pattern ── */}
+          {hasBingo && game?.status === 'RUNNING' && (
+            <motion.div
+              animate={{
+                scale: [1, 1.04, 1],
+                boxShadow: ['0 0 10px #FFD70066', '0 0 30px #FFD700cc', '0 0 10px #FFD70066'],
+              }}
+              transition={{ duration: 0.8, repeat: Infinity }}
+              style={{
+                background: 'linear-gradient(135deg, #FFD700, #FF6B00)',
+                borderRadius: '14px',
+                padding: '10px 14px',
+                textAlign: 'center',
+                margin: '0 4px',
+                cursor: 'pointer',
+              }}
+              onClick={handleBingo}
+            >
+              <div style={{ fontSize: '20px', lineHeight: 1 }}>🎊</div>
+              <div style={{ color: '#1a0a00', fontWeight: '900', fontSize: '14px', letterSpacing: 1 }}>
+                BINGO PATTERN FOUND!
+              </div>
+              <div style={{ color: '#1a0a00', fontSize: '11px', fontWeight: '700', opacity: 0.8, marginTop: '2px' }}>
+                👆 TAP HERE or press BINGO! button NOW!
+              </div>
+            </motion.div>
+          )}
           {/* Single Shared B-I-N-G-O Header for all cards to save space */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '4px', padding: '0 5px' }}>
             {['B','I','N','G','O'].map(l => (
@@ -1034,7 +1061,12 @@ function GameContent() {
                 {/* Per-card BINGO! Action Claim Button */}
                 <div style={{ padding: '0 5px 6px 5px' }}>
                   <motion.button
-                    whileTap={game?.status === 'RUNNING' && !claiming ? { scale: 0.96 } : {}}
+                    whileTap={game?.status === 'RUNNING' && !claiming ? { scale: 0.94 } : {}}
+                    animate={hasBingo && game?.status === 'RUNNING' && !claiming
+                      ? { scale: [1, 1.06, 1], boxShadow: ['0 0 8px #FFD70066', '0 0 24px #FFD700cc', '0 0 8px #FFD70066'] }
+                      : { scale: 1, boxShadow: game?.status === 'RUNNING' && !claiming ? '0 4px 10px rgba(230,126,34,0.3)' : 'none' }
+                    }
+                    transition={hasBingo && game?.status === 'RUNNING' ? { duration: 0.7, repeat: Infinity } : {}}
                     onClick={(e) => {
                       e.stopPropagation();
                       if (game?.status === 'RUNNING' && !claiming) handleBingo();
@@ -1042,29 +1074,34 @@ function GameContent() {
                     disabled={game?.status !== 'RUNNING' || claiming}
                     style={{
                       width: '100%',
-                      background: game?.status === 'RUNNING' 
-                        ? (claiming 
-                            ? '#7F8C8D' 
-                            : (isVip ? 'linear-gradient(135deg, #FFD700, #C471ED)' : 'linear-gradient(135deg, #F39C12, #E67E22)'))
+                      background: game?.status === 'RUNNING'
+                        ? (claiming
+                            ? '#7F8C8D'
+                            : hasBingo
+                              ? 'linear-gradient(135deg, #FFD700, #FF6B00)'
+                              : (isVip ? 'linear-gradient(135deg, #FFD700, #C471ED)' : 'linear-gradient(135deg, #F39C12, #E67E22)'))
                         : (isVip ? 'rgba(255,255,255,0.05)' : 'rgba(150,150,150,0.1)'),
-                      color: game?.status === 'RUNNING' 
-                        ? (isVip ? '#1C0A35' : 'white') 
+                      color: game?.status === 'RUNNING'
+                        ? (hasBingo ? '#1a0a00' : (isVip ? '#1C0A35' : 'white'))
                         : (isVip ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.3)'),
-                      border: isVip && game?.status === 'RUNNING' && !claiming ? '2px solid #FFFFFF' : 'none',
+                      border: hasBingo && game?.status === 'RUNNING' ? '2px solid #fff' : (isVip && game?.status === 'RUNNING' && !claiming ? '2px solid #FFFFFF' : 'none'),
                       borderRadius: '12px',
-                      height: '36px',
+                      height: hasBingo && game?.status === 'RUNNING' ? '42px' : '36px',
                       fontWeight: '900',
-                      fontSize: '13px',
+                      fontSize: hasBingo && game?.status === 'RUNNING' ? '15px' : '13px',
                       cursor: game?.status === 'RUNNING' && !claiming ? 'pointer' : 'not-allowed',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      boxShadow: game?.status === 'RUNNING' && !claiming
-                        ? (isVip ? '0 4px 15px rgba(255,215,0,0.4)' : '0 4px 10px rgba(230,126,34,0.3)') 
-                        : 'none'
+                      gap: '6px',
+                      transition: 'height 0.2s, font-size 0.2s',
                     }}
                   >
-                    {claiming ? '⏳ CLAIMING...' : `☕ BINGO! (${cardId})`}
+                    {claiming
+                      ? '⏳ CLAIMING...'
+                      : hasBingo && game?.status === 'RUNNING'
+                        ? `🎊 BINGO! CLAIM NOW! (${cardId})`
+                        : `☕ BINGO! (${cardId})`}
                   </motion.button>
                 </div>
               </motion.div>
