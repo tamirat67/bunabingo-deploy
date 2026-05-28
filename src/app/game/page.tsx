@@ -227,10 +227,11 @@ function GameContent() {
           if (rem > 0) setCountdown(rem);
         }
       } else if (g.status === 'COUNTDOWN' && g.countdownSeconds) {
-        const estimatedEnd = Date.now() + (g.countdownSeconds * 1000);
-        setEndTime(estimatedEnd);
-        setServerOff(0);
-        setCountdown(g.countdownSeconds);
+        // DO NOT reset the countdown to max if we already have it ticking from socket!
+        setCountdown((prev) => {
+          if (prev !== null && prev > 0 && prev <= g.countdownSeconds) return prev;
+          return g.countdownSeconds;
+        });
       }
       const sorted = (t.tickets || []).sort((a: any, b: any) => (a.card?.id || 0) - (b.card?.id || 0));
       setTickets(sorted);
