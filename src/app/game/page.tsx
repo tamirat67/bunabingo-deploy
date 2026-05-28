@@ -357,8 +357,6 @@ function GameContent() {
         setEndTime(d.endTime);
       }
       if (d.seconds === 0) {
-        // Immediate start (no countdown) — play start sound now
-        playStartAudio();
         setTimeout(loadData, 300);
       }
     });
@@ -366,7 +364,6 @@ function GameContent() {
     socket.on('countdown-tick', (d: any) => {
       setCountdown(d.secondsRemaining);
       if (d.secondsRemaining === 0) {
-        playStartAudio();
         setTimeout(loadData, 300);
       }
     });
@@ -444,7 +441,6 @@ function GameContent() {
       const rem = Math.max(0, Math.ceil((endTime - now) / 1000));
       setCountdown(rem);
       if (rem <= 0) {
-        playStartAudio();
         setEndTime(null);
         setTimeout(loadData, 500);
       }
@@ -790,8 +786,8 @@ function GameContent() {
                       boxShadow: '0 2px 4px rgba(0,0,0,0.15)'
                     }}
                   >
-                    <span style={{ fontSize: '6px', lineHeight: 1 }}>{label}</span>
-                    <span style={{ fontSize: '10px', lineHeight: 1 }}>{ball}</span>
+                    <span style={{ fontSize: '8px', lineHeight: 1, opacity: 0.8 }}>{label}</span>
+                    <span style={{ fontSize: '13px', lineHeight: 1, marginTop: '-1px' }}>{ball}</span>
                   </motion.div>
                 );
               })}
