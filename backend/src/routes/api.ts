@@ -1276,6 +1276,8 @@ staffRouter.patch('/agents/:id', restrictToAdmin, async (req, res) => {
 
 staffRouter.get('/analytics', restrictToAdmin, async (req, res) => {
   const dateStr = req.query.date as string; // Optional date 'YYYY-MM-DD'
+  const agentId = req.query.agentId as string; // Optional agent filter
+  
   let todayStart = new Date();
   if (dateStr) {
     todayStart = new Date(dateStr);
@@ -1284,6 +1286,11 @@ staffRouter.get('/analytics', restrictToAdmin, async (req, res) => {
   
   const todayEnd = new Date(todayStart);
   todayEnd.setHours(23,59,59,999);
+
+  const userFilter = agentId ? { referredBy: agentId } : {};
+  const txFilter = agentId ? { user: { referredBy: agentId } } : {};
+  const ticketFilter = agentId ? { user: { referredBy: agentId } } : {};
+  const commFilter = agentId ? { agentId: agentId } : {};
 
   const [
     totalUsers,
@@ -1302,38 +1309,38 @@ staffRouter.get('/analytics', restrictToAdmin, async (req, res) => {
     activeGamesTodayCount,
     // Tickets purchased today for room breakdown
     ticketsToday,
-    walletsAgg,
+    agentPreDepositObj,
     bunaWallet
   ] = await Promise.all([
-    prisma.user.count(),
+    prisma.user.count({ where: userFilter }),
     prisma.game.count({ where: { status: 'FINISHED' } }),
     prisma.game.count({ where: { status: { in: ['RUNNING', 'COUNTDOWN', 'WAITING'] } } }),
-    prisma.deposit.aggregate({ where: { status: 'APPROVED' }, _sum: { amount: true } }),
-    prisma.withdrawal.aggregate({ where: { status: 'COMPLETED' }, _sum: { amount: true } }),
-    prisma.deposit.count({ where: { status: 'PENDING' } }),
-    prisma.withdrawal.count({ where: { status: 'PENDING' } }),
+    prisma.deposit.aggregate({ where: { status: 'APPROVED', ...txFilter }, _sum: { amount: true } }),
+    prisma.withdrawal.aggregate({ where: { status: 'COMPLETED', ...txFilter }, _sum: { amount: true } }),
+    prisma.deposit.count({ where: { status: 'PENDING', ...txFilter } }),
+    prisma.withdrawal.count({ where: { status: 'PENDING', ...txFilter } }),
     prisma.transaction.aggregate({ 
-      where: { type: 'TICKET_PURCHASE', status: 'COMPLETED' }, 
+      where: { type: 'TICKET_PURCHASE', status: 'COMPLETED', ...txFilter }, 
       _sum: { amount: true } 
     }),
     prisma.agentCommissionLog.aggregate({ 
-      where: { type: 'COMMISSION_DEBIT' }, 
+      where: { type: 'COMMISSION_DEBIT', ...commFilter }, 
       _sum: { amount: true } 
     }),
     // Today's Sales (Gross Volume)
     prisma.transaction.aggregate({
-      where: { type: 'TICKET_PURCHASE', status: 'COMPLETED', createdAt: { gte: todayStart, lte: todayEnd } },
+      where: { type: 'TICKET_PURCHASE', status: 'COMPLETED', createdAt: { gte: todayStart, lte: todayEnd }, ...txFilter },
       _sum: { amount: true }
     }),
     // Today's Company Revenue
     prisma.agentCommissionLog.aggregate({
-      where: { type: 'COMMISSION_DEBIT', createdAt: { gte: todayStart, lte: todayEnd } },
+      where: { type: 'COMMISSION_DEBIT', createdAt: { gte: todayStart, lte: todayEnd }, ...commFilter },
       _sum: { amount: true }
     }),
     // Distinct players active today
     prisma.transaction.groupBy({
       by: ['userId'],
-      where: { createdAt: { gte: todayStart, lte: todayEnd } }
+      where: { createdAt: { gte: todayStart, lte: todayEnd }, ...txFilter }
     }),
     // Games played today
     prisma.game.count({
@@ -1341,7 +1348,7 @@ staffRouter.get('/analytics', restrictToAdmin, async (req, res) => {
     }),
     // Tickets purchased today for room breakdown
     prisma.ticket.findMany({
-      where: { purchasedAt: { gte: todayStart, lte: todayEnd } },
+      where: { purchasedAt: { gte: todayStart, lte: todayEnd }, ...ticketFilter },
       include: {
         game: {
           include: {
@@ -1350,11 +1357,10 @@ staffRouter.get('/analytics', restrictToAdmin, async (req, res) => {
         }
       }
     }),
-    // Pre-deposit wallets sum (ONLY for default agent Luel1616)
-    prisma.user.findFirst({
-      where: { telegramUsername: 'Luel1616' },
-      select: { agentPreDepositWallet: true }
-    }),
+    // Pre-deposit wallet (specific agent or default)
+    agentId 
+      ? prisma.user.findUnique({ where: { id: agentId }, select: { agentPreDepositWallet: true } })
+      : prisma.user.findFirst({ where: { telegramUsername: 'Luel1616' }, select: { agentPreDepositWallet: true } }),
     // Buna (System) Wallet
     prisma.systemWallet.findUnique({
       where: { id: 1 }
@@ -1386,9 +1392,9 @@ staffRouter.get('/analytics', restrictToAdmin, async (req, res) => {
     serviceFee: roomStats[key].totalStake * 0.25
   }));
 
-  const defaultAgentWallet = (walletsAgg as any)?.agentPreDepositWallet;
-  const totalPreDepositBalance = Number(defaultAgentWallet?.balance || 0);
-  const totalPreDepositDebited = Number(defaultAgentWallet?.totalDebited || 0);
+  const walletData = agentPreDepositObj?.agentPreDepositWallet;
+  const totalPreDepositBalance = Number(walletData?.balance || 0);
+  const totalPreDepositDebited = Number(walletData?.totalDebited || 0);
   const totalPreDepositAdded = totalPreDepositBalance + totalPreDepositDebited;
   const bunaWalletBalance = Number(bunaWallet?.balance || 0);
 
@@ -1415,6 +1421,44 @@ staffRouter.get('/analytics', restrictToAdmin, async (req, res) => {
       breakdown
     }
   });
+});
+
+staffRouter.get('/audit', restrictToAdmin, async (req, res) => {
+  try {
+    const [
+      bunaWallet,
+      houseBotWinsAgg,
+      totalSalesAgg,
+      commissionsAgg,
+      agentsCount,
+      totalDepositsAgg,
+      totalWithdrawalsAgg
+    ] = await Promise.all([
+      prisma.systemWallet.findUnique({ where: { id: 1 } }),
+      prisma.gameCycle.aggregate({ _sum: { houseWins: true } }),
+      prisma.transaction.aggregate({ where: { type: 'TICKET_PURCHASE', status: 'COMPLETED' }, _sum: { amount: true } }),
+      prisma.agentCommissionLog.aggregate({ where: { type: 'COMMISSION_DEBIT' }, _sum: { amount: true } }),
+      prisma.user.count({ where: { role: 'AGENT' } }),
+      prisma.deposit.aggregate({ where: { status: 'APPROVED' }, _sum: { amount: true } }),
+      prisma.withdrawal.aggregate({ where: { status: 'COMPLETED' }, _sum: { amount: true } })
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        bunaWalletBalance: Number(bunaWallet?.balance || 0),
+        totalHouseWins: Number(houseBotWinsAgg._sum.houseWins || 0),
+        totalSales: Number(totalSalesAgg._sum.amount || 0),
+        totalCommissionsDeducted: Number(commissionsAgg._sum.amount || 0),
+        expectedCommissions: Number(totalSalesAgg._sum.amount || 0) * 0.125,
+        totalDeposits: Number(totalDepositsAgg._sum.amount || 0),
+        totalWithdrawals: Number(totalWithdrawalsAgg._sum.amount || 0),
+        agentsCount
+      }
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 

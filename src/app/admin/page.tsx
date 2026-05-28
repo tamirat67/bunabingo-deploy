@@ -12,6 +12,8 @@ import api from '@/lib/api';
 function DashboardContent() {
   const [stats, setStats] = useState<any>(null);
   const [user, setUser] = useState<any>(null);
+  const [agents, setAgents] = useState<any[]>([]);
+  const [selectedAgent, setSelectedAgent] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -26,8 +28,19 @@ function DashboardContent() {
         setUser(userData);
         
         const isAdmin = userData.role === 'ADMIN' || userData.isAdmin;
+        
+        if (isAdmin) {
+          try {
+            const agentsRes = await api.get('/admin/agents');
+            setAgents(agentsRes.data.agents || []);
+          } catch (e) { console.error('Failed to load agents', e); }
+        }
+
         const endpoint = isAdmin ? '/admin/analytics' : '/agent/stats';
-        const url = dateParam ? `${endpoint}?date=${dateParam}` : endpoint;
+        let url = dateParam ? `${endpoint}?date=${dateParam}` : endpoint;
+        if (isAdmin && selectedAgent) {
+          url += (url.includes('?') ? '&' : '?') + `agentId=${selectedAgent}`;
+        }
         const statsResponse = await api.get(url);
         setStats(statsResponse.data);
       } catch (err) {
@@ -37,7 +50,7 @@ function DashboardContent() {
       }
     }
     fetchData();
-  }, [dateParam]);
+  }, [dateParam, selectedAgent]);
 
   if (loading || !stats) {
     return (
@@ -135,11 +148,43 @@ function DashboardContent() {
             WELCOME, {(user.firstName || 'ADMIN').toUpperCase()} 👋
           </h1>
           <p style={{ color: '#8c857b', marginTop: '4px', fontSize: '15px', fontWeight: '500' }}>
-            Here is your {isAdmin ? 'platform' : 'branch'} performance overview for today.
+            Here is your {isAdmin && !selectedAgent ? 'platform' : 'branch'} performance overview for today.
           </p>
         </div>
 
-        {/* Date Selector Pill */}
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          {/* Agent Selector Dropdown */}
+          {isAdmin && (
+            <div style={{ position: 'relative' }}>
+              <select 
+                value={selectedAgent}
+                onChange={(e) => setSelectedAgent(e.target.value)}
+                style={{
+                  appearance: 'none',
+                  background: '#ffffff',
+                  border: '1px solid rgba(0, 0, 0, 0.06)',
+                  borderRadius: '12px',
+                  padding: '10px 36px 10px 16px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  color: '#3d2b1f',
+                  fontSize: '14px',
+                  outline: 'none',
+                }}
+              >
+                <option value="">All Agents (Global)</option>
+                {agents.map((ag: any) => (
+                  <option key={ag.id} value={ag.id}>
+                    {ag.firstName || ag.telegramUsername || ag.id.slice(0,8)}
+                  </option>
+                ))}
+              </select>
+              <FiChevronDown size={16} style={{ color: '#8c857b', position: 'absolute', right: '14px', top: '12px', pointerEvents: 'none' }} />
+            </div>
+          )}
+
+          {/* Date Selector Pill */}
         <div style={{ position: 'relative' }}>
           <div style={{ 
             display: 'flex', 
@@ -176,6 +221,7 @@ function DashboardContent() {
               }}
             />
           </div>
+        </div>
         </div>
       </div>
 
