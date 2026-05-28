@@ -137,7 +137,7 @@ function GameContent() {
   }, []);
 
   const processAudioQueue = useCallback((setLastBallFn: (n: number) => void) => {
-    if (audioQueueRef.current.length === 0 || isPlayingQueueRef.current === false) {
+    if (audioQueueRef.current.length === 0) {
       isPlayingQueueRef.current = false;
       return;
     }
