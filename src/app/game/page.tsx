@@ -229,7 +229,7 @@ function GameContent() {
       } else if (g.status === 'COUNTDOWN' && g.countdownSeconds) {
         // DO NOT reset the countdown to max if we already have it ticking from socket!
         setCountdown((prev) => {
-          if (prev !== null && prev > 0 && prev <= g.countdownSeconds) return prev;
+          if (prev !== null && prev >= 0 && prev <= g.countdownSeconds) return prev;
           return g.countdownSeconds;
         });
       }
@@ -358,6 +358,7 @@ function GameContent() {
         setEndTime(d.endTime);
       }
       if (d.seconds === 0) {
+        playStartAudio();
         setTimeout(loadData, 300);
       }
     });
@@ -365,6 +366,7 @@ function GameContent() {
     socket.on('countdown-tick', (d: any) => {
       setCountdown(d.secondsRemaining);
       if (d.secondsRemaining === 0) {
+        playStartAudio();
         setTimeout(loadData, 300);
       }
     });
