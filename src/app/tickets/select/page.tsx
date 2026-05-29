@@ -254,10 +254,9 @@ function SelectionContent() {
       if (res.gameId) {
         setActiveGameId(res.gameId);
       }
-      if (res.isGameRunning) {
-        setIsGameRunning(true);
-        setLiveGameDismissed(false);
-      }
+      // NOTE: isGameRunning is NOT set here — syncRunningState (polling) is the
+      // single source of truth. Setting it here causes a race condition where
+      // stale cached backend data can lock the UI permanently.
     }).catch(() => {});
 
     // 2. High-Performance WebSocket Sync (Real-time & Zero Network Overhead)
@@ -301,6 +300,7 @@ function SelectionContent() {
 
       socket.on('game-started', (d: any) => {
         setGame((prev: any) => prev ? { ...prev, status: 'RUNNING' } : { status: 'RUNNING' });
+        isGameRunningRef.current = true;
         setIsGameRunning(true);
         // Automatically redirect to the game if the user has purchased tickets
         if (ownedRef.current.length > 0) {
