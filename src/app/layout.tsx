@@ -33,6 +33,16 @@ export default function RootLayout({
           src="https://telegram.org/js/telegram-web-app.js" 
           strategy="afterInteractive" 
         />
+        <Script 
+          src="https://cdn.jsdelivr.net/npm/eruda" 
+          strategy="afterInteractive"
+          onLoad={() => {
+            const w = window as any;
+            if (w.eruda) {
+              w.eruda.init();
+            }
+          }}
+        />
         <SocketProvider>
           <ThemeProvider>
             <Suspense fallback={<div></div>}>
