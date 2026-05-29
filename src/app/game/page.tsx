@@ -128,7 +128,7 @@ function GameContent() {
     };
 
     if (!soundOnRef.current) {
-      if (onComplete) setTimeout(safeComplete, 1000); // Simulate gap if muted
+      if (onComplete) setTimeout(safeComplete, 100); // Simulate gap if muted
       return;
     }
 
@@ -174,10 +174,6 @@ function GameContent() {
     if (nextBall) {
       console.log('[AudioQueue] Playing ball:', nextBall);
       lastDrawnRef.current = nextBall;
-      // ✅ Big ball display + Recent Balls update TOGETHER when audio plays
-      // This ensures Recent Balls always follows Big Ball Display in exact order
-      setLastBallFn(nextBall);
-      setCalledHistory(prev => prev.includes(nextBall) ? prev : [...prev, nextBall]);
       // Wait for ball audio to ACTUALLY finish before playing next
       playBallSound(nextBall, () => {
         playNextTimeoutRef.current = setTimeout(() => {
@@ -191,12 +187,36 @@ function GameContent() {
 
   const queueBallSounds = useCallback((numbers: number[], setLastBallFn: (n: number) => void) => {
     if (isGameFinishedRef.current) return;
+
+    // 1. Update visual states IMMEDIATELY so all players are synchronized in real-time
+    const latest = numbers[numbers.length - 1];
+    if (latest !== undefined) {
+      setLastBallFn(latest);
+      setCalledHistory(prev => {
+        const next = [...prev];
+        for (const n of numbers) {
+          if (!next.includes(n)) {
+            next.push(n);
+          }
+        }
+        return next;
+      });
+    }
+
     const currentQueue = audioQueueRef.current;
     // Avoid queueing any balls already in the queue or already played
     const toAdd = numbers.filter(n => !currentQueue.includes(n) && n !== lastDrawnRef.current);
     if (toAdd.length === 0) return;
     console.log('[AudioQueue] Adding to queue:', toAdd);
-    audioQueueRef.current = [...currentQueue, ...toAdd];
+
+    // Combine and limit queue size to prevent backlog lag
+    let newQueue = [...currentQueue, ...toAdd];
+    if (newQueue.length > 2) {
+      // Keep only the latest 2 balls to play audio for, skip the rest to prevent lag accumulation
+      newQueue = newQueue.slice(-2);
+    }
+    audioQueueRef.current = newQueue;
+
     if (!isPlayingQueueRef.current) {
       console.log('[AudioQueue] Starting queue processor');
       processAudioQueue(setLastBallFn);
