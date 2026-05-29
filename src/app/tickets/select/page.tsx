@@ -398,7 +398,7 @@ function SelectionContent() {
   const toggleSelect = (num: number) => {
     // 1. If the card is owned/occupied by another player
     if (occupied.includes(num) || fakeOccupied.includes(num)) {
-      showAlert('Card Taken', 'This card has just been purchased by another player! Please choose a free card.', 'error');
+      // Card is already visually green with cursor:not-allowed — silently block, no alert popup
       return;
     }
 
@@ -531,19 +531,12 @@ function SelectionContent() {
           onConfirm: () => router.push('/wallet')
         });
       } else if (errCode === 'CARD_ALREADY_TAKEN') {
-        // Find which card numbers are taken (extract digits from error message)
+        // Silently mark taken cards green (same as bot-held cards) and deselect — no modal
         const takenNumbers = msg.match(/\d+/g)?.map(Number) || [];
         if (takenNumbers.length > 0) {
-          // Immediately update occupied state so they turn green in the UI, and deselect them
           setOccupied(prev => Array.from(new Set([...prev, ...takenNumbers])));
           setSelected(prev => prev.filter(id => !takenNumbers.includes(id)));
         }
-        setModal({
-          isOpen: true,
-          title: '⚠️ Cartela Already Taken / ካርቴላው ተይዟል',
-          message: msg,
-          type: 'error',
-        });
       } else {
         showAlert('Join Failed', msg, 'error');
       }
