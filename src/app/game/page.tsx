@@ -686,7 +686,8 @@ function GameContent() {
       const isMarked = (r: number, c: number) => {
         const val = rows[r][c];
         const numVal = Number(val);
-        return val === 'FREE' || val === 0 || val === null || (drawnSet.has(numVal) && marked.has(numVal));
+        // Win detection uses drawn balls automatically — no manual tap needed
+        return val === 'FREE' || val === 0 || val === null || drawnSet.has(numVal);
       };
 
       for (let r = 0; r < 5; r++) if ([0,1,2,3,4].every(c => isMarked(r, c))) return true;
@@ -1080,8 +1081,11 @@ function GameContent() {
                     const userDaubed   = !isFree && marked.has(numVal);
                     const colClr  = COL_COLOR[colLabel(numVal)] || '#888';
 
-                    // ── 3 visual states (no automatic hints) ───────────────
-                    // Players must tap numbers themselves — no auto-highlighting
+                    // ── 4 visual states ─────────────────────────────────────
+                    // 1. FREE cell (green star)
+                    // 2. User daubed (gold — manually tapped)
+                    // 3. Ball called but not yet tapped (pulsing green hint)
+                    // 4. Not called (plain)
                     let bg: string, txtClr: string, bdr: string, shd: string;
 
                     if (isFree) {
@@ -1092,8 +1096,14 @@ function GameContent() {
                       txtClr = isVip ? '#1C0A35' : T.header;
                       bdr = `2px solid ${isVip ? '#FFD700' : 'white'}`;
                       shd = `0 0 10px ${isVip ? '#FFD70099' : T.gold + '88'}`;
+                    } else if (isBallCalled) {
+                      // Ball was called — hint: tap this number!
+                      bg = isVip ? 'rgba(46,204,113,0.28)' : 'rgba(39,174,96,0.22)';
+                      txtClr = '#2ECC71';
+                      bdr = '2px solid #2ECC71';
+                      shd = '0 0 8px rgba(46,204,113,0.5)';
                     } else {
-                      // Not daubed — plain card colour regardless of whether ball was called
+                      // Not called — plain card colour
                       bg = isVip ? 'rgba(255,255,255,0.06)' : T.statBg;
                       txtClr = isVip ? 'rgba(255,255,255,0.55)' : T.text;
                       bdr = 'none'; shd = 'none';
@@ -1103,8 +1113,20 @@ function GameContent() {
                       <motion.div
                         key={`${ri}-${ci}`}
                         onClick={(e) => { e.stopPropagation(); if (!isFree) toggleMark(numVal); }}
-                        animate={userDaubed ? { scale: [1, 1.08, 1] } : { scale: 1 }}
-                        transition={userDaubed ? { duration: 1.0, repeat: Infinity, repeatDelay: 1.5 } : {}}
+                        animate={
+                          isBallCalled && !userDaubed && !isFree
+                            ? { scale: [1, 1.07, 1], boxShadow: ['0 0 4px #2ECC7155', '0 0 12px #2ECC71cc', '0 0 4px #2ECC7155'] }
+                            : userDaubed
+                              ? { scale: [1, 1.08, 1] }
+                              : { scale: 1 }
+                        }
+                        transition={
+                          isBallCalled && !userDaubed && !isFree
+                            ? { duration: 0.8, repeat: Infinity }
+                            : userDaubed
+                              ? { duration: 1.0, repeat: Infinity, repeatDelay: 1.5 }
+                              : {}
+                        }
                         style={{
                           height: '26px',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
