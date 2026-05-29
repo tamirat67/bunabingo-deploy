@@ -420,20 +420,7 @@ function SelectionContent() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomType, activeGameId, loadGameData, socket]);
 
-  // Lock body scroll when game is running (overlay is active)
-  useEffect(() => {
-    if (isGameRunning) {
-      document.body.style.overflow = 'hidden';
-      document.body.style.height = '100vh';
-    } else {
-      document.body.style.overflow = '';
-      document.body.style.height = '';
-    }
-    return () => {
-      document.body.style.overflow = '';
-      document.body.style.height = '';
-    };
-  }, [isGameRunning]);
+
 
   const toggleSelect = (num: number) => {
     if (isGameRunning || isInitializing) return;
@@ -1039,102 +1026,98 @@ function SelectionContent() {
         </div>
       </div>
 
-      {/* ── FULL SCREEN GAME ONGOING MASK ── */}
+      {/* ── GAME RUNNING BANNER (inline, not fullscreen) ── */}
       <AnimatePresence>
         {isGameRunning && (
           <motion.div
-            key="ongoing-mask-fullscreen"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.4 }}
+            key="ongoing-mask-banner"
+            initial={{ opacity: 0, y: -12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.35 }}
             style={{
-              position: 'fixed',
-              inset: 0,
-              background: isVip 
-                ? 'radial-gradient(circle at top, #2D1442 0%, #1C0A35 60%, #0F041A 100%)' 
-                : T.bg, // 100% solid theme-matched background (Standard: cream/coffee-dark, VIP: purple-gold)
+              margin: '8px 0 12px',
+              borderRadius: '18px',
+              border: '2px solid rgba(231,76,60,0.35)',
+              background: isDark
+                ? 'linear-gradient(135deg, #1a0a0a 0%, #2a0e0e 100%)'
+                : 'linear-gradient(135deg, #fff5f5 0%, #ffe8e8 100%)',
+              boxShadow: '0 6px 28px rgba(231,76,60,0.18)',
+              padding: '20px 20px 18px',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              justifyContent: 'center',
-              gap: '20px',
-              zIndex: 99999,
+              gap: '10px',
               textAlign: 'center',
-              padding: '24px',
             }}
           >
-            {/* Clock icon in circle */}
-            <div style={{
-              width: '64px',
-              height: '64px',
-              borderRadius: '50%',
-              background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
-              border: `1.5px solid ${isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)'}`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-              <Clock size={28} color={isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.5)"} />
+            {/* Live pulse dot + heading */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{
+                width: '10px', height: '10px', borderRadius: '50%',
+                background: '#E74C3C',
+                boxShadow: '0 0 0 0 rgba(231,76,60,0.6)',
+                animation: 'livePulse 1.4s infinite',
+                flexShrink: 0,
+              }} />
+              <div style={{
+                color: '#E74C3C',
+                fontSize: '13px',
+                fontWeight: '900',
+                letterSpacing: '1px',
+                textTransform: 'uppercase',
+              }}>
+                🔴 GAME IN PROGRESS
+              </div>
             </div>
 
-            {/* Main Amharic message */}
+            {/* Amharic message */}
             <div style={{
-              color: isDark ? 'white' : '#2C3E50',
-              fontSize: '18px',
-              fontWeight: '950',
-              lineHeight: 1.4,
-              letterSpacing: '0.3px',
+              color: isDark ? 'rgba(255,255,255,0.92)' : '#2C3E50',
+              fontSize: '16px',
+              fontWeight: '900',
+              lineHeight: 1.45,
             }}>
               ጨዋታው በመካሄድ ላይ ነው...
             </div>
 
-            {/* Sub message */}
             <div style={{
-              color: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.7)',
-              fontSize: '13px',
+              color: isDark ? 'rgba(255,255,255,0.65)' : 'rgba(44,62,80,0.75)',
+              fontSize: '12px',
               fontWeight: '700',
               lineHeight: 1.5,
-              maxWidth: '240px',
             }}>
               እባኮትን ቀጣዩ ዙር እስኪጀምር ይጠብቁ!
             </div>
 
-            {/* English sub-line */}
+            {/* English ticker */}
             <motion.div
-              animate={{ opacity: [0.4, 0.8, 0.4] }}
-              transition={{ repeat: Infinity, duration: 2.5, ease: 'easeInOut' }}
+              animate={{ opacity: [0.45, 0.9, 0.45] }}
+              transition={{ repeat: Infinity, duration: 2.4, ease: 'easeInOut' }}
               style={{
-                color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)',
-                fontSize: '11px',
+                color: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)',
+                fontSize: '10px',
                 fontWeight: '700',
-                letterSpacing: '1px',
+                letterSpacing: '1.2px',
                 textTransform: 'uppercase',
-                marginTop: '4px',
               }}
             >
               Game Currently Live — Wait for Next Round
             </motion.div>
 
-            {/* Lobby / Refresh buttons inside the overlay */}
-            <div style={{ display: 'flex', gap: '12px', marginTop: '24px', width: '100%', maxWidth: '280px', justifyContent: 'center' }}>
+            {/* Lobby / Refresh buttons */}
+            <div style={{ display: 'flex', gap: '10px', marginTop: '6px', width: '100%', maxWidth: '260px' }}>
               <button
                 onClick={() => router.push('/')}
                 style={{
                   flex: 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  height: '42px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
+                  height: '38px',
                   background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
                   color: isDark ? 'white' : '#2C3E50',
-                  border: `1px solid ${isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)'}`,
-                  borderRadius: '14px',
-                  fontWeight: '900',
-                  fontSize: '13px',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 10px rgba(0,0,0,0.05)'
+                  border: `1px solid ${isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.12)'}`,
+                  borderRadius: '12px',
+                  fontWeight: '900', fontSize: '12px', cursor: 'pointer',
                 }}
               >
                 🏠 Lobby
@@ -1143,19 +1126,14 @@ function SelectionContent() {
                 onClick={() => window.location.reload()}
                 style={{
                   flex: 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  height: '42px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
+                  height: '38px',
                   background: '#00A8E8',
                   color: 'white',
                   border: 'none',
-                  borderRadius: '14px',
-                  fontWeight: '900',
-                  fontSize: '13px',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 10px rgba(0,168,232,0.2)'
+                  borderRadius: '12px',
+                  fontWeight: '900', fontSize: '12px', cursor: 'pointer',
+                  boxShadow: '0 4px 10px rgba(0,168,232,0.25)',
                 }}
               >
                 <RefreshCw size={14} /> Refresh
