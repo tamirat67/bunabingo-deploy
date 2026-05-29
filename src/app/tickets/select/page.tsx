@@ -371,11 +371,10 @@ function SelectionContent() {
     const poll = setInterval(() => { 
       loadGameData(); 
       
-      // If the room has a live game, poll getOccupiedCards to know when it finishes
-      // (fallback in case socket event 'game-finished' is missed)
-      if (isGameRunning) {
-        getOccupiedCards(roomType, activeGameId).then(res => {
-          if (res && !res.isGameRunning) {
+      // Always poll getOccupiedCards to sync snatched (occupied) cards and handle game finish
+      getOccupiedCards(roomType, activeGameId).then(res => {
+        if (res) {
+          if (isGameRunning && !res.isGameRunning) {
              setIsGameRunning(false);
              setLiveGameDismissed(true);
              if (res.gameId && res.gameId !== activeGameId) {
@@ -383,8 +382,14 @@ function SelectionContent() {
                if (socket) socket.emit('join-game', res.gameId);
              }
           }
-        }).catch(() => {});
-      }
+          if (res.occupiedIds) {
+            setOccupied(res.occupiedIds);
+          }
+          if (res.playerCount !== undefined) {
+            setPlayerCount(res.playerCount);
+          }
+        }
+      }).catch(() => {});
     }, intervalMs);
     
     return () => clearInterval(poll);
@@ -524,6 +529,20 @@ function SelectionContent() {
           message: msg,
           type: 'balance',
           onConfirm: () => router.push('/wallet')
+        });
+      } else if (errCode === 'CARD_ALREADY_TAKEN') {
+        // Find which card numbers are taken (extract digits from error message)
+        const takenNumbers = msg.match(/\d+/g)?.map(Number) || [];
+        if (takenNumbers.length > 0) {
+          // Immediately update occupied state so they turn green in the UI, and deselect them
+          setOccupied(prev => Array.from(new Set([...prev, ...takenNumbers])));
+          setSelected(prev => prev.filter(id => !takenNumbers.includes(id)));
+        }
+        setModal({
+          isOpen: true,
+          title: '⚠️ Cartela Already Taken / ካርቴላው ተይዟል',
+          message: msg,
+          type: 'error',
         });
       } else {
         showAlert('Join Failed', msg, 'error');

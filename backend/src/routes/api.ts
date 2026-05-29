@@ -434,8 +434,10 @@ router.post('/games/join', joinGameLimiter, async (req: Request, res: Response) 
       });
     }
     logger.error('JOIN GAME ERROR:', e);
+    const isAlreadyTaken = e.message && (e.message.includes('already taken') || e.message.includes('taken'));
     res.status(400).json({ 
-      error: e.message || 'Server error during join',
+      error: isAlreadyTaken ? 'CARD_ALREADY_TAKEN' : (e.message || 'Server error during join'),
+      message: e.message || 'Server error during join',
       detail: e.stack
     });
   }
