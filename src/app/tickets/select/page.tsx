@@ -172,9 +172,32 @@ function SelectionContent() {
     if (!gid) return;
     getGame(gid).then(g => {
       setGame(g);
-      // ── Always sync isGameRunning from actual server game status ──
+      // ── ALWAYS sync isGameRunning from actual server game status (both directions) ──
       if (g.status === 'RUNNING') {
         setIsGameRunning(true);
+      } else if (g.status === 'WAITING' || g.status === 'COUNTDOWN') {
+        // Game is WAITING or COUNTDOWN — definitely not running, clear the overlay
+        setIsGameRunning(false);
+      } else if (g.status === 'FINISHED') {
+        // Game FINISHED — clear overlay and auto-switch to the next WAITING game
+        setIsGameRunning(false);
+        setLiveGameDismissed(true);
+        setCountdown(null);
+        setEndTime(null);
+        getOccupiedCards(roomType, gid).then(res => {
+          if (res?.gameId && res.gameId !== gid) {
+            setActiveGameId(res.gameId);
+            if (socket) socket.emit('join-game', res.gameId);
+            // Load the fresh WAITING game data (don't recurse with loadGameData to avoid loops)
+            getGame(res.gameId).then(nextGame => {
+              setGame(nextGame);
+              setIsGameRunning(false);
+            }).catch(() => {});
+          }
+          if (res?.occupiedIds) setOccupied(res.occupiedIds);
+          if (res?.playerCount !== undefined) setPlayerCount(res.playerCount);
+        }).catch(() => {});
+        return; // Skip endTime/countdown logic below for finished games
       }
       if (g.serverTime) {
         setServerOff(g.serverTime - Date.now());
@@ -190,8 +213,6 @@ function SelectionContent() {
           setEndTime(null);
         }
       } else if (g.status === 'COUNTDOWN' && g.countdownSeconds) {
-        // Last-resort fallback: no endTime from server.
-        // Only set when client has NO countdown yet — never overwrite a running value.
         setCountdown((prev) => {
           if (prev !== null && prev >= 0) return prev;
           return g.countdownSeconds;
@@ -201,7 +222,7 @@ function SelectionContent() {
         setEndTime(null);
       }
     }).catch(() => {});
-  }, [activeGameId]);
+  }, [activeGameId, roomType, socket]);
 
   // Local countdown fallback
   useEffect(() => {
@@ -367,20 +388,26 @@ function SelectionContent() {
     const status = game?.status;
     if (status !== 'WAITING' && status !== 'COUNTDOWN' && status !== 'RUNNING') return;
     
-    const intervalMs = isGameRunning ? 2500 : 1500;
-    const poll = setInterval(() => { 
+    const intervalMs = isGameRunning ? 2000 : 1500;
+    const poll = setInterval(async () => { 
+      // Always call loadGameData — it now sets isGameRunning both to true AND false
       loadGameData(); 
       
-      // Always poll getOccupiedCards to sync snatched (occupied) cards and handle game finish
+      // Also poll getOccupiedCards to sync occupied cards and catch game finish via REST
       getOccupiedCards(roomType, activeGameId).then(res => {
         if (res) {
-          if (isGameRunning && !res.isGameRunning) {
-             setIsGameRunning(false);
-             setLiveGameDismissed(true);
-             if (res.gameId && res.gameId !== activeGameId) {
-               setActiveGameId(res.gameId);
-               if (socket) socket.emit('join-game', res.gameId);
-             }
+          // Backend says game is no longer running — clear overlay
+          if (!res.isGameRunning) {
+            setIsGameRunning(false);
+            setLiveGameDismissed(true);
+          }
+          if (res.isGameRunning && !isGameRunning) {
+            setIsGameRunning(true);
+            setLiveGameDismissed(false);
+          }
+          if (res.gameId && res.gameId !== activeGameId && !res.isGameRunning) {
+            setActiveGameId(res.gameId);
+            if (socket) socket.emit('join-game', res.gameId);
           }
           if (res.occupiedIds) {
             setOccupied(res.occupiedIds);

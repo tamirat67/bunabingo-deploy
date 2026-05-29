@@ -457,7 +457,8 @@ router.post('/games/:gameId/leave', async (req: Request, res: Response) => {
 
 // ─── Get Occupied Cards for Room ────────────────────────────
 const occupiedCache = new Map<string, { data: any; timestamp: number }>();
-const OCCUPIED_CACHE_DURATION_MS = 800; // 0.8 seconds cache — fast enough for real-time lock/unlock
+const OCCUPIED_CACHE_DURATION_MS = 800;         // 0.8s cache for WAITING/COUNTDOWN
+const OCCUPIED_CACHE_RUNNING_MS  = 200;          // 0.2s cache when game is RUNNING (so finish is detected fast)
 
 router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
   const { type } = req.params;
@@ -471,7 +472,8 @@ router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
 
   const now = Date.now();
   const cached = occupiedCache.get(cacheKey);
-  if (cached && (now - cached.timestamp < OCCUPIED_CACHE_DURATION_MS)) {
+  const cacheTTL = cached?.data?.isGameRunning ? OCCUPIED_CACHE_RUNNING_MS : OCCUPIED_CACHE_DURATION_MS;
+  if (cached && (now - cached.timestamp < cacheTTL)) {
     return res.json(cached.data);
   }
 
