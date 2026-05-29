@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Script from 'next/script';
 import { Suspense } from 'react';
 import Navbar from '../components/Navbar';
+import ErudaProvider from '../components/ErudaProvider';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -33,10 +34,7 @@ export default function RootLayout({
           src="https://telegram.org/js/telegram-web-app.js" 
           strategy="afterInteractive" 
         />
-        <Script src="https://cdn.jsdelivr.net/npm/eruda" strategy="beforeInteractive" />
-        <Script id="eruda-init" strategy="beforeInteractive">
-          {`if (typeof window !== 'undefined' && typeof eruda !== 'undefined') eruda.init();`}
-        </Script>
+        <ErudaProvider />
         <SocketProvider>
           <ThemeProvider>
             <Suspense fallback={<div></div>}>
