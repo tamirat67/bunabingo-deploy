@@ -5,7 +5,7 @@ import { getMe, joinGame, getOccupiedCards, getGame } from '../../../lib/api';
 import { PREDEFINED_CARDS } from '../../../lib/predefinedCards';
 import { useSocket } from '../../../context/SocketContext';
 import BunaModal from '../../../components/BunaModal';
-import { ChevronLeft, RefreshCw, Play, ShieldCheck, Eye, Users, Trophy, Zap, Crown } from 'lucide-react';
+import { ChevronLeft, RefreshCw, Play, ShieldCheck, Eye, Users, Trophy, Zap, Crown, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../../context/ThemeContext';
 
@@ -905,7 +905,7 @@ function SelectionContent() {
           );
         })}
 
-        {/* ── GAME ONGOING MASK: overlays entire grid when a RUNNING game is detected ── */}
+        {/* ── GAME ONGOING MASK: clean dark overlay matching app style ── */}
         <AnimatePresence>
           {isGameRunning && (
             <motion.div
@@ -913,70 +913,74 @@ function SelectionContent() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.4 }}
+              transition={{ duration: 0.5 }}
               style={{
                 position: 'absolute',
                 inset: 0,
-                background: 'rgba(10, 5, 2, 0.88)',
-                backdropFilter: 'blur(4px)',
-                WebkitBackdropFilter: 'blur(4px)',
+                background: 'rgba(10, 14, 30, 0.93)',
+                backdropFilter: 'blur(2px)',
+                WebkitBackdropFilter: 'blur(2px)',
                 borderRadius: '12px',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '14px',
+                gap: '16px',
                 zIndex: 20,
                 textAlign: 'center',
-                padding: '24px 20px',
+                padding: '32px 20px',
               }}
             >
-              {/* Pulsing live dot */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{
-                  width: '12px', height: '12px', borderRadius: '50%',
-                  background: '#E74C3C',
-                  boxShadow: '0 0 0 0 rgba(231,76,60,0.7)',
-                  animation: 'livePulse 1.4s infinite',
-                }} />
-                <span style={{ color: '#FF6B6B', fontSize: '11px', fontWeight: '900', letterSpacing: '2px', textTransform: 'uppercase' }}>
-                  LIVE GAME IN PROGRESS
-                </span>
+              {/* Clock icon in circle — matches the image */}
+              <div style={{
+                width: '64px',
+                height: '64px',
+                borderRadius: '50%',
+                background: 'rgba(255,255,255,0.08)',
+                border: '1.5px solid rgba(255,255,255,0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <Clock size={28} color="rgba(255,255,255,0.55)" />
               </div>
 
-              {/* Bingo balls animation */}
-              <div style={{ fontSize: '36px', animation: 'bounceBalls 1.6s infinite ease-in-out' }}>🎱</div>
-
-              <div style={{ color: 'white', fontSize: '18px', fontWeight: '900', lineHeight: 1.3 }}>
-                Game Is Ongoing
+              {/* Main Amharic message */}
+              <div style={{
+                color: 'white',
+                fontSize: '17px',
+                fontWeight: '900',
+                lineHeight: 1.4,
+                letterSpacing: '0.3px',
+              }}>
+                ጨዋታው በመካሄድ ላይ ነው...
               </div>
-              <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px', fontWeight: '700', lineHeight: 1.5, maxWidth: '240px' }}>
-                Bingo balls are being called right now.
-                <br />
-                <span style={{ color: '#F39C12', fontWeight: '900' }}>Wait for the next game</span> — your selected cartelas are reserved!
+
+              {/* Sub message */}
+              <div style={{
+                color: 'rgba(255,255,255,0.5)',
+                fontSize: '12px',
+                fontWeight: '700',
+                lineHeight: 1.5,
+                maxWidth: '220px',
+              }}>
+                እባኮትን ቀጣዩ ዙር እስኪጀምር ይጠብቁ!
               </div>
 
-              {ownedCardIds.length > 0 && (
-                <div style={{
-                  background: 'rgba(212,175,55,0.15)',
-                  border: '1.5px solid rgba(212,175,55,0.4)',
-                  borderRadius: '10px',
-                  padding: '8px 16px',
-                  color: '#F1C40F',
-                  fontSize: '11px',
-                  fontWeight: '900',
-                  letterSpacing: '0.5px',
-                }}>
-                  ✅ {ownedCardIds.length} cartela{ownedCardIds.length > 1 ? 's' : ''} reserved for next round
-                </div>
-              )}
-
+              {/* English sub-line */}
               <motion.div
-                animate={{ opacity: [0.4, 1, 0.4] }}
-                transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
-                style={{ color: 'rgba(255,255,255,0.4)', fontSize: '10px', fontWeight: '700', letterSpacing: '1px' }}
+                animate={{ opacity: [0.35, 0.7, 0.35] }}
+                transition={{ repeat: Infinity, duration: 2.5, ease: 'easeInOut' }}
+                style={{
+                  color: 'rgba(255,255,255,0.35)',
+                  fontSize: '10px',
+                  fontWeight: '700',
+                  letterSpacing: '1px',
+                  textTransform: 'uppercase',
+                  marginTop: '4px',
+                }}
               >
-                This page will unlock automatically when the game ends
+                Game Currently Live — Wait for Next Round
               </motion.div>
             </motion.div>
           )}
