@@ -968,7 +968,81 @@ function SelectionContent() {
           );
         })}
 
-        {/* Ongoing mask moved to full screen top-level placement below */}
+        {/* ── CARTELA-ONLY GAME RUNNING MASK ── */}
+        <AnimatePresence>
+          {isGameRunning && (
+            <motion.div
+              key="cartela-mask"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                zIndex: 10,
+                borderRadius: '12px',
+                background: isDark
+                  ? 'rgba(10, 4, 2, 0.88)'
+                  : 'rgba(240, 228, 210, 0.92)',
+                backdropFilter: 'blur(4px)',
+                WebkitBackdropFilter: 'blur(4px)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '10px',
+                textAlign: 'center',
+                padding: '24px',
+                pointerEvents: 'all',
+              }}
+            >
+              {/* Pulsing red dot */}
+              <div style={{
+                width: '14px', height: '14px', borderRadius: '50%',
+                background: '#E74C3C',
+                animation: 'livePulse 1.4s infinite',
+                flexShrink: 0,
+              }} />
+
+              {/* Amharic heading */}
+              <div style={{
+                color: isDark ? 'rgba(255,255,255,0.95)' : '#2C3E50',
+                fontSize: '17px',
+                fontWeight: '900',
+                lineHeight: 1.4,
+              }}>
+                ጨዋታው በመካሄድ ላይ ነው...
+              </div>
+
+              {/* Amharic sub */}
+              <div style={{
+                color: isDark ? 'rgba(255,255,255,0.65)' : 'rgba(44,62,80,0.75)',
+                fontSize: '13px',
+                fontWeight: '700',
+                lineHeight: 1.5,
+                maxWidth: '220px',
+              }}>
+                እባኮትን ቀጣዩ ዙር እስኪጀምር ይጠብቁ!
+              </div>
+
+              {/* English ticker */}
+              <motion.div
+                animate={{ opacity: [0.4, 0.85, 0.4] }}
+                transition={{ repeat: Infinity, duration: 2.4, ease: 'easeInOut' }}
+                style={{
+                  color: isDark ? 'rgba(255,255,255,0.38)' : 'rgba(0,0,0,0.38)',
+                  fontSize: '10px',
+                  fontWeight: '700',
+                  letterSpacing: '1.2px',
+                  textTransform: 'uppercase',
+                }}
+              >
+                Game Currently Live — Wait for Next Round
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <div style={{ height: '250px' }} />
@@ -1026,122 +1100,8 @@ function SelectionContent() {
         </div>
       </div>
 
-      {/* ── GAME RUNNING BANNER (inline, not fullscreen) ── */}
-      <AnimatePresence>
-        {isGameRunning && (
-          <motion.div
-            key="ongoing-mask-banner"
-            initial={{ opacity: 0, y: -12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.35 }}
-            style={{
-              margin: '8px 0 12px',
-              borderRadius: '18px',
-              border: '2px solid rgba(231,76,60,0.35)',
-              background: isDark
-                ? 'linear-gradient(135deg, #1a0a0a 0%, #2a0e0e 100%)'
-                : 'linear-gradient(135deg, #fff5f5 0%, #ffe8e8 100%)',
-              boxShadow: '0 6px 28px rgba(231,76,60,0.18)',
-              padding: '20px 20px 18px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '10px',
-              textAlign: 'center',
-            }}
-          >
-            {/* Live pulse dot + heading */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{
-                width: '10px', height: '10px', borderRadius: '50%',
-                background: '#E74C3C',
-                boxShadow: '0 0 0 0 rgba(231,76,60,0.6)',
-                animation: 'livePulse 1.4s infinite',
-                flexShrink: 0,
-              }} />
-              <div style={{
-                color: '#E74C3C',
-                fontSize: '13px',
-                fontWeight: '900',
-                letterSpacing: '1px',
-                textTransform: 'uppercase',
-              }}>
-                🔴 GAME IN PROGRESS
-              </div>
-            </div>
+      {/* banner removed — mask is now inside grid-brown above */}
 
-            {/* Amharic message */}
-            <div style={{
-              color: isDark ? 'rgba(255,255,255,0.92)' : '#2C3E50',
-              fontSize: '16px',
-              fontWeight: '900',
-              lineHeight: 1.45,
-            }}>
-              ጨዋታው በመካሄድ ላይ ነው...
-            </div>
-
-            <div style={{
-              color: isDark ? 'rgba(255,255,255,0.65)' : 'rgba(44,62,80,0.75)',
-              fontSize: '12px',
-              fontWeight: '700',
-              lineHeight: 1.5,
-            }}>
-              እባኮትን ቀጣዩ ዙር እስኪጀምር ይጠብቁ!
-            </div>
-
-            {/* English ticker */}
-            <motion.div
-              animate={{ opacity: [0.45, 0.9, 0.45] }}
-              transition={{ repeat: Infinity, duration: 2.4, ease: 'easeInOut' }}
-              style={{
-                color: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)',
-                fontSize: '10px',
-                fontWeight: '700',
-                letterSpacing: '1.2px',
-                textTransform: 'uppercase',
-              }}
-            >
-              Game Currently Live — Wait for Next Round
-            </motion.div>
-
-            {/* Lobby / Refresh buttons */}
-            <div style={{ display: 'flex', gap: '10px', marginTop: '6px', width: '100%', maxWidth: '260px' }}>
-              <button
-                onClick={() => router.push('/')}
-                style={{
-                  flex: 1,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
-                  height: '38px',
-                  background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
-                  color: isDark ? 'white' : '#2C3E50',
-                  border: `1px solid ${isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.12)'}`,
-                  borderRadius: '12px',
-                  fontWeight: '900', fontSize: '12px', cursor: 'pointer',
-                }}
-              >
-                🏠 Lobby
-              </button>
-              <button
-                onClick={() => window.location.reload()}
-                style={{
-                  flex: 1,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
-                  height: '38px',
-                  background: '#00A8E8',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '12px',
-                  fontWeight: '900', fontSize: '12px', cursor: 'pointer',
-                  boxShadow: '0 4px 10px rgba(0,168,232,0.25)',
-                }}
-              >
-                <RefreshCw size={14} /> Refresh
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       <BunaModal
         isOpen={modal.isOpen}
