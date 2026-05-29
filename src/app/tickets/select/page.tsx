@@ -172,33 +172,11 @@ function SelectionContent() {
     if (!gid) return;
     getGame(gid).then(g => {
       setGame(g);
-      // ── ALWAYS sync isGameRunning from actual server game status (both directions) ──
-      if (g.status === 'RUNNING') {
-        setIsGameRunning(true);
-      } else if (g.status === 'WAITING' || g.status === 'COUNTDOWN') {
-        // Game is WAITING or COUNTDOWN — definitely not running, clear the overlay
-        setIsGameRunning(false);
-      } else if (g.status === 'FINISHED') {
-        // Game FINISHED — clear overlay and auto-switch to the next WAITING game
-        setIsGameRunning(false);
-        setLiveGameDismissed(true);
-        setCountdown(null);
-        setEndTime(null);
-        getOccupiedCards(roomType, gid).then(res => {
-          if (res?.gameId && res.gameId !== gid) {
-            setActiveGameId(res.gameId);
-            if (socket) socket.emit('join-game', res.gameId);
-            // Load the fresh WAITING game data (don't recurse with loadGameData to avoid loops)
-            getGame(res.gameId).then(nextGame => {
-              setGame(nextGame);
-              setIsGameRunning(false);
-            }).catch(() => {});
-          }
-          if (res?.occupiedIds) setOccupied(res.occupiedIds);
-          if (res?.playerCount !== undefined) setPlayerCount(res.playerCount);
-        }).catch(() => {});
-        return; // Skip endTime/countdown logic below for finished games
-      }
+      // NOTE: loadGameData does NOT touch isGameRunning.
+      // isGameRunning is controlled ONLY by getOccupiedCards (which does a real DB
+      // check for a RUNNING game) and by socket events (game-started / game-finished).
+      // loadGameData fetches the NEXT WAITING game when a game is running, so its
+      // status would be 'WAITING' — clearing isGameRunning here would be wrong.
       if (g.serverTime) {
         setServerOff(g.serverTime - Date.now());
       }
@@ -222,7 +200,7 @@ function SelectionContent() {
         setEndTime(null);
       }
     }).catch(() => {});
-  }, [activeGameId, roomType, socket]);
+  }, [activeGameId]);
 
   // Local countdown fallback
   useEffect(() => {
@@ -380,47 +358,52 @@ function SelectionContent() {
     }
   }, [game?.status]);
 
-  // ─── Poll game status for WAITING, COUNTDOWN, and RUNNING ─────────────────
-  // WAITING/COUNTDOWN: 1.5s poll to catch game-started event if socket missed.
-  // RUNNING: 2.5s poll to catch game-finished event if socket missed.
-  // This guarantees the lock/unlock of cartela selling is always accurate.
+  // ─── Poll every 2s: getOccupiedCards is the SINGLE source of truth for isGameRunning ───
+  // This handles all cases: page refresh during game, missed socket events, etc.
   useEffect(() => {
-    const status = game?.status;
-    if (status !== 'WAITING' && status !== 'COUNTDOWN' && status !== 'RUNNING') return;
-    
-    const intervalMs = isGameRunning ? 2000 : 1500;
-    const poll = setInterval(async () => { 
-      // Always call loadGameData — it now sets isGameRunning both to true AND false
-      loadGameData(); 
-      
-      // Also poll getOccupiedCards to sync occupied cards and catch game finish via REST
+    const syncRunningState = () => {
       getOccupiedCards(roomType, activeGameId).then(res => {
-        if (res) {
-          // Backend says game is no longer running — clear overlay
-          if (!res.isGameRunning) {
-            setIsGameRunning(false);
+        if (!res) return;
+
+        const wasRunning = isGameRunning;
+        const nowRunning = !!res.isGameRunning;
+
+        // Update isGameRunning based on authoritative server response
+        if (nowRunning !== wasRunning) {
+          setIsGameRunning(nowRunning);
+          if (!nowRunning && wasRunning) {
+            // Game just finished — release the overlay
             setLiveGameDismissed(true);
           }
-          if (res.isGameRunning && !isGameRunning) {
-            setIsGameRunning(true);
+          if (nowRunning && !wasRunning) {
+            // Game just started — show the overlay
             setLiveGameDismissed(false);
           }
-          if (res.gameId && res.gameId !== activeGameId && !res.isGameRunning) {
-            setActiveGameId(res.gameId);
-            if (socket) socket.emit('join-game', res.gameId);
-          }
-          if (res.occupiedIds) {
-            setOccupied(res.occupiedIds);
-          }
-          if (res.playerCount !== undefined) {
-            setPlayerCount(res.playerCount);
-          }
         }
+
+        // Switch to the correct game ID if it changed (next waiting game after finish)
+        if (res.gameId && res.gameId !== activeGameId && !nowRunning) {
+          setActiveGameId(res.gameId);
+          loadGameData(res.gameId);
+          if (socket) socket.emit('join-game', res.gameId);
+        }
+
+        if (res.occupiedIds) setOccupied(res.occupiedIds);
+        if (res.playerCount !== undefined) setPlayerCount(res.playerCount);
       }).catch(() => {});
-    }, intervalMs);
-    
+    };
+
+    // Run immediately on mount / dependency change to catch refresh-during-game
+    syncRunningState();
+
+    // Then poll every 2s continuously (covers WAITING, COUNTDOWN, RUNNING states)
+    const poll = setInterval(() => {
+      syncRunningState();
+      if (!isGameRunning) loadGameData(); // keep countdown/game data fresh when not running
+    }, 2000);
+
     return () => clearInterval(poll);
-  }, [game?.status, loadGameData, isGameRunning, roomType, activeGameId, socket]);
+  }, [roomType, activeGameId, isGameRunning, loadGameData, socket]);
 
   const toggleSelect = (num: number) => {
     // 1. If the card is owned/occupied by another player
