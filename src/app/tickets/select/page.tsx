@@ -927,7 +927,7 @@ function SelectionContent() {
           );
         })}
 
-        {/* ── GAME ONGOING MASK: clean dark overlay matching app style ── */}
+        {/* ── GAME ONGOING MASK: transparent theme-aware overlay ── */}
         <AnimatePresence>
           {isGameRunning && (
             <motion.div
@@ -939,9 +939,9 @@ function SelectionContent() {
               style={{
                 position: 'absolute',
                 inset: 0,
-                background: 'rgba(10, 14, 30, 0.93)',
-                backdropFilter: 'blur(2px)',
-                WebkitBackdropFilter: 'blur(2px)',
+                background: isDark ? 'rgba(10, 14, 30, 0.65)' : 'rgba(255, 255, 255, 0.65)',
+                backdropFilter: 'blur(3px)',
+                WebkitBackdropFilter: 'blur(3px)',
                 borderRadius: '12px',
                 display: 'flex',
                 flexDirection: 'column',
@@ -953,23 +953,23 @@ function SelectionContent() {
                 padding: '32px 20px',
               }}
             >
-              {/* Clock icon in circle — matches the image */}
+              {/* Clock icon in circle */}
               <div style={{
                 width: '64px',
                 height: '64px',
                 borderRadius: '50%',
-                background: 'rgba(255,255,255,0.08)',
-                border: '1.5px solid rgba(255,255,255,0.15)',
+                background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+                border: `1.5px solid ${isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)'}`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}>
-                <Clock size={28} color="rgba(255,255,255,0.55)" />
+                <Clock size={28} color={isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.5)"} />
               </div>
 
               {/* Main Amharic message */}
               <div style={{
-                color: 'white',
+                color: isDark ? 'white' : '#2C3E50',
                 fontSize: '17px',
                 fontWeight: '900',
                 lineHeight: 1.4,
@@ -980,7 +980,7 @@ function SelectionContent() {
 
               {/* Sub message */}
               <div style={{
-                color: 'rgba(255,255,255,0.5)',
+                color: isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)',
                 fontSize: '12px',
                 fontWeight: '700',
                 lineHeight: 1.5,
@@ -994,7 +994,7 @@ function SelectionContent() {
                 animate={{ opacity: [0.35, 0.7, 0.35] }}
                 transition={{ repeat: Infinity, duration: 2.5, ease: 'easeInOut' }}
                 style={{
-                  color: 'rgba(255,255,255,0.35)',
+                  color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)',
                   fontSize: '10px',
                   fontWeight: '700',
                   letterSpacing: '1px',
