@@ -97,6 +97,7 @@ function GameContent() {
   const isPlayingQueueRef = useRef<boolean>(false);
   const isFirstLoadRef = useRef<boolean>(true);
   const playNextTimeoutRef = useRef<any>(null);
+  const isGameFinishedRef = useRef<boolean>(false);
 
 
   const ticketsRef = useRef<any[]>([]);
@@ -137,7 +138,7 @@ function GameContent() {
   }, []);
 
   const processAudioQueue = useCallback((setLastBallFn: (n: number) => void) => {
-    if (audioQueueRef.current.length === 0) {
+    if (isGameFinishedRef.current || audioQueueRef.current.length === 0) {
       isPlayingQueueRef.current = false;
       return;
     }
@@ -161,6 +162,7 @@ function GameContent() {
   }, [playBallSound]);
 
   const queueBallSounds = useCallback((numbers: number[], setLastBallFn: (n: number) => void) => {
+    if (isGameFinishedRef.current) return;
     const currentQueue = audioQueueRef.current;
     // Avoid queueing any balls already in the queue or already played
     const toAdd = numbers.filter(n => !currentQueue.includes(n) && n !== lastDrawnRef.current);
@@ -304,6 +306,7 @@ function GameContent() {
   // Reset/clear audio queue when game is not actively running
   useEffect(() => {
     const status = game?.status;
+    isGameFinishedRef.current = status === 'FINISHED' || !!gameFinished;
     if (status === 'WAITING' || status === 'COUNTDOWN' || status === 'FINISHED') {
       lastDrawnRef.current = 0;
       audioQueueRef.current = [];
@@ -317,7 +320,7 @@ function GameContent() {
         setCalledHistory([]);
       }
     }
-  }, [game?.status]);
+  }, [game?.status, gameFinished]);
 
   // ─── Initial Mount: load data + sound prefs ───────────────────────────────
   useEffect(() => {
@@ -1183,18 +1186,19 @@ function GameContent() {
               style={{
                 background: `linear-gradient(160deg, ${T.card} 0%, #1a0f00 100%)`,
                 border: `3px solid ${T.gold}`,
-                borderRadius: '24px',
-                padding: '20px 18px 18px',
+                borderRadius: '20px',
+                padding: '16px 14px',
                 textAlign: 'center',
-                maxWidth: '380px',
-                width: '100%',
-                boxShadow: `0 0 60px ${T.gold}55`,
+                maxWidth: '320px',
+                width: '95%',
+                boxShadow: `0 0 40px ${T.gold}55`,
                 position: 'relative',
                 overflowY: 'auto',
-                maxHeight: '88vh',
+                maxHeight: '90vh',
+                margin: 'auto',
               }}
             >
-              <div style={{ fontSize: '54px', lineHeight: 1, marginBottom: '4px' }}>
+              <div style={{ fontSize: '42px', lineHeight: 1, marginBottom: '6px' }}>
                 {gameFinished.isCurrentUserWinner ? '🏆' : '🎯'}
               </div>
               {gameFinished.isCurrentUserWinner ? (
@@ -1203,17 +1207,17 @@ function GameContent() {
                   <motion.h2
                     animate={{ textShadow: [`0 0 10px ${T.gold}88`, `0 0 30px ${T.gold}ff`, `0 0 10px ${T.gold}88`] }}
                     transition={{ duration: 1.5, repeat: Infinity }}
-                    style={{ color: T.gold, fontSize: '26px', fontWeight: '900', margin: '0 0 2px', textTransform: 'uppercase', letterSpacing: 3 }}
+                    style={{ color: T.gold, fontSize: '22px', fontWeight: '900', margin: '0 0 2px', textTransform: 'uppercase', letterSpacing: 2 }}
                   >
                     YOU WON! 🎊
                   </motion.h2>
-                  <div style={{ color: '#2ECC71', fontSize: '13px', fontWeight: '700', marginBottom: '4px' }}>
+                  <div style={{ color: '#2ECC71', fontSize: '11px', fontWeight: '700', marginBottom: '4px' }}>
                     🎉 Congratulations! You are the winner!
                   </div>
                   <motion.div
                     animate={{ scale: [1, 1.05, 1] }}
                     transition={{ duration: 1.2, repeat: Infinity }}
-                    style={{ color: T.gold, fontSize: '24px', fontWeight: '900', margin: '2px 0 10px' }}
+                    style={{ color: T.gold, fontSize: '20px', fontWeight: '900', margin: '2px 0 8px' }}
                   >
                     +{gameFinished.prize} ETB
                   </motion.div>
@@ -1221,13 +1225,13 @@ function GameContent() {
               ) : (
                 /* ══ LOSER view ══ */
                 <>
-                  <h2 style={{ color: '#E74C3C', fontSize: '22px', fontWeight: '900', margin: '0 0 2px', textTransform: 'uppercase', letterSpacing: 2 }}>
+                  <h2 style={{ color: '#E74C3C', fontSize: '18px', fontWeight: '900', margin: '0 0 2px', textTransform: 'uppercase', letterSpacing: 1.5 }}>
                     GAME OVER
                   </h2>
-                  <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: '13px', fontWeight: '700', marginBottom: '2px' }}>
+                  <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: '12px', fontWeight: '700', marginBottom: '2px' }}>
                     🥇 Winner: <span style={{ color: T.gold }}>{gameFinished.winnerName}</span>
                   </div>
-                  <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: '14px', fontWeight: '700', margin: '2px 0 10px' }}>
+                  <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: '13px', fontWeight: '700', margin: '2px 0 8px' }}>
                     Prize: <span style={{ color: '#F59E0B' }}>{gameFinished.prize} ETB</span>
                   </div>
                 </>
@@ -1281,15 +1285,15 @@ function GameContent() {
                         animate={{ boxShadow: [`0 0 0px ${color}00`, `0 0 20px ${color}99`, `0 0 0px ${color}00`] }}
                         transition={{ duration: 1.8, repeat: Infinity }}
                         style={{
-                          display: 'inline-flex', alignItems: 'center', gap: '7px',
-                          background: `${color}22`, border: `2px solid ${color}99`,
-                          borderRadius: '20px', padding: '6px 16px', marginBottom: '10px',
-                          fontSize: '13px', fontWeight: '900', color: color,
-                          letterSpacing: '1px', textTransform: 'uppercase',
+                          display: 'inline-flex', alignItems: 'center', gap: '5px',
+                          background: `${color}22`, border: `1.5px solid ${color}99`,
+                          borderRadius: '16px', padding: '4px 12px', marginBottom: '8px',
+                          fontSize: '11px', fontWeight: '900', color: color,
+                          letterSpacing: '0.5px', textTransform: 'uppercase',
                         }}
                       >
-                        <span style={{ fontSize: '17px' }}>{specificIcon}</span>
-                        <span>WINNING PATTERN: {specificLabel}</span>
+                        <span style={{ fontSize: '14px' }}>{specificIcon}</span>
+                        <span>{specificLabel}</span>
                       </motion.div>
                     );
                   })()}
@@ -1349,28 +1353,28 @@ function GameContent() {
                 const COL_COLORS: Record<string, string> = { B:'#E74C3C', I:'#E67E22', N:'#D4AF37', G:'#27AE60', O:'#8E44AD' };
 
                 return (
-                  <div style={{ marginBottom: '12px' }}>
-                    <div style={{ fontSize: '11px', fontWeight: '800', color: 'rgba(255,255,255,0.45)', marginBottom: '6px', letterSpacing: '1px', textTransform: 'uppercase' }}>
-                      📋 {gameFinished.isCurrentUserWinner ? 'Your Winning Cartela' : `${gameFinished.winnerName}'s Winning Cartela`}
+                  <div style={{ marginBottom: '8px' }}>
+                    <div style={{ fontSize: '9px', fontWeight: '800', color: 'rgba(255,255,255,0.45)', marginBottom: '4px', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+                      📋 {gameFinished.isCurrentUserWinner ? 'Your Winning Cartela' : `${gameFinished.winnerName}'s Cartela`}
                     </div>
 
                     {/* Column headers B-I-N-G-O */}
-                    <div style={{ display: 'grid', gridTemplateColumns: mode === 'ROW' ? '20px repeat(5, 1fr)' : 'repeat(5, 1fr)', gap: '3px', marginBottom: '3px', padding: mode === 'ROW' ? '0 0 0 3px' : '0 6px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: mode === 'ROW' ? '16px repeat(5, 1fr)' : 'repeat(5, 1fr)', gap: '2px', marginBottom: '2px', padding: mode === 'ROW' ? '0 0 0 2px' : '0 4px' }}>
                       {mode === 'ROW' && <div />}
                       {COL_LABELS.map((lbl, ci) => {
                         const isWinCol = winningCol === ci;
                         return (
                           <div key={lbl} style={{
-                            fontSize: isWinCol ? '16px' : '13px',
+                            fontSize: isWinCol ? '13px' : '11px',
                             fontWeight: '900',
                             color: isWinCol ? '#fff' : COL_COLORS[lbl],
                             textAlign: 'center',
-                            letterSpacing: '1px',
+                            letterSpacing: '0.5px',
                             background: isWinCol ? `${patternColor}cc` : 'transparent',
-                            borderRadius: isWinCol ? '6px' : '0',
-                            padding: isWinCol ? '2px 0' : '0',
-                            boxShadow: isWinCol ? `0 0 12px ${patternColor}` : 'none',
-                            textShadow: isWinCol ? 'none' : `0 0 8px ${COL_COLORS[lbl]}88`,
+                            borderRadius: isWinCol ? '4px' : '0',
+                            padding: isWinCol ? '1px 0' : '0',
+                            boxShadow: isWinCol ? `0 0 8px ${patternColor}` : 'none',
+                            textShadow: isWinCol ? 'none' : `0 0 6px ${COL_COLORS[lbl]}88`,
                           }}>{lbl}</div>
                         );
                       })}
@@ -1379,22 +1383,22 @@ function GameContent() {
                     {/* 5×5 grid */}
                     <div style={{
                       display: 'grid',
-                      gridTemplateColumns: mode === 'ROW' ? '20px repeat(5, 1fr)' : 'repeat(5, 1fr)',
-                      gap: '3px',
+                      gridTemplateColumns: mode === 'ROW' ? '16px repeat(5, 1fr)' : 'repeat(5, 1fr)',
+                      gap: '2px',
                       background: 'rgba(0,0,0,0.5)',
-                      padding: '6px',
-                      borderRadius: '12px',
-                      border: `2px solid ${patternColor}66`,
-                      boxShadow: `inset 0 2px 12px rgba(0,0,0,0.6), 0 0 20px ${patternColor}22`,
+                      padding: '4px',
+                      borderRadius: '8px',
+                      border: `1.5px solid ${patternColor}66`,
+                      boxShadow: `inset 0 1px 8px rgba(0,0,0,0.6), 0 0 12px ${patternColor}22`,
                     }}>
                       {grid.map((row, ri) => (
                         <Fragment key={ri}>
                           {mode === 'ROW' && (
                             <div key={`lbl-${ri}`} style={{
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              fontSize: '9px', fontWeight: '900',
+                              fontSize: '8px', fontWeight: '900',
                               color: winningRow === ri ? patternColor : 'rgba(255,255,255,0.2)',
-                              textShadow: winningRow === ri ? `0 0 8px ${patternColor}` : 'none',
+                              textShadow: winningRow === ri ? `0 0 6px ${patternColor}` : 'none',
                             }}>{ri + 1}</div>
                           )}
                           {row.map((cell, ci) => {
@@ -1412,12 +1416,12 @@ function GameContent() {
                             if (isPatternCell) {
                               bg = `${patternColor}ee`;
                               textColor = '#fff';
-                              shadow = `0 0 16px ${patternColor}cc, 0 0 5px ${patternColor}`;
-                              border = `2px solid ${patternColor}`;
+                              shadow = `0 0 10px ${patternColor}cc, 0 0 3px ${patternColor}`;
+                              border = `1.5px solid ${patternColor}`;
                             } else if (called) {
                               bg = `${colColor}28`;
                               textColor = colColor;
-                              shadow = `0 0 6px ${colColor}44`;
+                              shadow = `0 0 4px ${colColor}44`;
                               border = `1px solid ${colColor}55`;
                             }
 
@@ -1426,7 +1430,7 @@ function GameContent() {
                                 key={key}
                                 initial={{ opacity: 0, scale: 0.7 }}
                                 animate={isPatternCell
-                                  ? { opacity: 1, scale: [1, 1.12, 1] }
+                                  ? { opacity: 1, scale: [1, 1.1, 1] }
                                   : { opacity: 1, scale: 1 }
                                 }
                                 transition={isPatternCell
@@ -1438,18 +1442,16 @@ function GameContent() {
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
-                                  fontSize: '12px',
+                                  fontSize: '11px',
                                   fontWeight: '900',
                                   background: bg,
                                   color: textColor,
-                                  borderRadius: '7px',
+                                  borderRadius: '5px',
                                   boxShadow: shadow,
                                   border,
-                                  position: 'relative',
-                                  minWidth: '0',
                                 }}
                               >
-                                {isFree ? <span style={{ fontSize: '13px' }}>★</span> : cell}
+                                {isFree ? '★' : cell}
                               </motion.div>
                             );
                           })}

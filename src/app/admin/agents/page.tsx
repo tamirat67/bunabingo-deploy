@@ -45,6 +45,9 @@ export default function AgentsPage() {
   const [editError, setEditError] = useState('');
   const [editSuccess, setEditSuccess] = useState('');
 
+  // Alert Modal State
+  const [alertModal, setAlertModal] = useState<{isOpen: boolean, title: string, message: string, type: 'info' | 'error' | 'success' | 'confirm' | 'balance'}>({ isOpen: false, title: '', message: '', type: 'info' });
+
   useEffect(() => {
     fetchAgents();
   }, [page]);
@@ -71,9 +74,9 @@ export default function AgentsPage() {
       setShowRechargeModal(false);
       setRechargeAmount('');
       fetchAgents();
-      alert(`Successfully refilled ${selectedAgent.firstName}'s wallet!`);
+      setAlertModal({ isOpen: true, title: 'Success', message: `Successfully refilled ${selectedAgent.firstName}'s wallet!`, type: 'success' });
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Recharge failed.');
+      setAlertModal({ isOpen: true, title: 'Error', message: err.response?.data?.error || 'Recharge failed.', type: 'error' });
     } finally {
       setRechargeLoading(false);
     }
@@ -88,7 +91,7 @@ export default function AgentsPage() {
       await api.post(`/admin/users/${demoteModal.userId}/demote`);
       fetchAgents();
     } catch (err) {
-      alert('Demotion failed.');
+      setAlertModal({ isOpen: true, title: 'Error', message: 'Demotion failed.', type: 'error' });
     } finally {
       setDemoteModal({ isOpen: false, userId: '' });
     }
@@ -594,6 +597,14 @@ export default function AgentsPage() {
           </div>
         </div>
       )}
+
+      <BunaModal 
+        isOpen={alertModal.isOpen}
+        onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+      />
     </div>
   );
 }
