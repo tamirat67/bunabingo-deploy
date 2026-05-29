@@ -33,6 +33,7 @@ function SelectionContent() {
   const [newlyOccupied, setNewlyOccupied] = useState<number[]>([]);
   const [fakePlayersCount, setFakePlayersCount] = useState(0);
   const [fakeOccupied, setFakeOccupied] = useState<number[]>([]);
+  const [isInitializing, setIsInitializing] = useState(true);
   // ── Live game state: true when the room has a RUNNING game and player is queued for next session
   const [isGameRunning, setIsGameRunning] = useState(false);
   const [liveGameDismissed, setLiveGameDismissed] = useState(false);
@@ -363,6 +364,7 @@ function SelectionContent() {
   useEffect(() => {
     const syncRunningState = () => {
       getOccupiedCards(roomType, activeGameId).then(res => {
+        setIsInitializing(false);
         if (!res) return;
 
         const wasRunning = isGameRunning;
@@ -406,6 +408,8 @@ function SelectionContent() {
   }, [roomType, activeGameId, isGameRunning, loadGameData, socket]);
 
   const toggleSelect = (num: number) => {
+    if (isGameRunning || isInitializing) return;
+    
     // 1. If the card is owned/occupied by another player
     if (occupied.includes(num) || fakeOccupied.includes(num)) {
       // Card is already visually green with cursor:not-allowed — silently block, no alert popup
@@ -465,7 +469,7 @@ function SelectionContent() {
   };
 
   const handleStart = async () => {
-    if (selected.length === 0 || joining) return;
+    if (isGameRunning || isInitializing || selected.length === 0 || joining) return;
     setJoining(true);
 
     const newCardsToBuy = selected.filter(id => !ownedCardIds.includes(id));
