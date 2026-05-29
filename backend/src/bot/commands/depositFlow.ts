@@ -431,18 +431,22 @@ async function submitDeposit(
     }
 
     // ── Notify Agent / Admins ────────────────────────────────────────────────
-    const userName = tgUser.username ? `@${tgUser.username}` : user.firstName;
+    const userName = tgUser.username ? `@${tgUser.username}` : (user.firstName || 'User');
+    const safeUserName = userName.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    
     let adminCaption = autoComplete
-      ? `🤖 *[AUTO-APPROVED] — ${methodLabel}*\n\n`
-      : `📥 *[MANUAL REVIEW] — ${methodLabel}*\n\n`;
-    adminCaption += `👤 User: ${userName}\n💵 Amount: *${amount.toFixed(2)} ETB*\n🆔 Deposit ID: \`${deposit.id}\`\n\n`;
+      ? `🤖 <b>[AUTO-APPROVED] — ${methodLabel}</b>\n\n`
+      : `📥 <b>[MANUAL REVIEW] — ${methodLabel}</b>\n\n`;
+    adminCaption += `👤 User: ${safeUserName}\n💵 Amount: <b>${amount.toFixed(2)} ETB</b>\n🆔 Deposit ID: <code>${deposit.id}</code>\n\n`;
 
     if (meta) {
       const receiptUrl = `https://transactioninfo.ethiotelecom.et/receipt/${meta.transactionId}`;
+      const safeSender = (meta.senderName || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const safeRecipient = (meta.recipientName || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
       adminCaption +=
-        `📱 *Telebirr Receipt*\n\`\`\`\nDear ${meta.senderName},\nYou have transferred ETB ${meta.amount.toFixed(2)} to ${meta.recipientName} (${meta.recipientPhoneMasked}) on ${meta.dateTime}. Txn: ${meta.transactionId}. Fee: ETB ${meta.serviceFee.toFixed(2)}.\n\`\`\`\n🔗 ${receiptUrl}`;
+        `📱 <b>Telebirr Receipt</b>\n<pre>Dear ${safeSender},\nYou have transferred ETB ${meta.amount.toFixed(2)} to ${safeRecipient} (${meta.recipientPhoneMasked}) on ${meta.dateTime}. Txn: ${meta.transactionId}. Fee: ETB ${meta.serviceFee.toFixed(2)}.</pre>\n🔗 ${receiptUrl}`;
     } else {
-      adminCaption += `🔖 Reference: \`${referenceOrTxnId}\``;
+      adminCaption += `🔖 Reference: <code>${referenceOrTxnId}</code>`;
     }
 
     const adminKeyboard = autoComplete
@@ -471,11 +475,11 @@ async function submitDeposit(
       try {
         if (screenshotFileId) {
           await ctx.telegram.sendPhoto(adminTgId, screenshotFileId, {
-            caption: adminCaption, parse_mode: 'Markdown', ...adminKeyboard,
+            caption: adminCaption, parse_mode: 'HTML', ...adminKeyboard,
           });
         } else {
           await ctx.telegram.sendMessage(adminTgId, adminCaption, {
-            parse_mode: 'Markdown', ...adminKeyboard,
+            parse_mode: 'HTML', ...adminKeyboard,
           });
         }
       } catch (e) {
