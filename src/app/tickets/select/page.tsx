@@ -407,6 +407,21 @@ function SelectionContent() {
     return () => clearInterval(poll);
   }, [roomType, activeGameId, isGameRunning, loadGameData, socket]);
 
+  // Lock body scroll when game is running (overlay is active)
+  useEffect(() => {
+    if (isGameRunning) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.height = '100vh';
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.height = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.height = '';
+    };
+  }, [isGameRunning]);
+
   const toggleSelect = (num: number) => {
     if (isGameRunning || isInitializing) return;
     
@@ -1023,9 +1038,9 @@ function SelectionContent() {
             style={{
               position: 'fixed',
               inset: 0,
-              background: isDark ? 'rgba(10, 14, 30, 0.95)' : 'rgba(255, 255, 255, 0.95)',
-              backdropFilter: 'blur(8px)',
-              WebkitBackdropFilter: 'blur(8px)',
+              background: isVip 
+                ? 'radial-gradient(circle at top, #2D1442 0%, #1C0A35 60%, #0F041A 100%)' 
+                : T.bg, // 100% solid theme-matched background (Standard: cream/coffee-dark, VIP: purple-gold)
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
