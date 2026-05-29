@@ -194,10 +194,12 @@ function SelectionContent() {
           setEndTime(null);
         }
       } else if (g.status === 'COUNTDOWN' && g.countdownSeconds) {
-        const estimatedEnd = Date.now() + (g.countdownSeconds * 1000);
-        setEndTime(estimatedEnd);
-        setServerOff(0);
-        setCountdown(g.countdownSeconds);
+        // Last-resort fallback: no endTime from server.
+        // Only set when client has NO countdown yet — never overwrite a running value.
+        setCountdown((prev) => {
+          if (prev !== null && prev >= 0) return prev;
+          return g.countdownSeconds;
+        });
       } else {
         setCountdown(null);
         setEndTime(null);

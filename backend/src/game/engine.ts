@@ -27,6 +27,7 @@ interface ActiveGame {
   countdownTimer?: NodeJS.Timeout;
   countdownInterval?: NodeJS.Timeout;
   secondsRemaining?: number;
+  countdownStartedAt?: number;   // epoch ms when this countdown began (for mid-join sync)
   numberPool: number[];
   tickets?: any[];
   ticketCount?: number;
@@ -104,6 +105,9 @@ export async function startCountdown(gameId: string, playerCount: number): Promi
   // Clear any existing timer/interval
   if (existing.countdownInterval) clearInterval(existing.countdownInterval);
   if (existing.countdownTimer) clearTimeout(existing.countdownTimer);
+
+  // Record exact moment this countdown began (used by socket join-game sync)
+  existing.countdownStartedAt = Date.now();
 
   // Set up the tick interval
   existing.countdownInterval = setInterval(async () => {
@@ -936,9 +940,46 @@ async function finishGame(gameId: string, reason: string): Promise<void> {
   logger.info(`[Game ${gameId}] Finished: ${reason}`);
 
   // Auto-create new waiting game for the same room
-  const game = await prisma.game.findUnique({ where: { id: gameId } });
-  if (game) {
-    await createWaitingGame(game.roomId);
+  await createWaitingGame(gameId);
+}
+
+const createWaitingGameLocks = new Map<string, Promise<string>>();
+
+// ─── Create Waiting Game ──────────────────────────────────────
+export async function createWaitingGame(roomId: string): Promise<string> {
+  if (createWaitingGameLocks.has(roomId)) {
+    return createWaitingGameLocks.get(roomId)!;
+  }
+
+  const promise = (async () => {
+    const room = await prisma.room.findUnique({ where: { id: roomId } });
+    if (!room) throw new Error('Room not found');
+
+    // Check if there's already a waiting game for this room (SKIP THIS FOR DEMO so it's private)
+    if (room.type !== 'DEMO') {
+      const existing = await prisma.game.findFirst({
+        where: { roomId, status: { in: ['WAITING', 'COUNTDOWN'] } },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (existing) return existing.id;
+    }
+    
+    const newGame = await prisma.game.create({
+      data: {
+        roomId,
+        status: GameStatus.WAITING,
+        totalPrize: 0,
+      },
+    });
+
+    return newGame.id;
+  })();
+
+  createWaitingGameLocks.set(roomId, promise);
+  try {
+    return await promise;
+  } finally {
+    createWaitingGameLocks.delete(roomId);
   }
 }
 
@@ -968,32 +1009,6 @@ export async function cancelGame(gameId: string, reason: string): Promise<void> 
 
   await triggerGameEvent(gameId, 'game-cancelled', { gameId, reason });
   logger.info(`[Game ${gameId}] Cancelled: ${reason} (no charges were made)`);
-}
-
-// ─── Create Waiting Game ──────────────────────────────────────
-export async function createWaitingGame(roomId: string): Promise<string> {
-  const room = await prisma.room.findUnique({ where: { id: roomId } });
-  if (!room) throw new Error('Room not found');
-
-  // Check if there's already a waiting game for this room (SKIP THIS FOR DEMO so it's private)
-  if (room.type !== 'DEMO') {
-    const existing = await prisma.game.findFirst({
-      where: { roomId, status: GameStatus.WAITING },
-    });
-    if (existing) return existing.id;
-  }
-
-  const game = await prisma.game.create({
-    data: {
-      roomId,
-      status: GameStatus.WAITING,
-      totalPrize: 0,
-      houseEdge: 0,
-    },
-  });
-
-  logger.info(`[Room ${roomId}] New waiting game created: ${game.id}`);
-  return game.id;
 }
 
 
@@ -1359,6 +1374,36 @@ export async function leaveGame(userId: string, gameId: string): Promise<void> {
   });
   
   logger.info(`[Game ${gameId}] User ${userId} left the game before start.`);
+}
+
+// ─── Resume Active Countdowns After Server Restart ────────────
+// Called on startup: any game stuck in COUNTDOWN status gets its timer
+// re-created so players see an accurate countdown instead of a frozen UI.
+export async function resumeActiveCountdowns(): Promise<void> {
+  try {
+    const countdownGames = await prisma.game.findMany({
+      where: { status: GameStatus.COUNTDOWN },
+      include: { room: true },
+    });
+
+    if (countdownGames.length === 0) return;
+
+    logger.info(`[Recovery] Found ${countdownGames.length} game(s) in COUNTDOWN — resuming timers.`);
+
+    for (const game of countdownGames) {
+      const existingState = activeGames.get(game.id);
+      if (existingState?.countdownInterval) {
+        // Already ticking in memory — skip
+        continue;
+      }
+      const ticketCount = await prisma.ticket.count({ where: { gameId: game.id } });
+      // Re-start countdown (resets to configured seconds — clean recovery after restart)
+      logger.info(`[Recovery] Re-starting countdown for game ${game.id} with ${ticketCount} tickets.`);
+      await startCountdown(game.id, ticketCount);
+    }
+  } catch (e) {
+    logger.error('[Recovery] Failed to resume active countdowns:', e);
+  }
 }
 
 export function getActiveGames(): Map<string, ActiveGame> {

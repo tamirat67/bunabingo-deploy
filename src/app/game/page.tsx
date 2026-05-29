@@ -262,10 +262,12 @@ function GameContent() {
           if (rem > 0) setCountdown(rem);
         }
       } else if (g.status === 'COUNTDOWN' && g.countdownSeconds) {
-        // DO NOT reset the countdown to max if we already have it ticking from socket!
+        // Last-resort fallback: no endTime from server (state not yet in memory).
+        // Only apply when the client has NO countdown yet — never overwrite a
+        // correctly-ticking value with the stale full configured seconds.
         setCountdown((prev) => {
-          if (prev !== null && prev >= 0 && prev <= g.countdownSeconds) return prev;
-          return g.countdownSeconds;
+          if (prev !== null && prev >= 0) return prev; // keep the running value
+          return g.countdownSeconds; // fresh load only
         });
       }
       const sorted = (t.tickets || []).sort((a: any, b: any) => (a.card?.id || 0) - (b.card?.id || 0));

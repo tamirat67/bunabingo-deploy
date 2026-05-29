@@ -77,6 +77,17 @@ async function main() {
     logger.error('❌ Failed to initialize rooms:', roomErr);
   }
 
+  // ─── Resume Countdowns (after server restart) ─────────────
+  // Re-creates in-memory timers for any game stuck in COUNTDOWN
+  // so all players see a live countdown immediately on reconnect.
+  try {
+    const { resumeActiveCountdowns } = await import('./game/engine');
+    await resumeActiveCountdowns();
+    logger.info('✅ Active countdowns resumed');
+  } catch (resumeErr) {
+    logger.error('❌ Failed to resume countdowns:', resumeErr);
+  }
+
   // ─── Background Jobs ─────────────────────────────────────
   startJobs(bot);
 
