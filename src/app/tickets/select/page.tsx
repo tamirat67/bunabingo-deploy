@@ -958,11 +958,11 @@ function SelectionContent() {
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                justifyContent: 'center',
+                justifyContent: 'flex-start',
                 gap: '16px',
                 zIndex: 20,
                 textAlign: 'center',
-                padding: '32px 20px',
+                padding: '80px 20px 32px',
               }}
             >
               {/* Clock icon in circle */}
