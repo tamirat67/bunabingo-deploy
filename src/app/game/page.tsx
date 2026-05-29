@@ -118,8 +118,20 @@ function GameContent() {
     }
   }, []);
 
-  const playBallSound = useCallback((num: number) => {
-    if (!soundOnRef.current) return;
+  const playBallSound = useCallback((num: number, onComplete?: () => void) => {
+    let completed = false;
+    const safeComplete = () => {
+      if (!completed) {
+        completed = true;
+        if (onComplete) onComplete();
+      }
+    };
+
+    if (!soundOnRef.current) {
+      if (onComplete) setTimeout(safeComplete, 1000); // Simulate gap if muted
+      return;
+    }
+
     const col = colLabel(num);
     try {
       const el = ballAudioRef.current;
@@ -127,14 +139,29 @@ function GameContent() {
         el.pause();
         el.currentTime = 0;
         el.src = `/audio/${col}${num}.mp3`;
+        el.onended = safeComplete;
+        el.onerror = safeComplete;
         el.play().catch(() => {
           // Fallback: fresh Audio element in case ref is locked
-          try { new Audio(`/audio/${col}${num}.mp3`).play().catch(() => {}); } catch (_) {}
+          try { 
+            const fallbackEl = new Audio(`/audio/${col}${num}.mp3`);
+            fallbackEl.onended = safeComplete;
+            fallbackEl.onerror = safeComplete;
+            fallbackEl.play().catch(safeComplete); 
+          } catch (_) { safeComplete(); }
         });
       } else {
-        new Audio(`/audio/${col}${num}.mp3`).play().catch(() => {});
+        const fallbackEl = new Audio(`/audio/${col}${num}.mp3`);
+        fallbackEl.onended = safeComplete;
+        fallbackEl.onerror = safeComplete;
+        fallbackEl.play().catch(safeComplete);
       }
-    } catch (e) {}
+    } catch (e) {
+      safeComplete();
+    }
+
+    // Safety timeout in case audio hangs indefinitely
+    setTimeout(safeComplete, 4500);
   }, []);
 
   const processAudioQueue = useCallback((setLastBallFn: (n: number) => void) => {
@@ -151,11 +178,12 @@ function GameContent() {
       // This ensures Recent Balls always follows Big Ball Display in exact order
       setLastBallFn(nextBall);
       setCalledHistory(prev => prev.includes(nextBall) ? prev : [...prev, nextBall]);
-      playBallSound(nextBall);
-      // Wait for ball audio to finish before playing next (~2.3s gap since interval is 2.5s)
-      playNextTimeoutRef.current = setTimeout(() => {
-        processAudioQueue(setLastBallFn);
-      }, 2300);
+      // Wait for ball audio to ACTUALLY finish before playing next
+      playBallSound(nextBall, () => {
+        playNextTimeoutRef.current = setTimeout(() => {
+          processAudioQueue(setLastBallFn);
+        }, 200); // 200ms natural gap after audio finishes
+      });
     } else {
       isPlayingQueueRef.current = false;
     }
