@@ -1015,9 +1015,9 @@ function SelectionContent() {
       <div 
         className="selection-footer-smart"
         style={{
-          background: isDark ? 'rgba(15, 20, 25, 0.75)' : 'rgba(232, 220, 196, 0.75)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
+          background: isDark ? 'rgba(15, 20, 25, 0.15)' : 'rgba(232, 220, 196, 0.15)',
+          backdropFilter: 'blur(3px)',
+          WebkitBackdropFilter: 'blur(3px)',
         }}
       >
         <div className="footer-cards-scroll">
