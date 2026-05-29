@@ -1012,7 +1012,14 @@ function SelectionContent() {
       <div style={{ height: '250px' }} />
 
       {/* ── Footer ── */}
-      <div className="selection-footer-smart">
+      <div 
+        className="selection-footer-smart"
+        style={{
+          background: isDark ? 'rgba(15, 20, 25, 0.75)' : 'rgba(232, 220, 196, 0.75)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+        }}
+      >
         <div className="footer-cards-scroll">
           {selected.length === 0 ? (
             <div className="footer-no-cards">Select cards to preview</div>
