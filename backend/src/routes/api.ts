@@ -479,11 +479,29 @@ router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
 
   try {
     let gameId: string | undefined;
-    let room: any;
     let isGameRunning = false;
 
+    // 1. Fetch the room first
+    const room = await prisma.room.findFirst({
+      where: { type: type as any, isActive: true }
+    });
+
+    if (!room) {
+      const responseData = { occupiedIds: [], myCardIds: [], isGameRunning: false };
+      occupiedCache.set(cacheKey, { data: responseData, timestamp: now });
+      return res.json(responseData);
+    }
+
+    // 2. Check if ANY game is currently running in this room
+    const runningGame = await prisma.game.findFirst({
+      where: { roomId: room.id, status: 'RUNNING' }
+    });
+    if (runningGame) {
+      isGameRunning = true;
+    }
+
+    // 3. Resolve the active/waiting game ID
     if (gameIdFromQuery) {
-      room = await prisma.room.findFirst({ where: { type: type as any } });
       // Check if the requested game is RUNNING — if so, resolve to the next WAITING game
       const requestedGame = await prisma.game.findUnique({ where: { id: gameIdFromQuery }, select: { status: true, roomId: true } });
       if (requestedGame && (requestedGame.status === 'RUNNING' || requestedGame.status === 'FINISHED')) {
@@ -501,22 +519,21 @@ router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
         gameId = gameIdFromQuery;
       }
     } else {
-      room = await getRoomWithActiveGame(type as any);
-      gameId = room?.games[0]?.id;
-    }
-    
-    // Check if ANY game is currently running in this room, regardless of which gameId was requested
-    if (room) {
-      const runningGame = await prisma.game.findFirst({
-        where: { roomId: room.id, status: 'RUNNING' }
+      // Find the active WAITING or COUNTDOWN game
+      const activeGame = await prisma.game.findFirst({
+        where: { roomId: room.id, status: { in: ['WAITING', 'COUNTDOWN'] } },
+        orderBy: { createdAt: 'desc' },
       });
-      if (runningGame) {
-        isGameRunning = true;
+      gameId = activeGame?.id;
+      if (!gameId) {
+        // If no WAITING or COUNTDOWN game exists (e.g. because one is RUNNING), create one
+        const { createWaitingGame } = await import('../game/engine');
+        gameId = await createWaitingGame(room.id);
       }
     }
     
-    if (!gameId || !room) {
-      const responseData = { occupiedIds: [], myCardIds: [], isGameRunning: false };
+    if (!gameId) {
+      const responseData = { occupiedIds: [], myCardIds: [], isGameRunning: isGameRunning };
       occupiedCache.set(cacheKey, { data: responseData, timestamp: now });
       return res.json(responseData);
     }
