@@ -686,8 +686,8 @@ function GameContent() {
       const isMarked = (r: number, c: number) => {
         const val = rows[r][c];
         const numVal = Number(val);
-        // Win detection uses drawn balls automatically — no manual tap needed
-        return val === 'FREE' || val === 0 || val === null || drawnSet.has(numVal);
+        // Win detection requires manual tap (marked) — green hint shows which to tap
+        return val === 'FREE' || val === 0 || val === null || (drawnSet.has(numVal) && marked.has(numVal));
       };
 
       for (let r = 0; r < 5; r++) if ([0,1,2,3,4].every(c => isMarked(r, c))) return true;
