@@ -906,7 +906,7 @@ async function finishGame(gameId: string, reason: string): Promise<void> {
   clearBotInjectionRecord(gameId);
   gamesWithBotsInjectedPublic.delete(gameId);
 
-  await prisma.game.update({
+  const updatedGame = await prisma.game.update({
     where: { id: gameId },
     data: { status: GameStatus.FINISHED, finishedAt: new Date() },
   });
@@ -940,7 +940,7 @@ async function finishGame(gameId: string, reason: string): Promise<void> {
   logger.info(`[Game ${gameId}] Finished: ${reason}`);
 
   // Auto-create new waiting game for the same room
-  await createWaitingGame(gameId);
+  await createWaitingGame(updatedGame.roomId);
 }
 
 const createWaitingGameLocks = new Map<string, Promise<string>>();
