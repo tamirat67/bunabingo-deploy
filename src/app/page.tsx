@@ -139,15 +139,6 @@ export default function LobbyPage() {
   };
 
   const handleJoinRoom = (room: any) => {
-    if (room.active > 0) {
-      setModalConfig({
-        isOpen: true,
-        title: 'GAME IN PROGRESS',
-        message: 'A game is currently running in this room! Please wait for the current round to finish before joining.',
-        type: 'warning'
-      });
-      return;
-    }
     if (room.type.startsWith('SPIN_')) {
       setModalConfig({
         isOpen: true,
