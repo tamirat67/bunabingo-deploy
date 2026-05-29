@@ -144,16 +144,17 @@ function GameContent() {
     isPlayingQueueRef.current = true;
     const nextBall = audioQueueRef.current.shift();
     if (nextBall) {
+      console.log('[AudioQueue] Playing ball:', nextBall);
       lastDrawnRef.current = nextBall;
       // ✅ Big ball display + Recent Balls update TOGETHER when audio plays
       // This ensures Recent Balls always follows Big Ball Display in exact order
       setLastBallFn(nextBall);
       setCalledHistory(prev => prev.includes(nextBall) ? prev : [...prev, nextBall]);
       playBallSound(nextBall);
-      // Wait for ball audio to finish before playing next (~1.8s natural gap, draw interval is 2.0s)
+      // Wait for ball audio to finish before playing next (~2.3s gap since interval is 2.5s)
       playNextTimeoutRef.current = setTimeout(() => {
         processAudioQueue(setLastBallFn);
-      }, 1800);
+      }, 2300);
     } else {
       isPlayingQueueRef.current = false;
     }
@@ -164,8 +165,10 @@ function GameContent() {
     // Avoid queueing any balls already in the queue or already played
     const toAdd = numbers.filter(n => !currentQueue.includes(n) && n !== lastDrawnRef.current);
     if (toAdd.length === 0) return;
+    console.log('[AudioQueue] Adding to queue:', toAdd);
     audioQueueRef.current = [...currentQueue, ...toAdd];
     if (!isPlayingQueueRef.current) {
+      console.log('[AudioQueue] Starting queue processor');
       processAudioQueue(setLastBallFn);
     }
   }, [processAudioQueue]);

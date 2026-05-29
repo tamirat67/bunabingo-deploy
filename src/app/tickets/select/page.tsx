@@ -460,28 +460,20 @@ function SelectionContent() {
       return;
     }
 
+    // ── Hard block: do not allow purchase if game is currently RUNNING ──
+    if (isGameRunning) {
+      setModal({
+        isOpen: true,
+        title: '🔴 Game In Progress!',
+        message: 'A bingo game is currently live. Cartela selling is stopped. Please wait for the game to finish — the page will unlock automatically!',
+        type: 'info',
+      });
+      setJoining(false);
+      return;
+    }
+
     try {
       const res = await joinGame(roomType, selected);
-
-      // ── GAME_IN_PROGRESS: backend returned 202 — player is queued for next session ──
-      if (res.error === 'GAME_IN_PROGRESS' || res.nextGameId) {
-        setIsGameRunning(true);
-        setLiveGameDismissed(false);
-        if (res.nextGameId) {
-          setActiveGameId(res.nextGameId);
-          if (typeof window !== 'undefined' && res.tickets) {
-            sessionStorage.setItem(`game_tickets_${res.nextGameId}`, JSON.stringify(res.tickets));
-          }
-        }
-        setModal({
-          isOpen: true,
-          title: '🔴 Game In Progress!',
-          message: 'A bingo game is currently live. Your cartelas have been reserved for the NEXT session. Stay on this page — it will automatically activate when the current game finishes!',
-          type: 'info',
-        });
-        setJoining(false);
-        return;
-      }
 
       if (typeof window !== 'undefined' && res.gameId && res.tickets) {
         sessionStorage.setItem(`game_tickets_${res.gameId}`, JSON.stringify(res.tickets));
@@ -493,15 +485,14 @@ function SelectionContent() {
       const errCode = errData?.error;
       const msg = errData?.message || err.message || 'Failed to join';
 
-      // ── Graceful handling of GAME_IN_PROGRESS via axios error response ──
       if (errCode === 'GAME_IN_PROGRESS') {
+        // Backend confirmed game is running — lock the UI
         setIsGameRunning(true);
         setLiveGameDismissed(false);
-        if (errData?.nextGameId) setActiveGameId(errData.nextGameId);
         setModal({
           isOpen: true,
           title: '🔴 Game In Progress!',
-          message: msg || 'A bingo game is currently live. Your cartelas are reserved for the next session. Stay on this page!',
+          message: 'A bingo game is currently live. Cartela selling is stopped. Wait for the game to finish — the page will unlock automatically!',
           type: 'info',
         });
       } else if (errCode === 'DEMO_LIMIT_REACHED') {
@@ -1023,18 +1014,15 @@ function SelectionContent() {
             <RefreshCw size={16} /> Refresh
           </button>
           <button
-            className={`btn-start-game ${selected.length > 0 ? 'active' : ''}`}
-            disabled={selected.length === 0 || joining}
+            className={`btn-start-game ${selected.length > 0 && !isGameRunning ? 'active' : ''}`}
+            disabled={selected.length === 0 || joining || isGameRunning}
             onClick={handleStart}
-            style={isGameRunning ? { background: '#E74C3C', borderBottomColor: '#C0392B', opacity: 0.9 } : undefined}
+            style={isGameRunning ? { background: '#555', borderBottomColor: '#333', opacity: 0.6, cursor: 'not-allowed' } : undefined}
           >
             <Play size={16} fill="white" /> {(() => {
-              const isSelectionChanged = selected.length !== ownedCardIds.length || selected.some(id => !ownedCardIds.includes(id));
               if (joining) return 'CONFIRMING...';
-              if (isGameRunning) {
-                if (!isSelectionChanged && ownedCardIds.length > 0) return 'NEXT ROUND';
-                return 'RESERVE FOR NEXT ROUND';
-              }
+              if (isGameRunning) return '🔴 GAME LIVE — WAIT';
+              const isSelectionChanged = selected.length !== ownedCardIds.length || selected.some(id => !ownedCardIds.includes(id));
               if (isSelectionChanged) return ownedCardIds.length > 0 ? 'CONFIRM SELECTION' : 'START GAME';
               return ownedCardIds.length > 0 ? 'ENTER GAME ROOM' : 'START GAME';
             })()}
