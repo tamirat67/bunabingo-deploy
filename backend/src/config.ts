@@ -41,13 +41,13 @@ export const config = {
     // Legacy alias — equals companyCommissionRate + agentProfitRate = 25% total
     commissionRate: 0.25,
     countdown: {
-      default: 60,
-      DEMO: 60,
-      CASUAL: 60,
-      STANDARD: 60,
-      PRO: 60,
-      JACKPOT: 60,
-      VIP: 60,
+      default: 20,
+      DEMO: 20,
+      CASUAL: 20,
+      STANDARD: 20,
+      PRO: 20,
+      JACKPOT: 20,
+      VIP: 20,
     } as Record<string, number>,
     drawIntervalMs: 2500,         // 2.5 seconds between draws
     minBallsBeforeWin: 20,        // at least 20 balls must be drawn before any win is valid (~50 seconds minimum game)
