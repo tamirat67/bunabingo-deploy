@@ -403,7 +403,10 @@ function SelectionContent() {
 
         if (res.occupiedIds) setOccupied(res.occupiedIds);
         if (res.playerCount !== undefined) setPlayerCount(res.playerCount);
-      }).catch(() => {});
+      }).catch(() => {
+        // Even on API failure, unblock the UI so player isn't stuck on "LOADING..."
+        setIsInitializing(false);
+      });
     };
 
     // Run immediately on mount / dependency change to catch refresh-during-game
@@ -423,7 +426,9 @@ function SelectionContent() {
 
 
   const toggleSelect = (num: number) => {
-    if (isGameRunning || isInitializing) return;
+    if (isInitializing) return;
+    // When game is running, only block SELECTING NEW cards — don't block deselecting owned cards
+    if (isGameRunning && !ownedCardIds.includes(num)) return;
     
     // 1. If the card is owned/occupied by another player
     if (occupied.includes(num) || fakeOccupied.includes(num)) {
@@ -484,7 +489,27 @@ function SelectionContent() {
   };
 
   const handleStart = async () => {
-    if (isGameRunning || isInitializing || selected.length === 0 || joining) return;
+    if (isInitializing || selected.length === 0 || joining) return;
+
+    // ── If game is RUNNING: only allow entering for players who ALREADY have tickets ──
+    // New ticket purchases are blocked mid-game, but watching the live game is allowed.
+    if (isGameRunning) {
+      if (ownedCardIds.length > 0) {
+        // Player has tickets — send them straight into the live game room
+        if (roomType.startsWith('SPIN_')) router.push(`/play/spin?id=${activeGameId}&stake=${stake}`);
+        else router.push(`/game?id=${activeGameId}&type=${roomType}&price=${stake}`);
+      } else {
+        // No tickets — block purchase mid-game
+        setModal({
+          isOpen: true,
+          title: '🔴 Game In Progress!',
+          message: 'ጨዋታው እየተካሄደ ነው። አዲስ ካርቴላ መሸጥ ቆሟል። ጨዋታው ሲጨርስ ይቀላቀሉ! — A bingo game is live. Ticket sales are paused. Join the next round!',
+          type: 'info',
+        });
+      }
+      return;
+    }
+
     setJoining(true);
 
     const newCardsToBuy = selected.filter(id => !ownedCardIds.includes(id));
@@ -508,21 +533,9 @@ function SelectionContent() {
       setModal({
         isOpen: true,
         title: 'Insufficient Balance / የኪስዎ ቀሪ በቂ አይደለም ⚠️',
-        message: `You need ${totalCost} ETB to purchase ${newCardsToBuy.length} card(s). You have ${Number(balance).toFixed(2)} ETB (Main) + ${bonusBalance.toFixed(2)} ETB (Bonus) = ${totalAvailableAtJoin.toFixed(2)} ETB total. / ${totalCost} ETB ያስፈልግዎታል። ዋና: ${Number(balance).toFixed(2)} + ቦነስ: ${bonusBalance.toFixed(2)} = ${totalAvailableAtJoin.toFixed(2)} ETB ብቻ አለ።`,
+        message: `You need ${totalCost} ETB to purchase ${newCardsToBuy.length} card(s). You have ${Number(balance).toFixed(2)} ETB (Main) + ${bonusBalance.toFixed(2)} ETB (Bonus) = ${totalAvailableAtJoin.toFixed(2)} ETB total. / ${totalCost} ETB ያስፈልግዎታል። ዋና: ${Number(balance).toFixed(2)} + ቦነስ: ${bonusBalance.toFixed(2)} = ${totalAvailableAtJoin.toFixed(2)} ETB ብቻ አለ།`,
         type: 'balance',
         onConfirm: () => router.push('/wallet')
-      });
-      setJoining(false);
-      return;
-    }
-
-    // ── Hard block: do not allow purchase if game is currently RUNNING ──
-    if (isGameRunning) {
-      setModal({
-        isOpen: true,
-        title: '🔴 Game In Progress!',
-        message: 'A bingo game is currently live. Cartela selling is stopped. Please wait for the game to finish — the page will unlock automatically!',
-        type: 'info',
       });
       setJoining(false);
       return;
@@ -1083,15 +1096,16 @@ function SelectionContent() {
             <RefreshCw size={16} /> Refresh
           </button>
           <button
-            className={`btn-start-game ${selected.length > 0 && !isGameRunning && !isInitializing ? 'active' : ''}`}
-            disabled={selected.length === 0 || joining || isGameRunning || isInitializing}
+            className={`btn-start-game ${selected.length > 0 && !isInitializing ? 'active' : ''}`}
+            disabled={selected.length === 0 || joining || isInitializing || (isGameRunning && ownedCardIds.length === 0)}
             onClick={handleStart}
-            style={(isGameRunning || isInitializing) ? { background: '#555', borderBottomColor: '#333', opacity: 0.6, cursor: 'not-allowed' } : undefined}
+            style={isInitializing ? { background: '#555', borderBottomColor: '#333', opacity: 0.6, cursor: 'not-allowed' } : undefined}
           >
             <Play size={16} fill="white" /> {(() => {
               if (joining) return 'CONFIRMING...';
-              if (isGameRunning) return '🔴 GAME LIVE — WAIT';
               if (isInitializing) return 'LOADING...';
+              if (isGameRunning && ownedCardIds.length > 0) return '🎮 ENTER LIVE GAME';
+              if (isGameRunning) return '🔴 GAME LIVE — WAIT';
               const isSelectionChanged = selected.length !== ownedCardIds.length || selected.some(id => !ownedCardIds.includes(id));
               if (isSelectionChanged) return ownedCardIds.length > 0 ? 'CONFIRM SELECTION' : 'START GAME';
               return ownedCardIds.length > 0 ? 'ENTER GAME ROOM' : 'START GAME';
