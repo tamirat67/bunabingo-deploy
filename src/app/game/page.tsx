@@ -71,7 +71,7 @@ function GameContent() {
   const [soundOn,   setSoundOn]   = useState(true);
   const [hidden,    setHidden]    = useState<Set<string>>(new Set());
   const [winMsg,    setWinMsg]    = useState<string | null>(null);
-  const [gameFinished, setGameFinished] = useState<{ winnerName: string; prize: number; mode: string; isWinner: boolean; card?: any; isCurrentUserWinner?: boolean } | null>(null);
+  const [gameFinished, setGameFinished] = useState<{ winnerName: string; prize: number; mode: string; isWinner: boolean; card?: any; cardNo?: number; isCurrentUserWinner?: boolean } | null>(null);
   const [redirectSecs, setRedirectSecs] = useState(5);
   const redirectTimerRef = useRef<any>(null);
   const redirectCountdownRef = useRef<any>(null);
@@ -473,8 +473,9 @@ function GameContent() {
       const isCurrentUserWinner = !!myWinnerObj;
       const w = myWinnerObj || d.winners?.[0];
       const name = w?.user?.firstName || w?.user?.telegramUsername || 'Someone';
-      // Normalize card: backend sends { id, rows: [...] } or just the raw array
+      // Normalize card: backend sends { id, rows: [...] } or raw array
       const rawCard = w?.card;
+      const cardNo: number | undefined = rawCard?.id ?? undefined;
       const cardRows = rawCard
         ? (Array.isArray(rawCard) ? rawCard : (rawCard.rows ?? null))
         : null;
@@ -483,7 +484,8 @@ function GameContent() {
         prize: w?.prizeAmount || 0,
         mode: w?.winMode || '',
         isWinner: !!w,
-        card: cardRows,   // store ONLY the rows array so rendering is always consistent
+        card: cardRows,
+        cardNo,
         isCurrentUserWinner,
       });
       // Start 5-second countdown then redirect to cartela selection
@@ -566,6 +568,7 @@ function GameContent() {
         const name = w?.user?.firstName || w?.user?.telegramUsername || 'Someone';
         // Normalize card from polling (comes via ticket.card relation)
         const rawCard2 = w?.ticket?.card || w?.card;
+        const cardNo2: number | undefined = rawCard2?.id ?? undefined;
         const cardRows2 = rawCard2
           ? (Array.isArray(rawCard2) ? rawCard2 : (rawCard2.rows ?? null))
           : null;
@@ -575,6 +578,7 @@ function GameContent() {
           mode: w?.winMode || '',
           isWinner: !!w,
           card: cardRows2,
+          cardNo: cardNo2,
           isCurrentUserWinner,
         });
         playStopAudio();
@@ -1316,16 +1320,21 @@ function GameContent() {
                   >
                     YOU WON! 🎊
                   </motion.h2>
-                  <div style={{ color: '#2ECC71', fontSize: '11px', fontWeight: '700', marginBottom: '4px' }}>
+                  <div style={{ color: '#2ECC71', fontSize: '11px', fontWeight: '700', marginBottom: '2px' }}>
                     🎉 Congratulations! You are the winner!
                   </div>
                   <motion.div
                     animate={{ scale: [1, 1.05, 1] }}
                     transition={{ duration: 1.2, repeat: Infinity }}
-                    style={{ color: T.gold, fontSize: '20px', fontWeight: '900', margin: '2px 0 8px' }}
+                    style={{ color: T.gold, fontSize: '26px', fontWeight: '900', margin: '2px 0 4px' }}
                   >
-                    +{gameFinished.prize} ETB
+                    +{Number(gameFinished.prize).toFixed(2)} ETB
                   </motion.div>
+                  {gameFinished.cardNo && (
+                    <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', marginBottom: '4px' }}>
+                      Cartela <span style={{ color: T.gold, fontWeight: '900' }}>#{gameFinished.cardNo}</span>
+                    </div>
+                  )}
                 </>
               ) : (
                 /* ══ LOSER view ══ */
@@ -1333,11 +1342,22 @@ function GameContent() {
                   <h2 style={{ color: '#E74C3C', fontSize: '18px', fontWeight: '900', margin: '0 0 2px', textTransform: 'uppercase', letterSpacing: 1.5 }}>
                     GAME OVER
                   </h2>
-                  <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: '12px', fontWeight: '700', marginBottom: '2px' }}>
-                    🥇 Winner: <span style={{ color: T.gold }}>{gameFinished.winnerName}</span>
-                  </div>
-                  <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: '13px', fontWeight: '700', margin: '2px 0 8px' }}>
-                    Prize: <span style={{ color: '#F59E0B' }}>{gameFinished.prize} ETB</span>
+                  {/* Winner info box */}
+                  <div style={{
+                    background: 'rgba(255,255,255,0.06)', border: `1px solid ${T.gold}44`,
+                    borderRadius: '10px', padding: '8px 14px', margin: '6px 0 4px',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px'
+                  }}>
+                    <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Winner</div>
+                    <div style={{ color: T.gold, fontWeight: '900', fontSize: '16px' }}>{gameFinished.winnerName}</div>
+                    {gameFinished.cardNo && (
+                      <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.55)' }}>
+                        Cartela <span style={{ color: T.gold, fontWeight: '800' }}>#{gameFinished.cardNo}</span>
+                      </div>
+                    )}
+                    <div style={{ color: '#F59E0B', fontWeight: '900', fontSize: '15px', marginTop: '2px' }}>
+                      {Number(gameFinished.prize).toFixed(2)} ETB
+                    </div>
                   </div>
                 </>
               )}
@@ -1405,18 +1425,16 @@ function GameContent() {
 
 
 
-              {/* ── Winner's cartela — shown to ALL players ── */}
+              {/* ── Winner's cartela — full 5×5 with highlighted winning pattern ── */}
               {gameFinished.card && (() => {
-                // card is already normalized to a rows array when set via setGameFinished
                 const rawCard = gameFinished.card;
                 const rows: any[][] = Array.isArray(rawCard)
                   ? rawCard
                   : (rawCard as any).rows ?? rawCard;
                 if (!rows || !Array.isArray(rows) || rows.length === 0) return null;
-                // Pad to 5 rows if needed (defensive)
                 const safeRows = rows.slice(0, 5);
-                if (safeRows.length < 5 && !safeRows.every(r => Array.isArray(r))) return null;
 
+                // Build numeric grid (0 = FREE center)
                 const grid: number[][] = safeRows.map((row: any[]) =>
                   (Array.isArray(row) ? row : []).map((cell: any) =>
                     (cell === 'FREE' || cell === 'free' || cell === null ? 0 : Number(cell))
@@ -1424,36 +1442,65 @@ function GameContent() {
                 );
 
                 const calledSet = new Set(drawn);
-                const isM = (r: number, c: number) => grid[r][c] === 0 || calledSet.has(grid[r][c]);
+                // A cell counts as "marked" if it's the free center OR its number was called
+                const isMarked = (r: number, c: number) =>
+                  grid[r]?.[c] === 0 || calledSet.has(grid[r]?.[c]);
 
-                // Determine winning cells
+                // ── Determine winning pattern cells by position only ──
+                // Don't rely on calledSet for pattern detection — winner already confirmed by server
                 const patternCells = new Set<string>();
                 const mode = gameFinished.mode;
                 let winningRow = -1;
                 let winningCol = -1;
 
                 if (mode === 'FULL_HOUSE') {
-                  for (let r = 0; r < 5; r++) for (let c = 0; c < 5; c++) patternCells.add(`${r}-${c}`);
+                  for (let r = 0; r < 5; r++)
+                    for (let c = 0; c < 5; c++)
+                      patternCells.add(`${r}-${c}`);
                 } else if (mode === 'FOUR_CORNERS') {
                   [[0,0],[0,4],[4,0],[4,4]].forEach(([r,c]) => patternCells.add(`${r}-${c}`));
                 } else if (mode === 'DIAGONAL') {
-                  const mainDiag = [0,1,2,3,4].every(i => isM(i, i));
-                  const antiDiag = [0,1,2,3,4].every(i => isM(i, 4-i));
-                  if (mainDiag) [0,1,2,3,4].forEach(i => patternCells.add(`${i}-${i}`));
-                  if (antiDiag) [0,1,2,3,4].forEach(i => patternCells.add(`${i}-${4-i}`));
+                  // Show BOTH diagonals if both won, else just the one
+                  // Always highlight main diagonal; check anti too
+                  [0,1,2,3,4].forEach(i => patternCells.add(`${i}-${i}`));       // main ↘
+                  [0,1,2,3,4].forEach(i => patternCells.add(`${i}-${4-i}`));    // anti ↗
                 } else if (mode === 'COLUMN') {
+                  // Find which column is fully marked
                   for (let c = 0; c < 5; c++) {
-                    if ([0,1,2,3,4].every(r => isM(r, c))) {
+                    if ([0,1,2,3,4].every(r => isMarked(r, c))) {
                       winningCol = c;
-                      [0,1,2,3,4].forEach(r => patternCells.add(`${r}-${c}`)); break;
+                      [0,1,2,3,4].forEach(r => patternCells.add(`${r}-${c}`));
+                      break;
                     }
                   }
-                } else if (mode === 'ROW') {
-                  for (let r = 0; r < 5; r++) {
-                    if ([0,1,2,3,4].every(c => isM(r, c))) {
-                      winningRow = r;
-                      [0,1,2,3,4].forEach(c => patternCells.add(`${r}-${c}`)); break;
+                  // Fallback: if no column detected (drawn state mismatch), pick first col with most marks
+                  if (patternCells.size === 0) {
+                    let best = 0, bestCount = -1;
+                    for (let c = 0; c < 5; c++) {
+                      const cnt = [0,1,2,3,4].filter(r => isMarked(r, c)).length;
+                      if (cnt > bestCount) { bestCount = cnt; best = c; }
                     }
+                    winningCol = best;
+                    [0,1,2,3,4].forEach(r => patternCells.add(`${r}-${best}`));
+                  }
+                } else if (mode === 'ROW') {
+                  // Find which row is fully marked
+                  for (let r = 0; r < 5; r++) {
+                    if ([0,1,2,3,4].every(c => isMarked(r, c))) {
+                      winningRow = r;
+                      [0,1,2,3,4].forEach(c => patternCells.add(`${r}-${c}`));
+                      break;
+                    }
+                  }
+                  // Fallback: pick row with most marks
+                  if (patternCells.size === 0) {
+                    let best = 0, bestCount = -1;
+                    for (let r = 0; r < 5; r++) {
+                      const cnt = [0,1,2,3,4].filter(c => isMarked(r, c)).length;
+                      if (cnt > bestCount) { bestCount = cnt; best = r; }
+                    }
+                    winningRow = best;
+                    [0,1,2,3,4].forEach(c => patternCells.add(`${best}-${c}`));
                   }
                 }
 
@@ -1463,108 +1510,132 @@ function GameContent() {
                 };
                 const patternColor = patternColors[mode] || '#2ECC71';
                 const COL_LABELS = ['B','I','N','G','O'];
-                const COL_COLORS: Record<string, string> = { B:'#E74C3C', I:'#E67E22', N:'#D4AF37', G:'#27AE60', O:'#8E44AD' };
+                const COL_COLORS: Record<string, string> = {
+                  B:'#E74C3C', I:'#E67E22', N:'#D4AF37', G:'#27AE60', O:'#8E44AD'
+                };
 
                 return (
                   <div style={{ marginBottom: '8px' }}>
-                    <div style={{ fontSize: '9px', fontWeight: '800', color: 'rgba(255,255,255,0.45)', marginBottom: '4px', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
-                      📋 {gameFinished.isCurrentUserWinner ? 'Your Winning Cartela' : `${gameFinished.winnerName}'s Cartela`}
+                    <div style={{
+                      fontSize: '9px', fontWeight: '800',
+                      color: 'rgba(255,255,255,0.5)', marginBottom: '6px',
+                      letterSpacing: '1px', textTransform: 'uppercase',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px'
+                    }}>
+                      <span>📋</span>
+                      <span>{gameFinished.isCurrentUserWinner ? 'Your Winning Cartela' : `${gameFinished.winnerName}'s Cartela`}</span>
                     </div>
 
-                    {/* Column headers B-I-N-G-O */}
-                    <div style={{ display: 'grid', gridTemplateColumns: mode === 'ROW' ? '16px repeat(5, 1fr)' : 'repeat(5, 1fr)', gap: '2px', marginBottom: '2px', padding: mode === 'ROW' ? '0 0 0 2px' : '0 4px' }}>
-                      {mode === 'ROW' && <div />}
+                    {/* B-I-N-G-O column headers */}
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(5, 1fr)',
+                      gap: '2px', marginBottom: '2px', padding: '0 2px'
+                    }}>
                       {COL_LABELS.map((lbl, ci) => {
                         const isWinCol = winningCol === ci;
                         return (
                           <div key={lbl} style={{
-                            fontSize: isWinCol ? '13px' : '11px',
-                            fontWeight: '900',
+                            fontSize: '13px', fontWeight: '900',
                             color: isWinCol ? '#fff' : COL_COLORS[lbl],
                             textAlign: 'center',
-                            letterSpacing: '0.5px',
-                            background: isWinCol ? `${patternColor}cc` : 'transparent',
-                            borderRadius: isWinCol ? '4px' : '0',
-                            padding: isWinCol ? '1px 0' : '0',
-                            boxShadow: isWinCol ? `0 0 8px ${patternColor}` : 'none',
-                            textShadow: isWinCol ? 'none' : `0 0 6px ${COL_COLORS[lbl]}88`,
+                            background: isWinCol ? `${patternColor}dd` : 'transparent',
+                            borderRadius: '4px', padding: '1px 0',
+                            boxShadow: isWinCol ? `0 0 10px ${patternColor}` : 'none',
+                            textShadow: isWinCol ? `0 0 8px #fff` : `0 0 6px ${COL_COLORS[lbl]}88`,
                           }}>{lbl}</div>
                         );
                       })}
                     </div>
 
-                    {/* 5×5 grid */}
+                    {/* Full 5×5 grid */}
                     <div style={{
                       display: 'grid',
-                      gridTemplateColumns: mode === 'ROW' ? '16px repeat(5, 1fr)' : 'repeat(5, 1fr)',
-                      gap: '2px',
-                      background: 'rgba(0,0,0,0.5)',
-                      padding: '4px',
-                      borderRadius: '8px',
-                      border: `1.5px solid ${patternColor}66`,
-                      boxShadow: `inset 0 1px 8px rgba(0,0,0,0.6), 0 0 12px ${patternColor}22`,
+                      gridTemplateColumns: 'repeat(5, 1fr)',
+                      gap: '3px',
+                      background: 'rgba(0,0,0,0.55)',
+                      padding: '5px',
+                      borderRadius: '10px',
+                      border: `2px solid ${patternColor}88`,
+                      boxShadow: `inset 0 1px 10px rgba(0,0,0,0.6), 0 0 18px ${patternColor}33`,
                     }}>
                       {grid.map((row, ri) => (
                         <Fragment key={ri}>
-                          {mode === 'ROW' && (
-                            <div key={`lbl-${ri}`} style={{
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              fontSize: '8px', fontWeight: '900',
-                              color: winningRow === ri ? patternColor : 'rgba(255,255,255,0.2)',
-                              textShadow: winningRow === ri ? `0 0 6px ${patternColor}` : 'none',
-                            }}>{ri + 1}</div>
+                          {/* Row label for ROW mode */}
+                          {mode === 'ROW' && ri === winningRow && (
+                            <div style={{
+                              gridColumn: '1 / -1',
+                              height: '2px',
+                              background: `linear-gradient(90deg, transparent, ${patternColor}, transparent)`,
+                              margin: '0 -5px',
+                              opacity: 0.6,
+                            }} />
                           )}
                           {row.map((cell, ci) => {
                             const key = `${ri}-${ci}`;
                             const isFree = cell === 0;
                             const called = isFree || calledSet.has(cell);
-                            const isPatternCell = patternCells.has(key);
+                            const isWinCell = patternCells.has(key);
                             const colColor = COL_COLORS[COL_LABELS[ci]];
 
+                            // Layered styling: winning > called > uncalled
                             let bg = 'rgba(255,255,255,0.04)';
-                            let textColor = 'rgba(255,255,255,0.2)';
+                            let textColor = 'rgba(255,255,255,0.18)';
                             let shadow = 'none';
-                            let border = '1px solid rgba(255,255,255,0.07)';
+                            let border = '1px solid rgba(255,255,255,0.06)';
+                            let fontSize = '11px';
 
-                            if (isPatternCell) {
-                              bg = `${patternColor}ee`;
+                            if (isWinCell) {
+                              bg = `linear-gradient(135deg, ${patternColor}ff, ${patternColor}cc)`;
                               textColor = '#fff';
-                              shadow = `0 0 10px ${patternColor}cc, 0 0 3px ${patternColor}`;
-                              border = `1.5px solid ${patternColor}`;
+                              shadow = `0 0 12px ${patternColor}cc, 0 2px 4px rgba(0,0,0,0.5)`;
+                              border = `2px solid ${patternColor}`;
+                              fontSize = '12px';
                             } else if (called) {
-                              bg = `${colColor}28`;
+                              bg = `${colColor}22`;
                               textColor = colColor;
-                              shadow = `0 0 4px ${colColor}44`;
-                              border = `1px solid ${colColor}55`;
+                              shadow = `0 0 5px ${colColor}44`;
+                              border = `1px solid ${colColor}44`;
                             }
 
                             return (
                               <motion.div
                                 key={key}
-                                initial={{ opacity: 0, scale: 0.7 }}
-                                animate={isPatternCell
-                                  ? { opacity: 1, scale: [1, 1.1, 1] }
+                                initial={{ opacity: 0, scale: 0.6 }}
+                                animate={isWinCell
+                                  ? { opacity: 1, scale: [1, 1.12, 1], boxShadow: [`0 0 8px ${patternColor}66`, `0 0 20px ${patternColor}dd`, `0 0 8px ${patternColor}66`] }
                                   : { opacity: 1, scale: 1 }
                                 }
-                                transition={isPatternCell
-                                  ? { duration: 0.9, repeat: Infinity, repeatDelay: 1.2, delay: (ri + ci) * 0.03 }
-                                  : { delay: (ri * 5 + ci) * 0.02 }
+                                transition={isWinCell
+                                  ? { duration: 1.0, repeat: Infinity, repeatDelay: 0.8, delay: (ri * 5 + ci) * 0.04 }
+                                  : { delay: (ri * 5 + ci) * 0.015, duration: 0.3 }
                                 }
                                 style={{
                                   aspectRatio: '1',
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
-                                  fontSize: '11px',
+                                  fontSize,
                                   fontWeight: '900',
                                   background: bg,
                                   color: textColor,
-                                  borderRadius: '5px',
+                                  borderRadius: '6px',
                                   boxShadow: shadow,
                                   border,
+                                  position: 'relative',
                                 }}
                               >
-                                {isFree ? '★' : cell}
+                                {isFree ? (
+                                  <span style={{ fontSize: '14px', filter: isWinCell ? 'drop-shadow(0 0 4px #fff)' : 'none' }}>★</span>
+                                ) : cell}
+                                {isWinCell && (
+                                  <div style={{
+                                    position: 'absolute', inset: 0,
+                                    borderRadius: '6px',
+                                    background: `radial-gradient(circle at center, ${patternColor}33 0%, transparent 70%)`,
+                                    pointerEvents: 'none',
+                                  }} />
+                                )}
                               </motion.div>
                             );
                           })}
@@ -1573,18 +1644,18 @@ function GameContent() {
                     </div>
 
                     {/* Legend */}
-                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '7px', flexWrap: 'wrap' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: 'rgba(255,255,255,0.5)' }}>
-                        <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: patternColor, boxShadow: `0 0 5px ${patternColor}` }} />
-                        Winning cells
+                    <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginTop: '8px', flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: 'rgba(255,255,255,0.55)' }}>
+                        <div style={{ width: '11px', height: '11px', borderRadius: '3px', background: patternColor, boxShadow: `0 0 6px ${patternColor}` }} />
+                        Winning
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: 'rgba(255,255,255,0.5)' }}>
-                        <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: 'rgba(231,76,60,0.3)', border: '1px solid #E74C3C88' }} />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: 'rgba(255,255,255,0.55)' }}>
+                        <div style={{ width: '11px', height: '11px', borderRadius: '3px', background: 'rgba(231,76,60,0.25)', border: '1px solid #E74C3C77' }} />
                         Called
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: 'rgba(255,255,255,0.5)' }}>
-                        <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }} />
-                        Not called
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', color: 'rgba(255,255,255,0.55)' }}>
+                        <div style={{ width: '11px', height: '11px', borderRadius: '3px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }} />
+                        Uncalled
                       </div>
                     </div>
                   </div>
