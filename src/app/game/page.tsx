@@ -473,12 +473,17 @@ function GameContent() {
       const isCurrentUserWinner = !!myWinnerObj;
       const w = myWinnerObj || d.winners?.[0];
       const name = w?.user?.firstName || w?.user?.telegramUsername || 'Someone';
+      // Normalize card: backend sends { id, rows: [...] } or just the raw array
+      const rawCard = w?.card;
+      const cardRows = rawCard
+        ? (Array.isArray(rawCard) ? rawCard : (rawCard.rows ?? null))
+        : null;
       setGameFinished({
         winnerName: name,
         prize: w?.prizeAmount || 0,
         mode: w?.winMode || '',
         isWinner: !!w,
-        card: w?.card,
+        card: cardRows,   // store ONLY the rows array so rendering is always consistent
         isCurrentUserWinner,
       });
       // Start 5-second countdown then redirect to cartela selection
@@ -559,12 +564,17 @@ function GameContent() {
         const isCurrentUserWinner = !!myWinnerObj;
         const w = myWinnerObj || winners[0];
         const name = w?.user?.firstName || w?.user?.telegramUsername || 'Someone';
+        // Normalize card from polling (comes via ticket.card relation)
+        const rawCard2 = w?.ticket?.card || w?.card;
+        const cardRows2 = rawCard2
+          ? (Array.isArray(rawCard2) ? rawCard2 : (rawCard2.rows ?? null))
+          : null;
         setGameFinished({
           winnerName: name,
           prize: w?.prizeAmount || 0,
           mode: w?.winMode || '',
           isWinner: !!w,
-          card: w?.ticket?.card || w?.card,
+          card: cardRows2,
           isCurrentUserWinner,
         });
         playStopAudio();
@@ -1397,12 +1407,20 @@ function GameContent() {
 
               {/* ── Winner's cartela — shown to ALL players ── */}
               {gameFinished.card && (() => {
+                // card is already normalized to a rows array when set via setGameFinished
                 const rawCard = gameFinished.card;
-                const rows: any[][] = Array.isArray(rawCard) ? rawCard : (rawCard.rows ?? rawCard);
-                if (!rows || rows.length !== 5) return null;
+                const rows: any[][] = Array.isArray(rawCard)
+                  ? rawCard
+                  : (rawCard as any).rows ?? rawCard;
+                if (!rows || !Array.isArray(rows) || rows.length === 0) return null;
+                // Pad to 5 rows if needed (defensive)
+                const safeRows = rows.slice(0, 5);
+                if (safeRows.length < 5 && !safeRows.every(r => Array.isArray(r))) return null;
 
-                const grid: number[][] = rows.map((row: any[]) =>
-                  row.map((cell: any) => (cell === 'FREE' || cell === 'free' || cell === null ? 0 : Number(cell)))
+                const grid: number[][] = safeRows.map((row: any[]) =>
+                  (Array.isArray(row) ? row : []).map((cell: any) =>
+                    (cell === 'FREE' || cell === 'free' || cell === null ? 0 : Number(cell))
+                  )
                 );
 
                 const calledSet = new Set(drawn);
