@@ -36,6 +36,8 @@ function SelectionContent() {
   const [isInitializing, setIsInitializing] = useState(true);
   // ── Live game state: true when the room has a RUNNING game and player is queued for next session
   const [isGameRunning, setIsGameRunning] = useState(false);
+  // Ref so the polling interval always reads the latest value without stale closures
+  const isGameRunningRef = useRef(false);
   const [liveGameDismissed, setLiveGameDismissed] = useState(false);
   const prevOccupied = useRef<number[]>([]);
   
@@ -54,6 +56,11 @@ function SelectionContent() {
   useEffect(() => {
     occupiedRef.current = occupied;
   }, [occupied]);
+
+  // Keep ref in sync with state so polling never reads a stale value
+  useEffect(() => {
+    isGameRunningRef.current = isGameRunning;
+  }, [isGameRunning]);
 
   // Clean up fakeOccupied if they overlap with selected, owned, or real occupied cards
   useEffect(() => {
@@ -361,17 +368,21 @@ function SelectionContent() {
 
   // ─── Poll every 2s: getOccupiedCards is the SINGLE source of truth for isGameRunning ───
   // This handles all cases: page refresh during game, missed socket events, etc.
+  // NOTE: isGameRunning is intentionally read via isGameRunningRef (not state) so this
+  // interval is stable and never torn down/recreated on every game-state change.
   useEffect(() => {
     const syncRunningState = () => {
       getOccupiedCards(roomType, activeGameId).then(res => {
         setIsInitializing(false);
         if (!res) return;
 
-        const wasRunning = isGameRunning;
+        // Always read from ref — never from stale closure
+        const wasRunning = isGameRunningRef.current;
         const nowRunning = !!res.isGameRunning;
 
         // Update isGameRunning based on authoritative server response
         if (nowRunning !== wasRunning) {
+          isGameRunningRef.current = nowRunning; // update ref immediately to prevent double-fires
           setIsGameRunning(nowRunning);
           if (!nowRunning && wasRunning) {
             // Game just finished — release the overlay
@@ -399,13 +410,15 @@ function SelectionContent() {
     syncRunningState();
 
     // Then poll every 2s continuously (covers WAITING, COUNTDOWN, RUNNING states)
+    // isGameRunning is NOT in deps — we use the ref so the interval never resets
     const poll = setInterval(() => {
       syncRunningState();
-      if (!isGameRunning) loadGameData(); // keep countdown/game data fresh when not running
+      if (!isGameRunningRef.current) loadGameData(); // keep countdown/game data fresh when not running
     }, 2000);
 
     return () => clearInterval(poll);
-  }, [roomType, activeGameId, isGameRunning, loadGameData, socket]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomType, activeGameId, loadGameData, socket]);
 
   // Lock body scroll when game is running (overlay is active)
   useEffect(() => {
