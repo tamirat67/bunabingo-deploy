@@ -175,10 +175,6 @@ function SelectionContent() {
       // ── Always sync isGameRunning from actual server game status ──
       if (g.status === 'RUNNING') {
         setIsGameRunning(true);
-      } else {
-        // WAITING, COUNTDOWN, READY, FINISHED — not "running" for our purposes
-        setIsGameRunning(false);
-        setLiveGameDismissed(true);
       }
       if (g.serverTime) {
         setServerOff(g.serverTime - Date.now());
@@ -370,10 +366,29 @@ function SelectionContent() {
   useEffect(() => {
     const status = game?.status;
     if (status !== 'WAITING' && status !== 'COUNTDOWN' && status !== 'RUNNING') return;
-    const intervalMs = status === 'RUNNING' ? 2500 : 1500;
-    const poll = setInterval(() => { loadGameData(); }, intervalMs);
+    
+    const intervalMs = isGameRunning ? 2500 : 1500;
+    const poll = setInterval(() => { 
+      loadGameData(); 
+      
+      // If the room has a live game, poll getOccupiedCards to know when it finishes
+      // (fallback in case socket event 'game-finished' is missed)
+      if (isGameRunning) {
+        getOccupiedCards(roomType, activeGameId).then(res => {
+          if (res && !res.isGameRunning) {
+             setIsGameRunning(false);
+             setLiveGameDismissed(true);
+             if (res.gameId && res.gameId !== activeGameId) {
+               setActiveGameId(res.gameId);
+               if (socket) socket.emit('join-game', res.gameId);
+             }
+          }
+        }).catch(() => {});
+      }
+    }, intervalMs);
+    
     return () => clearInterval(poll);
-  }, [game?.status, loadGameData]);
+  }, [game?.status, loadGameData, isGameRunning, roomType, activeGameId, socket]);
 
   const toggleSelect = (num: number) => {
     // 1. If the card is owned/occupied by another player
