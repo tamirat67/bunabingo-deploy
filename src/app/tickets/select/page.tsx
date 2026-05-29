@@ -427,8 +427,6 @@ function SelectionContent() {
 
   const toggleSelect = (num: number) => {
     if (isInitializing) return;
-    // When game is running, only block SELECTING NEW cards — don't block deselecting owned cards
-    if (isGameRunning && !ownedCardIds.includes(num)) return;
     
     // 1. If the card is owned/occupied by another player
     if (occupied.includes(num) || fakeOccupied.includes(num)) {
@@ -490,26 +488,6 @@ function SelectionContent() {
 
   const handleStart = async () => {
     if (isInitializing || selected.length === 0 || joining) return;
-
-    // ── If game is RUNNING: only allow entering for players who ALREADY have tickets ──
-    // New ticket purchases are blocked mid-game, but watching the live game is allowed.
-    if (isGameRunning) {
-      if (ownedCardIds.length > 0) {
-        // Player has tickets — send them straight into the live game room
-        if (roomType.startsWith('SPIN_')) router.push(`/play/spin?id=${activeGameId}&stake=${stake}`);
-        else router.push(`/game?id=${activeGameId}&type=${roomType}&price=${stake}`);
-      } else {
-        // No tickets — block purchase mid-game
-        setModal({
-          isOpen: true,
-          title: '🔴 Game In Progress!',
-          message: 'ጨዋታው እየተካሄደ ነው። አዲስ ካርቴላ መሸጥ ቆሟል። ጨዋታው ሲጨርስ ይቀላቀሉ! — A bingo game is live. Ticket sales are paused. Join the next round!',
-          type: 'info',
-        });
-      }
-      return;
-    }
-
     setJoining(true);
 
     const newCardsToBuy = selected.filter(id => !ownedCardIds.includes(id));
@@ -1097,7 +1075,7 @@ function SelectionContent() {
           </button>
           <button
             className={`btn-start-game ${selected.length > 0 && !isInitializing ? 'active' : ''}`}
-            disabled={selected.length === 0 || joining || isInitializing || (isGameRunning && ownedCardIds.length === 0)}
+            disabled={selected.length === 0 || joining || isInitializing}
             onClick={handleStart}
             style={isInitializing ? { background: '#555', borderBottomColor: '#333', opacity: 0.6, cursor: 'not-allowed' } : undefined}
           >
@@ -1105,7 +1083,6 @@ function SelectionContent() {
               if (joining) return 'CONFIRMING...';
               if (isInitializing) return 'LOADING...';
               if (isGameRunning && ownedCardIds.length > 0) return '🎮 ENTER LIVE GAME';
-              if (isGameRunning) return '🔴 GAME LIVE — WAIT';
               const isSelectionChanged = selected.length !== ownedCardIds.length || selected.some(id => !ownedCardIds.includes(id));
               if (isSelectionChanged) return ownedCardIds.length > 0 ? 'CONFIRM SELECTION' : 'START GAME';
               return ownedCardIds.length > 0 ? 'ENTER GAME ROOM' : 'START GAME';
