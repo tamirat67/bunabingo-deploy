@@ -674,6 +674,15 @@ async function checkAllTickets(gameId: string, drawnNumbers: number[]): Promise<
                await finishGame(gameId, `House Bot Bingo claimed: ${result.modes[0]}`);
              } catch (err) {
                logger.error(`[Game ${gameId}] Bot auto-claim failed:`, err);
+               // If bot claim fails, we MUST resume the draw interval so the game doesn't freeze
+               const currentState = activeGames.get(gameId);
+               if (currentState && !currentState.drawInterval) {
+                 const gameCheck = await prisma.game.findUnique({ where: { id: gameId } });
+                 if (gameCheck?.status === 'RUNNING') {
+                   currentState.drawInterval = setInterval(() => drawNumber(gameId), config.game.drawIntervalMs);
+                   logger.info(`[Game ${gameId}] Resumed interval after bot claim failure.`);
+                 }
+               }
              }
            }, delayMs);
            
@@ -694,80 +703,83 @@ export async function claimBingoWin(gameId: string, userId: string): Promise<{ w
     logger.info(`[Game ${gameId}] Claim initiated by user ${userId}. Paused ball drawing.`);
   }
 
-  // Use a targeted query to get game and user tickets in one go if possible, or just optimize the game fetch
-  const game = await prisma.game.findUnique({
-    where: { id: gameId },
-    include: { 
-      drawHistory: { select: { number: true } }, 
-      room: { select: { ticketPrice: true } },
-      winners: { select: { winMode: true } }
+  try {
+    // Use a targeted query to get game and user tickets in one go if possible, or just optimize the game fetch
+    const game = await prisma.game.findUnique({
+      where: { id: gameId },
+      include: { 
+        drawHistory: { select: { number: true } }, 
+        room: { select: { ticketPrice: true } },
+        winners: { select: { winMode: true } }
+      }
+    });
+
+    if (!game || game.status !== 'RUNNING') {
+      return { won: false, error: 'Game is not running or already finished' };
     }
-  });
 
-  if (!game || game.status !== GameStatus.RUNNING) {
-    return { won: false, error: 'Game is not running or already finished' };
-  }
-
-  // Guard: minimum balls must be drawn before any real player can claim
-  const drawnCount = await prisma.drawHistory.count({ where: { gameId } });
-  if (drawnCount < config.game.minBallsBeforeWin) {
-    // Resume the draw interval if we paused it
-    if (state && !state.drawInterval && oldInterval) {
-      state.drawInterval = setInterval(() => drawNumber(gameId), config.game.drawIntervalMs);
+    // Guard: minimum balls must be drawn before any real player can claim
+    const drawnCount = await prisma.drawHistory.count({ where: { gameId } });
+    if (drawnCount < config.game.minBallsBeforeWin) {
+      return { won: false, error: `Game just started — wait for more balls! (${drawnCount}/${config.game.minBallsBeforeWin} minimum)` };
     }
-    return { won: false, error: `Game just started — wait for more balls! (${drawnCount}/${config.game.minBallsBeforeWin} minimum)` };
-  }
 
-  const tickets = await prisma.ticket.findMany({
-    where: { gameId, userId },
-    select: { id: true, card: true }
-  });
+    const tickets = await prisma.ticket.findMany({
+      where: { gameId, userId },
+      select: { id: true, card: true }
+    });
 
-  const drawnNumbers = game.drawHistory.map(d => d.number);
-  const existingWinModes = new Set(game.winners.map(w => w.winMode));
+    const drawnNumbers = game.drawHistory.map(d => d.number);
+    const existingWinModes = new Set(game.winners.map(w => w.winMode));
 
-  let eligibleClaim: { ticketId: string, mode: any } | null = null;
-  const priority = ['FULL_HOUSE', 'FOUR_CORNERS', 'DIAGONAL', 'COLUMN', 'ROW'] as const;
+    let eligibleClaim: { ticketId: string, mode: any } | null = null;
+    const priority = ['FULL_HOUSE', 'FOUR_CORNERS', 'DIAGONAL', 'COLUMN', 'ROW'] as const;
 
-  for (const ticket of tickets) {
-    const cardData = ticket.card as any;
-    const rows = Array.isArray(cardData) ? cardData : cardData.rows;
-    const result = checkWin(rows as BingoCard, drawnNumbers);
+    for (const ticket of tickets) {
+      const cardData = ticket.card as any;
+      const rows = Array.isArray(cardData) ? cardData : cardData.rows;
+      const result = checkWin(rows as BingoCard, drawnNumbers);
 
-    if (result.won) {
-      for (const mode of priority) {
-        if (result.modes.includes(mode as any) && !existingWinModes.has(mode as any)) {
-          eligibleClaim = { ticketId: ticket.id, mode: mode as any };
-          break;
+      if (result.won) {
+        for (const mode of priority) {
+          if (result.modes.includes(mode as any) && !existingWinModes.has(mode as any)) {
+            eligibleClaim = { ticketId: ticket.id, mode: mode as any };
+            break;
+          }
         }
       }
+      if (eligibleClaim) break;
     }
-    if (eligibleClaim) break;
-  }
 
-  if (eligibleClaim) {
-    const { mode, ticketId } = eligibleClaim;
-    
-    // Process everything fast!
-    await processWinner(gameId, userId, ticketId, mode, drawnNumbers);
-    
-    // Finalize game
-    await finishGame(gameId, `Bingo claimed: ${mode}`);
-    
-    const prizeAmount = new Decimal(game.totalPrize);
-    return { won: true, mode, prize: Number(prizeAmount) };
-  }
+    if (eligibleClaim) {
+      const { mode, ticketId } = eligibleClaim;
+      
+      // Process everything fast!
+      await processWinner(gameId, userId, ticketId, mode, drawnNumbers);
+      
+      // Finalize game
+      await finishGame(gameId, `Bingo claimed: ${mode}`);
+      
+      const prizeAmount = new Decimal(game.totalPrize);
+      return { won: true, mode, prize: Number(prizeAmount) };
+    }
 
-  // If claim was invalid, resume the draw loop
-  if (state && !state.drawInterval && oldInterval) {
-    state.drawInterval = setInterval(() => drawNumber(gameId), config.game.drawIntervalMs);
-    logger.info(`[Game ${gameId}] Claim validation failed for user ${userId}. Resumed ball drawing.`);
-  }
+    return { 
+      won: false, 
+      error: 'No valid Bingo detected yet! Check your patterns or wait for more balls.' 
+    };
 
-  return { 
-    won: false, 
-    error: 'No valid Bingo detected yet! Check your patterns or wait for more balls.' 
-  };
+  } finally {
+    // ALWAYS attempt to resume the draw loop if the game wasn't successfully finished
+    if (state && !state.drawInterval && oldInterval) {
+      // Check the DB to see if the game is actually still running
+      const gameCheck = await prisma.game.findUnique({ where: { id: gameId }, select: { status: true } });
+      if (gameCheck?.status === 'RUNNING' && !state.drawInterval) {
+        state.drawInterval = setInterval(() => drawNumber(gameId), config.game.drawIntervalMs);
+        logger.info(`[Game ${gameId}] Restored draw interval from finally block.`);
+      }
+    }
+  }
 }
 
 async function calculatePrize(game: any, winMode: string): Promise<Decimal> {
