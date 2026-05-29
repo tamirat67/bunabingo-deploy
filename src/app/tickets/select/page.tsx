@@ -361,10 +361,15 @@ function SelectionContent() {
     }
   }, [game?.status]);
 
-  // ─── Poll game status while WAITING so we never miss the auto-launch ─────────
+  // ─── Poll game status for WAITING, COUNTDOWN, and RUNNING ─────────────────
+  // WAITING/COUNTDOWN: 1.5s poll to catch game-started event if socket missed.
+  // RUNNING: 2.5s poll to catch game-finished event if socket missed.
+  // This guarantees the lock/unlock of cartela selling is always accurate.
   useEffect(() => {
-    if (game?.status !== 'WAITING' && game?.status !== 'COUNTDOWN') return;
-    const poll = setInterval(() => { loadGameData(); }, 1500);
+    const status = game?.status;
+    if (status !== 'WAITING' && status !== 'COUNTDOWN' && status !== 'RUNNING') return;
+    const intervalMs = status === 'RUNNING' ? 2500 : 1500;
+    const poll = setInterval(() => { loadGameData(); }, intervalMs);
     return () => clearInterval(poll);
   }, [game?.status, loadGameData]);
 

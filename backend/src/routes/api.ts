@@ -455,7 +455,7 @@ router.post('/games/:gameId/leave', async (req: Request, res: Response) => {
 
 // ─── Get Occupied Cards for Room ────────────────────────────
 const occupiedCache = new Map<string, { data: any; timestamp: number }>();
-const OCCUPIED_CACHE_DURATION_MS = 1500; // 1.5 seconds cache
+const OCCUPIED_CACHE_DURATION_MS = 800; // 0.8 seconds cache — fast enough for real-time lock/unlock
 
 router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
   const { type } = req.params;
