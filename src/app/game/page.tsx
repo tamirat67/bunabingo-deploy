@@ -176,8 +176,9 @@ function GameContent() {
     if (nextBall) {
       console.log('[AudioQueue] Playing ball:', nextBall);
       lastDrawnRef.current = nextBall;
-      // ── Synchronize visual BIG BALL with the audio ──
+      // ── Synchronize visual BIG BALL and RECENT BALLS with the audio ──
       setLastBallFn(nextBall);
+      setCalledHistory(prev => prev.includes(nextBall) ? prev : [...prev, nextBall]);
       
       // Wait for ball audio to ACTUALLY finish before playing next
       playBallSound(nextBall, () => {
@@ -188,19 +189,10 @@ function GameContent() {
     } else {
       isPlayingQueueRef.current = false;
     }
-  }, [playBallSound]);
+  }, [playBallSound, setCalledHistory]);
 
   const queueBallSounds = useCallback((numbers: number[], setLastBallFn: (n: number) => void) => {
     if (isGameFinishedRef.current) return;
-
-    // 1. Update ONLY the cartela colors immediately so the board is always up to date
-    setCalledHistory(prev => {
-      const next = [...prev];
-      for (const n of numbers) {
-        if (!next.includes(n)) next.push(n);
-      }
-      return next;
-    });
 
     const currentQueue = audioQueueRef.current;
     // Avoid queueing any balls already in the queue or already played
