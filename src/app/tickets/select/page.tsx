@@ -974,10 +974,10 @@ function SelectionContent() {
                 zIndex: 10,
                 borderRadius: '12px',
                 background: isDark
-                  ? 'rgba(10, 4, 2, 0.88)'
-                  : 'rgba(240, 228, 210, 0.92)',
-                backdropFilter: 'blur(4px)',
-                WebkitBackdropFilter: 'blur(4px)',
+                  ? 'rgba(10, 4, 2, 0.82)'
+                  : 'rgba(240, 228, 210, 0.85)',
+                backdropFilter: 'blur(3px)',
+                WebkitBackdropFilter: 'blur(3px)',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
@@ -985,7 +985,7 @@ function SelectionContent() {
                 gap: '10px',
                 textAlign: 'center',
                 padding: '24px',
-                pointerEvents: 'all',
+                pointerEvents: 'none',  // purely visual — clicks pass through to cards
               }}
             >
               {/* Pulsing red dot */}
