@@ -953,86 +953,7 @@ function SelectionContent() {
           );
         })}
 
-        {/* ── GAME ONGOING MASK: transparent theme-aware overlay ── */}
-        <AnimatePresence>
-          {isGameRunning && (
-            <motion.div
-              key="ongoing-mask"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.5 }}
-              style={{
-                position: 'absolute',
-                inset: 0,
-                background: isDark ? 'rgba(10, 14, 30, 0.65)' : 'rgba(255, 255, 255, 0.65)',
-                backdropFilter: 'blur(3px)',
-                WebkitBackdropFilter: 'blur(3px)',
-                borderRadius: '12px',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'flex-start',
-                gap: '16px',
-                zIndex: 20,
-                textAlign: 'center',
-                padding: '80px 20px 32px',
-              }}
-            >
-              {/* Clock icon in circle */}
-              <div style={{
-                width: '64px',
-                height: '64px',
-                borderRadius: '50%',
-                background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
-                border: `1.5px solid ${isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)'}`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
-                <Clock size={28} color={isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.5)"} />
-              </div>
-
-              {/* Main Amharic message */}
-              <div style={{
-                color: isDark ? 'white' : '#2C3E50',
-                fontSize: '17px',
-                fontWeight: '900',
-                lineHeight: 1.4,
-                letterSpacing: '0.3px',
-              }}>
-                ጨዋታው በመካሄድ ላይ ነው...
-              </div>
-
-              {/* Sub message */}
-              <div style={{
-                color: isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)',
-                fontSize: '12px',
-                fontWeight: '700',
-                lineHeight: 1.5,
-                maxWidth: '220px',
-              }}>
-                እባኮትን ቀጣዩ ዙር እስኪጀምር ይጠብቁ!
-              </div>
-
-              {/* English sub-line */}
-              <motion.div
-                animate={{ opacity: [0.35, 0.7, 0.35] }}
-                transition={{ repeat: Infinity, duration: 2.5, ease: 'easeInOut' }}
-                style={{
-                  color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)',
-                  fontSize: '10px',
-                  fontWeight: '700',
-                  letterSpacing: '1px',
-                  textTransform: 'uppercase',
-                  marginTop: '4px',
-                }}
-              >
-                Game Currently Live — Wait for Next Round
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* Ongoing mask moved to full screen top-level placement below */}
       </div>
 
       <div style={{ height: '250px' }} />
@@ -1073,14 +994,15 @@ function SelectionContent() {
             <RefreshCw size={16} /> Refresh
           </button>
           <button
-            className={`btn-start-game ${selected.length > 0 && !isGameRunning ? 'active' : ''}`}
-            disabled={selected.length === 0 || joining || isGameRunning}
+            className={`btn-start-game ${selected.length > 0 && !isGameRunning && !isInitializing ? 'active' : ''}`}
+            disabled={selected.length === 0 || joining || isGameRunning || isInitializing}
             onClick={handleStart}
-            style={isGameRunning ? { background: '#555', borderBottomColor: '#333', opacity: 0.6, cursor: 'not-allowed' } : undefined}
+            style={(isGameRunning || isInitializing) ? { background: '#555', borderBottomColor: '#333', opacity: 0.6, cursor: 'not-allowed' } : undefined}
           >
             <Play size={16} fill="white" /> {(() => {
               if (joining) return 'CONFIRMING...';
               if (isGameRunning) return '🔴 GAME LIVE — WAIT';
+              if (isInitializing) return 'LOADING...';
               const isSelectionChanged = selected.length !== ownedCardIds.length || selected.some(id => !ownedCardIds.includes(id));
               if (isSelectionChanged) return ownedCardIds.length > 0 ? 'CONFIRM SELECTION' : 'START GAME';
               return ownedCardIds.length > 0 ? 'ENTER GAME ROOM' : 'START GAME';
@@ -1088,6 +1010,132 @@ function SelectionContent() {
           </button>
         </div>
       </div>
+
+      {/* ── FULL SCREEN GAME ONGOING MASK ── */}
+      <AnimatePresence>
+        {isGameRunning && (
+          <motion.div
+            key="ongoing-mask-fullscreen"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4 }}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: isDark ? 'rgba(10, 14, 30, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '20px',
+              zIndex: 99999,
+              textAlign: 'center',
+              padding: '24px',
+            }}
+          >
+            {/* Clock icon in circle */}
+            <div style={{
+              width: '64px',
+              height: '64px',
+              borderRadius: '50%',
+              background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+              border: `1.5px solid ${isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)'}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <Clock size={28} color={isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.5)"} />
+            </div>
+
+            {/* Main Amharic message */}
+            <div style={{
+              color: isDark ? 'white' : '#2C3E50',
+              fontSize: '18px',
+              fontWeight: '950',
+              lineHeight: 1.4,
+              letterSpacing: '0.3px',
+            }}>
+              ጨዋታው በመካሄድ ላይ ነው...
+            </div>
+
+            {/* Sub message */}
+            <div style={{
+              color: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.7)',
+              fontSize: '13px',
+              fontWeight: '700',
+              lineHeight: 1.5,
+              maxWidth: '240px',
+            }}>
+              እባኮትን ቀጣዩ ዙር እስኪጀምር ይጠብቁ!
+            </div>
+
+            {/* English sub-line */}
+            <motion.div
+              animate={{ opacity: [0.4, 0.8, 0.4] }}
+              transition={{ repeat: Infinity, duration: 2.5, ease: 'easeInOut' }}
+              style={{
+                color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)',
+                fontSize: '11px',
+                fontWeight: '700',
+                letterSpacing: '1px',
+                textTransform: 'uppercase',
+                marginTop: '4px',
+              }}
+            >
+              Game Currently Live — Wait for Next Round
+            </motion.div>
+
+            {/* Lobby / Refresh buttons inside the overlay */}
+            <div style={{ display: 'flex', gap: '12px', marginTop: '24px', width: '100%', maxWidth: '280px', justifyContent: 'center' }}>
+              <button
+                onClick={() => router.push('/')}
+                style={{
+                  flex: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  height: '42px',
+                  background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+                  color: isDark ? 'white' : '#2C3E50',
+                  border: `1px solid ${isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)'}`,
+                  borderRadius: '14px',
+                  fontWeight: '900',
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 10px rgba(0,0,0,0.05)'
+                }}
+              >
+                🏠 Lobby
+              </button>
+              <button
+                onClick={() => window.location.reload()}
+                style={{
+                  flex: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  height: '42px',
+                  background: '#00A8E8',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '14px',
+                  fontWeight: '900',
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 10px rgba(0,168,232,0.2)'
+                }}
+              >
+                <RefreshCw size={14} /> Refresh
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <BunaModal
         isOpen={modal.isOpen}
