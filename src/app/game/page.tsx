@@ -421,6 +421,9 @@ function GameContent() {
         setEndTime(d.endTime);
       }
       if (d.seconds === 0) {
+        // Game is starting now — clear countdown immediately so no ghost ticking
+        setCountdown(null);
+        setEndTime(null);
         playStartAudio();
         setTimeout(loadData, 300);
       }
@@ -429,12 +432,18 @@ function GameContent() {
     socket.on('countdown-tick', (d: any) => {
       setCountdown(d.secondsRemaining);
       if (d.secondsRemaining === 0) {
+        // Stop local endTime interval so it cannot ghost-tick after game starts
+        setEndTime(null);
         playStartAudio();
         setTimeout(loadData, 300);
       }
     });
 
     socket.on('game-started', () => {
+      // Clear countdown immediately — don't wait for async loadData() to finish
+      // This prevents the old countdown from ghost-ticking while game is already RUNNING
+      setCountdown(null);
+      setEndTime(null);
       loadData();
       playStartAudio();
     });
