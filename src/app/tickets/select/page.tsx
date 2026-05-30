@@ -713,23 +713,7 @@ function SelectionContent() {
 
         {/* Right — Countdown / Player Count */}
         <div style={{ textAlign: 'right', minWidth: '90px' }}>
-          {isGameRunning ? (
-            <>
-              <div style={{ color: '#FF7675', fontSize: '10px', fontWeight: '900', letterSpacing: '0.5px', marginBottom: '6px', textTransform: 'uppercase', animation: 'liveDot 1.5s infinite' }}>
-                🔴 LIVE GAME
-              </div>
-              <div style={{
-                fontSize: '14px',
-                fontWeight: '900',
-                color: '#FF7675',
-                textShadow: `0 0 12px rgba(255,118,117,0.6)`,
-                fontVariantNumeric: 'tabular-nums',
-                letterSpacing: '-0.5px'
-              }}>
-                IN PROGRESS
-              </div>
-            </>
-          ) : isLive ? (
+          {isLive ? (
             <>
               <div style={{
                 color: 'rgba(255,255,255,0.55)',
@@ -752,6 +736,22 @@ function SelectionContent() {
                 }}
               >
                 {formatCountdown(countdown!)}
+              </div>
+            </>
+          ) : isGameRunning ? (
+            <>
+              <div style={{ color: '#FF7675', fontSize: '10px', fontWeight: '900', letterSpacing: '0.5px', marginBottom: '6px', textTransform: 'uppercase', animation: 'liveDot 1.5s infinite' }}>
+                🔴 LIVE GAME
+              </div>
+              <div style={{
+                fontSize: '14px',
+                fontWeight: '900',
+                color: '#FF7675',
+                textShadow: `0 0 12px rgba(255,118,117,0.6)`,
+                fontVariantNumeric: 'tabular-nums',
+                letterSpacing: '-0.5px'
+              }}>
+                IN PROGRESS
               </div>
             </>
           ) : game?.status === 'WAITING' ? (
