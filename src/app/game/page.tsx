@@ -425,13 +425,16 @@ function GameContent() {
     });
 
     socket.on('countdown-tick', (d: any) => {
-      setCountdown(d.secondsRemaining);
       // Re-schedule start.mp3 on every tick using server endTime for cross-device accuracy
       if (d.endTime && d.serverTime) {
         const off = d.serverTime - Date.now();
+        setServerOff(off);
+        setEndTime(d.endTime);
         if (startAudioScheduled.current) clearTimeout(startAudioScheduled.current);
         const msUntilStart = Math.max(0, d.endTime - off - Date.now());
         startAudioScheduled.current = setTimeout(() => playStartAudio(), msUntilStart);
+      } else {
+        setCountdown(d.secondsRemaining);
       }
       if (d.secondsRemaining === 0) {
         // Stop local endTime interval so it cannot ghost-tick after game starts
@@ -524,14 +527,17 @@ function GameContent() {
     const timer = setInterval(() => {
       const now = Date.now() + serverOff;
       const rem = Math.max(0, Math.ceil((endTime - now) / 1000));
-      setCountdown(rem);
+      setCountdown((prev) => {
+        if (prev === rem) return prev;
+        return rem;
+      });
       if (rem <= 0) {
         // start.mp3 is now handled by the scheduled setTimeout in socket handlers
         // for precise cross-device synchronization — no playStartAudio() here
         setEndTime(null);
         setTimeout(loadData, 300);
       }
-    }, 1000);
+    }, 100);
     return () => clearInterval(timer);
   }, [endTime, serverOff, loadData, playStartAudio]);
 
