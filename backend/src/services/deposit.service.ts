@@ -69,8 +69,12 @@ export async function createDepositRequest(
         const verified = await verifyReceiptOnline(receiptUrl, deposit.txnId);
         if (verified) {
           logger.info(`[AutoDeposit] Background verified successfully! Auto-approving deposit #${deposit.id}`);
-          const adminId = 'ae913951-f2a1-40fd-bf4a-2cbd4b1811f0'; // System Admin
-          await approveDeposit(deposit.id, adminId);
+          const systemAdmin = await prisma.user.findFirst({ where: { role: { in: ['ADMIN', 'admin'] } } });
+          if (systemAdmin) {
+            await approveDeposit(deposit.id, systemAdmin.id);
+          } else {
+            logger.error(`[AutoDeposit] Cannot auto-approve deposit #${deposit.id} because no ADMIN user exists in the DB.`);
+          }
         }
       } catch (err) {
         logger.error(`[AutoDeposit] Background verifier failed for ${deposit.txnId}:`, err);

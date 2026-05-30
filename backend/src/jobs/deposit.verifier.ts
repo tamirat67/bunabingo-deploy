@@ -18,7 +18,12 @@ export async function processAutomatedDeposits() {
 
   if (pending.length === 0) return;
 
-  const adminId = 'ae913951-f2a1-40fd-bf4a-2cbd4b1811f0'; // System Admin
+  const systemAdmin = await prisma.user.findFirst({ where: { role: { in: ['ADMIN', 'admin'] } } });
+  if (!systemAdmin) {
+    logger.error('[AutoDeposit] No admin user found in database to act as auto-approver.');
+    return;
+  }
+  const adminId = systemAdmin.id;
 
   for (const d of pending) {
     try {
