@@ -464,7 +464,7 @@ function GameContent() {
       );
       const isCurrentUserWinner = !!myWinnerObj;
       const w = myWinnerObj || d.winners?.[0];
-      const name = w?.user?.firstName || w?.user?.telegramUsername || 'Someone';
+      const name = w ? (w.user?.firstName || w.user?.telegramUsername || 'Player') : 'NO WINNER';
       // Normalize card: backend sends { id, rows: [...] } or raw array
       let rawCard = w?.card;
       if (typeof rawCard === 'string') {
@@ -479,6 +479,7 @@ function GameContent() {
         prize: w?.prizeAmount || 0,
         mode: w?.winMode || '',
         isWinner: !!w,
+        hasAnyWinner: !!w,
         card: cardRows,
         cardNo,
         isCurrentUserWinner,
@@ -563,7 +564,7 @@ function GameContent() {
         );
         const isCurrentUserWinner = !!myWinnerObj;
         const w = myWinnerObj || winners[0];
-        const name = w?.user?.firstName || w?.user?.telegramUsername || 'Someone';
+        const name = w ? (w.user?.firstName || w.user?.telegramUsername || 'Player') : 'NO WINNER';
         // Normalize card from polling (comes via ticket.card relation)
         let rawCard2 = w?.ticket?.card || w?.card;
         if (typeof rawCard2 === 'string') {
@@ -578,6 +579,7 @@ function GameContent() {
           prize: w?.prizeAmount || 0,
           mode: w?.winMode || '',
           isWinner: !!w,
+          hasAnyWinner: !!w,
           card: cardRows2,
           cardNo: cardNo2,
           isCurrentUserWinner,
@@ -1349,16 +1351,23 @@ function GameContent() {
                     borderRadius: '10px', padding: '8px 14px', margin: '6px 0 4px',
                     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px'
                   }}>
-                    <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Winner</div>
-                    <div style={{ color: T.gold, fontWeight: '900', fontSize: '16px' }}>{gameFinished.winnerName}</div>
-                    {gameFinished.cardNo && (
+                    <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.5px', textTransform: 'uppercase' }}>{gameFinished.hasAnyWinner ? 'Winner' : 'Result'}</div>
+                    <div style={{ color: gameFinished.hasAnyWinner ? T.gold : '#aaa', fontWeight: '900', fontSize: '16px' }}>{gameFinished.winnerName}</div>
+                    {gameFinished.hasAnyWinner && gameFinished.cardNo && (
                       <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.55)' }}>
                         Cartela <span style={{ color: T.gold, fontWeight: '800' }}>#{gameFinished.cardNo}</span>
                       </div>
                     )}
-                    <div style={{ color: '#F59E0B', fontWeight: '900', fontSize: '15px', marginTop: '2px' }}>
-                      {Number(gameFinished.prize).toFixed(2)} ETB
-                    </div>
+                    {gameFinished.hasAnyWinner && (
+                      <div style={{ color: '#F59E0B', fontWeight: '900', fontSize: '15px', marginTop: '2px' }}>
+                        {Number(gameFinished.prize).toFixed(2)} ETB
+                      </div>
+                    )}
+                    {!gameFinished.hasAnyWinner && (
+                      <div style={{ color: '#E74C3C', fontWeight: '900', fontSize: '13px', marginTop: '4px' }}>
+                        HOUSE WINS
+                      </div>
+                    )}
                   </div>
                 </>
               )}
