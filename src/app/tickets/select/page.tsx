@@ -678,7 +678,7 @@ function SelectionContent() {
   };
 
   const isLive = countdown !== null && countdown > 0;
-  const urgencyColor = countdown !== null && countdown <= 10 ? '#E74C3C' : T.gold;
+  const urgencyColor = countdown !== null && countdown <= 5 ? '#E74C3C' : T.gold;
 
   return (
     <div className={`selection-container ${isVip ? 'vip-theme' : 'brown'} ${isSpin ? 'spin-theme' : ''}`}>
@@ -808,15 +808,15 @@ function SelectionContent() {
               </div>
               <div
                 style={{
-                  color: countdown! <= 10 ? '#E74C3C' : 'white',
+                  color: countdown! <= 5 ? '#E74C3C' : 'white',
                   fontSize: '24px',
                   fontWeight: '900',
                   fontVariantNumeric: 'tabular-nums',
                   letterSpacing: '-0.5px',
-                  textShadow: countdown! <= 10 ? '0 0 15px rgba(231,76,60,0.8)' : `0 0 12px ${T.gold}44`,
+                  textShadow: countdown! <= 5 ? '0 0 15px rgba(231,76,60,0.8)' : `0 0 12px ${T.gold}44`,
                 }}
               >
-                {formatCountdown(countdown!)}
+                {countdown}s
               </div>
             </>
           ) : isGameRunning ? (

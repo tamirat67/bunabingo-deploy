@@ -489,7 +489,7 @@ function GameContent() {
         });
       }, 1000);
       redirectTimerRef.current = setTimeout(() => {
-        router.push('/tickets/select');
+        router.push(`/tickets/select?type=${game?.room?.type || spType}&price=${stake}`);
       }, 5000);
     });
 
@@ -579,7 +579,7 @@ function GameContent() {
           });
         }, 1000);
         redirectTimerRef.current = setTimeout(() => {
-          router.push('/tickets/select');
+          router.push(`/tickets/select?type=${game?.room?.type || spType}&price=${stake}`);
         }, 5000);
       }
       return;
