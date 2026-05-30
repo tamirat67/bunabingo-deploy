@@ -151,7 +151,14 @@ export async function getRoomWithActiveGame(roomType: RoomType) {
     },
   });
 
-  activeRoomCache.set(roomType, { data: room, timestamp: now });
+  if (room && room.games.length > 0) {
+    activeRoomCache.set(roomType, { data: room, timestamp: now });
+  } else {
+    // DO NOT cache if no WAITING/COUNTDOWN games exist.
+    // Caching an empty state causes race conditions where multiple
+    // players instantly trigger duplicate createWaitingGame calls.
+    activeRoomCache.delete(roomType);
+  }
   return room;
 }
 
