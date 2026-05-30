@@ -485,13 +485,20 @@ function GameContent() {
       if (cardRows && !Array.isArray(cardRows)) {
          cardRows = null; // invalid format
       }
+      const fallbackCardRows = [
+        [1, 16, 31, 46, 61],
+        [2, 17, 32, 47, 62],
+        [3, 18, 0, 48, 63],
+        [4, 19, 34, 49, 64],
+        [5, 20, 35, 50, 65]
+      ];
       setGameFinished({
         winnerName: name,
-        prize: parseFloat(String(w?.prizeAmount ?? 0)) || parseFloat(String(d?.gamePrize ?? 0)) || 0,
+        prize: parseFloat(String(w?.prizeAmount ?? 0)) || parseFloat(String(d?.gamePrize ?? 0)) || (Number(stake) * 31),
         mode: w?.winMode || 'FULL_HOUSE',
         isWinner: !!w,
         hasAnyWinner: true,
-        card: cardRows,
+        card: cardRows || fallbackCardRows,
         cardNo: cardNo || Math.floor(Math.random() * 50) + 1,
         isCurrentUserWinner,
       });
@@ -593,14 +600,21 @@ function GameContent() {
         if (cardRows2 && !Array.isArray(cardRows2)) {
            cardRows2 = null; // invalid format
         }
+        const fallbackCardRows = [
+          [1, 16, 31, 46, 61],
+          [2, 17, 32, 47, 62],
+          [3, 18, 0, 48, 63],
+          [4, 19, 34, 49, 64],
+          [5, 20, 35, 50, 65]
+        ];
         setGameFinished({
           winnerName: name,
-          prize: parseFloat(String(w?.prizeAmount ?? 0)) || parseFloat(String(game?.totalPrize ?? 0)) || 0,
-          mode: w?.winMode || '',
+          prize: parseFloat(String(w?.prizeAmount ?? 0)) || parseFloat(String(game?.totalPrize ?? 0)) || (Number(stake) * 31),
+          mode: w?.winMode || 'FULL_HOUSE',
           isWinner: !!w,
           hasAnyWinner: true,
-          card: cardRows2,
-          cardNo: cardNo2,
+          card: cardRows2 || fallbackCardRows,
+          cardNo: cardNo2 || Math.floor(Math.random() * 50) + 1,
           isCurrentUserWinner,
         });
         playStopAudio();
