@@ -8,7 +8,7 @@ import { logger } from '../../lib/logger';
 
 // ─── Default fallback deposit accounts ────────────────────────────────────────
 const DEFAULT_DEPOSIT_ACCOUNTS = [
-  { name: 'Tame', phone: '+251911000000', last4: '0000' }
+  { name: 'Teme', phone: '0966129707', last4: '9707' }
 ];
 
 interface AgentProfile {
@@ -29,14 +29,14 @@ async function getAgentProfileForUser(userId: string): Promise<AgentProfile | nu
     const defaultAgent = await prisma.user.findFirst({ where: { telegramId: BigInt('5310030963') } });
     if (!defaultAgent) {
       return {
-        displayName: 'Admin',
-        contactPhone: '+251911000000',
+        displayName: 'Teme',
+        contactPhone: '0966129707',
         telegramUsername: 'tanga_dreams',
       };
     }
     return {
-      displayName: defaultAgent.firstName || defaultAgent.telegramUsername || 'Admin',
-      contactPhone: defaultAgent.phone || defaultAgent.phoneNumber || null,
+      displayName: defaultAgent.firstName || defaultAgent.telegramUsername || 'Teme',
+      contactPhone: defaultAgent.phone || defaultAgent.phoneNumber || '0966129707',
       telegramUsername: defaultAgent.telegramUsername || 'tanga_dreams',
     };
   }
@@ -84,9 +84,15 @@ async function getDepositAccountsForUser(userId: string) {
     } else if (defaultAgent && (defaultAgent.phone || defaultAgent.phoneNumber)) {
       const phone = defaultAgent.phone || defaultAgent.phoneNumber;
       depositPhones = [{
-        name: defaultAgent.firstName || defaultAgent.telegramUsername || 'Admin',
+        name: defaultAgent.firstName || defaultAgent.telegramUsername || 'Teme',
         phone: phone,
         last4: phone.slice(-4)
+      }];
+    } else {
+      depositPhones = [{
+        name: 'Teme',
+        phone: '0966129707',
+        last4: '9707'
       }];
     }
   }
