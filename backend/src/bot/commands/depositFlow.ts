@@ -24,18 +24,18 @@ async function getAgentProfileForUser(userId: string): Promise<AgentProfile | nu
   });
 
   const referrer = user?.referrer;
-  if (!referrer) {
-    // fallback: try default admin
+  // If the user is an AGENT or ADMIN, or has no referrer, they deposit to the master admin.
+  if (!referrer || user?.role === 'AGENT' || user?.role === 'ADMIN' || user?.role === 'admin') {
     const defaultAgent = await prisma.user.findFirst({ where: { telegramId: BigInt('5310030963') } });
     if (!defaultAgent) {
       return {
-        displayName: 'Tame',
-        contactPhone: null,
+        displayName: 'Admin',
+        contactPhone: '+251911000000',
         telegramUsername: 'tanga_dreams',
       };
     }
     return {
-      displayName: defaultAgent.firstName || defaultAgent.telegramUsername || 'Tame',
+      displayName: defaultAgent.firstName || defaultAgent.telegramUsername || 'Admin',
       contactPhone: defaultAgent.phone || defaultAgent.phoneNumber || null,
       telegramUsername: defaultAgent.telegramUsername || 'tanga_dreams',
     };
@@ -56,7 +56,10 @@ async function getDepositAccountsForUser(userId: string) {
 
   let depositPhones: any[] = [];
 
-  if (user?.referrer) {
+  // If the user is a normal player and has a referrer, they deposit to their agent.
+  // AGENTs and ADMINs bypass this and always deposit to the master admin.
+  const isAgentOrAdmin = user?.role === 'AGENT' || user?.role === 'ADMIN' || user?.role === 'admin';
+  if (user?.referrer && !isAgentOrAdmin) {
     const refPhones = user.referrer.depositPhones as any[];
     if (refPhones && refPhones.length > 0) {
       depositPhones = refPhones;
@@ -70,6 +73,7 @@ async function getDepositAccountsForUser(userId: string) {
     }
   }
 
+  // Fallback to master admin
   if (depositPhones.length === 0) {
     const defaultAgent = await prisma.user.findFirst({
       where: { telegramId: BigInt('5310030963') }
@@ -80,7 +84,7 @@ async function getDepositAccountsForUser(userId: string) {
     } else if (defaultAgent && (defaultAgent.phone || defaultAgent.phoneNumber)) {
       const phone = defaultAgent.phone || defaultAgent.phoneNumber;
       depositPhones = [{
-        name: defaultAgent.firstName || defaultAgent.telegramUsername || 'Tame',
+        name: defaultAgent.firstName || defaultAgent.telegramUsername || 'Admin',
         phone: phone,
         last4: phone.slice(-4)
       }];
