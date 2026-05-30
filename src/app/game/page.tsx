@@ -485,10 +485,11 @@ function GameContent() {
       if (cardRows && !Array.isArray(cardRows)) {
          cardRows = null; // invalid format
       }
-      // hasAnyWinner: always true (house bot wins if no real player wins)
-      const hasAnyWinner = true;
+      // hasAnyWinner: Only true if we actually received a winner from the backend
+      const hasAnyWinner = !!w;
+      
       setGameFinished({
-        winnerName: name,
+        winnerName: hasAnyWinner ? name : 'NO WINNER',
         prize: w?.prizeAmount || 0,
         mode: w?.winMode || '',
         isWinner: !!w,
