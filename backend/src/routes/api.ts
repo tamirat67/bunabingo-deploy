@@ -493,17 +493,33 @@ router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
     }
 
     // 2. Check if ANY game is currently running in this room
-    // Add failsafe: ignore games that have been stuck in RUNNING for more than 5 minutes
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    // Failsafe: a real bingo game lasts at most ~3 minutes — anything older is a ghost/stuck game
+    const threeMinutesAgo = new Date(Date.now() - 3 * 60 * 1000);
     const runningGame = await prisma.game.findFirst({
       where: { 
         roomId: room.id, 
         status: 'RUNNING',
-        startedAt: { gte: fiveMinutesAgo }
+        startedAt: { gte: threeMinutesAgo }
       }
     });
     if (runningGame) {
       isGameRunning = true;
+    } else {
+      // Auto-heal: find any ghost RUNNING game older than 3 minutes and force-finish it
+      const ghostGame = await prisma.game.findFirst({
+        where: { roomId: room.id, status: 'RUNNING', startedAt: { lt: threeMinutesAgo } }
+      });
+      if (ghostGame) {
+        await prisma.game.update({
+          where: { id: ghostGame.id },
+          data: { status: 'FINISHED', finishedAt: new Date() }
+        }).catch(() => {}); // silent — best effort
+        // Clear cache so the fix is visible immediately
+        for (const k of Array.from(occupiedCache.keys())) {
+          if (k.startsWith(type)) occupiedCache.delete(k);
+        }
+        logger.warn(`[OccupiedCards] Auto-healed ghost RUNNING game ${ghostGame.id} for room ${type}`);
+      }
     }
 
     // 3. Resolve the active/waiting game ID

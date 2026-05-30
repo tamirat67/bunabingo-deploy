@@ -80,45 +80,57 @@ function SelectionContent() {
               if (!res) return;
               const nowRunning = !!res.isGameRunning;
               if (!nowRunning) {
-                // Game ended — update state and unlock UI
+                // Game ended — unlock UI
                 isGameRunningRef.current = false;
                 setIsGameRunning(false);
                 setLiveGameDismissed(true);
                 setLiveGameSyncTimer(null);
                 if (liveGameSyncRef.current) clearInterval(liveGameSyncRef.current);
-                if (res.gameId) {
-                  setActiveGameId(res.gameId);
-                  loadGameData(res.gameId);
-                }
+                if (res.gameId) { setActiveGameId(res.gameId); loadGameData(res.gameId); }
                 if (res.occupiedIds) setOccupied(res.occupiedIds);
                 if (res.playerCount !== undefined) setPlayerCount(res.playerCount);
-                // Auto-redirect if player already has tickets in this game
                 if (ownedRef.current.length > 0 && res.gameId) {
                   router.push(`/game?id=${res.gameId}&type=${roomType}&price=${stake}`);
                 }
               } else {
-                // Game still running — reset counter for another 20s cycle
-                setLiveGameSyncTimer(20);
+                setLiveGameSyncTimer(20); // still running — reset cycle
               }
-            }).catch(() => {
-              // On error, just reset timer for another cycle
-              setLiveGameSyncTimer(20);
-            });
+            }).catch(() => { setLiveGameSyncTimer(20); });
             return 0;
           }
           return prev - 1;
         });
       }, 1000);
     } else {
-      // Game stopped — clear the sync timer
       if (liveGameSyncRef.current) clearInterval(liveGameSyncRef.current);
       setLiveGameSyncTimer(null);
     }
-    return () => {
-      if (liveGameSyncRef.current) clearInterval(liveGameSyncRef.current);
-    };
+    return () => { if (liveGameSyncRef.current) clearInterval(liveGameSyncRef.current); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isGameRunning]);
+
+  // ── Force-dismiss: re-poll server; unlock regardless if response says not running ──
+  const forceUnlockLiveGame = () => {
+    getOccupiedCards(roomType, activeGameId).then(res => {
+      const nowRunning = !!res?.isGameRunning;
+      // Unlock in all cases — player shouldn't be permanently stuck
+      isGameRunningRef.current = false;
+      setIsGameRunning(false);
+      setLiveGameDismissed(true);
+      setLiveGameSyncTimer(null);
+      if (liveGameSyncRef.current) clearInterval(liveGameSyncRef.current);
+      if (res?.gameId) { setActiveGameId(res.gameId); loadGameData(res.gameId); }
+      if (res?.occupiedIds) setOccupied(res.occupiedIds);
+      if (res?.playerCount !== undefined) setPlayerCount(res.playerCount);
+    }).catch(() => {
+      // Even on error — unlock locally so player is never permanently stuck
+      isGameRunningRef.current = false;
+      setIsGameRunning(false);
+      setLiveGameDismissed(true);
+      setLiveGameSyncTimer(null);
+      if (liveGameSyncRef.current) clearInterval(liveGameSyncRef.current);
+    });
+  };
 
   // Clean up fakeOccupied if they overlap with selected, owned, or real occupied cards
   useEffect(() => {
@@ -808,24 +820,36 @@ function SelectionContent() {
               </div>
             </>
           ) : isGameRunning ? (
-            <>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px', position: 'relative' }}>
+              {/* Dismiss × — tapping re-polls server and unlocks UI */}
+              <button
+                onClick={forceUnlockLiveGame}
+                title="Tap to recheck & dismiss"
+                style={{
+                  position: 'absolute', top: '-4px', right: '-4px',
+                  background: 'rgba(255,118,117,0.18)', border: '1px solid rgba(255,118,117,0.35)',
+                  color: '#FF7675', borderRadius: '50%', width: '16px', height: '16px',
+                  fontSize: '9px', fontWeight: '900', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  lineHeight: 1, padding: 0,
+                }}
+              >×</button>
+
               <div style={{ color: '#FF7675', fontSize: '9px', fontWeight: '900', letterSpacing: '0.5px', marginBottom: '4px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <span style={{ animation: 'liveDot 1.2s infinite', display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: '#FF7675', boxShadow: '0 0 6px #FF7675' }} />
                 LIVE GAME
               </div>
+
               {liveGameSyncTimer !== null && liveGameSyncTimer > 0 ? (
                 <>
                   <div style={{
-                    fontSize: '28px',
-                    fontWeight: '900',
+                    fontSize: '28px', fontWeight: '900',
                     color: liveGameSyncTimer <= 5 ? '#E74C3C' : '#FF7675',
                     textShadow: liveGameSyncTimer <= 5
                       ? '0 0 20px rgba(231,76,60,0.9), 0 0 40px rgba(231,76,60,0.4)'
                       : '0 0 14px rgba(255,118,117,0.7)',
-                    fontVariantNumeric: 'tabular-nums',
-                    letterSpacing: '-1px',
-                    lineHeight: 1,
-                    transition: 'color 0.3s',
+                    fontVariantNumeric: 'tabular-nums', letterSpacing: '-1px',
+                    lineHeight: 1, transition: 'color 0.3s',
                   }}>
                     {liveGameSyncTimer}s
                   </div>
@@ -837,18 +861,12 @@ function SelectionContent() {
                 <motion.div
                   animate={{ opacity: [1, 0.3, 1] }}
                   transition={{ duration: 0.8, repeat: Infinity }}
-                  style={{
-                    fontSize: '12px',
-                    fontWeight: '900',
-                    color: '#FF7675',
-                    letterSpacing: '0.5px',
-                    textTransform: 'uppercase',
-                  }}
+                  style={{ fontSize: '12px', fontWeight: '900', color: '#FF7675', letterSpacing: '0.5px', textTransform: 'uppercase' }}
                 >
                   ⏳ SYNCING...
                 </motion.div>
               )}
-            </>
+            </div>
           ) : game?.status === 'WAITING' ? (
             <>
               <div style={{
