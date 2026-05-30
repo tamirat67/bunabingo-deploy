@@ -39,6 +39,9 @@ function SelectionContent() {
   // Ref so the polling interval always reads the latest value without stale closures
   const isGameRunningRef = useRef(false);
   const [liveGameDismissed, setLiveGameDismissed] = useState(false);
+  // ── Real-time 20→0s sync countdown shown while a live game is in progress
+  const [liveGameSyncTimer, setLiveGameSyncTimer] = useState<number | null>(null);
+  const liveGameSyncRef = useRef<any>(null);
   const prevOccupied = useRef<number[]>([]);
   
   const selectedRef = useRef<number[]>([]);
@@ -60,6 +63,61 @@ function SelectionContent() {
   // Keep ref in sync with state so polling never reads a stale value
   useEffect(() => {
     isGameRunningRef.current = isGameRunning;
+  }, [isGameRunning]);
+
+  // ── Real-time 20→0s countdown whenever a live game is detected ────────────
+  useEffect(() => {
+    if (isGameRunning) {
+      // Start / restart the 20s countdown
+      setLiveGameSyncTimer(20);
+      if (liveGameSyncRef.current) clearInterval(liveGameSyncRef.current);
+      liveGameSyncRef.current = setInterval(() => {
+        setLiveGameSyncTimer(prev => {
+          if (prev === null) return null;
+          if (prev <= 1) {
+            // Timer reached 0 — poll for game finish / next game
+            getOccupiedCards(roomType, activeGameId).then(res => {
+              if (!res) return;
+              const nowRunning = !!res.isGameRunning;
+              if (!nowRunning) {
+                // Game ended — update state and unlock UI
+                isGameRunningRef.current = false;
+                setIsGameRunning(false);
+                setLiveGameDismissed(true);
+                setLiveGameSyncTimer(null);
+                if (liveGameSyncRef.current) clearInterval(liveGameSyncRef.current);
+                if (res.gameId) {
+                  setActiveGameId(res.gameId);
+                  loadGameData(res.gameId);
+                }
+                if (res.occupiedIds) setOccupied(res.occupiedIds);
+                if (res.playerCount !== undefined) setPlayerCount(res.playerCount);
+                // Auto-redirect if player already has tickets in this game
+                if (ownedRef.current.length > 0 && res.gameId) {
+                  router.push(`/game?id=${res.gameId}&type=${roomType}&price=${stake}`);
+                }
+              } else {
+                // Game still running — reset counter for another 20s cycle
+                setLiveGameSyncTimer(20);
+              }
+            }).catch(() => {
+              // On error, just reset timer for another cycle
+              setLiveGameSyncTimer(20);
+            });
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      // Game stopped — clear the sync timer
+      if (liveGameSyncRef.current) clearInterval(liveGameSyncRef.current);
+      setLiveGameSyncTimer(null);
+    }
+    return () => {
+      if (liveGameSyncRef.current) clearInterval(liveGameSyncRef.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isGameRunning]);
 
   // Clean up fakeOccupied if they overlap with selected, owned, or real occupied cards
@@ -751,19 +809,45 @@ function SelectionContent() {
             </>
           ) : isGameRunning ? (
             <>
-              <div style={{ color: '#FF7675', fontSize: '10px', fontWeight: '900', letterSpacing: '0.5px', marginBottom: '6px', textTransform: 'uppercase', animation: 'liveDot 1.5s infinite' }}>
-                🔴 LIVE GAME
+              <div style={{ color: '#FF7675', fontSize: '9px', fontWeight: '900', letterSpacing: '0.5px', marginBottom: '4px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ animation: 'liveDot 1.2s infinite', display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: '#FF7675', boxShadow: '0 0 6px #FF7675' }} />
+                LIVE GAME
               </div>
-              <div style={{
-                fontSize: '14px',
-                fontWeight: '900',
-                color: '#FF7675',
-                textShadow: `0 0 12px rgba(255,118,117,0.6)`,
-                fontVariantNumeric: 'tabular-nums',
-                letterSpacing: '-0.5px'
-              }}>
-                IN PROGRESS
-              </div>
+              {liveGameSyncTimer !== null && liveGameSyncTimer > 0 ? (
+                <>
+                  <div style={{
+                    fontSize: '28px',
+                    fontWeight: '900',
+                    color: liveGameSyncTimer <= 5 ? '#E74C3C' : '#FF7675',
+                    textShadow: liveGameSyncTimer <= 5
+                      ? '0 0 20px rgba(231,76,60,0.9), 0 0 40px rgba(231,76,60,0.4)'
+                      : '0 0 14px rgba(255,118,117,0.7)',
+                    fontVariantNumeric: 'tabular-nums',
+                    letterSpacing: '-1px',
+                    lineHeight: 1,
+                    transition: 'color 0.3s',
+                  }}>
+                    {liveGameSyncTimer}s
+                  </div>
+                  <div style={{ fontSize: '8px', fontWeight: '700', color: 'rgba(255,118,117,0.55)', letterSpacing: '0.8px', marginTop: '2px', textTransform: 'uppercase' }}>
+                    NEXT CHECK
+                  </div>
+                </>
+              ) : (
+                <motion.div
+                  animate={{ opacity: [1, 0.3, 1] }}
+                  transition={{ duration: 0.8, repeat: Infinity }}
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: '900',
+                    color: '#FF7675',
+                    letterSpacing: '0.5px',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  ⏳ SYNCING...
+                </motion.div>
+              )}
             </>
           ) : game?.status === 'WAITING' ? (
             <>
