@@ -493,21 +493,21 @@ router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
     }
 
     // 2. Check if ANY game is currently running in this room
-    // Failsafe: a real bingo game lasts at most ~3 minutes — anything older is a ghost/stuck game
-    const threeMinutesAgo = new Date(Date.now() - 3 * 60 * 1000);
+    // Failsafe: a real bingo game lasts at most ~10 minutes — anything older is a ghost/stuck game
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
     const runningGame = await prisma.game.findFirst({
       where: { 
         roomId: room.id, 
         status: 'RUNNING',
-        startedAt: { gte: threeMinutesAgo }
+        startedAt: { gte: tenMinutesAgo }
       }
     });
     if (runningGame) {
       isGameRunning = true;
     } else {
-      // Auto-heal: find any ghost RUNNING game older than 3 minutes and force-finish it
+      // Auto-heal: find any ghost RUNNING game older than 10 minutes and force-finish it
       const ghostGame = await prisma.game.findFirst({
-        where: { roomId: room.id, status: 'RUNNING', startedAt: { lt: threeMinutesAgo } }
+        where: { roomId: room.id, status: 'RUNNING', startedAt: { lt: tenMinutesAgo } }
       });
       if (ghostGame) {
         await prisma.game.update({
