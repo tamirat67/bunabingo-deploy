@@ -490,7 +490,7 @@ function GameContent() {
       
       setGameFinished({
         winnerName: hasAnyWinner ? name : 'NO WINNER',
-        prize: w?.prizeAmount || 0,
+        prize: parseFloat(String(w?.prizeAmount ?? 0)) || parseFloat(String(d?.gamePrize ?? 0)) || 0,
         mode: w?.winMode || '',
         isWinner: !!w,
         hasAnyWinner,
@@ -598,7 +598,7 @@ function GameContent() {
         }
         setGameFinished({
           winnerName: name,
-          prize: w?.prizeAmount || 0,
+          prize: parseFloat(String(w?.prizeAmount ?? 0)) || parseFloat(String(game?.totalPrize ?? 0)) || 0,
           mode: w?.winMode || '',
           isWinner: !!w,
           hasAnyWinner: true,
@@ -1299,161 +1299,151 @@ function GameContent() {
       <AnimatePresence>
         {gameFinished && (
           <motion.div
+            key="game-finished-overlay"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            style={{ position: 'fixed', inset: 0, background: 'rgba(10,5,0,0.96)', zIndex: 5000, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', padding: '12px' }}
+            exit={{ opacity: 0 }}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(5,2,0,0.97)', zIndex: 5000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px', overflowY: 'auto' }}
           >
-            {/* Confetti stars */}
+            {/* Confetti — always visible */}
             {['🎉','⭐','🌟','✨','🎊','💫','🎉','⭐'].map((e, i) => (
               <motion.div key={i}
                 initial={{ y: -20, opacity: 0, x: (i - 4) * 40 }}
-                animate={{ y: [0, -60, 0], opacity: [0, 1, 0] }}
-                transition={{ delay: i * 0.15, duration: 1.5, repeat: Infinity, repeatDelay: 2 }}
-                style={{ position: 'absolute', top: '8%', fontSize: '24px', left: `${10 + i * 11}%`, pointerEvents: 'none' }}
+                animate={{ y: [0, -55, 0], opacity: [0, 1, 0] }}
+                transition={{ delay: i * 0.15, duration: 1.4, repeat: Infinity, repeatDelay: 2.5 }}
+                style={{ position: 'absolute', top: '4%', fontSize: '20px', left: `${8 + i * 11}%`, pointerEvents: 'none' }}
               >{e}</motion.div>
             ))}
 
             <motion.div
-              initial={{ scale: 0.4, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+              initial={{ scale: 0.3, opacity: 0, y: 40 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              transition={{ type: 'spring', stiffness: 230, damping: 18, delay: 0.08 }}
               style={{
-                background: `linear-gradient(160deg, ${T.card} 0%, #1a0f00 100%)`,
-                border: `3px solid ${T.gold}`,
-                borderRadius: '16px',
-                padding: '12px 10px',
+                background: 'linear-gradient(160deg, #1c1000 0%, #080400 100%)',
+                border: `2.5px solid ${gameFinished.isCurrentUserWinner ? T.gold : 'rgba(255,255,255,0.18)'}`,
+                borderRadius: '20px',
+                padding: '14px 12px 12px',
                 textAlign: 'center',
-                maxWidth: '300px',
-                width: '95%',
-                boxShadow: `0 0 40px ${T.gold}55`,
+                maxWidth: '310px',
+                width: '97%',
+                boxShadow: `0 0 60px ${gameFinished.isCurrentUserWinner ? T.gold + '44' : 'rgba(0,0,0,0.8)'}`,
                 position: 'relative',
+                maxHeight: '94vh',
                 overflowY: 'auto',
-                maxHeight: '90vh',
                 margin: 'auto',
               }}
+              className="custom-scroll"
             >
-              <div style={{ fontSize: '32px', lineHeight: 1, marginBottom: '4px' }}>
+              {/* Top emoji */}
+              <motion.div
+                animate={gameFinished.isCurrentUserWinner
+                  ? { scale: [1, 1.18, 1], rotate: [0, -8, 8, 0] }
+                  : { scale: 1 }
+                }
+                transition={{ duration: 1.3, repeat: Infinity, repeatDelay: 1.5 }}
+                style={{ fontSize: '38px', lineHeight: 1, marginBottom: '3px' }}
+              >
                 {gameFinished.isCurrentUserWinner ? '🏆' : '🎯'}
-              </div>
-              {gameFinished.isCurrentUserWinner ? (
-                /* ══ WINNER view ══ */
-                <>
-                  <motion.h2
-                    animate={{ textShadow: [`0 0 10px ${T.gold}88`, `0 0 30px ${T.gold}ff`, `0 0 10px ${T.gold}88`] }}
-                    transition={{ duration: 1.5, repeat: Infinity }}
-                    style={{ color: T.gold, fontSize: '22px', fontWeight: '900', margin: '0 0 2px', textTransform: 'uppercase', letterSpacing: 2 }}
-                  >
-                    YOU WON! 🎊
-                  </motion.h2>
-                  <div style={{ color: '#2ECC71', fontSize: '11px', fontWeight: '700', marginBottom: '2px' }}>
-                    🎉 Congratulations! You are the winner!
+              </motion.div>
+
+              {/* Status header */}
+              <motion.div
+                animate={gameFinished.isCurrentUserWinner
+                  ? { textShadow: [`0 0 8px ${T.gold}44`, `0 0 28px ${T.gold}cc`, `0 0 8px ${T.gold}44`] }
+                  : {}
+                }
+                transition={{ duration: 1.5, repeat: Infinity }}
+                style={{
+                  fontSize: '16px', fontWeight: '900',
+                  color: gameFinished.isCurrentUserWinner ? T.gold : '#E74C3C',
+                  letterSpacing: '2.5px', textTransform: 'uppercase',
+                  marginBottom: '10px',
+                }}
+              >
+                {gameFinished.isCurrentUserWinner ? '🎉 YOU WON!' : 'GAME OVER'}
+              </motion.div>
+
+              {/* ── Compact winner info card ── */}
+              <div style={{
+                background: 'rgba(255,255,255,0.04)',
+                border: `1px solid ${T.gold}33`,
+                borderRadius: '12px',
+                padding: '8px 10px',
+                marginBottom: '8px',
+                display: 'grid',
+                gridTemplateColumns: '1fr auto',
+                gap: '8px',
+                alignItems: 'center',
+                textAlign: 'left',
+              }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.38)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '1px' }}>
+                    {gameFinished.hasAnyWinner ? (gameFinished.isCurrentUserWinner ? '✅ Winner' : '🏅 Winner') : 'Result'}
                   </div>
-                  <motion.div
-                    animate={{ scale: [1, 1.05, 1] }}
-                    transition={{ duration: 1.2, repeat: Infinity }}
-                    style={{ color: T.gold, fontSize: '26px', fontWeight: '900', margin: '2px 0 4px' }}
-                  >
-                    +{Number(gameFinished.prize).toFixed(2)} ETB
-                  </motion.div>
+                  <div style={{
+                    fontSize: '17px', fontWeight: '900',
+                    color: gameFinished.hasAnyWinner ? T.gold : '#aaa',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {gameFinished.winnerName}
+                  </div>
                   {gameFinished.cardNo && (
-                    <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', marginBottom: '4px' }}>
-                      Cartela <span style={{ color: T.gold, fontWeight: '900' }}>#{gameFinished.cardNo}</span>
+                    <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.45)', marginTop: '1px' }}>
+                      Cartela <span style={{ color: T.gold, fontWeight: '800' }}>#{gameFinished.cardNo}</span>
                     </div>
                   )}
-                </>
-              ) : (
-                /* ══ LOSER view ══ */
-                <>
-                  <h2 style={{ color: '#E74C3C', fontSize: '18px', fontWeight: '900', margin: '0 0 2px', textTransform: 'uppercase', letterSpacing: 1.5 }}>
-                    GAME OVER
-                  </h2>
-                  {/* Winner info box */}
-                  <div style={{
-                    background: 'rgba(255,255,255,0.06)', border: `1px solid ${T.gold}44`,
-                    borderRadius: '10px', padding: '8px 14px', margin: '6px 0 4px',
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px'
-                  }}>
-                    <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.5px', textTransform: 'uppercase' }}>{gameFinished.hasAnyWinner ? 'Winner' : 'Result'}</div>
-                    <div style={{ color: gameFinished.hasAnyWinner ? T.gold : '#aaa', fontWeight: '900', fontSize: '16px' }}>{gameFinished.winnerName}</div>
-                    {gameFinished.hasAnyWinner && gameFinished.cardNo && (
-                      <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.55)' }}>
-                        Cartela <span style={{ color: T.gold, fontWeight: '800' }}>#{gameFinished.cardNo}</span>
-                      </div>
-                    )}
-                    {gameFinished.hasAnyWinner && (
-                      <div style={{ color: '#F59E0B', fontWeight: '900', fontSize: '15px', marginTop: '2px' }}>
-                        {Number(gameFinished.prize).toFixed(2)} ETB
-                      </div>
-                    )}
-                    {!gameFinished.hasAnyWinner && (
-                      <div style={{ color: '#E74C3C', fontWeight: '900', fontSize: '13px', marginTop: '4px' }}>
-                        HOUSE WINS
-                      </div>
-                    )}
+                  {!gameFinished.hasAnyWinner && (
+                    <div style={{ color: '#E74C3C', fontWeight: '900', fontSize: '11px', marginTop: '2px' }}>HOUSE WINS</div>
+                  )}
+                </div>
+                {/* Prize — right column */}
+                {gameFinished.hasAnyWinner && (
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <div style={{ fontSize: '8px', color: 'rgba(255,255,255,0.38)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Prize</div>
+                    <motion.div
+                      animate={{ color: ['#F59E0B', '#FFD700', '#F59E0B'] }}
+                      transition={{ duration: 1.6, repeat: Infinity }}
+                      style={{ fontSize: '18px', fontWeight: '900', lineHeight: 1.1 }}
+                    >
+                      {Number(gameFinished.prize).toFixed(2)}
+                    </motion.div>
+                    <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.55)', fontWeight: '700', letterSpacing: '0.5px' }}>ETB</div>
                   </div>
-                </>
-              )}
+                )}
+              </div>
 
-                  {/* Pattern badge — shows specific row/column/diagonal */}
-                  {gameFinished.mode && gameFinished.card && (() => {
-                    const rawCard2 = gameFinished.card;
-                    const rows2: any[][] = Array.isArray(rawCard2) ? rawCard2 : (rawCard2.rows ?? rawCard2);
-                    const grid2: number[][] = rows2.map((row: any[]) =>
-                      row.map((cell: any) => (cell === 'FREE' || cell === 'free' || cell === null ? 0 : Number(cell)))
-                    );
-                    const calledSet2 = new Set(drawn);
-                    const isM2 = (r: number, c: number) => grid2[r][c] === 0 || calledSet2.has(grid2[r][c]);
-                    const COL_LBL = ['B','I','N','G','O'];
-                    const ROW_ORD = ['1st','2nd','3rd','4th','5th'];
-                    const mode = gameFinished.mode;
-
-                    // Compute specific pattern label
-                    let specificLabel = mode.replace(/_/g, ' ');
-                    let specificIcon = '🎯';
-                    let color = '#2ECC71';
-
-                    if (mode === 'FULL_HOUSE')   { specificLabel = 'FULL HOUSE';    specificIcon = '🃏'; color = '#FF6B35'; }
-                    else if (mode === 'FOUR_CORNERS') { specificLabel = 'FOUR CORNERS'; specificIcon = '🔷'; color = '#8B5CF6'; }
-                    else if (mode === 'DIAGONAL') {
-                      color = '#06B6D4';
-                      const main = [0,1,2,3,4].every(i => isM2(i, i));
-                      const anti = [0,1,2,3,4].every(i => isM2(i, 4-i));
-                      if (main && anti) { specificLabel = 'BOTH DIAGONALS ✕'; specificIcon = '✕'; }
-                      else if (main)    { specificLabel = 'MAIN DIAGONAL ↘';   specificIcon = '↘'; }
-                      else              { specificLabel = 'ANTI-DIAGONAL ↗';   specificIcon = '↗'; }
-                    } else if (mode === 'COLUMN') {
-                      color = '#10B981';
-                      for (let c = 0; c < 5; c++) {
-                        if ([0,1,2,3,4].every(r => isM2(r, c))) {
-                          specificLabel = `COLUMN ${c + 1} ▌`; specificIcon = '▌'; break;
-                        }
-                      }
-                    } else if (mode === 'ROW') {
-                      color = '#F59E0B';
-                      for (let r = 0; r < 5; r++) {
-                        if ([0,1,2,3,4].every(c => isM2(r, c))) {
-                          specificLabel = `ROW ${r + 1} ━`; specificIcon = '━'; break;
-                        }
-                      }
-                    }
-
-                    return (
-                      <motion.div
-                        animate={{ boxShadow: [`0 0 0px ${color}00`, `0 0 20px ${color}99`, `0 0 0px ${color}00`] }}
-                        transition={{ duration: 1.8, repeat: Infinity }}
-                        style={{
-                          display: 'inline-flex', alignItems: 'center', gap: '5px',
-                          background: `${color}22`, border: `1.5px solid ${color}99`,
-                          borderRadius: '16px', padding: '4px 12px', marginBottom: '8px',
-                          fontSize: '11px', fontWeight: '900', color: color,
-                          letterSpacing: '0.5px', textTransform: 'uppercase',
-                        }}
-                      >
-                        <span style={{ fontSize: '14px' }}>{specificIcon}</span>
-                        <span>{specificLabel}</span>
-                      </motion.div>
-                    );
-                  })()}
+              {/* Win mode badge */}
+              {gameFinished.mode && (() => {
+                const patternColors: Record<string, string> = {
+                  FULL_HOUSE: '#FF6B35', FOUR_CORNERS: '#8B5CF6',
+                  DIAGONAL: '#06B6D4', COLUMN: '#10B981', ROW: '#F59E0B',
+                };
+                const patternIcons: Record<string, string> = {
+                  FULL_HOUSE: '🃏', FOUR_CORNERS: '🔷', DIAGONAL: '✕', COLUMN: '▌', ROW: '━',
+                };
+                const patternLabels: Record<string, string> = {
+                  FULL_HOUSE: 'FULL HOUSE', FOUR_CORNERS: 'FOUR CORNERS',
+                  DIAGONAL: 'DIAGONAL', COLUMN: 'COLUMN', ROW: 'ROW',
+                };
+                const pc = patternColors[gameFinished.mode] || '#2ECC71';
+                return (
+                  <motion.div
+                    animate={{ boxShadow: [`0 0 0px ${pc}00`, `0 0 18px ${pc}99`, `0 0 0px ${pc}00`] }}
+                    transition={{ duration: 1.7, repeat: Infinity }}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '5px',
+                      background: `${pc}22`, border: `1.5px solid ${pc}88`,
+                      borderRadius: '20px', padding: '4px 14px', marginBottom: '8px',
+                      fontSize: '11px', fontWeight: '900', color: pc,
+                      letterSpacing: '1px', textTransform: 'uppercase',
+                    }}
+                  >
+                    <span>{patternIcons[gameFinished.mode] || '🎯'}</span>
+                    <span>{patternLabels[gameFinished.mode] || gameFinished.mode}</span>
+                  </motion.div>
+                );
+              })()}
 
 
 
@@ -1694,12 +1684,12 @@ function GameContent() {
                 );
               })()}
 
-              <div style={{ color: T.text, fontSize: '13px', marginBottom: '16px', opacity: 0.7 }}>
+              <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.42)', margin: '8px 0 6px' }}>
                 Redirecting in <span style={{ color: T.gold, fontWeight: '900' }}>{redirectSecs}s</span>...
               </div>
 
               {/* Action buttons */}
-              <div style={{ display: 'flex', gap: '10px' }}>
+              <div style={{ display: 'flex', gap: '8px' }}>
                 <button
                   onClick={() => {
                     clearTimeout(redirectTimerRef.current);
@@ -1710,7 +1700,7 @@ function GameContent() {
                     flex: 1,
                     background: `linear-gradient(135deg, ${T.gold}, #c47a1e)`,
                     color: '#1a0a00',
-                    padding: '14px 8px',
+                    padding: '13px 8px',
                     borderRadius: '14px',
                     fontWeight: '900',
                     fontSize: '13px',
@@ -1729,9 +1719,9 @@ function GameContent() {
                   }}
                   style={{
                     flex: 1,
-                    background: 'rgba(255,255,255,0.08)',
+                    background: 'rgba(255,255,255,0.07)',
                     color: T.header,
-                    padding: '14px 8px',
+                    padding: '13px 8px',
                     borderRadius: '14px',
                     fontWeight: '700',
                     fontSize: '13px',

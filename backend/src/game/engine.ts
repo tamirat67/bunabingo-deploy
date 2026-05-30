@@ -929,6 +929,13 @@ async function finishGame(gameId: string, reason: string): Promise<void> {
     data: { status: GameStatus.FINISHED, finishedAt: new Date() },
   });
 
+  // gameTotalPrize is the source-of-truth prize pool stored on the game record
+  const gameTotalPrize = parseFloat((updatedGame as any).totalPrize?.toString() ?? '0');
+
+  // Fetch game totalPrize separately (updatedGame may not include it if select was used)
+  const gameRecord = await prisma.game.findUnique({ where: { id: gameId }, select: { totalPrize: true } });
+  const safeTotalPrize = parseFloat(gameRecord?.totalPrize?.toString() ?? '0') || gameTotalPrize;
+
   const winners = await prisma.winner.findMany({
     where: { gameId },
     include: { 
@@ -939,23 +946,30 @@ async function finishGame(gameId: string, reason: string): Promise<void> {
 
   // Disguise bot winners as real players for public broadcast so they get announced on frontend
   const ETHIOPIAN_FALLBACKS = ['Abebe', 'Kebede', 'Selam', 'Tesfaye', 'Girma', 'Dawit', 'Bereket', 'Yonas'];
-  const publicWinners = winners.map((w, idx) => ({
-    id: w.id,
-    gameId: w.gameId,
-    userId: w.userId,
-    ticketId: w.ticketId,
-    winMode: w.winMode,
-    prizeAmount: Number(w.prizeAmount),
-    card: w.ticket?.card,
-    user: {
-      // Use the bot's real Ethiopian name from DB, fallback to rotating Ethiopian names
-      firstName: w.user?.firstName || ETHIOPIAN_FALLBACKS[idx % ETHIOPIAN_FALLBACKS.length],
-      telegramUsername: w.user?.telegramUsername || (w.user?.firstName || ETHIOPIAN_FALLBACKS[idx % ETHIOPIAN_FALLBACKS.length]).toLowerCase(),
-      isBot: false // Hide bot flag so frontend handles it exactly like a real winner
-    }
-  }));
+  const publicWinners = winners.map((w, idx) => {
+    // Prisma returns Decimal objects — use .toString() for reliable conversion
+    const winnerPrize = parseFloat(w.prizeAmount?.toString() ?? '0');
+    // Fall back to game-level totalPrize if winner record has 0 (race condition)
+    const resolvedPrize = winnerPrize > 0 ? winnerPrize : safeTotalPrize;
+    return {
+      id: w.id,
+      gameId: w.gameId,
+      userId: w.userId,
+      ticketId: w.ticketId,
+      winMode: w.winMode,
+      prizeAmount: resolvedPrize,
+      gamePrize: safeTotalPrize, // backup: always the correct pool amount
+      card: w.ticket?.card,
+      user: {
+        // Use the bot's real Ethiopian name from DB, fallback to rotating Ethiopian names
+        firstName: w.user?.firstName || ETHIOPIAN_FALLBACKS[idx % ETHIOPIAN_FALLBACKS.length],
+        telegramUsername: w.user?.telegramUsername || (w.user?.firstName || ETHIOPIAN_FALLBACKS[idx % ETHIOPIAN_FALLBACKS.length]).toLowerCase(),
+        isBot: false // Hide bot flag so frontend handles it exactly like a real winner
+      }
+    };
+  });
 
-  await triggerGameEvent(gameId, 'game-finished', { gameId, reason, winners: publicWinners });
+  await triggerGameEvent(gameId, 'game-finished', { gameId, reason, winners: publicWinners, gamePrize: safeTotalPrize });
   await triggerAdminEvent('game-finished', { gameId, reason });
   logger.info(`[Game ${gameId}] Finished: ${reason}`);
 
