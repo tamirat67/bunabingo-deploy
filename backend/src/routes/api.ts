@@ -578,6 +578,9 @@ router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
       roomId: room.id, 
       playerCount,
       isGameRunning,
+      // Provide the real server start-time so every client (polling or socket)
+      // anchors the 20s "NEXT CHECK" cycle to the same epoch ms.
+      gameStartedAt: isGameRunning && runningGame?.startedAt ? runningGame.startedAt.getTime() : undefined,
     };
 
     occupiedCache.set(cacheKey, { data: responseData, timestamp: now });

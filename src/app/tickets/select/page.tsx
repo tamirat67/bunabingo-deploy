@@ -39,8 +39,13 @@ function SelectionContent() {
   // Ref so the polling interval always reads the latest value without stale closures
   const isGameRunningRef = useRef(false);
   const [liveGameDismissed, setLiveGameDismissed] = useState(false);
-  // ── Real-time 20→0s sync countdown shown while a live game is in progress
+  // ── Server-time-anchored countdown for the LIVE GAME "NEXT CHECK" banner ──
+  // liveGameEndTime is the UTC epoch ms when the current 20s poll-cycle ends.
+  // Every device derives the display counter from the same epoch, so all
+  // screens stay perfectly in sync regardless of when they loaded.
   const [liveGameSyncTimer, setLiveGameSyncTimer] = useState<number | null>(null);
+  const [liveGameEndTime, setLiveGameEndTime] = useState<number | null>(null);
+  const liveGameEndTimeRef = useRef<number | null>(null);   // always-fresh ref for use inside intervals
   const liveGameSyncRef = useRef<any>(null);
   const prevOccupied = useRef<number[]>([]);
   
@@ -65,42 +70,74 @@ function SelectionContent() {
     isGameRunningRef.current = isGameRunning;
   }, [isGameRunning]);
 
-  // ── Real-time 20→0s countdown whenever a live game is detected ────────────
+  // Keep the liveGameEndTime ref in sync so the interval can always read the latest value
+  useEffect(() => { liveGameEndTimeRef.current = liveGameEndTime; }, [liveGameEndTime]);
+
+  // ── Server-time-anchored LIVE GAME countdown ─────────────────────────────────
+  // The interval reads liveGameEndTimeRef (the ref) every 500ms and derives the
+  // display value as Math.round((endTime - Date.now()) / 1000).  Because endTime
+  // is a fixed UTC epoch supplied by the server, ALL devices show the same number.
   useEffect(() => {
     if (isGameRunning) {
-      // Start / restart the 20s countdown
-      setLiveGameSyncTimer(20);
       if (liveGameSyncRef.current) clearInterval(liveGameSyncRef.current);
+
+      // If we have no server anchor yet, show a placeholder; the socket / poll will set it soon
+      if (liveGameEndTimeRef.current === null) setLiveGameSyncTimer(20);
+
       liveGameSyncRef.current = setInterval(() => {
-        setLiveGameSyncTimer(prev => {
-          if (prev === null) return null;
-          if (prev <= 1) {
-            // Timer reached 0 — poll for game finish / next game
-            getOccupiedCards(roomType, activeGameId).then(res => {
-              if (!res) return;
-              const nowRunning = !!res.isGameRunning;
-              if (!nowRunning) {
-                // Game ended — unlock UI
-                isGameRunningRef.current = false;
-                setIsGameRunning(false);
-                setLiveGameDismissed(true);
-                setLiveGameSyncTimer(null);
-                if (liveGameSyncRef.current) clearInterval(liveGameSyncRef.current);
-                if (res.gameId) { setActiveGameId(res.gameId); loadGameData(res.gameId); }
-                if (res.occupiedIds) setOccupied(res.occupiedIds);
-                if (res.playerCount !== undefined) setPlayerCount(res.playerCount);
-                if (ownedRef.current.length > 0 && res.gameId) {
-                  router.push(`/game?id=${res.gameId}&type=${roomType}&price=${stake}`);
-                }
-              } else {
-                setLiveGameSyncTimer(20); // still running — reset cycle
+        const endTime = liveGameEndTimeRef.current;
+        if (endTime === null) return; // wait for server anchor
+
+        const remaining = Math.max(0, Math.round((endTime - Date.now()) / 1000));
+        setLiveGameSyncTimer(remaining);
+
+        if (remaining <= 0) {
+          // Cycle expired — poll server to check if game finished
+          getOccupiedCards(roomType, activeGameId).then(res => {
+            if (!res) {
+              // Fallback: reset a fresh 20s cycle
+              const next = Date.now() + 20000;
+              liveGameEndTimeRef.current = next;
+              setLiveGameEndTime(next);
+              return;
+            }
+            const nowRunning = !!res.isGameRunning;
+            if (!nowRunning) {
+              // Game ended — unlock UI
+              isGameRunningRef.current = false;
+              setIsGameRunning(false);
+              setLiveGameDismissed(true);
+              setLiveGameSyncTimer(null);
+              liveGameEndTimeRef.current = null;
+              setLiveGameEndTime(null);
+              if (liveGameSyncRef.current) clearInterval(liveGameSyncRef.current);
+              if (res.gameId) { setActiveGameId(res.gameId); loadGameData(res.gameId); }
+              if (res.occupiedIds) setOccupied(res.occupiedIds);
+              if (res.playerCount !== undefined) setPlayerCount(res.playerCount);
+              if (ownedRef.current.length > 0 && res.gameId) {
+                router.push(`/game?id=${res.gameId}&type=${roomType}&price=${stake}`);
               }
-            }).catch(() => { setLiveGameSyncTimer(20); });
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+            } else {
+              // Still running — start the next 20s cycle, anchored to server's gameStartedAt if available
+              let next: number;
+              if (res.gameStartedAt) {
+                const cycleMs = 20000;
+                const elapsed = (Date.now() - res.gameStartedAt) % cycleMs;
+                next = Date.now() + (cycleMs - elapsed);
+              } else {
+                next = Date.now() + 20000;
+              }
+              liveGameEndTimeRef.current = next;
+              setLiveGameEndTime(next);
+            }
+          }).catch(() => {
+            // On error reset a fresh cycle so the timer doesn't stay at 0
+            const next = Date.now() + 20000;
+            liveGameEndTimeRef.current = next;
+            setLiveGameEndTime(next);
+          });
+        }
+      }, 500); // tick every 500 ms for a smooth display
     } else {
       if (liveGameSyncRef.current) clearInterval(liveGameSyncRef.current);
       setLiveGameSyncTimer(null);
@@ -118,6 +155,8 @@ function SelectionContent() {
       setIsGameRunning(false);
       setLiveGameDismissed(true);
       setLiveGameSyncTimer(null);
+      liveGameEndTimeRef.current = null;
+      setLiveGameEndTime(null);
       if (liveGameSyncRef.current) clearInterval(liveGameSyncRef.current);
       if (res?.gameId) { setActiveGameId(res.gameId); loadGameData(res.gameId); }
       if (res?.occupiedIds) setOccupied(res.occupiedIds);
@@ -128,6 +167,8 @@ function SelectionContent() {
       setIsGameRunning(false);
       setLiveGameDismissed(true);
       setLiveGameSyncTimer(null);
+      liveGameEndTimeRef.current = null;
+      setLiveGameEndTime(null);
       if (liveGameSyncRef.current) clearInterval(liveGameSyncRef.current);
     });
   };
@@ -375,6 +416,10 @@ function SelectionContent() {
         setGame((prev: any) => prev ? { ...prev, status: 'RUNNING' } : { status: 'RUNNING' });
         isGameRunningRef.current = true;
         setIsGameRunning(true);
+        // Anchor the 20s NEXT CHECK cycle to the real server timestamp
+        const endTime = (d.serverTime || Date.now()) + 20000;
+        liveGameEndTimeRef.current = endTime;
+        setLiveGameEndTime(endTime);
         // Automatically redirect to the game if the user has purchased tickets
         if (ownedRef.current.length > 0) {
           if (roomType.startsWith('SPIN_')) {
@@ -383,6 +428,20 @@ function SelectionContent() {
             router.push(`/game?id=${d.gameId || activeGameId}&type=${roomType}&price=${stake}`);
           }
         }
+      });
+
+      // ── Late-join sync: server tells us when the running game started ──────
+      // Allows a client that (re)loads mid-game to immediately show the correct
+      // remaining seconds instead of starting a fresh independent 20s clock.
+      socket.on('game-running-sync', (d: any) => {
+        isGameRunningRef.current = true;
+        setIsGameRunning(true);
+        setLiveGameDismissed(false);
+        const cycleMs = (d.cycleSeconds || 20) * 1000;
+        const elapsed = (Date.now() - (d.gameStartedAt || Date.now())) % cycleMs;
+        const endTime = Date.now() + (cycleMs - elapsed);
+        liveGameEndTimeRef.current = endTime;
+        setLiveGameEndTime(endTime);
       });
 
       socket.on('countdown-tick', (d: any) => {
@@ -400,20 +459,22 @@ function SelectionContent() {
       // ── When the RUNNING game finishes, this lobby wakes up as next game ──
       socket.on('game-finished', () => {
         setIsGameRunning(false);
+        isGameRunningRef.current = false;
         setLiveGameDismissed(true);
         setCountdown(null);
         setEndTime(null);
-        
+        setLiveGameSyncTimer(null);
+        liveGameEndTimeRef.current = null;
+        setLiveGameEndTime(null);
+
         getOccupiedCards(roomType, activeGameId).then(res => {
           if (res.gameId) {
             setActiveGameId(res.gameId);
-            loadGameData(res.gameId); // Force load the new waiting game data!
+            loadGameData(res.gameId);
             if (socket) socket.emit('join-game', res.gameId);
           }
           setOccupied(res.occupiedIds || []);
           setPlayerCount(res.playerCount || 0);
-          
-          // CRITICAL: Update owned card IDs for the new game!
           const myNewCardIds = res.myCardIds || [];
           setOwnedCardIds(myNewCardIds);
         }).catch(() => {});
@@ -426,6 +487,7 @@ function SelectionContent() {
         socket.off('countdown-start');
         socket.off('countdown-tick');
         socket.off('game-started');
+        socket.off('game-running-sync');
         socket.off('game-finished');
       }
     };
@@ -463,15 +525,28 @@ function SelectionContent() {
 
         // Update isGameRunning based on authoritative server response
         if (nowRunning !== wasRunning) {
-          isGameRunningRef.current = nowRunning; // update ref immediately to prevent double-fires
+          isGameRunningRef.current = nowRunning;
           setIsGameRunning(nowRunning);
           if (!nowRunning && wasRunning) {
-            // Game just finished — release the overlay
+            // Game just finished — clear timer and release overlay
             setLiveGameDismissed(true);
+            liveGameEndTimeRef.current = null;
+            setLiveGameEndTime(null);
           }
           if (nowRunning && !wasRunning) {
-            // Game just started — show the overlay
+            // Game just detected as running (page-refresh path) — anchor the 20s cycle
             setLiveGameDismissed(false);
+            const cycleMs = 20000;
+            const startedAt = (res as any).gameStartedAt;
+            let next: number;
+            if (startedAt) {
+              const elapsed = (Date.now() - startedAt) % cycleMs;
+              next = Date.now() + (cycleMs - elapsed);
+            } else {
+              next = Date.now() + cycleMs;
+            }
+            liveGameEndTimeRef.current = next;
+            setLiveGameEndTime(next);
           }
         }
 

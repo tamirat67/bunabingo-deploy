@@ -379,7 +379,7 @@ async function runGame(gameId: string): Promise<void> {
     activeGames.set(gameId, state);
   }
 
-  await triggerGameEvent(gameId, 'game-started', { gameId, playerCount: game.tickets.length, prizePool: displayPrizePool.toFixed(2) });
+  await triggerGameEvent(gameId, 'game-started', { gameId, playerCount: game.tickets.length, prizePool: displayPrizePool.toFixed(2), serverTime: Date.now() });
   logger.info(`[Game ${gameId}] Game RUNNING with ${ticketCount} tickets (real + bots). Prize pool: ${displayPrizePool} ETB (75% of all stakes)`);
 
   // ─── Load tickets + Rig Draw Sequence (House Bot System) ────────────────────

@@ -114,6 +114,31 @@ export function initSocket(server: HttpServer) {
     } catch (e) {
       logger.warn(`[Socket] Could not sync countdown state for game ${gameOrRoom}:`, e);
     }
+
+    // ── Sync RUNNING game start-time to late-joining clients ──────────────────
+    // If the game is already RUNNING, tell the client when it started so
+    // every device computes the exact same position inside the 20-second
+    // poll cycle — no more independent clocks drifting apart.
+    try {
+      const { default: prisma } = await import('./prisma');
+      const lookupId = resolvedGameId || gameOrRoom;
+      if (lookupId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(lookupId)) {
+        const game = await prisma.game.findUnique({
+          where: { id: lookupId },
+          select: { status: true, startedAt: true }
+        });
+        if (game?.status === 'RUNNING' && game.startedAt) {
+          socket.emit('game-running-sync', {
+            gameStartedAt: game.startedAt.getTime(),
+            serverTime: Date.now(),
+            cycleSeconds: 20,
+          });
+          logger.info(`[Socket] Sent game-running-sync to ${socket.id}, startedAt=${game.startedAt.toISOString()}`);
+        }
+      }
+    } catch (e) {
+      logger.warn(`[Socket] Could not sync running-game state for ${gameOrRoom}:`, e);
+    }
   });
 
 

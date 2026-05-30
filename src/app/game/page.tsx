@@ -471,14 +471,20 @@ function GameContent() {
         ? (w.user?.firstName || w.user?.telegramUsername || fallbackName)
         : fallbackName; // house bot won but wasn't tracked — show Ethiopian name
       // Normalize card: backend sends { id, rows: [...] } or raw array
-      let rawCard = w?.card;
+      let rawCard = w?.ticket?.card || w?.card;
       if (typeof rawCard === 'string') {
         try { rawCard = JSON.parse(rawCard); } catch(e) {}
       }
       const cardNo: number | undefined = rawCard?.id ?? undefined;
-      const cardRows = rawCard
+      let cardRows = rawCard
         ? (Array.isArray(rawCard) ? rawCard : (rawCard.rows ?? null))
         : null;
+      if (typeof cardRows === 'string') {
+        try { cardRows = JSON.parse(cardRows); } catch(e) {}
+      }
+      if (cardRows && !Array.isArray(cardRows)) {
+         cardRows = null; // invalid format
+      }
       // hasAnyWinner: always true (house bot wins if no real player wins)
       const hasAnyWinner = true;
       setGameFinished({
@@ -571,22 +577,30 @@ function GameContent() {
         );
         const isCurrentUserWinner = !!myWinnerObj;
         const w = myWinnerObj || winners[0];
-        const name = w ? (w.user?.firstName || w.user?.telegramUsername || 'Player') : 'NO WINNER';
+        const ETHIOPIAN_FALLBACKS = ['Abebe', 'Kebede', 'Selam', 'Tesfaye', 'Girma', 'Dawit', 'Bereket', 'Yonas'];
+        const fallbackName = ETHIOPIAN_FALLBACKS[Math.floor(Math.random() * ETHIOPIAN_FALLBACKS.length)];
+        const name = w ? (w.user?.firstName || w.user?.telegramUsername || fallbackName) : fallbackName;
         // Normalize card from polling (comes via ticket.card relation)
         let rawCard2 = w?.ticket?.card || w?.card;
         if (typeof rawCard2 === 'string') {
           try { rawCard2 = JSON.parse(rawCard2); } catch(e) {}
         }
         const cardNo2: number | undefined = rawCard2?.id ?? undefined;
-        const cardRows2 = rawCard2
+        let cardRows2 = rawCard2
           ? (Array.isArray(rawCard2) ? rawCard2 : (rawCard2.rows ?? null))
           : null;
+        if (typeof cardRows2 === 'string') {
+          try { cardRows2 = JSON.parse(cardRows2); } catch(e) {}
+        }
+        if (cardRows2 && !Array.isArray(cardRows2)) {
+           cardRows2 = null; // invalid format
+        }
         setGameFinished({
           winnerName: name,
           prize: w?.prizeAmount || 0,
           mode: w?.winMode || '',
           isWinner: !!w,
-          hasAnyWinner: !!w,
+          hasAnyWinner: true,
           card: cardRows2,
           cardNo: cardNo2,
           isCurrentUserWinner,
