@@ -827,16 +827,16 @@ function SelectionContent() {
                 title="Tap to recheck & dismiss"
                 style={{
                   position: 'absolute', top: '-4px', right: '-4px',
-                  background: 'rgba(255,118,117,0.18)', border: '1px solid rgba(255,118,117,0.35)',
-                  color: '#FF7675', borderRadius: '50%', width: '16px', height: '16px',
+                  background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.35)',
+                  color: 'white', borderRadius: '50%', width: '16px', height: '16px',
                   fontSize: '9px', fontWeight: '900', cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   lineHeight: 1, padding: 0,
                 }}
               >×</button>
 
-              <div style={{ color: '#FF7675', fontSize: '9px', fontWeight: '900', letterSpacing: '0.5px', marginBottom: '4px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <span style={{ animation: 'liveDot 1.2s infinite', display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: '#FF7675', boxShadow: '0 0 6px #FF7675' }} />
+              <div style={{ color: liveGameSyncTimer !== null && liveGameSyncTimer <= 5 ? '#E74C3C' : 'rgba(255,255,255,0.55)', fontSize: '9px', fontWeight: '900', letterSpacing: '0.5px', marginBottom: '4px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '4px', transition: 'color 0.3s' }}>
+                <span style={{ animation: 'liveDot 1.2s infinite', display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: liveGameSyncTimer !== null && liveGameSyncTimer <= 5 ? '#E74C3C' : 'white', boxShadow: liveGameSyncTimer !== null && liveGameSyncTimer <= 5 ? '0 0 6px #E74C3C' : '0 0 6px white', transition: 'all 0.3s' }} />
                 LIVE GAME
               </div>
 
@@ -844,16 +844,16 @@ function SelectionContent() {
                 <>
                   <div style={{
                     fontSize: '28px', fontWeight: '900',
-                    color: liveGameSyncTimer <= 5 ? '#E74C3C' : '#FF7675',
+                    color: liveGameSyncTimer <= 5 ? '#E74C3C' : 'white',
                     textShadow: liveGameSyncTimer <= 5
                       ? '0 0 20px rgba(231,76,60,0.9), 0 0 40px rgba(231,76,60,0.4)'
-                      : '0 0 14px rgba(255,118,117,0.7)',
+                      : `0 0 12px ${T.gold}44`,
                     fontVariantNumeric: 'tabular-nums', letterSpacing: '-1px',
                     lineHeight: 1, transition: 'color 0.3s',
                   }}>
                     {liveGameSyncTimer}s
                   </div>
-                  <div style={{ fontSize: '8px', fontWeight: '700', color: 'rgba(255,118,117,0.55)', letterSpacing: '0.8px', marginTop: '2px', textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: '8px', fontWeight: '700', color: liveGameSyncTimer <= 5 ? '#E74C3C' : 'rgba(255,255,255,0.55)', letterSpacing: '0.8px', marginTop: '2px', textTransform: 'uppercase', transition: 'color 0.3s' }}>
                     NEXT CHECK
                   </div>
                 </>
