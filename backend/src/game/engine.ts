@@ -671,7 +671,10 @@ async function checkAllTickets(gameId: string, drawnNumbers: number[]): Promise<
              }
 
              try {
-               await processWinner(gameId, ticket.userId, ticket.id, result.modes[0], drawnNumbers);
+               // Must get latest drawn numbers as they could have updated before the timeout
+               const latestState = activeGames.get(gameId);
+               const finalDrawn = latestState ? latestState.drawnNumbers : drawnNumbers;
+               await processWinner(gameId, ticket.userId, ticket.id, result.modes[0], finalDrawn);
                await finishGame(gameId, `House Bot Bingo claimed: ${result.modes[0]}`);
              } catch (err) {
                logger.error(`[Game ${gameId}] Bot auto-claim failed:`, err);
@@ -687,7 +690,9 @@ async function checkAllTickets(gameId: string, drawnNumbers: number[]): Promise<
              }
            }, delayMs);
            
-           return; // Stop checking further tickets for this draw
+           // We found a winning bot! Immediately stop checking other tickets for this draw cycle
+           // so that the first winning bot gets the claim process initiated.
+           return; 
         }
     }
   }
