@@ -405,10 +405,14 @@ function SelectionContent() {
       });
 
       socket.on('countdown-start', (d: any) => {
-        setCountdown(d.seconds);
         if (d.endTime && d.serverTime) {
-          setServerOff(d.serverTime - Date.now());
+          const offset = d.serverTime - Date.now();
+          setServerOff(offset);
           setEndTime(d.endTime);
+          const rem = Math.max(0, Math.ceil((d.endTime - Date.now() - offset) / 1000));
+          setCountdown(rem > 0 ? rem : null);
+        } else {
+          setCountdown(d.seconds);
         }
       });
 
@@ -446,8 +450,11 @@ function SelectionContent() {
 
       socket.on('countdown-tick', (d: any) => {
         if (d.endTime && d.serverTime) {
-          setServerOff(d.serverTime - Date.now());
+          const offset = d.serverTime - Date.now();
+          setServerOff(offset);
           setEndTime(d.endTime);
+          const rem = Math.max(0, Math.ceil((d.endTime - Date.now() - offset) / 1000));
+          setCountdown(rem > 0 ? rem : null);
         } else {
           setCountdown(d.secondsRemaining);
         }

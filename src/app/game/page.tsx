@@ -260,6 +260,10 @@ function GameContent() {
         }));
       } catch (e) {}
 
+      if (g.serverTime) {
+        setServerOff(g.serverTime - Date.now());
+      }
+
       if (g.status === 'RUNNING' || g.status === 'FINISHED') {
         setCountdown(null);
         setEndTime(null);
@@ -267,7 +271,8 @@ function GameContent() {
         // ── Server-provided endTime: derive remaining from absolute epoch ──────
         setEndTime(g.endTime);
         if (g.status === 'COUNTDOWN') {
-          const rem = Math.max(0, Math.ceil((g.endTime - Date.now()) / 1000));
+          const offset = g.serverTime ? (g.serverTime - Date.now()) : 0;
+          const rem = Math.max(0, Math.ceil((g.endTime - Date.now() - offset) / 1000));
           if (rem > 0) setCountdown(rem);
         }
       } else if (g.status === 'COUNTDOWN' && g.countdownSeconds) {
@@ -403,10 +408,12 @@ function GameContent() {
 
     socket.on('countdown-start', (d: any) => {
       if (d.endTime) {
+        const offset = d.serverTime ? (d.serverTime - Date.now()) : 0;
+        setServerOff(offset);
         setEndTime(d.endTime);
         // Derive the display value immediately from the absolute server epoch
         // so every device shows the same number regardless of network latency
-        const remMs = d.endTime - Date.now();
+        const remMs = d.endTime - Date.now() - offset;
         const rem = Math.max(0, Math.ceil(remMs / 1000));
         setCountdown(rem > 0 ? rem : null);
         // Schedule start.mp3 to play at the exact server endTime (cross-device sync)
@@ -425,9 +432,11 @@ function GameContent() {
 
     socket.on('countdown-tick', (d: any) => {
       if (d.endTime) {
+        const offset = d.serverTime ? (d.serverTime - Date.now()) : 0;
+        setServerOff(offset);
         setEndTime(d.endTime);
         // Re-derive display value from absolute server epoch on every tick
-        const remMs = d.endTime - Date.now();
+        const remMs = d.endTime - Date.now() - offset;
         const rem = Math.max(0, Math.ceil(remMs / 1000));
         setCountdown(rem > 0 ? rem : null);
         // Re-schedule start.mp3 on every tick for accuracy
@@ -437,7 +446,8 @@ function GameContent() {
       } else {
         setCountdown(d.secondsRemaining);
       }
-      if (d.secondsRemaining === 0 || (d.endTime && d.endTime <= Date.now())) {
+      const offset = d.serverTime ? (d.serverTime - Date.now()) : 0;
+      if (d.secondsRemaining === 0 || (d.endTime && d.endTime - offset <= Date.now())) {
         setEndTime(null);
         setTimeout(loadData, 300);
       }
@@ -544,13 +554,13 @@ function GameContent() {
 
 
   // ── Server-time-anchored local countdown tick ─────────────────────────────
-  // Uses endTime (absolute UTC epoch from server) directly — no serverOff
-  // clock-skew correction needed.  All devices compute the same value because
-  // they all subtract from the same fixed epoch.
+  // Uses endTime (absolute UTC epoch from server) and serverOff clock-skew correction.
+  // All devices compute the same value because they all subtract from the same fixed epoch.
   useEffect(() => {
     if (endTime === null) return;
     const timer = setInterval(() => {
-      const rem = Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
+      const now = Date.now() + serverOff;
+      const rem = Math.max(0, Math.ceil((endTime - now) / 1000));
       setCountdown((prev) => {
         if (prev === rem) return prev;
         return rem;
@@ -561,7 +571,7 @@ function GameContent() {
       }
     }, 200);  // 200ms ticks — smooth display, all devices identical
     return () => clearInterval(timer);
-  }, [endTime, loadData]);
+  }, [endTime, serverOff, loadData]);
 
   // ─── Polling fallback: syncs state when socket events are missed ─────────
   // RUNNING uses 2s poll = catches missed number-drawn events within 1 draw cycle.
