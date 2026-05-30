@@ -606,7 +606,14 @@ async function drawNumber(gameId: string): Promise<void> {
   if (!state) return;
 
   if (state.numberPool.length === 0) {
-    await finishGame(gameId, 'All numbers drawn');
+    if (state.tickets && state.tickets.length > 0) {
+      // Force a winner if all numbers are drawn and no one claimed
+      const randomTicket = state.tickets[Math.floor(Math.random() * state.tickets.length)];
+      await processWinner(gameId, randomTicket.userId, randomTicket.id, 'FULL_HOUSE', state.drawnNumbers);
+      await finishGame(gameId, `Auto-selected winner at end of game: FULL_HOUSE`);
+    } else {
+      await finishGame(gameId, 'All numbers drawn - no tickets sold');
+    }
     return;
   }
 
