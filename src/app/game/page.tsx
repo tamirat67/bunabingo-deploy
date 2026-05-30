@@ -466,7 +466,10 @@ function GameContent() {
       const w = myWinnerObj || d.winners?.[0];
       const name = w?.user?.firstName || w?.user?.telegramUsername || 'Someone';
       // Normalize card: backend sends { id, rows: [...] } or raw array
-      const rawCard = w?.card;
+      let rawCard = w?.card;
+      if (typeof rawCard === 'string') {
+        try { rawCard = JSON.parse(rawCard); } catch(e) {}
+      }
       const cardNo: number | undefined = rawCard?.id ?? undefined;
       const cardRows = rawCard
         ? (Array.isArray(rawCard) ? rawCard : (rawCard.rows ?? null))
@@ -562,7 +565,10 @@ function GameContent() {
         const w = myWinnerObj || winners[0];
         const name = w?.user?.firstName || w?.user?.telegramUsername || 'Someone';
         // Normalize card from polling (comes via ticket.card relation)
-        const rawCard2 = w?.ticket?.card || w?.card;
+        let rawCard2 = w?.ticket?.card || w?.card;
+        if (typeof rawCard2 === 'string') {
+          try { rawCard2 = JSON.parse(rawCard2); } catch(e) {}
+        }
         const cardNo2: number | undefined = rawCard2?.id ?? undefined;
         const cardRows2 = rawCard2
           ? (Array.isArray(rawCard2) ? rawCard2 : (rawCard2.rows ?? null))
