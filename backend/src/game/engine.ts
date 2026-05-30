@@ -40,9 +40,6 @@ const activeGames = new Map<string, ActiveGame>();
 // Tracks which games have already had bots injected (engine-level guard)
 const gamesWithBotsInjectedPublic = new Set<string>();
 
-// Tracks games currently being finished to prevent double-finish race conditions
-const gamesBeingFinished = new Set<string>();
-
 // ─── Number Pool ──────────────────────────────────────────────
 function buildNumberPool(): number[] {
   const pool = Array.from({ length: 75 }, (_, i) => i + 1);
@@ -611,23 +608,12 @@ async function drawNumber(gameId: string): Promise<void> {
   if (state.numberPool.length === 0) {
     if (state.tickets && state.tickets.length > 0) {
       // Force a winner if all numbers are drawn and no one claimed. Prefer house bots.
-      // Use both user.isBot (from include) and a fallback check for safety.
-      const botTickets = state.tickets.filter(t => t.user?.isBot === true);
+      const botTickets = state.tickets.filter(t => t.user?.isBot);
       const poolToPickFrom = botTickets.length > 0 ? botTickets : state.tickets;
       const randomTicket = poolToPickFrom[Math.floor(Math.random() * poolToPickFrom.length)];
-      logger.warn(`[Game ${gameId}] All 75 numbers drawn — forcing winner (bot pool: ${botTickets.length}/${state.tickets.length} tickets). Picking ticket ${randomTicket.id}`);
-      try {
-        await processWinner(gameId, randomTicket.userId, randomTicket.id, 'FULL_HOUSE', state.drawnNumbers);
-      } catch (e: any) {
-        // Ignore duplicate winner errors (may already have been recorded)
-        if (!e?.message?.includes('Unique') && !e?.message?.includes('unique')) {
-          logger.error(`[Game ${gameId}] Force-winner processWinner failed:`, e);
-        }
-      }
+      await processWinner(gameId, randomTicket.userId, randomTicket.id, 'FULL_HOUSE', state.drawnNumbers);
       await finishGame(gameId, `Auto-selected winner at end of game: FULL_HOUSE`);
     } else {
-      // No tickets at all — this should not happen in normal operation
-      logger.error(`[Game ${gameId}] All 75 numbers drawn but state.tickets is empty! Finishing with no winner.`);
       await finishGame(gameId, 'All numbers drawn - no tickets sold');
     }
     return;
@@ -675,7 +661,7 @@ async function checkAllTickets(gameId: string, drawnNumbers: number[]): Promise<
         }
         
         // Auto-claim for house bots
-        if (ticket.user?.isBot === true) {
+        if (ticket.user?.isBot) {
            // Clear draw interval immediately to pause drawings (simulates thinking/clicking claim)
            if (state?.drawInterval) {
              clearInterval(state.drawInterval);
@@ -687,21 +673,9 @@ async function checkAllTickets(gameId: string, drawnNumbers: number[]): Promise<
            
            setTimeout(async () => {
              // Check if game is still running (e.g. hasn't been finished/cancelled by a faster human claim)
-             const gameCheck = await prisma.game.findUnique({ where: { id: gameId } });
-             
-             if (!gameCheck || gameCheck.status === GameStatus.FINISHED || gameCheck.status === GameStatus.CANCELLED) {
-               // Game is already done — another winner claimed first. That's fine.
-               logger.info(`[Game ${gameId}] Bot claim skipped — game already ${gameCheck?.status ?? 'GONE'}`);
-               return;
-             }
-
-             if (gameCheck.status !== GameStatus.RUNNING) {
-               // Game is in an unexpected state (WAITING, COUNTDOWN?) — resume draw to unfreeze
-               logger.warn(`[Game ${gameId}] Bot claim cancelled — unexpected status ${gameCheck.status}. Resuming draw interval.`);
-               const currentState = activeGames.get(gameId);
-               if (currentState && !currentState.drawInterval) {
-                 currentState.drawInterval = setInterval(() => drawNumber(gameId), config.game.drawIntervalMs);
-               }
+             const game = await prisma.game.findUnique({ where: { id: gameId } });
+             if (!game || game.status !== GameStatus.RUNNING) {
+               logger.info(`[Game ${gameId}] Scheduled bot claim cancelled: Game status is ${game?.status ?? 'UNKNOWN'}`);
                return;
              }
 
@@ -711,13 +685,13 @@ async function checkAllTickets(gameId: string, drawnNumbers: number[]): Promise<
                const finalDrawn = latestState ? latestState.drawnNumbers : drawnNumbers;
                await processWinner(gameId, ticket.userId, ticket.id, result.modes[0], finalDrawn);
                await finishGame(gameId, `House Bot Bingo claimed: ${result.modes[0]}`);
-             } catch (err: any) {
+             } catch (err) {
                logger.error(`[Game ${gameId}] Bot auto-claim failed:`, err);
                // If bot claim fails, we MUST resume the draw interval so the game doesn't freeze
                const currentState = activeGames.get(gameId);
                if (currentState && !currentState.drawInterval) {
-                 const recheckGame = await prisma.game.findUnique({ where: { id: gameId }, select: { status: true } });
-                 if (recheckGame?.status === 'RUNNING') {
+                 const gameCheck = await prisma.game.findUnique({ where: { id: gameId } });
+                 if (gameCheck?.status === 'RUNNING') {
                    currentState.drawInterval = setInterval(() => drawNumber(gameId), config.game.drawIntervalMs);
                    logger.info(`[Game ${gameId}] Resumed interval after bot claim failure.`);
                  }
@@ -949,13 +923,6 @@ async function processWinner(
 
 // ─── Finish Game ──────────────────────────────────────────────
 async function finishGame(gameId: string, reason: string): Promise<void> {
-  // Guard: prevent double-finishing the same game (race condition between bot claim + end-of-pool)
-  if (gamesBeingFinished.has(gameId)) {
-    logger.warn(`[Game ${gameId}] finishGame called twice — ignoring duplicate call. Reason: ${reason}`);
-    return;
-  }
-  gamesBeingFinished.add(gameId);
-
   const state = activeGames.get(gameId);
   if (state?.drawInterval) clearInterval(state.drawInterval);
   if (state?.countdownTimer) clearTimeout(state.countdownTimer);
@@ -966,18 +933,10 @@ async function finishGame(gameId: string, reason: string): Promise<void> {
   clearBotInjectionRecord(gameId);
   gamesWithBotsInjectedPublic.delete(gameId);
 
-  let updatedGame: any;
-  try {
-    updatedGame = await prisma.game.update({
-      where: { id: gameId },
-      data: { status: GameStatus.FINISHED, finishedAt: new Date() },
-    });
-  } catch (e: any) {
-    // Game may have already been finished by another path — fetch it instead
-    logger.warn(`[Game ${gameId}] Could not mark FINISHED (may already be): ${e.message}`);
-    updatedGame = await prisma.game.findUnique({ where: { id: gameId } });
-    if (!updatedGame) { gamesBeingFinished.delete(gameId); return; }
-  }
+  const updatedGame = await prisma.game.update({
+    where: { id: gameId },
+    data: { status: GameStatus.FINISHED, finishedAt: new Date() },
+  });
 
   // gameTotalPrize is the source-of-truth prize pool stored on the game record
   const gameTotalPrize = parseFloat((updatedGame as any).totalPrize?.toString() ?? '0');
@@ -993,30 +952,6 @@ async function finishGame(gameId: string, reason: string): Promise<void> {
       ticket: { select: { card: true } }
     },
   });
-
-  // ─── LAST RESORT: If no winner was recorded but we have tickets, force one NOW ──
-  // This is a safety net that catches any edge case where processWinner was skipped.
-  if (winners.length === 0 && state?.tickets && state.tickets.length > 0) {
-    logger.error(`[Game ${gameId}] finishGame called with NO winners! Forcing a winner from ${state.tickets.length} tickets.`);
-    const botTickets = state.tickets.filter((t: any) => t.user?.isBot === true);
-    const poolToPickFrom = botTickets.length > 0 ? botTickets : state.tickets;
-    const randomTicket = poolToPickFrom[Math.floor(Math.random() * poolToPickFrom.length)];
-    try {
-      await processWinner(gameId, randomTicket.userId, randomTicket.id, 'FULL_HOUSE', state.drawnNumbers || []);
-      // Re-fetch winners after forcing one
-      const newWinners = await prisma.winner.findMany({
-        where: { gameId },
-        include: {
-          user: { select: { firstName: true, telegramUsername: true, isBot: true } },
-          ticket: { select: { card: true } }
-        },
-      });
-      winners.push(...newWinners);
-      logger.info(`[Game ${gameId}] Last-resort winner forced: ${randomTicket.userId}`);
-    } catch (e: any) {
-      logger.error(`[Game ${gameId}] Last-resort winner creation ALSO failed:`, e);
-    }
-  }
 
   // Disguise bot winners as real players for public broadcast so they get announced on frontend
   const ETHIOPIAN_FALLBACKS = ['Abebe', 'Kebede', 'Selam', 'Tesfaye', 'Girma', 'Dawit', 'Bereket', 'Yonas'];
@@ -1046,9 +981,6 @@ async function finishGame(gameId: string, reason: string): Promise<void> {
   await triggerGameEvent(gameId, 'game-finished', { gameId, reason, winners: publicWinners, gamePrize: safeTotalPrize });
   await triggerAdminEvent('game-finished', { gameId, reason });
   logger.info(`[Game ${gameId}] Finished: ${reason}`);
-
-  // Clean up the double-finish guard
-  gamesBeingFinished.delete(gameId);
 
   // Auto-create new waiting game for the same room
   await createWaitingGame(updatedGame.roomId);
