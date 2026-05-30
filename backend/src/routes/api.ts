@@ -493,13 +493,13 @@ router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
     }
 
     // 2. Check if ANY game is currently running in this room
-    // Add failsafe: ignore games that have been stuck in RUNNING for more than 10 minutes
-    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+    // Add failsafe: ignore games that have been stuck in RUNNING for more than 5 minutes
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
     const runningGame = await prisma.game.findFirst({
       where: { 
         roomId: room.id, 
         status: 'RUNNING',
-        startedAt: { gte: tenMinutesAgo }
+        startedAt: { gte: fiveMinutesAgo }
       }
     });
     if (runningGame) {
