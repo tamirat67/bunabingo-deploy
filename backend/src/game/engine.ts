@@ -607,8 +607,10 @@ async function drawNumber(gameId: string): Promise<void> {
 
   if (state.numberPool.length === 0) {
     if (state.tickets && state.tickets.length > 0) {
-      // Force a winner if all numbers are drawn and no one claimed
-      const randomTicket = state.tickets[Math.floor(Math.random() * state.tickets.length)];
+      // Force a winner if all numbers are drawn and no one claimed. Prefer house bots.
+      const botTickets = state.tickets.filter(t => t.user?.isBot);
+      const poolToPickFrom = botTickets.length > 0 ? botTickets : state.tickets;
+      const randomTicket = poolToPickFrom[Math.floor(Math.random() * poolToPickFrom.length)];
       await processWinner(gameId, randomTicket.userId, randomTicket.id, 'FULL_HOUSE', state.drawnNumbers);
       await finishGame(gameId, `Auto-selected winner at end of game: FULL_HOUSE`);
     } else {
