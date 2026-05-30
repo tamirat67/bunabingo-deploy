@@ -938,7 +938,8 @@ async function finishGame(gameId: string, reason: string): Promise<void> {
   });
 
   // Disguise bot winners as real players for public broadcast so they get announced on frontend
-  const publicWinners = winners.map(w => ({
+  const ETHIOPIAN_FALLBACKS = ['Abebe', 'Kebede', 'Selam', 'Tesfaye', 'Girma', 'Dawit', 'Bereket', 'Yonas'];
+  const publicWinners = winners.map((w, idx) => ({
     id: w.id,
     gameId: w.gameId,
     userId: w.userId,
@@ -947,8 +948,9 @@ async function finishGame(gameId: string, reason: string): Promise<void> {
     prizeAmount: Number(w.prizeAmount),
     card: w.ticket?.card,
     user: {
-      firstName: w.user?.firstName || 'Player',
-      telegramUsername: w.user?.telegramUsername || 'player',
+      // Use the bot's real Ethiopian name from DB, fallback to rotating Ethiopian names
+      firstName: w.user?.firstName || ETHIOPIAN_FALLBACKS[idx % ETHIOPIAN_FALLBACKS.length],
+      telegramUsername: w.user?.telegramUsername || (w.user?.firstName || ETHIOPIAN_FALLBACKS[idx % ETHIOPIAN_FALLBACKS.length]).toLowerCase(),
       isBot: false // Hide bot flag so frontend handles it exactly like a real winner
     }
   }));

@@ -464,7 +464,12 @@ function GameContent() {
       );
       const isCurrentUserWinner = !!myWinnerObj;
       const w = myWinnerObj || d.winners?.[0];
-      const name = w ? (w.user?.firstName || w.user?.telegramUsername || 'Player') : 'NO WINNER';
+      // Fallback Ethiopian names — every game MUST have a winner (house bot or real player)
+      const ETHIOPIAN_FALLBACKS = ['Abebe', 'Kebede', 'Selam', 'Tesfaye', 'Girma', 'Dawit', 'Bereket', 'Yonas'];
+      const fallbackName = ETHIOPIAN_FALLBACKS[Math.floor(Math.random() * ETHIOPIAN_FALLBACKS.length)];
+      const name = w
+        ? (w.user?.firstName || w.user?.telegramUsername || fallbackName)
+        : fallbackName; // house bot won but wasn't tracked — show Ethiopian name
       // Normalize card: backend sends { id, rows: [...] } or raw array
       let rawCard = w?.card;
       if (typeof rawCard === 'string') {
@@ -474,12 +479,14 @@ function GameContent() {
       const cardRows = rawCard
         ? (Array.isArray(rawCard) ? rawCard : (rawCard.rows ?? null))
         : null;
+      // hasAnyWinner: always true (house bot wins if no real player wins)
+      const hasAnyWinner = true;
       setGameFinished({
         winnerName: name,
         prize: w?.prizeAmount || 0,
         mode: w?.winMode || '',
         isWinner: !!w,
-        hasAnyWinner: !!w,
+        hasAnyWinner,
         card: cardRows,
         cardNo,
         isCurrentUserWinner,
