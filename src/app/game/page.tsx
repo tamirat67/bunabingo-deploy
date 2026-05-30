@@ -263,22 +263,18 @@ function GameContent() {
       if (g.status === 'RUNNING' || g.status === 'FINISHED') {
         setCountdown(null);
         setEndTime(null);
-      } else if (g.endTime && g.serverTime) {
-        // ── Prefer server-provided endTime — always accurate ──
-        const offset = g.serverTime - Date.now();
-        setServerOff(offset);
+      } else if (g.endTime) {
+        // ── Server-provided endTime: derive remaining from absolute epoch ──────
         setEndTime(g.endTime);
         if (g.status === 'COUNTDOWN') {
-          const rem = Math.max(0, Math.ceil((g.endTime - Date.now() - offset) / 1000));
+          const rem = Math.max(0, Math.ceil((g.endTime - Date.now()) / 1000));
           if (rem > 0) setCountdown(rem);
         }
       } else if (g.status === 'COUNTDOWN' && g.countdownSeconds) {
-        // Last-resort fallback: no endTime from server (state not yet in memory).
-        // Only apply when the client has NO countdown yet — never overwrite a
-        // correctly-ticking value with the stale full configured seconds.
+        // Last-resort fallback: no endTime from server (rare, state not yet in memory)
         setCountdown((prev) => {
-          if (prev !== null && prev >= 0) return prev; // keep the running value
-          return g.countdownSeconds; // fresh load only
+          if (prev !== null && prev >= 0) return prev;
+          return g.countdownSeconds;
         });
       }
       const sorted = (t.tickets || []).sort((a: any, b: any) => (a.card?.id || 0) - (b.card?.id || 0));
@@ -406,18 +402,21 @@ function GameContent() {
     });
 
     socket.on('countdown-start', (d: any) => {
-      setCountdown(d.seconds);
-      if (d.endTime && d.serverTime) {
-        const off = d.serverTime - Date.now();
-        setServerOff(off);
+      if (d.endTime) {
         setEndTime(d.endTime);
-        // Schedule start.mp3 to fire at the exact server endTime so all devices are in sync
+        // Derive the display value immediately from the absolute server epoch
+        // so every device shows the same number regardless of network latency
+        const remMs = d.endTime - Date.now();
+        const rem = Math.max(0, Math.ceil(remMs / 1000));
+        setCountdown(rem > 0 ? rem : null);
+        // Schedule start.mp3 to play at the exact server endTime (cross-device sync)
         if (startAudioScheduled.current) clearTimeout(startAudioScheduled.current);
-        const msUntilStart = Math.max(0, d.endTime - off - Date.now());
+        const msUntilStart = Math.max(0, remMs);
         startAudioScheduled.current = setTimeout(() => playStartAudio(), msUntilStart);
+      } else {
+        setCountdown(d.seconds);
       }
       if (d.seconds === 0) {
-        // Game is starting now — clear countdown immediately so no ghost ticking
         setCountdown(null);
         setEndTime(null);
         setTimeout(loadData, 300);
@@ -425,19 +424,20 @@ function GameContent() {
     });
 
     socket.on('countdown-tick', (d: any) => {
-      // Re-schedule start.mp3 on every tick using server endTime for cross-device accuracy
-      if (d.endTime && d.serverTime) {
-        const off = d.serverTime - Date.now();
-        setServerOff(off);
+      if (d.endTime) {
         setEndTime(d.endTime);
+        // Re-derive display value from absolute server epoch on every tick
+        const remMs = d.endTime - Date.now();
+        const rem = Math.max(0, Math.ceil(remMs / 1000));
+        setCountdown(rem > 0 ? rem : null);
+        // Re-schedule start.mp3 on every tick for accuracy
         if (startAudioScheduled.current) clearTimeout(startAudioScheduled.current);
-        const msUntilStart = Math.max(0, d.endTime - off - Date.now());
+        const msUntilStart = Math.max(0, remMs);
         startAudioScheduled.current = setTimeout(() => playStartAudio(), msUntilStart);
       } else {
         setCountdown(d.secondsRemaining);
       }
-      if (d.secondsRemaining === 0) {
-        // Stop local endTime interval so it cannot ghost-tick after game starts
+      if (d.secondsRemaining === 0 || (d.endTime && d.endTime <= Date.now())) {
         setEndTime(null);
         setTimeout(loadData, 300);
       }
@@ -538,25 +538,25 @@ function GameContent() {
   }, [socket, gameId, loadData, queueBallSounds, playStartAudio, playStopAudio]);
 
 
-  // Local countdown fallback for smoothness
+  // ── Server-time-anchored local countdown tick ─────────────────────────────
+  // Uses endTime (absolute UTC epoch from server) directly — no serverOff
+  // clock-skew correction needed.  All devices compute the same value because
+  // they all subtract from the same fixed epoch.
   useEffect(() => {
     if (endTime === null) return;
     const timer = setInterval(() => {
-      const now = Date.now() + serverOff;
-      const rem = Math.max(0, Math.ceil((endTime - now) / 1000));
+      const rem = Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
       setCountdown((prev) => {
         if (prev === rem) return prev;
         return rem;
       });
       if (rem <= 0) {
-        // start.mp3 is now handled by the scheduled setTimeout in socket handlers
-        // for precise cross-device synchronization — no playStartAudio() here
         setEndTime(null);
         setTimeout(loadData, 300);
       }
-    }, 100);
+    }, 200);  // 200ms ticks — smooth display, all devices identical
     return () => clearInterval(timer);
-  }, [endTime, serverOff, loadData, playStartAudio]);
+  }, [endTime, loadData]);
 
   // ─── Polling fallback: syncs state when socket events are missed ─────────
   // RUNNING uses 2s poll = catches missed number-drawn events within 1 draw cycle.
