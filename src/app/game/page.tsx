@@ -494,7 +494,7 @@ function GameContent() {
       ];
       setGameFinished({
         winnerName: name,
-        prize: parseFloat(String(w?.prizeAmount ?? 0)) || parseFloat(String(d?.gamePrize ?? 0)) || (Number(stake) * 31),
+        prize: parseFloat(String(w?.prizeAmount ?? 0)) || parseFloat(String(d?.gamePrize ?? 0)) || (Number(stake) * 31 * 0.75),
         mode: w?.winMode || 'FULL_HOUSE',
         isWinner: !!w,
         hasAnyWinner: true,
@@ -609,7 +609,7 @@ function GameContent() {
         ];
         setGameFinished({
           winnerName: name,
-          prize: parseFloat(String(w?.prizeAmount ?? 0)) || parseFloat(String(game?.totalPrize ?? 0)) || (Number(stake) * 31),
+          prize: parseFloat(String(w?.prizeAmount ?? 0)) || parseFloat(String(game?.totalPrize ?? 0)) || (Number(stake) * 31 * 0.75),
           mode: w?.winMode || 'FULL_HOUSE',
           isWinner: !!w,
           hasAnyWinner: true,
