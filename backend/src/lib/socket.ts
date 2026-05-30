@@ -84,7 +84,8 @@ export function initSocket(server: HttpServer) {
       const state = getActiveGames().get(lookupId);
 
       if (state && state.secondsRemaining !== undefined && state.secondsRemaining > 0) {
-        const endTime = Date.now() + state.secondsRemaining * 1000;
+        // Fallback calculation just in case, but prefer the exact target time
+        const endTime = state.countdownTargetTime ?? (Date.now() + state.secondsRemaining * 1000);
         socket.emit('countdown-start', {
           seconds: state.secondsRemaining,
           playerCount: state.ticketCount ?? 1,

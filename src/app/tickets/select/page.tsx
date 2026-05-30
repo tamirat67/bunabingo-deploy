@@ -216,9 +216,12 @@ function SelectionContent() {
     const timer = setInterval(() => {
       const now = Date.now() + serverOff;
       const rem = Math.max(0, Math.ceil((endTime - now) / 1000));
-      setCountdown(rem);
+      setCountdown((prev) => {
+        if (prev === rem) return prev;
+        return rem;
+      });
       if (rem <= 0) setEndTime(null);
-    }, 1000);
+    }, 100);
     return () => clearInterval(timer);
   }, [endTime, serverOff]);
 
@@ -313,7 +316,15 @@ function SelectionContent() {
       });
 
       socket.on('countdown-tick', (d: any) => {
-        setCountdown(d.secondsRemaining);
+        if (d.endTime && d.serverTime) {
+          setServerOff(d.serverTime - Date.now());
+          setEndTime(d.endTime);
+        } else {
+          setCountdown(d.secondsRemaining);
+        }
+        if (typeof d.playerCount === 'number') {
+          setPlayerCount(d.playerCount);
+        }
       });
 
       // ── When the RUNNING game finishes, this lobby wakes up as next game ──

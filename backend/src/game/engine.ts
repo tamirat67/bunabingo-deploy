@@ -32,6 +32,7 @@ interface ActiveGame {
   tickets?: any[];
   ticketCount?: number;
   houseShouldWin?: boolean;  // rigged draw: true = house bot wins this round
+  countdownTargetTime?: number; // Fixed, exact epoch ms when countdown reaches 0
 }
 
 const activeGames = new Map<string, ActiveGame>();
@@ -97,9 +98,10 @@ export async function startCountdown(gameId: string, playerCount: number): Promi
     runGame(gameId);
     return;
   }
-
-  const endTime = Date.now() + seconds * 1000;
-  await triggerGameEvent(gameId, 'countdown-start', { seconds, playerCount, endTime, serverTime: Date.now() });
+  const fixedEndTime = Date.now() + seconds * 1000;
+  existing.countdownTargetTime = fixedEndTime;
+  
+  await triggerGameEvent(gameId, 'countdown-start', { seconds, playerCount, endTime: fixedEndTime, serverTime: Date.now() });
   logger.info(`[Game ${gameId}] Countdown started: ${seconds}s for ${playerCount} players`);
 
   // Clear any existing timer/interval
@@ -123,11 +125,10 @@ export async function startCountdown(gameId: string, playerCount: number): Promi
 
       logger.info(`[Game ${gameId}] Countdown tick: ${existing!.secondsRemaining}s, Players: ${currentTicketCount}`);
 
-      const endTime = Date.now() + existing!.secondsRemaining! * 1000;
       await triggerGameEvent(gameId, 'countdown-tick', { 
         secondsRemaining: existing!.secondsRemaining,
         playerCount: currentTicketCount,
-        endTime,
+        endTime: existing!.countdownTargetTime, // Always send the exact, non-drifting end time
         serverTime: Date.now()
       });
 
