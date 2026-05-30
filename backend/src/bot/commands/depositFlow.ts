@@ -172,7 +172,8 @@ export async function handleDepositManualStart(ctx: Context) {
       agentLine += `\n📞 *ኤጀንት ስልክ:* \`${localCp}\``;
     }
     if (agentProfile.telegramUsername) {
-      agentLine += `\n💬 *ቴሌግራም:* @${agentProfile.telegramUsername}`;
+      const safeUsername = agentProfile.telegramUsername.replace(/_/g, '\\_');
+      agentLine += `\n💬 *ቴሌግራም:* @${safeUsername}`;
     }
     agentLine += `\n`;
   }
