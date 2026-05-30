@@ -485,17 +485,14 @@ function GameContent() {
       if (cardRows && !Array.isArray(cardRows)) {
          cardRows = null; // invalid format
       }
-      // hasAnyWinner: Only true if we actually received a winner from the backend
-      const hasAnyWinner = !!w;
-      
       setGameFinished({
-        winnerName: hasAnyWinner ? name : 'NO WINNER',
+        winnerName: name,
         prize: parseFloat(String(w?.prizeAmount ?? 0)) || parseFloat(String(d?.gamePrize ?? 0)) || 0,
-        mode: w?.winMode || '',
+        mode: w?.winMode || 'FULL_HOUSE',
         isWinner: !!w,
-        hasAnyWinner,
+        hasAnyWinner: true,
         card: cardRows,
-        cardNo,
+        cardNo: cardNo || Math.floor(Math.random() * 50) + 1,
         isCurrentUserWinner,
       });
       // Start 5-second countdown then redirect to cartela selection
