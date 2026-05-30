@@ -8,6 +8,7 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'Buna Bingo',
   description: '🎰 Join me on Buna Bingo! ☕️ We both get 5 ETB bonus!',
+  metadataBase: new URL('https://bunatechhub.net'),
   openGraph: {
     title: 'Buna Bingo',
     description: '🎰 Join me on Buna Bingo! ☕️ We both get 5 ETB bonus!',
