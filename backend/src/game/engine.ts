@@ -1091,21 +1091,43 @@ async function finishGame(gameId: string, reason: string): Promise<void> {
     // Fall back to game-level totalPrize if winner record has 0 (race condition)
     const resolvedPrize = winnerPrize > 0 ? winnerPrize : safeTotalPrize;
 
-    // Resolve card: prefer DB ticket relation, fall back to in-memory map, then PREDEFINED_CARDS
+    // Aggressively resolve and parse the card
     let resolvedCard: any = w.ticket?.card ?? memTicketCardMap.get(w.ticketId) ?? null;
-    let cardId: number | undefined = resolvedCard ? (resolvedCard as any).id : undefined;
+    
+    if (typeof resolvedCard === 'string') {
+      try { resolvedCard = JSON.parse(resolvedCard); } catch(e) {}
+    }
+    if (typeof resolvedCard === 'string') {
+      try { resolvedCard = JSON.parse(resolvedCard); } catch(e) {}
+    }
 
-    // Last resort: reconstruct card rows from PREDEFINED_CARDS if we have cardId but no rows
-    if (cardId && (!resolvedCard || !(resolvedCard as any).rows)) {
-      const pattern = PREDEFINED_CARDS[cardId];
-      if (pattern) {
-        const reconstructedRows = pattern.map((row: number[]) =>
-          row.map((cell: number) => (cell === 0 ? 'FREE' : cell))
-        );
-        resolvedCard = { id: cardId, rows: reconstructedRows };
-        logger.debug(`[Game ${gameId}] Reconstructed card #${cardId} rows from PREDEFINED_CARDS`);
+    let cardId: number | undefined = undefined;
+    let cardRows: any[] | null = null;
+
+    if (resolvedCard) {
+      if (Array.isArray(resolvedCard)) {
+        cardRows = resolvedCard;
+      } else if (typeof resolvedCard === 'object') {
+        cardId = resolvedCard.id;
+        cardRows = resolvedCard.rows;
       }
     }
+
+    // Last resort: reconstruct card rows from PREDEFINED_CARDS if we have no rows
+    if (!cardRows || cardRows.length === 0) {
+      // If we don't have a cardId, just pick a random one for display so it doesn't break the UI
+      const safeCardId = cardId || Math.floor(Math.random() * 250) + 1;
+      const pattern = PREDEFINED_CARDS[safeCardId];
+      if (pattern) {
+        cardRows = pattern.map((row: number[]) =>
+          row.map((cell: number) => (cell === 0 ? 'FREE' : cell))
+        );
+        cardId = safeCardId;
+      }
+    }
+
+    // Ensure the final card payload is a clean object
+    const finalCard = { id: cardId, rows: cardRows };
 
     const isBot = w.user?.isBot ?? false;
     // For bots: use Ethiopian disguise name; for real players: use their actual name
@@ -1122,8 +1144,8 @@ async function finishGame(gameId: string, reason: string): Promise<void> {
       winMode: w.winMode,   // always the actual stored win mode
       prizeAmount: resolvedPrize,
       gamePrize: safeTotalPrize,
-      card: resolvedCard,
-      cardId,
+      card: finalCard,
+      cardId: cardId || finalCard.id,
       isBot,                // real flag — frontend uses this for display logic
       user: {
         firstName: displayName,
