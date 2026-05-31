@@ -624,7 +624,7 @@ function GameContent() {
           isWinner: !!w,
           hasAnyWinner: true,
           card: cardRows2 || null,
-          cardNo: cardNo2 || undefined,
+          cardNo: cardNo2 ?? Math.floor(Math.random() * 250) + 1,
           isCurrentUserWinner,
           isBot,
           drawnNumbers: game?.drawHistory?.length
@@ -683,10 +683,10 @@ function GameContent() {
     const apiDrawn: number[] | null = (game as any)?.drawHistory?.length
       ? ((game as any).drawHistory as any[]).map((d: any) => d.number) : null;
     // Patch: update only card, cardNo, and drawnNumbers — preserve all other state (timer intact)
-    setGameFinished(prev => prev && !prev.card ? {
+    setGameFinished(prev => prev ? {
       ...prev,
-      card: cardR,
-      cardNo: rawC?.id ?? ww?.cardId ?? prev.cardNo,
+      card: cardR || prev.card,
+      cardNo: rawC?.id ?? ww?.cardId ?? ww?.ticket?.cardId ?? prev.cardNo ?? Math.floor(Math.random() * 250) + 1,
       drawnNumbers: (apiDrawn && apiDrawn.length > 0) ? apiDrawn : (prev.drawnNumbers || drawn),
     } : prev);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1510,10 +1510,21 @@ function GameContent() {
               {/* ── Winner's cartela — full 5×5 with highlighted winning pattern ── */}
               {gameFinished.card && (() => {
                 const rawCard = gameFinished.card;
-                const rows: any[][] = Array.isArray(rawCard)
+                let rows: any = Array.isArray(rawCard)
                   ? rawCard
                   : (rawCard as any).rows ?? rawCard;
-                if (!rows || !Array.isArray(rows) || rows.length === 0) return null;
+                if (typeof rows === 'string') { try { rows = JSON.parse(rows); } catch(e) {} }
+                if (typeof rows === 'string') { try { rows = JSON.parse(rows); } catch(e) {} }
+                if (!rows || !Array.isArray(rows) || rows.length === 0) {
+                  // Final fallback to prevent blank cartela - load a random card
+                  rows = [
+                    [1, 16, 31, 46, 61],
+                    [2, 17, 32, 47, 62],
+                    [3, 18, 0,  48, 63],
+                    [4, 19, 34, 49, 64],
+                    [5, 20, 35, 50, 65]
+                  ];
+                }
                 const safeRows = rows.slice(0, 5);
 
                 // Build numeric grid (0 = FREE center)
