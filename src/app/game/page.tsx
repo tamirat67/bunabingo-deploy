@@ -725,6 +725,8 @@ function GameContent() {
   const hideCard   = (id: string) => setHidden(p => new Set([...p, id]));
   const handleBingo = async () => {
     if (!gameId || claiming) return;
+    // Silently block before 20 balls — no error shown to player
+    if (drawn.length < 20) return;
     setClaiming(true);
     try { 
       const res = await claimBingo(gameId);
@@ -733,7 +735,11 @@ function GameContent() {
         if (toastTimer.current) clearTimeout(toastTimer.current);
         toastTimer.current = setTimeout(() => setToast(null), 4000);
       } else {
-        showAlert('Bingo Claim', res.error || 'No Bingo detected yet! Check your patterns.', 'info');
+        // Suppress the "wait for more balls" backend message silently
+        const isTooEarlyMsg = res.error?.toLowerCase().includes('wait') || res.error?.toLowerCase().includes('minimum');
+        if (!isTooEarlyMsg) {
+          showAlert('Bingo Claim', res.error || 'No Bingo detected yet! Check your patterns.', 'info');
+        }
       }
     }
     catch (e: any) { 
