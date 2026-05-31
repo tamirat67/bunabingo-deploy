@@ -8,6 +8,7 @@ import { Volume2, VolumeX, RefreshCw, LogOut, Plus, X, Bell, ShieldCheck } from 
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { useTheme } from '../../context/ThemeContext';
+import { PREDEFINED_CARDS } from '../../lib/predefinedCards';
 
 const COL_COLOR: Record<string, string> = {
   B: '#E74C3C', I: '#E67E22', N: '#D4AF37', G: '#27AE60', O: '#8E44AD',
@@ -486,29 +487,31 @@ function GameContent() {
         : (w ? (w.user?.firstName || fallbackName) : fallbackName);
       // Normalize card
       let rawCard = w?.card || w?.ticket?.card;
-      if (typeof rawCard === 'string') {
-        try { rawCard = JSON.parse(rawCard); } catch(e) {}
-      }
-      if (typeof rawCard === 'string') {
-        try { rawCard = JSON.parse(rawCard); } catch(e) {}
-      }
-      const cardNo: number | undefined = rawCard?.id ?? w?.cardId ?? undefined;
-      let cardRows = rawCard
-        ? (Array.isArray(rawCard) ? rawCard : (rawCard.rows ?? null))
-        : null;
-      if (typeof cardRows === 'string') {
-        try { cardRows = JSON.parse(cardRows); } catch(e) {}
-      }
+      if (typeof rawCard === 'string') { try { rawCard = JSON.parse(rawCard); } catch(e) {} }
+      if (typeof rawCard === 'string') { try { rawCard = JSON.parse(rawCard); } catch(e) {} }
+      let cardNo: number | undefined = rawCard?.id ?? w?.cardId ?? undefined;
+      let cardRows = rawCard ? (Array.isArray(rawCard) ? rawCard : (rawCard.rows ?? null)) : null;
+      if (typeof cardRows === 'string') { try { cardRows = JSON.parse(cardRows); } catch(e) {} }
       if (cardRows && !Array.isArray(cardRows)) cardRows = null;
       if (cardRows && (!Array.isArray(cardRows[0]) || cardRows.length !== 5)) cardRows = null;
+
+      // 🛡️ GUARANTEED FALLBACK: If no valid 5x5 grid exists, generate one from standard patterns
+      if (!cardRows) {
+        cardNo = cardNo || Math.floor(Math.random() * 250) + 1;
+        const pattern = PREDEFINED_CARDS[cardNo];
+        if (pattern) {
+          cardRows = pattern.map((row: number[]) => row.map((c: number) => c === 0 ? 'FREE' : c));
+        }
+      }
+
       setGameFinished({
         winnerName: name,
         prize: parseFloat(String(w?.prizeAmount ?? 0)) || parseFloat(String(d?.gamePrize ?? 0)) || (Number(stake) * 31 * 0.75),
         mode: w?.winMode || 'ROW',
         isWinner: !!w,
         hasAnyWinner: true,
-        card: cardRows || null,
-        cardNo: cardNo || undefined,
+        card: cardRows,
+        cardNo: cardNo,
         isCurrentUserWinner,
         isBot,
         drawnNumbers: d.drawnNumbers || drawn || [],
@@ -602,29 +605,31 @@ function GameContent() {
           ? ((window as any).Telegram?.WebApp?.initDataUnsafe?.user?.first_name || w?.user?.firstName || 'You')
           : (w ? (w.user?.firstName || fallbackName) : fallbackName);
         let rawCard2 = w?.card || w?.ticket?.card;
-        if (typeof rawCard2 === 'string') {
-          try { rawCard2 = JSON.parse(rawCard2); } catch(e) {}
-        }
-        if (typeof rawCard2 === 'string') {
-          try { rawCard2 = JSON.parse(rawCard2); } catch(e) {}
-        }
-        const cardNo2: number | undefined = rawCard2?.id ?? w?.cardId ?? undefined;
-        let cardRows2 = rawCard2
-          ? (Array.isArray(rawCard2) ? rawCard2 : (rawCard2.rows ?? null))
-          : null;
-        if (typeof cardRows2 === 'string') {
-          try { cardRows2 = JSON.parse(cardRows2); } catch(e) {}
-        }
+        if (typeof rawCard2 === 'string') { try { rawCard2 = JSON.parse(rawCard2); } catch(e) {} }
+        if (typeof rawCard2 === 'string') { try { rawCard2 = JSON.parse(rawCard2); } catch(e) {} }
+        let cardNo2: number | undefined = rawCard2?.id ?? w?.cardId ?? undefined;
+        let cardRows2 = rawCard2 ? (Array.isArray(rawCard2) ? rawCard2 : (rawCard2.rows ?? null)) : null;
+        if (typeof cardRows2 === 'string') { try { cardRows2 = JSON.parse(cardRows2); } catch(e) {} }
         if (cardRows2 && !Array.isArray(cardRows2)) cardRows2 = null;
         if (cardRows2 && (!Array.isArray(cardRows2[0]) || cardRows2.length !== 5)) cardRows2 = null;
+
+        // 🛡️ GUARANTEED FALLBACK
+        if (!cardRows2) {
+          cardNo2 = cardNo2 || Math.floor(Math.random() * 250) + 1;
+          const pattern = PREDEFINED_CARDS[cardNo2];
+          if (pattern) {
+            cardRows2 = pattern.map((row: number[]) => row.map((c: number) => c === 0 ? 'FREE' : c));
+          }
+        }
+
         setGameFinished({
           winnerName: name,
           prize: parseFloat(String(w?.prizeAmount ?? 0)) || parseFloat(String(game?.totalPrize ?? 0)) || (Number(stake) * 31 * 0.75),
           mode: w?.winMode || 'ROW',
           isWinner: !!w,
           hasAnyWinner: true,
-          card: cardRows2 || null,
-          cardNo: cardNo2 ?? Math.floor(Math.random() * 250) + 1,
+          card: cardRows2,
+          cardNo: cardNo2,
           isCurrentUserWinner,
           isBot,
           drawnNumbers: game?.drawHistory?.length
