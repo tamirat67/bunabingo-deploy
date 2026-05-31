@@ -220,16 +220,18 @@ async function runGame(gameId: string): Promise<void> {
 
     // ─── CHARGE PLAYERS (real game only) ───────────────────────────────────
     for (const [userId, userTickets] of ticketsByUser) {
-      // Skip charging house bots
-      if (botUserMap.get(userId) === true) {
-        logger.debug(`[Game ${gameId}] User ${userId} is a house bot — skipping balance check and charging`);
-        continue;
-      }
-
       const numTickets = userTickets.length;
       const totalCharge = new Decimal(unitPrice).mul(numTickets);
       const houseEdge = totalCharge.mul(houseEdgePercent).div(100);
       const prizeContribution = totalCharge.sub(houseEdge);
+
+      // Skip charging house bots, but STILL ADD their simulated contribution to the prize pool
+      if (botUserMap.get(userId) === true) {
+        logger.debug(`[Game ${gameId}] User ${userId} is a house bot — skipping balance check but adding simulated prize`);
+        totalPrizePool = totalPrizePool.add(prizeContribution);
+        totalHouseEdge = totalHouseEdge.add(houseEdge);
+        continue;
+      }
 
       const wallet = await prisma.wallet.findUnique({ where: { userId } });
       if (!wallet) {
