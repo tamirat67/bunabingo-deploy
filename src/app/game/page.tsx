@@ -1383,9 +1383,9 @@ function GameContent() {
                 background: 'linear-gradient(160deg, #1c1000 0%, #080400 100%)',
                 border: `2.5px solid ${gameFinished.isCurrentUserWinner ? T.gold : 'rgba(255,255,255,0.18)'}`,
                 borderRadius: '20px',
-                padding: '14px 12px 12px',
+                padding: '12px 10px 10px',
                 textAlign: 'center',
-                maxWidth: '310px',
+                maxWidth: '280px',
                 width: '97%',
                 boxShadow: `0 0 60px ${gameFinished.isCurrentUserWinner ? T.gold + '44' : 'rgba(0,0,0,0.8)'}`,
                 position: 'relative',
@@ -1402,7 +1402,7 @@ function GameContent() {
                   : { scale: 1 }
                 }
                 transition={{ duration: 1.3, repeat: Infinity, repeatDelay: 1.5 }}
-                style={{ fontSize: '38px', lineHeight: 1, marginBottom: '3px' }}
+                style={{ fontSize: '30px', lineHeight: 1, marginBottom: '3px' }}
               >
                 {gameFinished.isCurrentUserWinner ? '🏆' : '🎯'}
               </motion.div>
@@ -1415,10 +1415,10 @@ function GameContent() {
                 }
                 transition={{ duration: 1.5, repeat: Infinity }}
                 style={{
-                  fontSize: '16px', fontWeight: '900',
+                  fontSize: '14px', fontWeight: '900',
                   color: gameFinished.isCurrentUserWinner ? T.gold : '#E74C3C',
                   letterSpacing: '2.5px', textTransform: 'uppercase',
-                  marginBottom: '10px',
+                  marginBottom: '8px',
                 }}
               >
                 {gameFinished.isCurrentUserWinner ? '🎉 YOU WON!' : 'GAME OVER'}
@@ -1428,8 +1428,8 @@ function GameContent() {
               <div style={{
                 background: 'rgba(255,255,255,0.04)',
                 border: `1px solid ${T.gold}33`,
-                borderRadius: '12px',
-                padding: '8px 10px',
+                borderRadius: '10px',
+                padding: '6px 8px',
                 marginBottom: '8px',
                 display: 'grid',
                 gridTemplateColumns: '1fr auto',
@@ -1438,37 +1438,37 @@ function GameContent() {
                 textAlign: 'left',
               }}>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.38)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '1px' }}>
+                  <div style={{ fontSize: '8px', color: 'rgba(255,255,255,0.38)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '1px' }}>
                     {gameFinished.hasAnyWinner ? (gameFinished.isCurrentUserWinner ? '✅ Winner' : '🏅 Winner') : 'Result'}
                   </div>
                   <div style={{
-                    fontSize: '17px', fontWeight: '900',
+                    fontSize: '14px', fontWeight: '900',
                     color: gameFinished.hasAnyWinner ? T.gold : '#aaa',
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}>
                     {gameFinished.winnerName}
                   </div>
                   {gameFinished.cardNo && (
-                    <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.45)', marginTop: '1px' }}>
+                    <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.45)', marginTop: '1px' }}>
                       Cartela <span style={{ color: T.gold, fontWeight: '800' }}>#{gameFinished.cardNo}</span>
                     </div>
                   )}
                   {!gameFinished.hasAnyWinner && (
-                    <div style={{ color: '#E74C3C', fontWeight: '900', fontSize: '11px', marginTop: '2px' }}>HOUSE WINS</div>
+                    <div style={{ color: '#E74C3C', fontWeight: '900', fontSize: '10px', marginTop: '2px' }}>HOUSE WINS</div>
                   )}
                 </div>
                 {/* Prize — right column */}
                 {gameFinished.hasAnyWinner && (
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    <div style={{ fontSize: '8px', color: 'rgba(255,255,255,0.38)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Prize</div>
+                    <div style={{ fontSize: '7px', color: 'rgba(255,255,255,0.38)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Prize</div>
                     <motion.div
                       animate={{ color: ['#F59E0B', '#FFD700', '#F59E0B'] }}
                       transition={{ duration: 1.6, repeat: Infinity }}
-                      style={{ fontSize: '18px', fontWeight: '900', lineHeight: 1.1 }}
+                      style={{ fontSize: '15px', fontWeight: '900', lineHeight: 1.1 }}
                     >
                       {Number(gameFinished.prize).toFixed(2)}
                     </motion.div>
-                    <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.55)', fontWeight: '700', letterSpacing: '0.5px' }}>ETB</div>
+                    <div style={{ fontSize: '8px', color: 'rgba(255,255,255,0.55)', fontWeight: '700', letterSpacing: '0.5px' }}>ETB</div>
                   </div>
                 )}
               </div>
@@ -1494,8 +1494,8 @@ function GameContent() {
                     style={{
                       display: 'inline-flex', alignItems: 'center', gap: '5px',
                       background: `${pc}22`, border: `1.5px solid ${pc}88`,
-                      borderRadius: '20px', padding: '4px 14px', marginBottom: '8px',
-                      fontSize: '11px', fontWeight: '900', color: pc,
+                      borderRadius: '20px', padding: '3px 10px', marginBottom: '8px',
+                      fontSize: '9px', fontWeight: '900', color: pc,
                       letterSpacing: '1px', textTransform: 'uppercase',
                     }}
                   >
@@ -1599,7 +1599,7 @@ function GameContent() {
                 return (
                   <div style={{ marginBottom: '4px' }}>
                     <div style={{
-                      fontSize: '8px', fontWeight: '800',
+                      fontSize: '7px', fontWeight: '800',
                       color: 'rgba(255,255,255,0.5)', marginBottom: '4px',
                       letterSpacing: '1px', textTransform: 'uppercase',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px'
@@ -1612,13 +1612,13 @@ function GameContent() {
                     <div style={{
                       display: 'grid',
                       gridTemplateColumns: 'repeat(5, 1fr)',
-                      gap: '2px', marginBottom: '2px', padding: '0 2px'
+                      gap: '1px', marginBottom: '2px', padding: '0 2px'
                     }}>
                       {COL_LABELS.map((lbl, ci) => {
                         const isWinCol = winningCol === ci;
                         return (
                           <div key={lbl} style={{
-                            fontSize: '11px', fontWeight: '900',
+                            fontSize: '10px', fontWeight: '900',
                             color: isWinCol ? '#fff' : COL_COLORS[lbl],
                             textAlign: 'center',
                             background: isWinCol ? `${patternColor}dd` : 'transparent',
@@ -1634,9 +1634,9 @@ function GameContent() {
                     <div style={{
                       display: 'grid',
                       gridTemplateColumns: 'repeat(5, 1fr)',
-                      gap: '2px',
+                      gap: '1px',
                       background: 'rgba(0,0,0,0.55)',
-                      padding: '3px',
+                      padding: '2px',
                       borderRadius: '8px',
                       border: `2px solid ${patternColor}88`,
                       boxShadow: `inset 0 1px 10px rgba(0,0,0,0.6), 0 0 18px ${patternColor}33`,
@@ -1665,14 +1665,14 @@ function GameContent() {
                             let textColor = 'rgba(255,255,255,0.18)';
                             let shadow = 'none';
                             let border = '1px solid rgba(255,255,255,0.06)';
-                            let fontSize = '9px';
+                            let fontSize = '8px';
 
                             if (isWinCell) {
                               bg = `linear-gradient(135deg, ${patternColor}ff, ${patternColor}cc)`;
                               textColor = '#fff';
                               shadow = `0 0 12px ${patternColor}cc, 0 2px 4px rgba(0,0,0,0.5)`;
                               border = `2px solid ${patternColor}`;
-                              fontSize = '10px';
+                              fontSize = '9px';
                             } else if (called) {
                               bg = `${colColor}22`;
                               textColor = colColor;
@@ -1708,7 +1708,7 @@ function GameContent() {
                                 }}
                               >
                                 {isFree ? (
-                                  <span style={{ fontSize: '12px', filter: isWinCell ? 'drop-shadow(0 0 4px #fff)' : 'none' }}>★</span>
+                                  <span style={{ fontSize: '10px', filter: isWinCell ? 'drop-shadow(0 0 4px #fff)' : 'none' }}>★</span>
                                 ) : cell}
                                 {isWinCell && (
                                   <div style={{
@@ -1727,16 +1727,16 @@ function GameContent() {
 
                     {/* Legend */}
                     <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '4px', flexWrap: 'wrap' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '9px', color: 'rgba(255,255,255,0.55)' }}>
-                        <div style={{ width: '9px', height: '9px', borderRadius: '2px', background: patternColor, boxShadow: `0 0 4px ${patternColor}` }} />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '8px', color: 'rgba(255,255,255,0.55)' }}>
+                        <div style={{ width: '7px', height: '7px', borderRadius: '2px', background: patternColor, boxShadow: `0 0 4px ${patternColor}` }} />
                         Winning
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '9px', color: 'rgba(255,255,255,0.55)' }}>
-                        <div style={{ width: '9px', height: '9px', borderRadius: '2px', background: 'rgba(231,76,60,0.25)', border: '1px solid #E74C3C77' }} />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '8px', color: 'rgba(255,255,255,0.55)' }}>
+                        <div style={{ width: '7px', height: '7px', borderRadius: '2px', background: 'rgba(231,76,60,0.25)', border: '1px solid #E74C3C77' }} />
                         Called
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '9px', color: 'rgba(255,255,255,0.55)' }}>
-                        <div style={{ width: '9px', height: '9px', borderRadius: '2px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }} />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '8px', color: 'rgba(255,255,255,0.55)' }}>
+                        <div style={{ width: '7px', height: '7px', borderRadius: '2px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }} />
                         Uncalled
                       </div>
                     </div>
@@ -1744,7 +1744,7 @@ function GameContent() {
                 );
               })()}
 
-              <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.42)', margin: '8px 0 6px' }}>
+              <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.42)', margin: '8px 0 6px' }}>
                 Redirecting in <span style={{ color: T.gold, fontWeight: '900' }}>{redirectSecs}s</span>...
               </div>
 
@@ -1760,10 +1760,10 @@ function GameContent() {
                     flex: 1,
                     background: `linear-gradient(135deg, ${T.gold}, #c47a1e)`,
                     color: '#1a0a00',
-                    padding: '13px 8px',
+                    padding: '10px 8px',
                     borderRadius: '14px',
                     fontWeight: '900',
-                    fontSize: '13px',
+                    fontSize: '11px',
                     border: 'none',
                     cursor: 'pointer',
                     boxShadow: `0 4px 16px ${T.gold}55`,
@@ -1781,10 +1781,10 @@ function GameContent() {
                     flex: 1,
                     background: 'rgba(255,255,255,0.07)',
                     color: T.header,
-                    padding: '13px 8px',
+                    padding: '10px 8px',
                     borderRadius: '14px',
                     fontWeight: '700',
-                    fontSize: '13px',
+                    fontSize: '11px',
                     border: `1px solid ${T.gold}44`,
                     cursor: 'pointer',
                   }}
