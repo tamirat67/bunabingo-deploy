@@ -476,7 +476,7 @@ function GameContent() {
       );
       const isCurrentUserWinner = !!myWinnerObj;
       const w = myWinnerObj || d.winners?.[0];
-      const isBot = w?.isBot ?? w?.user?.isBot ?? true; // assume bot if unknown
+      const isBot = w?.isBot ?? w?.user?.isBot ?? false; // default false = show real name
       // Fallback Ethiopian names for when there's no winner data
       const ETHIOPIAN_FALLBACKS = ['Abebe', 'Kebede', 'Selam', 'Tesfaye', 'Girma', 'Dawit', 'Bereket', 'Yonas'];
       const fallbackName = ETHIOPIAN_FALLBACKS[Math.floor(Math.random() * ETHIOPIAN_FALLBACKS.length)];
@@ -514,7 +514,7 @@ function GameContent() {
         drawnNumbers: d.drawnNumbers || drawn || [],
       });
       // Start 5-second countdown then redirect to cartela selection
-      setRedirectSecs(5);
+      setRedirectSecs(8);
       redirectCountdownRef.current = setInterval(() => {
         setRedirectSecs(s => {
           if (s <= 1) {
@@ -526,7 +526,7 @@ function GameContent() {
       }, 1000);
       redirectTimerRef.current = setTimeout(() => {
         router.push(`/tickets/select?type=${game?.room?.type || spType}&price=${stake}`);
-      }, 5000);
+      }, 8000);
     });
 
     socket.on('game-update', (d: any) => {
@@ -595,7 +595,7 @@ function GameContent() {
         );
         const isCurrentUserWinner = !!myWinnerObj;
         const w = myWinnerObj || winners[0];
-        const isBot = w?.isBot ?? w?.user?.isBot ?? true;
+        const isBot = w?.isBot ?? w?.user?.isBot ?? false;
         const ETHIOPIAN_FALLBACKS = ['Abebe', 'Kebede', 'Selam', 'Tesfaye', 'Girma', 'Dawit', 'Bereket', 'Yonas'];
         const fallbackName = ETHIOPIAN_FALLBACKS[Math.floor(Math.random() * ETHIOPIAN_FALLBACKS.length)];
         const name = isCurrentUserWinner
@@ -627,10 +627,12 @@ function GameContent() {
           cardNo: cardNo2 || undefined,
           isCurrentUserWinner,
           isBot,
-          drawnNumbers: game?.drawnNumbers || drawn || [],
+          drawnNumbers: game?.drawHistory?.length
+            ? (game.drawHistory as any[]).map((d: any) => d.number)
+            : (drawn || []),
         });
         playStopAudio();
-        setRedirectSecs(5);
+        setRedirectSecs(8);
         redirectCountdownRef.current = setInterval(() => {
           setRedirectSecs(s => {
             if (s <= 1) { clearInterval(redirectCountdownRef.current); return 0; }
@@ -639,7 +641,7 @@ function GameContent() {
         }, 1000);
         redirectTimerRef.current = setTimeout(() => {
           router.push(`/tickets/select?type=${game?.room?.type || spType}&price=${stake}`);
-        }, 5000);
+        }, 8000);
       }
       return;
     }
@@ -654,6 +656,41 @@ function GameContent() {
     }, intervalMs);
     return () => clearInterval(poll);
   }, [game?.status, loadData, router, gameFinished, playStopAudio]);
+
+  // ── Card-patch effect: if socket gave gameFinished with null card, fix it from API winners ──
+  // Triggered when loadData() completes and populates game.winners after the socket event.
+  useEffect(() => {
+    if (!gameId || !gameFinished || gameFinished.card) return;
+    const winners = (game as any)?.winners;
+    if (!winners?.length) return;
+    const tgUid = typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.initDataUnsafe?.user?.id
+      ? String((window as any).Telegram.WebApp.initDataUnsafe.user.id) : '';
+    const myW = winners.find((ww: any) =>
+      (tgUid && ww.telegramId && String(ww.telegramId) === tgUid) ||
+      (tgUid && String(ww.userId) === tgUid) ||
+      tickets.some((t: any) => String(t.id) === String(ww.ticketId) || String(t.userId) === String(ww.userId))
+    );
+    const ww = myW || winners[0];
+    if (!ww) return;
+    let rawC: any = ww?.card || ww?.ticket?.card;
+    if (typeof rawC === 'string') { try { rawC = JSON.parse(rawC); } catch(e) {} }
+    if (typeof rawC === 'string') { try { rawC = JSON.parse(rawC); } catch(e) {} }
+    let cardR: any[] | null = rawC ? (Array.isArray(rawC) ? rawC : (rawC.rows ?? null)) : null;
+    if (typeof cardR === 'string') { try { cardR = JSON.parse(cardR); } catch(e) {} }
+    if (cardR && !Array.isArray(cardR)) cardR = null;
+    if (cardR && (!Array.isArray(cardR[0]) || cardR.length !== 5)) cardR = null;
+    if (!cardR) return;
+    const apiDrawn: number[] | null = (game as any)?.drawHistory?.length
+      ? ((game as any).drawHistory as any[]).map((d: any) => d.number) : null;
+    // Patch: update only card, cardNo, and drawnNumbers — preserve all other state (timer intact)
+    setGameFinished(prev => prev && !prev.card ? {
+      ...prev,
+      card: cardR,
+      cardNo: rawC?.id ?? ww?.cardId ?? prev.cardNo,
+      drawnNumbers: (apiDrawn && apiDrawn.length > 0) ? apiDrawn : (prev.drawnNumbers || drawn),
+    } : prev);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameFinished?.card, (game as any)?.winners?.length, (game as any)?.drawHistory?.length, gameId]);
 
   const isCalled   = (n: number) => drawn.includes(n);
   const isMarkedLocal = (n: number) => marked.has(n);

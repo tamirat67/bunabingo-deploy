@@ -769,7 +769,7 @@ router.get('/games/:gameId', async (req: Request, res: Response) => {
       drawHistory: { orderBy: { sequence: 'asc' } },
       winners: {
         include: {
-          user: { select: { firstName: true, telegramUsername: true } },
+          user: { select: { firstName: true, telegramUsername: true, isBot: true, telegramId: true } },
           ticket: { select: { card: true } }
         }
       },
@@ -809,8 +809,11 @@ router.get('/games/:gameId', async (req: Request, res: Response) => {
         }
       }
 
+      // Ensure PREDEFINED_CARDS fallback always picks a valid index (1–250)
       if (!cardRows || cardRows.length === 0) {
-        const safeCardId = cardId || Math.floor(Math.random() * 250) + 1;
+        const safeCardId = (cardId && cardId >= 1 && cardId <= 250 && PREDEFINED_CARDS[cardId])
+          ? cardId
+          : Math.floor(Math.random() * 250) + 1;
         const pattern = PREDEFINED_CARDS[safeCardId];
         if (pattern) {
           cardRows = pattern.map((row: number[]) =>
@@ -822,6 +825,9 @@ router.get('/games/:gameId', async (req: Request, res: Response) => {
 
       w.card = { id: cardId, rows: cardRows };
       w.cardId = cardId || w.card?.id;
+      // Expose isBot + telegramId at top level so frontend can identify current user
+      w.isBot = w.user?.isBot ?? false;
+      w.telegramId = w.user?.telegramId ? String(w.user.telegramId) : null;
     }
   }
   
