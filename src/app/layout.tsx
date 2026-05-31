@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import Script from 'next/script';
 import { Suspense } from 'react';
 import Navbar from '../components/Navbar';
-import ErudaProvider from '../components/ErudaProvider';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -35,7 +34,6 @@ export default function RootLayout({
           src="https://telegram.org/js/telegram-web-app.js" 
           strategy="beforeInteractive" 
         />
-        <ErudaProvider />
         <SocketProvider>
           <ThemeProvider>
             <Suspense fallback={<div></div>}>
