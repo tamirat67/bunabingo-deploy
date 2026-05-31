@@ -71,7 +71,7 @@ function GameContent() {
   const [soundOn,   setSoundOn]   = useState(true);
   const [hidden,    setHidden]    = useState<Set<string>>(new Set());
   const [winMsg,    setWinMsg]    = useState<string | null>(null);
-  const [gameFinished, setGameFinished] = useState<{ winnerName: string; prize: number; mode: string; isWinner: boolean; card?: any; cardNo?: number; isCurrentUserWinner?: boolean; hasAnyWinner?: boolean } | null>(null);
+  const [gameFinished, setGameFinished] = useState<{ winnerName: string; prize: number; mode: string; isWinner: boolean; card?: any; cardNo?: number; isCurrentUserWinner?: boolean; hasAnyWinner?: boolean; isBot?: boolean } | null>(null);
   const [redirectSecs, setRedirectSecs] = useState(5);
   const redirectTimerRef = useRef<any>(null);
   const redirectCountdownRef = useRef<any>(null);
@@ -468,25 +468,27 @@ function GameContent() {
       const tgUserId = typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.initDataUnsafe?.user?.id
         ? String((window as any).Telegram.WebApp.initDataUnsafe.user.id)
         : '';
+      // Match by telegramId (reliable) OR userId (fallback) OR ticketId
       const myWinnerObj = (d.winners || []).find((winner: any) => 
+        (tgUserId && winner.telegramId && String(winner.telegramId) === tgUserId) ||
         (tgUserId && String(winner.userId) === tgUserId) ||
         ticketsRef.current.some(t => String(t.id) === String(winner.ticketId) || String(t.userId) === String(winner.userId))
       );
       const isCurrentUserWinner = !!myWinnerObj;
       const w = myWinnerObj || d.winners?.[0];
-      // Fallback Ethiopian names — every game MUST have a winner (house bot or real player)
+      const isBot = w?.isBot ?? w?.user?.isBot ?? true; // assume bot if unknown
+      // Fallback Ethiopian names for when there's no winner data
       const ETHIOPIAN_FALLBACKS = ['Abebe', 'Kebede', 'Selam', 'Tesfaye', 'Girma', 'Dawit', 'Bereket', 'Yonas'];
       const fallbackName = ETHIOPIAN_FALLBACKS[Math.floor(Math.random() * ETHIOPIAN_FALLBACKS.length)];
-      const name = w
-        ? (w.user?.firstName || w.user?.telegramUsername || fallbackName)
-        : fallbackName; // house bot won but wasn't tracked — show Ethiopian name
-      // Normalize card: backend sends { id, rows: [...] } or raw array
-      // Try: w.card (object), w.ticket?.card (nested), or reconstruct from cardId
+      // For real player wins: show actual name. For bot wins: show Ethiopian name (already set by backend).
+      const name = isCurrentUserWinner
+        ? ((window as any).Telegram?.WebApp?.initDataUnsafe?.user?.first_name || w?.user?.firstName || 'You')
+        : (w ? (w.user?.firstName || fallbackName) : fallbackName);
+      // Normalize card
       let rawCard = w?.card || w?.ticket?.card;
       if (typeof rawCard === 'string') {
         try { rawCard = JSON.parse(rawCard); } catch(e) {}
       }
-      // Handle double-serialized JSON (legacy)
       if (typeof rawCard === 'string') {
         try { rawCard = JSON.parse(rawCard); } catch(e) {}
       }
@@ -497,13 +499,8 @@ function GameContent() {
       if (typeof cardRows === 'string') {
         try { cardRows = JSON.parse(cardRows); } catch(e) {}
       }
-      if (cardRows && !Array.isArray(cardRows)) {
-         cardRows = null; // invalid format
-      }
-      // Validate that cardRows looks like a real 5x5 bingo card
-      if (cardRows && (!Array.isArray(cardRows[0]) || cardRows.length !== 5)) {
-        cardRows = null;
-      }
+      if (cardRows && !Array.isArray(cardRows)) cardRows = null;
+      if (cardRows && (!Array.isArray(cardRows[0]) || cardRows.length !== 5)) cardRows = null;
       setGameFinished({
         winnerName: name,
         prize: parseFloat(String(w?.prizeAmount ?? 0)) || parseFloat(String(d?.gamePrize ?? 0)) || (Number(stake) * 31 * 0.75),
@@ -513,6 +510,7 @@ function GameContent() {
         card: cardRows || null,
         cardNo: cardNo || undefined,
         isCurrentUserWinner,
+        isBot,
       });
       // Start 5-second countdown then redirect to cartela selection
       setRedirectSecs(5);
@@ -585,24 +583,27 @@ function GameContent() {
       // Socket may have missed game-finished — show popup and redirect as fallback
       if (!gameFinished) {
         const winners = game?.winners || [];
-        const tgUserId = typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.initDataUnsafe?.user?.id
+        // Polling fallback
+        const tgUserId2 = typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.initDataUnsafe?.user?.id
           ? String((window as any).Telegram.WebApp.initDataUnsafe.user.id)
           : '';
         const myWinnerObj = winners.find((winner: any) => 
-          (tgUserId && String(winner.userId) === tgUserId) ||
+          (tgUserId2 && winner.telegramId && String(winner.telegramId) === tgUserId2) ||
+          (tgUserId2 && String(winner.userId) === tgUserId2) ||
           tickets.some(t => String(t.id) === String(winner.ticketId) || String(t.userId) === String(winner.userId))
         );
         const isCurrentUserWinner = !!myWinnerObj;
         const w = myWinnerObj || winners[0];
+        const isBot = w?.isBot ?? w?.user?.isBot ?? true;
         const ETHIOPIAN_FALLBACKS = ['Abebe', 'Kebede', 'Selam', 'Tesfaye', 'Girma', 'Dawit', 'Bereket', 'Yonas'];
         const fallbackName = ETHIOPIAN_FALLBACKS[Math.floor(Math.random() * ETHIOPIAN_FALLBACKS.length)];
-        const name = w ? (w.user?.firstName || w.user?.telegramUsername || fallbackName) : fallbackName;
-        // Normalize card from polling (comes via ticket.card relation)
+        const name = isCurrentUserWinner
+          ? ((window as any).Telegram?.WebApp?.initDataUnsafe?.user?.first_name || w?.user?.firstName || 'You')
+          : (w ? (w.user?.firstName || fallbackName) : fallbackName);
         let rawCard2 = w?.card || w?.ticket?.card;
         if (typeof rawCard2 === 'string') {
           try { rawCard2 = JSON.parse(rawCard2); } catch(e) {}
         }
-        // Handle double-serialized JSON
         if (typeof rawCard2 === 'string') {
           try { rawCard2 = JSON.parse(rawCard2); } catch(e) {}
         }
@@ -613,12 +614,8 @@ function GameContent() {
         if (typeof cardRows2 === 'string') {
           try { cardRows2 = JSON.parse(cardRows2); } catch(e) {}
         }
-        if (cardRows2 && !Array.isArray(cardRows2)) {
-           cardRows2 = null; // invalid format
-        }
-        if (cardRows2 && (!Array.isArray(cardRows2[0]) || cardRows2.length !== 5)) {
-          cardRows2 = null;
-        }
+        if (cardRows2 && !Array.isArray(cardRows2)) cardRows2 = null;
+        if (cardRows2 && (!Array.isArray(cardRows2[0]) || cardRows2.length !== 5)) cardRows2 = null;
         setGameFinished({
           winnerName: name,
           prize: parseFloat(String(w?.prizeAmount ?? 0)) || parseFloat(String(game?.totalPrize ?? 0)) || (Number(stake) * 31 * 0.75),
@@ -628,6 +625,7 @@ function GameContent() {
           card: cardRows2 || null,
           cardNo: cardNo2 || undefined,
           isCurrentUserWinner,
+          isBot,
         });
         playStopAudio();
         setRedirectSecs(5);

@@ -1029,7 +1029,7 @@ async function finishGame(gameId: string, reason: string): Promise<void> {
   const winners = await prisma.winner.findMany({
     where: { gameId },
     include: { 
-      user: { select: { firstName: true, telegramUsername: true, isBot: true } },
+      user: { select: { firstName: true, telegramUsername: true, isBot: true, telegramId: true } },
       ticket: { select: { card: true } }
     },
   });
@@ -1063,7 +1063,7 @@ async function finishGame(gameId: string, reason: string): Promise<void> {
       const newWinners = await prisma.winner.findMany({
         where: { gameId },
         include: {
-          user: { select: { firstName: true, telegramUsername: true, isBot: true } },
+          user: { select: { firstName: true, telegramUsername: true, isBot: true, telegramId: true } },
           ticket: { select: { card: true } }
         },
       });
@@ -1091,25 +1091,46 @@ async function finishGame(gameId: string, reason: string): Promise<void> {
     // Fall back to game-level totalPrize if winner record has 0 (race condition)
     const resolvedPrize = winnerPrize > 0 ? winnerPrize : safeTotalPrize;
 
-    // Resolve card: prefer DB ticket relation, fall back to in-memory map
-    const resolvedCard = w.ticket?.card ?? memTicketCardMap.get(w.ticketId) ?? null;
-    const cardId: number | undefined = resolvedCard ? (resolvedCard as any).id : undefined;
+    // Resolve card: prefer DB ticket relation, fall back to in-memory map, then PREDEFINED_CARDS
+    let resolvedCard: any = w.ticket?.card ?? memTicketCardMap.get(w.ticketId) ?? null;
+    let cardId: number | undefined = resolvedCard ? (resolvedCard as any).id : undefined;
+
+    // Last resort: reconstruct card rows from PREDEFINED_CARDS if we have cardId but no rows
+    if (cardId && (!resolvedCard || !(resolvedCard as any).rows)) {
+      const pattern = PREDEFINED_CARDS[cardId];
+      if (pattern) {
+        const reconstructedRows = pattern.map((row: number[]) =>
+          row.map((cell: number) => (cell === 0 ? 'FREE' : cell))
+        );
+        resolvedCard = { id: cardId, rows: reconstructedRows };
+        logger.debug(`[Game ${gameId}] Reconstructed card #${cardId} rows from PREDEFINED_CARDS`);
+      }
+    }
+
+    const isBot = w.user?.isBot ?? false;
+    // For bots: use Ethiopian disguise name; for real players: use their actual name
+    const realName = w.user?.firstName || w.user?.telegramUsername;
+    const botName = ETHIOPIAN_FALLBACKS[idx % ETHIOPIAN_FALLBACKS.length];
+    const displayName = isBot ? botName : (realName || 'Player');
 
     return {
       id: w.id,
       gameId: w.gameId,
       userId: w.userId,
+      telegramId: w.user?.telegramId ? w.user.telegramId.toString() : null, // for frontend matching
       ticketId: w.ticketId,
       winMode: w.winMode,   // always the actual stored win mode
       prizeAmount: resolvedPrize,
-      gamePrize: safeTotalPrize, // backup: always the correct pool amount
-      card: resolvedCard,  // { id, rows } object or null
-      cardId,              // top-level card number for quick access
+      gamePrize: safeTotalPrize,
+      card: resolvedCard,
+      cardId,
+      isBot,                // real flag — frontend uses this for display logic
       user: {
-        // Use the bot's real Ethiopian name from DB, fallback to rotating Ethiopian names
-        firstName: w.user?.firstName || ETHIOPIAN_FALLBACKS[idx % ETHIOPIAN_FALLBACKS.length],
-        telegramUsername: w.user?.telegramUsername || (w.user?.firstName || ETHIOPIAN_FALLBACKS[idx % ETHIOPIAN_FALLBACKS.length]).toLowerCase(),
-        isBot: false // Hide bot flag so frontend handles it exactly like a real winner
+        firstName: displayName,
+        telegramUsername: isBot
+          ? displayName.toLowerCase()
+          : (w.user?.telegramUsername || displayName.toLowerCase()),
+        isBot,
       }
     };
   });
