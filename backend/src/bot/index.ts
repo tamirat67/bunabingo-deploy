@@ -24,6 +24,7 @@ import { handleTransfer,
          handleTransferConfirm,
          handleTransferCancel,
          handleTransferMessage }               from './commands/transfer';
+import { handleCmd }                            from './commands/cmd';
 
 // ─── Deposit flow ─────────────────────────────────────────────────────────────
 import {
@@ -89,6 +90,12 @@ export function createBot(): Telegraf {
   bot.command('deposits',          ctx => handleAdminDeposits(ctx));
   bot.command('withdrawals',       ctx => handleAdminWithdrawals(ctx));
 
+  // ─── Commands list ────────────────────────────────────────────────────────
+  bot.command('cmd',               ctx => handleCmd(ctx));
+  bot.command('commands',          ctx => handleCmd(ctx));
+  bot.command('help',              ctx => handleCmd(ctx));
+  bot.command('menu',              ctx => handleCmd(ctx));
+
   // ═══════════════════════════════════════════════════════════════════════════
   //  INLINE BUTTON CALLBACKS
   // ═══════════════════════════════════════════════════════════════════════════
@@ -133,6 +140,7 @@ export function createBot(): Telegraf {
   // ─── Help & Support ───────────────────────────────────────────────────────
   bot.action('cmd_support',        ctx => handleSupport(ctx));
   bot.action('cmd_instructions',   ctx => handleInstructions(ctx));
+  bot.action('cmd_cmd',            ctx => handleCmd(ctx));
 
   // ─── Admin panel ──────────────────────────────────────────────────────────
   bot.action('admin_deposits',     ctx => handleAdminDeposits(ctx));
@@ -229,6 +237,7 @@ export function createBot(): Telegraf {
       if (text === '💎 VIP ክፍል') { await handleVipRoom(ctx); return; }
       if (text === '🆘 እርዳታ') { await handleSupport(ctx); return; }
       if (text === '📜 ደንቦች') { await handleInstructions(ctx); return; }
+      if (text === '📋 ትዕዛዞች' || text === '/cmd') { await handleCmd(ctx); return; }
     }
 
     // 1. Deposit flow (text + photo)
