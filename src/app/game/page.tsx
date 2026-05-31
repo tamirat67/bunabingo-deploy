@@ -728,10 +728,9 @@ function GameContent() {
 
     setClaiming(true);
 
-    // Layer 1: Silently block before 20 balls with a fake processing delay.
-    // The button shows "CLAIMING...", then quietly returns. No rejection shown to the player.
+    // If tapped before 20 balls, we still quietly return on the frontend to avoid spamming the backend,
+    // but without the 2-second fake loading state.
     if (drawn.length < 20) {
-      await new Promise(resolve => setTimeout(resolve, 2000));
       setClaiming(false);
       return;
     }
