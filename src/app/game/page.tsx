@@ -481,11 +481,16 @@ function GameContent() {
         ? (w.user?.firstName || w.user?.telegramUsername || fallbackName)
         : fallbackName; // house bot won but wasn't tracked — show Ethiopian name
       // Normalize card: backend sends { id, rows: [...] } or raw array
-      let rawCard = w?.ticket?.card || w?.card;
+      // Try: w.card (object), w.ticket?.card (nested), or reconstruct from cardId
+      let rawCard = w?.card || w?.ticket?.card;
       if (typeof rawCard === 'string') {
         try { rawCard = JSON.parse(rawCard); } catch(e) {}
       }
-      const cardNo: number | undefined = rawCard?.id ?? undefined;
+      // Handle double-serialized JSON (legacy)
+      if (typeof rawCard === 'string') {
+        try { rawCard = JSON.parse(rawCard); } catch(e) {}
+      }
+      const cardNo: number | undefined = rawCard?.id ?? w?.cardId ?? undefined;
       let cardRows = rawCard
         ? (Array.isArray(rawCard) ? rawCard : (rawCard.rows ?? null))
         : null;
@@ -495,21 +500,18 @@ function GameContent() {
       if (cardRows && !Array.isArray(cardRows)) {
          cardRows = null; // invalid format
       }
-      const fallbackCardRows = [
-        [1, 16, 31, 46, 61],
-        [2, 17, 32, 47, 62],
-        [3, 18, 0, 48, 63],
-        [4, 19, 34, 49, 64],
-        [5, 20, 35, 50, 65]
-      ];
+      // Validate that cardRows looks like a real 5x5 bingo card
+      if (cardRows && (!Array.isArray(cardRows[0]) || cardRows.length !== 5)) {
+        cardRows = null;
+      }
       setGameFinished({
         winnerName: name,
         prize: parseFloat(String(w?.prizeAmount ?? 0)) || parseFloat(String(d?.gamePrize ?? 0)) || (Number(stake) * 31 * 0.75),
-        mode: w?.winMode || 'FULL_HOUSE',
+        mode: w?.winMode || 'ROW',
         isWinner: !!w,
         hasAnyWinner: true,
-        card: cardRows || fallbackCardRows,
-        cardNo: cardNo || Math.floor(Math.random() * 50) + 1,
+        card: cardRows || null,
+        cardNo: cardNo || undefined,
         isCurrentUserWinner,
       });
       // Start 5-second countdown then redirect to cartela selection
@@ -596,11 +598,15 @@ function GameContent() {
         const fallbackName = ETHIOPIAN_FALLBACKS[Math.floor(Math.random() * ETHIOPIAN_FALLBACKS.length)];
         const name = w ? (w.user?.firstName || w.user?.telegramUsername || fallbackName) : fallbackName;
         // Normalize card from polling (comes via ticket.card relation)
-        let rawCard2 = w?.ticket?.card || w?.card;
+        let rawCard2 = w?.card || w?.ticket?.card;
         if (typeof rawCard2 === 'string') {
           try { rawCard2 = JSON.parse(rawCard2); } catch(e) {}
         }
-        const cardNo2: number | undefined = rawCard2?.id ?? undefined;
+        // Handle double-serialized JSON
+        if (typeof rawCard2 === 'string') {
+          try { rawCard2 = JSON.parse(rawCard2); } catch(e) {}
+        }
+        const cardNo2: number | undefined = rawCard2?.id ?? w?.cardId ?? undefined;
         let cardRows2 = rawCard2
           ? (Array.isArray(rawCard2) ? rawCard2 : (rawCard2.rows ?? null))
           : null;
@@ -610,21 +616,17 @@ function GameContent() {
         if (cardRows2 && !Array.isArray(cardRows2)) {
            cardRows2 = null; // invalid format
         }
-        const fallbackCardRows = [
-          [1, 16, 31, 46, 61],
-          [2, 17, 32, 47, 62],
-          [3, 18, 0, 48, 63],
-          [4, 19, 34, 49, 64],
-          [5, 20, 35, 50, 65]
-        ];
+        if (cardRows2 && (!Array.isArray(cardRows2[0]) || cardRows2.length !== 5)) {
+          cardRows2 = null;
+        }
         setGameFinished({
           winnerName: name,
           prize: parseFloat(String(w?.prizeAmount ?? 0)) || parseFloat(String(game?.totalPrize ?? 0)) || (Number(stake) * 31 * 0.75),
-          mode: w?.winMode || 'FULL_HOUSE',
+          mode: w?.winMode || 'ROW',
           isWinner: !!w,
           hasAnyWinner: true,
-          card: cardRows2 || fallbackCardRows,
-          cardNo: cardNo2 || Math.floor(Math.random() * 50) + 1,
+          card: cardRows2 || null,
+          cardNo: cardNo2 || undefined,
           isCurrentUserWinner,
         });
         playStopAudio();

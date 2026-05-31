@@ -1076,20 +1076,35 @@ async function finishGame(gameId: string, reason: string): Promise<void> {
 
   // Disguise bot winners as real players for public broadcast so they get announced on frontend
   const ETHIOPIAN_FALLBACKS = ['Abebe', 'Kebede', 'Selam', 'Tesfaye', 'Girma', 'Dawit', 'Bereket', 'Yonas'];
+
+  // Build a quick lookup of in-memory ticket cards (as fallback if DB ticket relation is null)
+  const memTicketCardMap = new Map<string, any>();
+  if (state?.tickets) {
+    for (const t of state.tickets) {
+      memTicketCardMap.set(t.id, t.card);
+    }
+  }
+
   const publicWinners = winners.map((w, idx) => {
     // Prisma returns Decimal objects — use .toString() for reliable conversion
     const winnerPrize = parseFloat(w.prizeAmount?.toString() ?? '0');
     // Fall back to game-level totalPrize if winner record has 0 (race condition)
     const resolvedPrize = winnerPrize > 0 ? winnerPrize : safeTotalPrize;
+
+    // Resolve card: prefer DB ticket relation, fall back to in-memory map
+    const resolvedCard = w.ticket?.card ?? memTicketCardMap.get(w.ticketId) ?? null;
+    const cardId: number | undefined = resolvedCard ? (resolvedCard as any).id : undefined;
+
     return {
       id: w.id,
       gameId: w.gameId,
       userId: w.userId,
       ticketId: w.ticketId,
-      winMode: w.winMode,
+      winMode: w.winMode,   // always the actual stored win mode
       prizeAmount: resolvedPrize,
       gamePrize: safeTotalPrize, // backup: always the correct pool amount
-      card: w.ticket?.card,
+      card: resolvedCard,  // { id, rows } object or null
+      cardId,              // top-level card number for quick access
       user: {
         // Use the bot's real Ethiopian name from DB, fallback to rotating Ethiopian names
         firstName: w.user?.firstName || ETHIOPIAN_FALLBACKS[idx % ETHIOPIAN_FALLBACKS.length],
