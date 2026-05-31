@@ -1135,7 +1135,13 @@ async function finishGame(gameId: string, reason: string): Promise<void> {
     };
   });
 
-  await triggerGameEvent(gameId, 'game-finished', { gameId, reason, winners: publicWinners, gamePrize: safeTotalPrize });
+  await triggerGameEvent(gameId, 'game-finished', { 
+    gameId, 
+    reason, 
+    winners: publicWinners, 
+    gamePrize: safeTotalPrize,
+    drawnNumbers: state?.drawnNumbers || []
+  });
   await triggerAdminEvent('game-finished', { gameId, reason });
   logger.info(`[Game ${gameId}] Finished: ${reason}`);
 

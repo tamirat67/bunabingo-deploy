@@ -71,7 +71,7 @@ function GameContent() {
   const [soundOn,   setSoundOn]   = useState(true);
   const [hidden,    setHidden]    = useState<Set<string>>(new Set());
   const [winMsg,    setWinMsg]    = useState<string | null>(null);
-  const [gameFinished, setGameFinished] = useState<{ winnerName: string; prize: number; mode: string; isWinner: boolean; card?: any; cardNo?: number; isCurrentUserWinner?: boolean; hasAnyWinner?: boolean; isBot?: boolean } | null>(null);
+  const [gameFinished, setGameFinished] = useState<{ winnerName: string; prize: number; mode: string; isWinner: boolean; card?: any; cardNo?: number; isCurrentUserWinner?: boolean; hasAnyWinner?: boolean; isBot?: boolean; drawnNumbers?: number[] } | null>(null);
   const [redirectSecs, setRedirectSecs] = useState(5);
   const redirectTimerRef = useRef<any>(null);
   const redirectCountdownRef = useRef<any>(null);
@@ -511,6 +511,7 @@ function GameContent() {
         cardNo: cardNo || undefined,
         isCurrentUserWinner,
         isBot,
+        drawnNumbers: d.drawnNumbers || drawn || [],
       });
       // Start 5-second countdown then redirect to cartela selection
       setRedirectSecs(5);
@@ -626,6 +627,7 @@ function GameContent() {
           cardNo: cardNo2 || undefined,
           isCurrentUserWinner,
           isBot,
+          drawnNumbers: game?.drawnNumbers || drawn || [],
         });
         playStopAudio();
         setRedirectSecs(5);
@@ -1484,7 +1486,7 @@ function GameContent() {
                   )
                 );
 
-                const calledSet = new Set(drawn);
+                const calledSet = new Set(gameFinished.drawnNumbers || drawn);
                 // A cell counts as "marked" if it's the free center OR its number was called
                 const isMarked = (r: number, c: number) =>
                   grid[r]?.[c] === 0 || calledSet.has(grid[r]?.[c]);
