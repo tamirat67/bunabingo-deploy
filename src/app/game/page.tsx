@@ -1356,7 +1356,243 @@ function GameContent() {
         </div>
       </motion.div>
 
-      {/* Old game finished modal removed */}
+      {/* ── WINNER MODAL — full-screen overlay shown when game-finished fires ── */}
+      <AnimatePresence>
+        {gameFinished && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 99999,
+              background: 'rgba(0,0,0,0.88)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: '16px',
+              backdropFilter: 'blur(6px)',
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.7, opacity: 0, y: 40 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              transition={{ type: 'spring', damping: 18, stiffness: 280 }}
+              style={{
+                width: '100%', maxWidth: '380px',
+                background: isVip
+                  ? 'linear-gradient(160deg, #1C0A35 0%, #2D1442 60%, #1C0A35 100%)'
+                  : 'linear-gradient(160deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%)',
+                borderRadius: '24px',
+                border: `2px solid ${isVip ? '#FFD700' : '#D4AF37'}`,
+                boxShadow: `0 0 60px ${isVip ? 'rgba(255,215,0,0.4)' : 'rgba(212,175,55,0.35)'}, 0 30px 80px rgba(0,0,0,0.7)`,
+                overflow: 'hidden',
+                maxHeight: '92vh',
+                overflowY: 'auto',
+              }}
+            >
+              {/* Header */}
+              <motion.div
+                animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
+                transition={{ duration: 3, repeat: Infinity }}
+                style={{
+                  background: gameFinished.isCurrentUserWinner
+                    ? 'linear-gradient(135deg, #FFD700 0%, #FF6B35 50%, #FFD700 100%)'
+                    : 'linear-gradient(135deg, #8E44AD 0%, #3498DB 50%, #8E44AD 100%)',
+                  backgroundSize: '200% 200%',
+                  padding: '20px 16px 16px',
+                  textAlign: 'center',
+                }}
+              >
+                {/* Trophy / emoji */}
+                <motion.div
+                  animate={{ scale: [1, 1.15, 1], rotate: [-5, 5, -5, 5, 0] }}
+                  transition={{ duration: 1.2, repeat: Infinity, repeatDelay: 2 }}
+                  style={{ fontSize: '48px', lineHeight: 1, marginBottom: '6px' }}
+                >
+                  {gameFinished.isCurrentUserWinner ? '🏆' : '🎉'}
+                </motion.div>
+
+                <div style={{
+                  color: '#1a0a00', fontWeight: '900', fontSize: '22px',
+                  letterSpacing: '1px', textShadow: '0 2px 4px rgba(255,255,255,0.3)',
+                }}>
+                  {gameFinished.isCurrentUserWinner ? 'YOU WON! 🎊' : 'GAME OVER!'}
+                </div>
+                <div style={{
+                  color: gameFinished.isCurrentUserWinner ? '#1a0a00' : 'rgba(255,255,255,0.9)',
+                  fontWeight: '700', fontSize: '13px', marginTop: '3px',
+                }}>
+                  {gameFinished.isCurrentUserWinner
+                    ? 'Congratulations! Prize credited to your wallet!'
+                    : `Winner: ${gameFinished.winnerName}`}
+                </div>
+              </motion.div>
+
+              {/* Body */}
+              <div style={{ padding: '16px' }}>
+                {/* Win Mode Badge + Prize */}
+                <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginBottom: '14px', flexWrap: 'wrap' }}>
+                  <div style={{
+                    background: 'linear-gradient(135deg, #E74C3C, #C0392B)',
+                    color: 'white', fontWeight: '900', fontSize: '12px',
+                    padding: '5px 14px', borderRadius: '20px',
+                    letterSpacing: '0.5px', boxShadow: '0 3px 10px rgba(231,76,60,0.5)',
+                  }}>
+                    {gameFinished.mode || 'ROW'}
+                  </div>
+                  <div style={{
+                    background: 'linear-gradient(135deg, #27AE60, #1E8449)',
+                    color: 'white', fontWeight: '900', fontSize: '12px',
+                    padding: '5px 14px', borderRadius: '20px',
+                    letterSpacing: '0.5px', boxShadow: '0 3px 10px rgba(39,174,96,0.5)',
+                  }}>
+                    🏅 {gameFinished.prize > 0 ? `${Math.round(gameFinished.prize)} ETB` : 'Prize'}
+                  </div>
+                  {gameFinished.cardNo && (
+                    <div style={{
+                      background: 'rgba(255,215,0,0.15)',
+                      color: '#FFD700', fontWeight: '900', fontSize: '12px',
+                      padding: '5px 14px', borderRadius: '20px',
+                      border: '1px solid #FFD70055', letterSpacing: '0.5px',
+                    }}>
+                      Cartela #{gameFinished.cardNo}
+                    </div>
+                  )}
+                </div>
+
+                {/* Winner Cartela Card */}
+                {gameFinished.card && Array.isArray(gameFinished.card) && gameFinished.card.length === 5 && (
+                  <div style={{ marginBottom: '14px' }}>
+                    <div style={{
+                      color: '#FFD700', fontWeight: '900', fontSize: '11px',
+                      textAlign: 'center', letterSpacing: '1px', marginBottom: '8px',
+                      textTransform: 'uppercase', opacity: 0.9,
+                    }}>
+                      ☕ {gameFinished.winnerName}{"'"}s Winning Cartela
+                    </div>
+                    {/* BINGO header row */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: '3px', marginBottom: '3px' }}>
+                      {['B','I','N','G','O'].map(l => (
+                        <div key={l} style={{
+                          background: COL_COLOR[l], color: 'white',
+                          textAlign: 'center', fontSize: '12px', fontWeight: '900',
+                          borderRadius: '5px', padding: '4px 0',
+                        }}>{l}</div>
+                      ))}
+                    </div>
+                    {/* Card rows */}
+                    {(gameFinished.card as any[][]).map((row: any[], ri: number) => (
+                      <div key={ri} style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: '3px', marginBottom: '3px' }}>
+                        {row.map((cell: any, ci: number) => {
+                          const isFreeCell = cell === 'FREE' || cell === 0 || cell === null;
+                          const numVal = Number(cell);
+                          const wasDrawn = !isFreeCell && (gameFinished.drawnNumbers || []).includes(numVal);
+                          const col = isFreeCell ? 'N' : colLabel(numVal);
+                          return (
+                            <div key={ci} style={{
+                              height: '28px',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              borderRadius: '5px', fontSize: '11px', fontWeight: '900',
+                              background: isFreeCell
+                                ? '#27AE60'
+                                : wasDrawn
+                                  ? COL_COLOR[col]
+                                  : 'rgba(255,255,255,0.08)',
+                              color: isFreeCell || wasDrawn ? 'white' : 'rgba(255,255,255,0.35)',
+                              border: wasDrawn && !isFreeCell ? `1px solid ${COL_COLOR[col]}` : 'none',
+                              boxShadow: wasDrawn && !isFreeCell ? `0 0 8px ${COL_COLOR[col]}99` : 'none',
+                              transition: 'all 0.2s',
+                            }}>
+                              {isFreeCell ? '★' : cell}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Drawn balls count */}
+                {gameFinished.drawnNumbers && gameFinished.drawnNumbers.length > 0 && (
+                  <div style={{
+                    textAlign: 'center', color: 'rgba(255,255,255,0.55)', fontSize: '11px',
+                    marginBottom: '14px',
+                  }}>
+                    {gameFinished.drawnNumbers.length} balls drawn in this game
+                  </div>
+                )}
+
+                {/* Redirect countdown */}
+                <div style={{
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(255,215,0,0.2)',
+                  borderRadius: '12px', padding: '12px',
+                  textAlign: 'center', marginBottom: '10px',
+                }}>
+                  <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '11px', marginBottom: '4px' }}>
+                    New game starting in...
+                  </div>
+                  <motion.div
+                    key={redirectSecs}
+                    initial={{ scale: 1.3 }}
+                    animate={{ scale: 1 }}
+                    style={{
+                      color: '#FFD700', fontWeight: '900', fontSize: '28px', lineHeight: 1,
+                    }}
+                  >
+                    {redirectSecs}s
+                  </motion.div>
+                  {/* Progress bar */}
+                  <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: '4px', height: '4px', marginTop: '8px', overflow: 'hidden' }}>
+                    <motion.div
+                      initial={{ width: '100%' }}
+                      animate={{ width: `${(redirectSecs / 8) * 100}%` }}
+                      transition={{ duration: 0.9 }}
+                      style={{ height: '100%', background: 'linear-gradient(90deg, #FFD700, #FF6B35)', borderRadius: '4px' }}
+                    />
+                  </div>
+                </div>
+
+                {/* Action buttons */}
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                      clearInterval(redirectCountdownRef.current);
+                      clearTimeout(redirectTimerRef.current);
+                      router.push(`/tickets/select?type=${game?.room?.type || spType}&price=${stake}`);
+                    }}
+                    style={{
+                      flex: 1, height: '44px',
+                      background: 'linear-gradient(135deg, #FFD700, #FF6B35)',
+                      color: '#1a0a00', border: 'none', borderRadius: '14px',
+                      fontWeight: '900', fontSize: '13px', cursor: 'pointer',
+                      boxShadow: '0 4px 15px rgba(255,215,0,0.4)',
+                    }}
+                  >
+                    🎮 Play Again
+                  </motion.button>
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                      clearInterval(redirectCountdownRef.current);
+                      clearTimeout(redirectTimerRef.current);
+                      router.push('/');
+                    }}
+                    style={{
+                      flex: 1, height: '44px',
+                      background: 'rgba(255,255,255,0.08)',
+                      color: 'rgba(255,255,255,0.8)', border: '1px solid rgba(255,255,255,0.15)',
+                      borderRadius: '14px', fontWeight: '900', fontSize: '13px', cursor: 'pointer',
+                    }}
+                  >
+                    🏠 Home
+                  </motion.button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <style dangerouslySetInnerHTML={{ __html: `
         .custom-scroll::-webkit-scrollbar { width: 4px; }

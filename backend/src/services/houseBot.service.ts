@@ -15,9 +15,9 @@ import { checkWin, parseCardRows, BingoCard } from '../game/card.generator';
 import { PREDEFINED_CARDS } from '../lib/predefinedCards';
 
 // ─── Win Quota Config ─────────────────────────────────────────
-// House bot must win 7 out of every 10 games (70% win rate)
+// House bot must win 8 out of every 10 games (80% win rate)
 const CYCLE_LENGTH = 10;
-const HOUSE_WIN_QUOTA = 7;
+const HOUSE_WIN_QUOTA = 8;
 
 // ─── Bot count per room type ──────────────────────────────────
 export const BOT_COUNTS: Record<string, number> = {
