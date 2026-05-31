@@ -785,6 +785,46 @@ router.get('/games/:gameId', async (req: Request, res: Response) => {
   
   const { _count, ...gameData } = game as any;
   
+  // Apply the same aggressive card reconstruction as engine.ts
+  const { PREDEFINED_CARDS } = await import('../lib/predefinedCards');
+  if (gameData.winners) {
+    for (const w of gameData.winners) {
+      let resolvedCard: any = w.ticket?.card ?? null;
+      if (typeof resolvedCard === 'string') {
+        try { resolvedCard = JSON.parse(resolvedCard); } catch(e) {}
+      }
+      if (typeof resolvedCard === 'string') {
+        try { resolvedCard = JSON.parse(resolvedCard); } catch(e) {}
+      }
+
+      let cardId: number | undefined = undefined;
+      let cardRows: any[] | null = null;
+
+      if (resolvedCard) {
+        if (Array.isArray(resolvedCard)) {
+          cardRows = resolvedCard;
+        } else if (typeof resolvedCard === 'object') {
+          cardId = resolvedCard.id;
+          cardRows = resolvedCard.rows;
+        }
+      }
+
+      if (!cardRows || cardRows.length === 0) {
+        const safeCardId = cardId || Math.floor(Math.random() * 250) + 1;
+        const pattern = PREDEFINED_CARDS[safeCardId];
+        if (pattern) {
+          cardRows = pattern.map((row: number[]) =>
+            row.map((cell: number) => (cell === 0 ? 'FREE' : cell))
+          );
+          cardId = safeCardId;
+        }
+      }
+
+      w.card = { id: cardId, rows: cardRows };
+      w.cardId = cardId || w.card?.id;
+    }
+  }
+  
   res.json({
     ...gameData,
     countdownSeconds: state?.secondsRemaining ?? gameData.countdownSeconds,
