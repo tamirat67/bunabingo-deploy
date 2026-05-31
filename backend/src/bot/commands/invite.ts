@@ -12,23 +12,29 @@ export async function handleInvite(ctx: Context) {
     const user = await getUserByTelegramId(tgUser.id);
     if (!user) return ctx.reply('❌ እባክዎ አስቀድመው /start ን በመጫን ይመዝገቡ።');
 
-    const botUsername  = 'buna_bingobot';
-    const inviteLink   = `https://t.me/${botUsername}?start=${user.id}`;
+    const botUsername = 'buna_bingobot';
+    // Use referralCode if available (shorter, human-readable); fallback to UUID
+    const startParam  = (user as any).referralCode || user.id;
+    const inviteLink  = `https://t.me/${botUsername}?start=${startParam}`;
     const shareMessage = encodeURIComponent(
       `🎰 ቡና ቢንጎ ላይ አብረን እንጫወት! ☕️ ሁለታችንም የ 5 ብር ቦነስ እናገኛለን!\n\n`
     );
     const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(inviteLink)}&text=${shareMessage}`;
 
-    logger.info(`[Invite] User ${tgUser.id} requested invite link`);
+    logger.info(`[Invite] User ${tgUser.id} requested invite link (startParam: ${startParam})`);
 
     const bannerUrl = `${process.env.WEBHOOK_URL}/uploads/banner.png`;
-    const messageText = 
+    const referralCodeLine = (user as any).referralCode
+      ? `🔖 <b>የእርስዎ Agent Code፡</b> <code>${(user as any).referralCode}</code>\n`
+      : '';
+    const messageText =
       `✉️ <b><a href="${shareUrl}">ጓደኞችዎን ይጋብዙ እና ይሸለሙ!</a></b> ☕️💰\n\n` +
       `"የቡና ጣዕም፣ ወርቃማ ድሎች።" 👑\n\n` +
       `🎁 <b>የምዝገባ ቦነስ፡</b> ለሚጋብዙት እያንዳንዱ ጓደኛዎ <b>5 ብር</b> ያግኙ!\n` +
       `💸 <b>የህይወት ዘመን ኮሚሽን፡</b> ጓደኞችዎ በሚገዙት እያንዳንዱ የጨዋታ ቲኬት <b>2%</b> ኮሚሽን ያግኙ — <i>ለዘላለም!</i>\n\n` +
       `🔗 <b>የእርስዎ የግብዣ ሊንክ፡</b>\n` +
       `<a href="${inviteLink}">${inviteLink}</a>\n\n` +
+      referralCodeLine +
       `👥 የጋበዟቸው ጓደኞች፡ <b>${user._count?.referrals || 0}</b>\n` +
       `💰 ጠቅላላ የኮሚሽን መጠን፡ <b>${Number(user.wallet?.referralBalance || 0).toFixed(2)} ETB</b>\n\n` +
       `✨ <i>ተጨማሪ ጓደኞችን በመጋበዝ ገቢዎን ያሳድጉ!</i>`;

@@ -169,6 +169,7 @@ router.get('/me', async (req: Request, res: Response) => {
       isAdmin: user.isAdmin,
       role: user.role,
       hasSeenJackpot: user.hasSeenJackpot,
+      referralCode: user.referralCode,
       referrer: referrerData,
       jackpot: {
         amount: jackpot.currentAmount.toString(),

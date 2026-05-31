@@ -11,7 +11,7 @@
 import prisma from '../lib/prisma';
 import { Decimal } from '@prisma/client/runtime/library';
 import { logger } from '../lib/logger';
-import { checkWin, BingoCard } from '../game/card.generator';
+import { checkWin, parseCardRows, BingoCard } from '../game/card.generator';
 import { PREDEFINED_CARDS } from '../lib/predefinedCards';
 
 // ─── Win Quota Config ─────────────────────────────────────────
@@ -257,11 +257,7 @@ export function rigDrawSequence(
       const drawnSoFar = pool.slice(0, drawn);
 
       for (const ticket of tickets) {
-        const cardData = ticket.card;
-        const rows: BingoCard = Array.isArray(cardData)
-          ? cardData
-          : cardData?.rows ?? cardData;
-
+        const rows = parseCardRows(ticket.card);
         if (!rows) continue;
 
         const result = checkWin(rows, drawnSoFar);

@@ -172,6 +172,7 @@ export default function UsersPage() {
                 <th>Telegram ID</th>
                 <th>Phone Number</th>
                 <th>Balance</th>
+                <th>Agent</th>
                 <th>Role</th>
                 <th>Status</th>
                 <th>Actions</th>
@@ -197,6 +198,22 @@ export default function UsersPage() {
                     <div style={{ fontWeight: '800', color: '#3d2b1f' }}>
                       {parseFloat(user.wallet?.balance || 0).toLocaleString()} <span style={{ fontSize: '10px', color: '#d4af37' }}>ETB</span>
                     </div>
+                  </td>
+                  <td>
+                    {user.referrer ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        <span style={{ fontWeight: '800', color: '#1d4ed8', fontSize: '12px' }}>
+                          @{user.referrer.telegramUsername || user.referrer.firstName || 'Agent'}
+                        </span>
+                        {user.referrer.referralCode && (
+                          <span style={{ fontSize: '10px', color: '#7c3aed', fontFamily: 'monospace', fontWeight: '700', background: '#f3f0ff', padding: '1px 5px', borderRadius: '4px' }}>
+                            {user.referrer.referralCode}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span style={{ color: '#a8a29e', fontSize: '12px' }}>—</span>
+                    )}
                   </td>
                   <td>
                     <span className={`badge ${user.isAdmin || user.role === 'ADMIN' ? 'badge-gold' : user.role === 'AGENT' ? 'badge-blue' : 'badge-green'}`}>
@@ -265,7 +282,7 @@ export default function UsersPage() {
               ))}
               {users.length === 0 && (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', padding: '60px', color: '#78716c', fontWeight: '600' }}>
+                  <td colSpan={8} style={{ textAlign: 'center', padding: '60px', color: '#78716c', fontWeight: '600' }}>
                     No players found matching your search.
                   </td>
                 </tr>
@@ -300,6 +317,12 @@ export default function UsersPage() {
             </div>
             <p style={{ fontSize: '13px', color: '#78716c', marginBottom: '20px' }}>
               Editing <b>{editUser?.firstName}</b> — Telegram ID: <code>{editUser?.telegramId}</code>
+              {editUser?.referrer && (
+                <span style={{ marginLeft: '8px', background: '#eff6ff', color: '#1d4ed8', padding: '2px 8px', borderRadius: '6px', fontWeight: '700', fontSize: '12px' }}>
+                  Agent: @{editUser.referrer.telegramUsername || editUser.referrer.firstName}
+                  {editUser.referrer.referralCode && ` (${editUser.referrer.referralCode})`}
+                </span>
+              )}
             </p>
 
             {editError && <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px', padding: '10px 14px', marginBottom: '14px', fontSize: '13px', color: '#dc2626', fontWeight: '600' }}>{editError}</div>}

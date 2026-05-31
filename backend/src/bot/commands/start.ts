@@ -28,14 +28,22 @@ export async function handleStart(ctx: Context) {
       try {
         let referrer = null;
         if (startPayload.length > 20) {
+          // UUID format — look up by id directly
           referrer = await getUserById(startPayload);
+        } else if (startPayload.startsWith('AG-')) {
+          // Referral code format (e.g. AG-X7K2P) — look up agent by referralCode
+          referrer = await (await import('../../lib/prisma')).default.user.findUnique({
+            where: { referralCode: startPayload },
+            include: { wallet: true, _count: { select: { referrals: true } } }
+          });
         } else if (!isNaN(Number(startPayload))) {
+          // Telegram ID format
           const { getUserByTelegramId } = await import('../../services/user.service');
           referrer = await getUserByTelegramId(Number(startPayload));
         }
 
         if (referrer && Number(referrer.telegramId) !== tgUser.id) {
-          referrerName   = (referrer as any).firstName;
+          referrerName    = (referrer as any).firstName;
           validReferrerId = referrer.id;
         }
       } catch {
@@ -56,9 +64,25 @@ export async function handleStart(ctx: Context) {
 
     await getOrCreateWallet(user.id);
 
+    // ── 2b. If no explicit referrer from link, resolve the auto-assigned agent ──
+    // This covers cases where a user registers directly (no referral link) but
+    // gets auto-linked to the default agent inside findOrCreateUser.
+    if (!referrerName && user.referredBy) {
+      try {
+        const assignedAgent = await getUserById(user.referredBy);
+        if (assignedAgent) {
+          referrerName = assignedAgent.telegramUsername
+            ? `@${assignedAgent.telegramUsername}`
+            : (assignedAgent.firstName || 'Agent');
+        }
+      } catch {
+        // Non-critical — just log without agent name
+      }
+    }
+
     // ── 3a. Phone not yet collected → smart contextual contact-share prompt ────
     if (!(user as any).phone) {
-      logger.info(`[Start] User ${tgUser.id} needs phone. Referred by: ${referrerName ?? 'none'}`);
+      logger.info(`[Start] User ${tgUser.id} needs phone. Referred by: ${referrerName ?? 'none (direct)'}`);
 
       // Build message depending on whether they came via invite link
       const message = referrerName

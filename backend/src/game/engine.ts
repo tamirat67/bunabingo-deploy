@@ -2,7 +2,7 @@ import prisma, { withRetry } from '../lib/prisma';
 import { logger } from '../lib/logger';
 import { config } from '../config';
 import { triggerGameEvent, triggerUserEvent, triggerAdminEvent } from '../lib/pusher';
-import { generateBingoCard, checkWin, BingoCard } from './card.generator';
+import { generateBingoCard, checkWin, parseCardRows, BingoCard } from './card.generator';
 import { Decimal } from '@prisma/client/runtime/library';
 import { RoomType, GameStatus } from '@prisma/client';
 import { PREDEFINED_CARDS } from '../lib/predefinedCards';
@@ -33,6 +33,7 @@ interface ActiveGame {
   ticketCount?: number;
   houseShouldWin?: boolean;  // rigged draw: true = house bot wins this round
   countdownTargetTime?: number; // Fixed, exact epoch ms when countdown reaches 0
+  pendingBotClaim?: boolean; // true when a bot claim is in-flight — prevents pool-exhaustion fallback
 }
 
 const activeGames = new Map<string, ActiveGame>();
@@ -611,22 +612,42 @@ async function drawNumber(gameId: string): Promise<void> {
   if (!state) return;
 
   if (state.numberPool.length === 0) {
+    // If a bot claim is already in-flight, don't double-trigger end-of-pool logic
+    if (state.pendingBotClaim) {
+      logger.info(`[Game ${gameId}] Pool exhausted but bot claim is pending — waiting for claim to resolve.`);
+      return;
+    }
+
     if (state.tickets && state.tickets.length > 0) {
       // Force a winner if all numbers are drawn and no one claimed. Prefer house bots.
-      // Use both user.isBot (from include) and a fallback check for safety.
       const botTickets = state.tickets.filter(t => t.user?.isBot === true);
       const poolToPickFrom = botTickets.length > 0 ? botTickets : state.tickets;
       const randomTicket = poolToPickFrom[Math.floor(Math.random() * poolToPickFrom.length)];
-      logger.warn(`[Game ${gameId}] All 75 numbers drawn — forcing winner (bot pool: ${botTickets.length}/${state.tickets.length} tickets). Picking ticket ${randomTicket.id}`);
+
+      // Detect the actual winning mode rather than always forcing FULL_HOUSE
+      const rows = parseCardRows(randomTicket.card);
+      let actualWinMode: string = 'FULL_HOUSE';
+      if (rows) {
+        const winResult = checkWin(rows as BingoCard, state.drawnNumbers);
+        if (winResult.won && winResult.modes.length > 0) {
+          // Pick the most impressive mode the ticket actually has
+          const modePriority = ['FULL_HOUSE', 'FOUR_CORNERS', 'DIAGONAL', 'COLUMN', 'ROW'];
+          for (const m of modePriority) {
+            if (winResult.modes.includes(m as any)) { actualWinMode = m; break; }
+          }
+        }
+      }
+
+      logger.warn(`[Game ${gameId}] All 75 numbers drawn — forcing winner (bot pool: ${botTickets.length}/${state.tickets.length} tickets). Picking ticket ${randomTicket.id} with mode ${actualWinMode}`);
       try {
-        await processWinner(gameId, randomTicket.userId, randomTicket.id, 'FULL_HOUSE', state.drawnNumbers);
+        await processWinner(gameId, randomTicket.userId, randomTicket.id, actualWinMode, state.drawnNumbers);
       } catch (e: any) {
         // Ignore duplicate winner errors (may already have been recorded)
         if (!e?.message?.includes('Unique') && !e?.message?.includes('unique')) {
           logger.error(`[Game ${gameId}] Force-winner processWinner failed:`, e);
         }
       }
-      await finishGame(gameId, `Auto-selected winner at end of game: FULL_HOUSE`);
+      await finishGame(gameId, `Auto-selected winner at end of game: ${actualWinMode}`);
     } else {
       // No tickets at all — this should not happen in normal operation
       logger.error(`[Game ${gameId}] All 75 numbers drawn but state.tickets is empty! Finishing with no winner.`);
@@ -662,9 +683,11 @@ async function checkAllTickets(gameId: string, drawnNumbers: number[]): Promise<
   if (!state || !state.tickets) return;
 
   for (const ticket of state.tickets) {
-    const cardData = ticket.card as any;
-    const rows = Array.isArray(cardData) ? cardData : cardData.rows;
-    if (!rows) continue;
+    const rows = parseCardRows(ticket.card);
+    if (!rows) {
+      logger.warn(`[Game ${gameId}] Skipping ticket ${ticket.id} due to card parsing failure.`);
+      continue;
+    }
     
     const result = checkWin(rows as BingoCard, drawnNumbers);
     if (result.won) {
@@ -684,25 +707,35 @@ async function checkAllTickets(gameId: string, drawnNumbers: number[]): Promise<
              state.drawInterval = undefined;
            }
            
-           const delayMs = 3000 + Math.floor(Math.random() * 1500); // 3.0s to 4.5s delay
-           logger.info(`[Game ${gameId}] BOT WINNER DETECTED! Scheduling human-like auto-claim in ${delayMs}ms for ${result.modes[0]}...`);
+           // Mark that a bot claim is in-flight so pool-exhaustion fallback doesn't fire
+           if (state) state.pendingBotClaim = true;
+
+           // Capture the winning mode NOW (before the timeout) so it can't change
+           const capturedWinMode = result.modes[0];
+
+           const delayMs = 2000 + Math.floor(Math.random() * 1000); // 2.0s to 3.0s delay (shorter to avoid races)
+           logger.info(`[Game ${gameId}] BOT WINNER DETECTED! Scheduling human-like auto-claim in ${delayMs}ms for ${capturedWinMode}...`);
            
            setTimeout(async () => {
              // Check if game is still running (e.g. hasn't been finished/cancelled by a faster human claim)
              const gameCheck = await prisma.game.findUnique({ where: { id: gameId } });
+             const currentState = activeGames.get(gameId);
              
              if (!gameCheck || gameCheck.status === GameStatus.FINISHED || gameCheck.status === GameStatus.CANCELLED) {
                // Game is already done — another winner claimed first. That's fine.
                logger.info(`[Game ${gameId}] Bot claim skipped — game already ${gameCheck?.status ?? 'GONE'}`);
+               if (currentState) currentState.pendingBotClaim = false;
                return;
              }
 
              if (gameCheck.status !== GameStatus.RUNNING) {
                // Game is in an unexpected state (WAITING, COUNTDOWN?) — resume draw to unfreeze
                logger.warn(`[Game ${gameId}] Bot claim cancelled — unexpected status ${gameCheck.status}. Resuming draw interval.`);
-               const currentState = activeGames.get(gameId);
-               if (currentState && !currentState.drawInterval) {
-                 currentState.drawInterval = setInterval(() => drawNumber(gameId), config.game.drawIntervalMs);
+               if (currentState) {
+                 currentState.pendingBotClaim = false;
+                 if (!currentState.drawInterval) {
+                   currentState.drawInterval = setInterval(() => drawNumber(gameId), config.game.drawIntervalMs);
+                 }
                }
                return;
              }
@@ -711,17 +744,19 @@ async function checkAllTickets(gameId: string, drawnNumbers: number[]): Promise<
                // Must get latest drawn numbers as they could have updated before the timeout
                const latestState = activeGames.get(gameId);
                const finalDrawn = latestState ? latestState.drawnNumbers : drawnNumbers;
-               await processWinner(gameId, ticket.userId, ticket.id, result.modes[0], finalDrawn);
-               await finishGame(gameId, `House Bot Bingo claimed: ${result.modes[0]}`);
+               await processWinner(gameId, ticket.userId, ticket.id, capturedWinMode, finalDrawn);
+               await finishGame(gameId, `House Bot Bingo claimed: ${capturedWinMode}`);
              } catch (err: any) {
                logger.error(`[Game ${gameId}] Bot auto-claim failed:`, err);
                // If bot claim fails, we MUST resume the draw interval so the game doesn't freeze
-               const currentState = activeGames.get(gameId);
-               if (currentState && !currentState.drawInterval) {
-                 const recheckGame = await prisma.game.findUnique({ where: { id: gameId }, select: { status: true } });
-                 if (recheckGame?.status === 'RUNNING') {
-                   currentState.drawInterval = setInterval(() => drawNumber(gameId), config.game.drawIntervalMs);
-                   logger.info(`[Game ${gameId}] Resumed interval after bot claim failure.`);
+               if (currentState) {
+                 currentState.pendingBotClaim = false;
+                 if (!currentState.drawInterval) {
+                   const recheckGame = await prisma.game.findUnique({ where: { id: gameId }, select: { status: true } });
+                   if (recheckGame?.status === 'RUNNING') {
+                     currentState.drawInterval = setInterval(() => drawNumber(gameId), config.game.drawIntervalMs);
+                     logger.info(`[Game ${gameId}] Resumed interval after bot claim failure.`);
+                   }
                  }
                }
              }
@@ -779,9 +814,12 @@ export async function claimBingoWin(gameId: string, userId: string): Promise<{ w
     const priority = ['FULL_HOUSE', 'FOUR_CORNERS', 'DIAGONAL', 'COLUMN', 'ROW'] as const;
 
     for (const ticket of tickets) {
-      const cardData = ticket.card as any;
-      const rows = Array.isArray(cardData) ? cardData : cardData.rows;
-      const result = checkWin(rows as BingoCard, drawnNumbers);
+      const rows = parseCardRows(ticket.card);
+      if (!rows) {
+        logger.warn(`Skipping user ticket ${ticket.id} due to card parsing failure.`);
+        continue;
+      }
+      const result = checkWin(rows, drawnNumbers);
 
       if (result.won) {
         for (const mode of priority) {
@@ -1003,8 +1041,24 @@ async function finishGame(gameId: string, reason: string): Promise<void> {
     const botTickets = state.tickets.filter((t: any) => t.user?.isBot === true);
     const poolToPickFrom = botTickets.length > 0 ? botTickets : state.tickets;
     const randomTicket = poolToPickFrom[Math.floor(Math.random() * poolToPickFrom.length)];
+
+    // Detect actual win mode from the ticket rather than forcing FULL_HOUSE
+    const lastResortDrawn = state.drawnNumbers || [];
+    const lastResortRows = parseCardRows(randomTicket.card);
+    let lastResortMode: string = 'FULL_HOUSE';
+    if (lastResortRows) {
+      const winRes = checkWin(lastResortRows as BingoCard, lastResortDrawn);
+      if (winRes.won && winRes.modes.length > 0) {
+        const modePriority = ['FULL_HOUSE', 'FOUR_CORNERS', 'DIAGONAL', 'COLUMN', 'ROW'];
+        for (const m of modePriority) {
+          if (winRes.modes.includes(m as any)) { lastResortMode = m; break; }
+        }
+      }
+    }
+    logger.info(`[Game ${gameId}] Last-resort winner forced with mode: ${lastResortMode}`);
+
     try {
-      await processWinner(gameId, randomTicket.userId, randomTicket.id, 'FULL_HOUSE', state.drawnNumbers || []);
+      await processWinner(gameId, randomTicket.userId, randomTicket.id, lastResortMode, lastResortDrawn);
       // Re-fetch winners after forcing one
       const newWinners = await prisma.winner.findMany({
         where: { gameId },

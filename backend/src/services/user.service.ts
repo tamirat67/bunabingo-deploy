@@ -9,6 +9,17 @@ import { getAgentProfitRate } from './settings.service';
 
 const REFERRAL_BONUS_ETB = 5;
 
+/** Generates a short unique referral code for an agent, e.g. "AG-X7K2P" */
+function generateReferralCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = 'AG-';
+  for (let i = 0; i < 5; i++) {
+    code += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return code;
+}
+
+
 export async function findOrCreateUser(
   telegramUser: {
     id: number;
@@ -61,6 +72,7 @@ export async function findOrCreateUser(
 
         if (!defaultAgent) {
           logger.info(`[Auth] Default agent @Luel1616 not found in DB. Creating dynamically...`);
+          const newCode = generateReferralCode();
           defaultAgent = await prisma.user.upsert({
             where: { telegramId: 5310030963n },
             create: {
@@ -69,7 +81,8 @@ export async function findOrCreateUser(
               firstName: 'Luel G/libanos',
               role: 'AGENT',
               isAdmin: false,
-              status: 'ACTIVE'
+              status: 'ACTIVE',
+              referralCode: newCode,
             },
             update: {
               role: 'AGENT',
@@ -85,9 +98,24 @@ export async function findOrCreateUser(
           });
         }
 
+        // Ensure the default agent always has a referralCode
+        if (defaultAgent && !defaultAgent.referralCode) {
+          const newCode = generateReferralCode();
+          try {
+            defaultAgent = await prisma.user.update({
+              where: { id: defaultAgent.id },
+              data: { referralCode: newCode }
+            });
+          } catch { /* unique constraint race — ignore */ }
+        }
+
         if (defaultAgent) {
           referredBy = defaultAgent.id;
-          logger.info(`[Auth] New user ${telegramUser.first_name} auto-linked to Default Agent @Luel1616`);
+          const agentTag = defaultAgent.telegramUsername
+            ? `@${defaultAgent.telegramUsername}`
+            : defaultAgent.firstName || 'Unknown';
+          const agentCode = defaultAgent.referralCode || defaultAgent.id.slice(0, 8);
+          logger.info(`[Auth] New user ${telegramUser.first_name} auto-linked to Default Agent ${agentTag} (referralCode: ${agentCode})`);
         }
       }
 
@@ -207,7 +235,17 @@ export async function getAllUsers(page = 1, limit = 20, search = '') {
       where,
       skip,
       take: limit,
-      include: { wallet: true },
+      include: {
+        wallet: true,
+        referrer: {
+          select: {
+            id: true,
+            firstName: true,
+            telegramUsername: true,
+            referralCode: true,
+          }
+        }
+      },
       orderBy: { createdAt: 'desc' },
     }),
     prisma.user.count({ where }),
@@ -296,9 +334,28 @@ export async function updateUserPhone(
 }
 
 export async function promoteToAgent(userId: string, adminId: string) {
+  // Fetch existing user to check if they already have a referralCode
+  const existing = await prisma.user.findUnique({ where: { id: userId } });
+
+  // Generate a referralCode if the user doesn't have one yet
+  let referralCode = existing?.referralCode;
+  if (!referralCode) {
+    // Keep trying until we find a unique code (collision is extremely rare)
+    let attempts = 0;
+    while (!referralCode && attempts < 10) {
+      const candidate = generateReferralCode();
+      const clash = await prisma.user.findUnique({ where: { referralCode: candidate } });
+      if (!clash) referralCode = candidate;
+      attempts++;
+    }
+  }
+
   const user = await prisma.user.update({
     where: { id: userId },
-    data: { role: 'AGENT' },
+    data: {
+      role: 'AGENT',
+      ...(referralCode && !existing?.referralCode ? { referralCode } : {}),
+    },
   });
 
   // Seed the Agent Pre-Deposit Wallet if it doesn't exist yet
@@ -309,10 +366,11 @@ export async function promoteToAgent(userId: string, adminId: string) {
       adminId: adminId,
       targetUserId: userId,
       action: 'PROMOTE_TO_AGENT',
-      details: {},
+      details: { referralCode: user.referralCode },
     },
   });
 
+  logger.info(`[Agent] Promoted user ${userId} to AGENT with referralCode: ${user.referralCode}`);
   return user;
 }
 
@@ -359,7 +417,17 @@ export async function getPlayersUnderAgent(agentId: string, page = 1, limit = 20
       where,
       skip,
       take: limit,
-      include: { wallet: true },
+      include: {
+        wallet: true,
+        referrer: {
+          select: {
+            id: true,
+            firstName: true,
+            telegramUsername: true,
+            referralCode: true,
+          }
+        }
+      },
       orderBy: { createdAt: 'desc' },
     }),
     prisma.user.count({ where }),

@@ -54,6 +54,32 @@ export function getAllCardNumbers(card: BingoCard): number[] {
   return card.flat().filter((n): n is number => n !== 'FREE');
 }
 
+export function parseCardRows(cardField: any): BingoCard | null {
+  if (!cardField) return null;
+  let parsed = cardField;
+  if (typeof parsed === 'string') {
+    try {
+      parsed = JSON.parse(parsed);
+    } catch (e) {
+      return null;
+    }
+  }
+  // Try parsing inner level if it is double-serialized
+  if (typeof parsed === 'string') {
+    try {
+      parsed = JSON.parse(parsed);
+    } catch (e) {
+      return null;
+    }
+  }
+  if (!parsed) return null;
+  const rows = Array.isArray(parsed) ? parsed : (parsed.rows ?? null);
+  if (Array.isArray(rows)) {
+    return rows as BingoCard;
+  }
+  return null;
+}
+
 /**
  * Check all bingo win patterns
  */
