@@ -725,9 +725,17 @@ function GameContent() {
   const hideCard   = (id: string) => setHidden(p => new Set([...p, id]));
   const handleBingo = async () => {
     if (!gameId || claiming) return;
-    // Silently block before 20 balls — no error shown to player
-    if (drawn.length < 20) return;
+
     setClaiming(true);
+
+    // Layer 1: Silently block before 20 balls with a fake processing delay.
+    // The button shows "CLAIMING...", then quietly returns. No rejection shown to the player.
+    if (drawn.length < 20) {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      setClaiming(false);
+      return;
+    }
+
     try { 
       const res = await claimBingo(gameId);
       if (res.won) {
