@@ -150,8 +150,14 @@ export async function injectBotTickets(
     return [];
   }
 
-  // Build a pool of available card IDs not yet taken
-  const taken = new Set(alreadyTakenCardIds);
+  // Re-fetch taken cards directly from DB to prevent race conditions with users joining concurrently
+  const occupiedTickets = await prisma.ticket.findMany({
+    where: { gameId },
+    select: { card: true }
+  });
+  const upToDateTakenCardIds = occupiedTickets.map(t => (t.card as any).id as number);
+  const taken = new Set([...alreadyTakenCardIds, ...upToDateTakenCardIds]);
+
   const availableCards: number[] = [];
   for (let i = 1; i <= cardPoolMax; i++) {
     if (!taken.has(i)) availableCards.push(i);
