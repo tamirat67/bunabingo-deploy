@@ -233,47 +233,9 @@ export async function approveWithdrawal(withdrawalId: string, adminId: string) {
       if (fallbackAgent) agentToReimburseId = fallbackAgent.id;
     }
 
-    // 5. CREDIT the agent's AgentPreDepositWallet
-    //    The agent paid out physical cash via Telebirr; this restores their digital balance.
-    if (agentToReimburseId) {
-      const agentWallet = await tx.agentPreDepositWallet.upsert({
-        where: { agentId: agentToReimburseId },
-        create: { agentId: agentToReimburseId, balance: 0 },
-        update: {},
-      });
+    // Note: The agent's AgentPreDepositWallet is NO LONGER credited here.
+    // The pre-deposit wallet is strictly used for the 25% per-game company commission.
 
-      const walletBalanceBefore = new Decimal(agentWallet.balance.toString());
-      const walletBalanceAfter  = walletBalanceBefore.add(withdrawalAmount);
-
-      await tx.agentPreDepositWallet.update({
-        where: { agentId: agentToReimburseId },
-        data: {
-          balance: walletBalanceAfter,
-          // totalRecharged tracks manual top-ups; WITHDRAWAL_REIMBURSE is tracked in logs
-          updatedAt: new Date(),
-        },
-      });
-
-      // 6. Create AgentCommissionLog for full financial audit trail
-      await tx.agentCommissionLog.create({
-        data: {
-          agentId:      agentToReimburseId,
-          walletId:     agentWallet.id,
-          type:         'WITHDRAWAL_REIMBURSE',
-          amount:       withdrawalAmount,
-          description:  `Withdrawal payout reimbursement for player withdrawal ${withdrawalId} (${withdrawal.amount} ETB via ${withdrawal.bankName})`,
-          balanceBefore: walletBalanceBefore,
-          balanceAfter:  walletBalanceAfter,
-        },
-      });
-
-      logger.info(
-        `[Withdrawal] Agent ${agentToReimburseId} reimbursed +${withdrawalAmount} ETB ` +
-        `(Balance: ${walletBalanceBefore} → ${walletBalanceAfter}) for withdrawal ${withdrawalId}`
-      );
-    } else {
-      logger.warn(`[Withdrawal] Could not find an agent to reimburse for withdrawal ${withdrawalId}`);
-    }
 
     // 7. Admin audit log (skip for telegram super-admin placeholder)
     if (withdrawal.userId && !adminId.startsWith('tg_superadmin_')) {
