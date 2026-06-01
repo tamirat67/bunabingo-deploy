@@ -1496,6 +1496,34 @@ staffRouter.get('/analytics', restrictToAdmin, async (req, res) => {
 
   const bunaWalletBalance = Number(bunaWallet?.balance || 0);
 
+  // ── Real vs Bot Sales Split (all-time) ──────────────────────────────────
+  // Real player sales = ticket purchases by non-bot users
+  const realSalesAgg = await prisma.transaction.aggregate({
+    where: {
+      type: 'TICKET_PURCHASE',
+      status: 'COMPLETED',
+      user: { isBot: false },
+      ...(agentId ? { user: { referredBy: agentId, isBot: false } } : {})
+    },
+    _sum: { amount: true }
+  });
+  // Bot sales = ticket purchases by bot users (synthetic/fake stake)
+  const botSalesAgg = await prisma.transaction.aggregate({
+    where: {
+      type: 'TICKET_PURCHASE',
+      status: 'COMPLETED',
+      user: { isBot: true },
+      ...(agentId ? { user: { referredBy: agentId, isBot: true } } : {})
+    },
+    _sum: { amount: true }
+  });
+
+  const realGrossSales = Number(realSalesAgg._sum.amount || 0);
+  const botGrossSales  = Number(botSalesAgg._sum.amount || 0);
+  const commRate = 0.125; // 12.5%
+  const realCompanyRevenue = realGrossSales * commRate;  // real ETB earned by company
+  const botCompanyRevenue  = botGrossSales  * commRate;  // synthetic — NOT real profit
+
   res.json({
     totalUsers,
     totalGames: totalGamesAllTime,
@@ -1509,11 +1537,16 @@ staffRouter.get('/analytics', restrictToAdmin, async (req, res) => {
     preDepositBalance: totalPreDepositBalance,
     preDepositAdded: totalPreDepositAdded,
     bunaWalletBalance,
-    
+    // ── Real vs Bot breakdown (key for admin accounting) ──
+    realGrossSales,        // real player ticket sales (real ETB)
+    botGrossSales,         // house bot ticket sales (synthetic ETB)
+    realCompanyRevenue,    // 12.5% of real sales = actual company profit
+    botCompanyRevenue,     // 12.5% of bot sales = synthetic/fake (NOT real profit)
     // Today's values
     today: {
       globalSales: globalSalesTodayAgg._sum.amount || 0,
       totalCompanyRevenue: totalCompanyRevenueTodayAgg._sum.amount || 0,
+      totalAgentRevenue: Number(totalCompanyRevenueTodayAgg._sum.amount || 0),
       activePlayers: activePlayersTodayCount.length,
       activeGames: activeGamesTodayCount,
       breakdown

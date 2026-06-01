@@ -118,6 +118,15 @@ function DashboardContent() {
     ? Number(stats.bunaWalletBalance || 0)
     : 0;
 
+  // Real vs Bot accounting breakdown
+  const realGrossSales      = isAdmin ? Number(stats.realGrossSales || 0) : 0;
+  const botGrossSales       = isAdmin ? Number(stats.botGrossSales  || 0) : 0;
+  const realCompanyRevenue  = isAdmin ? Number(stats.realCompanyRevenue || 0) : 0;
+  const botCompanyRevenue   = isAdmin ? Number(stats.botCompanyRevenue  || 0) : 0;
+  const totalGross          = realGrossSales + botGrossSales;
+  const realPct             = totalGross > 0 ? (realGrossSales / totalGross) * 100 : 0;
+  const botPct              = totalGross > 0 ? (botGrossSales  / totalGross) * 100 : 0;
+
   // Room/Game Type Breakdown Data (Only for Admin)
   const defaultBreakdown = [
     { gameType: 'Casual', entryFee: 10, totalStake: 1250, serviceFee: 312.50 },
@@ -225,42 +234,79 @@ function DashboardContent() {
         </div>
       </div>
 
-      {/* Buna Wallet Balance Card */}
+      {/* Buna Wallet Balance Card — Bot Profits (Fake/Synthetic) */}
       {isAdmin && (
         <div className="premium-card" style={{
-          background: 'linear-gradient(135deg, #3d2b1f 0%, #1c1917 100%)',
+          background: 'linear-gradient(135deg, #1c1410 0%, #0f0b08 100%)',
           color: '#ffffff',
           padding: '24px 32px',
           borderRadius: '24px',
           marginBottom: '32px',
-          boxShadow: '0 10px 30px rgba(61, 43, 31, 0.25)',
-          border: '1px solid rgba(212, 175, 55, 0.3)',
+          boxShadow: '0 10px 30px rgba(0,0,0,0.4)',
+          border: '1px solid rgba(251, 146, 60, 0.4)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           flexWrap: 'wrap',
           gap: '24px'
         }}>
+          {/* Left: Label */}
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-              <FiDollarSign style={{ color: '#d4af37' }} size={20} />
-              <span style={{ fontSize: '12px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '2px', color: '#d4cbbd' }}>
-                HOUSE BOTS SYSTEM WALLET
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+              <span style={{
+                background: 'rgba(251,146,60,0.15)',
+                border: '1px solid rgba(251,146,60,0.4)',
+                color: '#fb923c',
+                fontSize: '10px',
+                fontWeight: '900',
+                letterSpacing: '2px',
+                padding: '3px 10px',
+                borderRadius: '999px',
+                textTransform: 'uppercase'
+              }}>
+                ⚠ FAKE MONEY — BOT GENERATED
               </span>
             </div>
-            <h2 style={{ fontSize: '32px', fontWeight: '900', margin: 0, color: '#ffffff', fontFamily: 'Inter, sans-serif' }}>
+            <h2 style={{ fontSize: '28px', fontWeight: '900', margin: 0, color: '#ffffff', fontFamily: 'Inter, sans-serif' }}>
               BUNA WALLET
             </h2>
-            <p style={{ color: '#a8a29e', margin: '4px 0 0 0', fontSize: '14px', fontWeight: '500' }}>
-              Accumulated winnings from House Bots (credited to system operations)
+            <p style={{ color: '#78716c', margin: '6px 0 0 0', fontSize: '13px', fontWeight: '500', lineHeight: '1.5' }}>
+              Accumulated profits from house bots winning games.<br />
+              <span style={{ color: '#fb923c', fontWeight: '700' }}>This is synthetic — not real player money.</span>
             </p>
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '11px', fontWeight: '800', color: '#d4af37', letterSpacing: '1px', marginBottom: '4px' }}>
-              CURRENT BALANCE
+
+          {/* Right: Two parallel values */}
+          <div style={{ display: 'flex', gap: '32px', alignItems: 'center', flexWrap: 'wrap' }}>
+
+            {/* Bot Profit: POSITIVE (bots did earn this profit) but labeled fake */}
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: '11px', fontWeight: '800', color: '#fb923c', letterSpacing: '1px', marginBottom: '4px', textTransform: 'uppercase' }}>
+                Bot Profits (Fake +)
+              </div>
+              <div style={{ fontSize: '32px', fontWeight: '900', color: '#fb923c', fontFamily: 'Inter, sans-serif' }}>
+                +{bunaWalletBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                <span style={{ fontSize: '18px', color: '#fb923c', marginLeft: '6px' }}>ETB</span>
+              </div>
+              <div style={{ fontSize: '11px', color: '#a8a29e', marginTop: '2px' }}>
+                Synthetic earnings — house bots winning
+              </div>
             </div>
-            <div style={{ fontSize: '36px', fontWeight: '900', color: '#ffffff', fontFamily: 'Inter, sans-serif' }}>
-              {bunaWalletBalance.toLocaleString()} <span style={{ fontSize: '20px', color: '#d4af37' }}>ETB</span>
+
+            <div style={{ width: '1px', height: '60px', background: 'rgba(251,146,60,0.25)', flexShrink: 0 }} />
+
+            {/* Real Pre-Deposit: shown alongside for comparison */}
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: '11px', fontWeight: '800', color: '#4ade80', letterSpacing: '1px', marginBottom: '4px', textTransform: 'uppercase' }}>
+                Real Pre-Deposit
+              </div>
+              <div style={{ fontSize: '32px', fontWeight: '900', color: '#4ade80', fontFamily: 'Inter, sans-serif' }}>
+                +{preDepositAdded.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                <span style={{ fontSize: '18px', color: '#4ade80', marginLeft: '6px' }}>ETB</span>
+              </div>
+              <div style={{ fontSize: '11px', color: '#6ee7b7', marginTop: '2px' }}>
+                {preDepositBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB remaining
+              </div>
             </div>
           </div>
         </div>
@@ -352,6 +398,63 @@ function DashboardContent() {
           </div>
         </div>
       </div>
+
+      {/* ── Real vs Bot Accounting Card ── */}
+      {isAdmin && (
+        <div style={{
+          background: '#ffffff',
+          borderRadius: '20px',
+          border: '1px solid rgba(0,0,0,0.06)',
+          padding: '24px 28px',
+          marginBottom: '32px',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.04)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+            <span style={{ fontSize: '13px', fontWeight: '900', color: '#3d2b1f', textTransform: 'uppercase', letterSpacing: '1px' }}>
+              📊 Real Money vs House Bot Accounting (All Time)
+            </span>
+            <span style={{ fontSize: '11px', background: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: '999px', fontWeight: '700' }}>
+              {realPct.toFixed(1)}% Real | {botPct.toFixed(1)}% Synthetic
+            </span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
+            {/* Real Gross Sales */}
+            <div style={{ background: '#f0fdf4', borderRadius: '14px', padding: '16px', border: '1px solid #bbf7d0' }}>
+              <div style={{ fontSize: '10px', fontWeight: '900', color: '#059669', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>✅ Real Gross Sales</div>
+              <div style={{ fontSize: '22px', fontWeight: '900', color: '#065f46' }}>{realGrossSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+              <div style={{ fontSize: '11px', color: '#059669', marginTop: '4px' }}>ETB — from real players</div>
+              <div style={{ height: '4px', background: '#d1fae5', borderRadius: '999px', marginTop: '10px' }}>
+                <div style={{ width: `${realPct}%`, height: '100%', background: '#10b981', borderRadius: '999px' }} />
+              </div>
+            </div>
+
+            {/* Bot Gross Sales */}
+            <div style={{ background: '#fff7ed', borderRadius: '14px', padding: '16px', border: '1px solid #fed7aa' }}>
+              <div style={{ fontSize: '10px', fontWeight: '900', color: '#ea580c', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>⚠ Bot Gross Sales</div>
+              <div style={{ fontSize: '22px', fontWeight: '900', color: '#9a3412' }}>{botGrossSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+              <div style={{ fontSize: '11px', color: '#ea580c', marginTop: '4px' }}>ETB — synthetic / fake</div>
+              <div style={{ height: '4px', background: '#fed7aa', borderRadius: '999px', marginTop: '10px' }}>
+                <div style={{ width: `${botPct}%`, height: '100%', background: '#f97316', borderRadius: '999px' }} />
+              </div>
+            </div>
+
+            {/* Real Company Revenue */}
+            <div style={{ background: '#f0fdf4', borderRadius: '14px', padding: '16px', border: '1px solid #86efac' }}>
+              <div style={{ fontSize: '10px', fontWeight: '900', color: '#16a34a', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>✅ Real Company Revenue</div>
+              <div style={{ fontSize: '22px', fontWeight: '900', color: '#14532d' }}>{realCompanyRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+              <div style={{ fontSize: '11px', color: '#16a34a', marginTop: '4px' }}>ETB — 12.5% of real sales</div>
+            </div>
+
+            {/* Bot Company Revenue (synthetic) */}
+            <div style={{ background: '#fff7ed', borderRadius: '14px', padding: '16px', border: '1px solid #fdba74' }}>
+              <div style={{ fontSize: '10px', fontWeight: '900', color: '#dc2626', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>⚠ Bot Revenue (Fake)</div>
+              <div style={{ fontSize: '22px', fontWeight: '900', color: '#7f1d1d' }}>{botCompanyRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+              <div style={{ fontSize: '11px', color: '#dc2626', marginTop: '4px' }}>ETB — NOT real profit</div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Two Column Layout */}
       <div className="dashboard-grid">
