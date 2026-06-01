@@ -1504,35 +1504,85 @@ function GameContent() {
                         }}>{l}</div>
                       ))}
                     </div>
-                    {/* Card rows */}
-                    {(gameFinished.card as any[][]).map((row: any[], ri: number) => (
-                      <div key={ri} style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: '3px', marginBottom: '3px' }}>
-                        {row.map((cell: any, ci: number) => {
-                          const isFreeCell = cell === 'FREE' || cell === 0 || cell === null;
-                          const numVal = Number(cell);
-                          const wasDrawn = !isFreeCell && (gameFinished.drawnNumbers || []).includes(numVal);
-                          const col = isFreeCell ? 'N' : colLabel(numVal);
-                          return (
-                            <div key={ci} style={{
-                              height: '28px',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              borderRadius: '5px', fontSize: '11px', fontWeight: '900',
-                              background: isFreeCell
-                                ? '#27AE60'
-                                : wasDrawn
-                                  ? COL_COLOR[col]
-                                  : 'rgba(255,255,255,0.08)',
-                              color: isFreeCell || wasDrawn ? 'white' : 'rgba(255,255,255,0.35)',
-                              border: wasDrawn && !isFreeCell ? `1px solid ${COL_COLOR[col]}` : 'none',
-                              boxShadow: wasDrawn && !isFreeCell ? `0 0 8px ${COL_COLOR[col]}99` : 'none',
-                              transition: 'all 0.2s',
-                            }}>
-                              {isFreeCell ? '★' : cell}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ))}
+                    {/* Compute and render winning cells dynamically to highlight the exact pattern */}
+                    {(() => {
+                      const mode = gameFinished.mode || 'ROW';
+                      const drawnSet = new Set(gameFinished.drawnNumbers || []);
+                      const isDaubed = (ri: number, ci: number) => {
+                        const cell = (gameFinished.card as any[][])[ri][ci];
+                        return cell === 'FREE' || cell === 0 || cell === null || drawnSet.has(Number(cell));
+                      };
+
+                      const winningCells = new Set<string>();
+
+                      // Find the exact line(s) that completed the bingo based on the mode
+                      if (mode === 'FULL_HOUSE') {
+                        for (let r = 0; r < 5; r++) for (let c = 0; c < 5; c++) if(isDaubed(r,c)) winningCells.add(`${r}-${c}`);
+                      } else if (mode === 'ROW') {
+                        for (let r = 0; r < 5; r++) {
+                          if ([0,1,2,3,4].every(c => isDaubed(r,c))) {
+                            for (let c = 0; c < 5; c++) winningCells.add(`${r}-${c}`);
+                          }
+                        }
+                      } else if (mode === 'COLUMN') {
+                        for (let c = 0; c < 5; c++) {
+                          if ([0,1,2,3,4].every(r => isDaubed(r,c))) {
+                            for (let r = 0; r < 5; r++) winningCells.add(`${r}-${c}`);
+                          }
+                        }
+                      } else if (mode === 'DIAGONAL') {
+                        if ([0,1,2,3,4].every(i => isDaubed(i,i))) {
+                          for (let i = 0; i < 5; i++) winningCells.add(`${i}-${i}`);
+                        }
+                        if ([0,1,2,3,4].every(i => isDaubed(i, 4-i))) {
+                          for (let i = 0; i < 5; i++) winningCells.add(`${i}-${4-i}`);
+                        }
+                      }
+
+                      return (gameFinished.card as any[][]).map((row: any[], ri: number) => (
+                        <div key={ri} style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: '3px', marginBottom: '3px' }}>
+                          {row.map((cell: any, ci: number) => {
+                            const isFreeCell = cell === 'FREE' || cell === 0 || cell === null;
+                            const numVal = Number(cell);
+                            const wasDrawn = !isFreeCell && drawnSet.has(numVal);
+                            const col = isFreeCell ? 'N' : colLabel(numVal);
+                            
+                            const isWinningCell = winningCells.has(`${ri}-${ci}`);
+
+                            return (
+                              <motion.div key={ci} 
+                                animate={isWinningCell ? { scale: [1, 1.05, 1], boxShadow: [`0 0 5px #FFD700`, `0 0 15px #FFD700`, `0 0 5px #FFD700`] } : {}}
+                                transition={isWinningCell ? { duration: 1.2, repeat: Infinity } : {}}
+                                style={{
+                                  height: '28px',
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                  borderRadius: '5px', fontSize: '11px', fontWeight: '900',
+                                  background: isFreeCell
+                                    ? '#27AE60'
+                                    : wasDrawn
+                                      ? COL_COLOR[col]
+                                      : 'rgba(255,255,255,0.08)',
+                                  color: isFreeCell || wasDrawn ? 'white' : 'rgba(255,255,255,0.35)',
+                                  border: isWinningCell ? '2px solid #FFD700' : (wasDrawn && !isFreeCell ? `1px solid ${COL_COLOR[col]}` : 'none'),
+                                  opacity: wasDrawn && !isWinningCell && winningCells.size > 0 ? 0.45 : 1, // Dim non-winning drawn cells to highlight the pattern
+                                  zIndex: isWinningCell ? 10 : 1,
+                                  position: 'relative'
+                              }}>
+                                {isFreeCell ? '★' : cell}
+                                {isWinningCell && (
+                                  <motion.div
+                                    initial={{ scale: 0.8, opacity: 0.8 }}
+                                    animate={{ scale: 1.3, opacity: 0 }}
+                                    transition={{ duration: 1.2, repeat: Infinity }}
+                                    style={{ position: 'absolute', inset: -2, border: '2px solid #FFD700', borderRadius: '5px', pointerEvents: 'none' }}
+                                  />
+                                )}
+                              </motion.div>
+                            );
+                          })}
+                        </div>
+                      ));
+                    })()}
                   </div>
                 )}
 
