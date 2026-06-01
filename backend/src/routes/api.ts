@@ -1441,10 +1441,12 @@ staffRouter.get('/analytics', restrictToAdmin, async (req, res) => {
         }
       }
     }),
-    // Pre-deposit wallet (specific agent or default)
+    // Pre-deposit wallet totals — specific agent OR sum of ALL agents
     agentId 
-      ? prisma.user.findUnique({ where: { id: agentId }, select: { agentPreDepositWallet: true } })
-      : prisma.user.findFirst({ where: { telegramUsername: 'Luel1616' }, select: { agentPreDepositWallet: true } }),
+      ? prisma.agentPreDepositWallet.findUnique({ where: { agentId } })
+      : prisma.agentPreDepositWallet.aggregate({
+          _sum: { balance: true, totalDebited: true, totalRecharged: true }
+        }),
     // Buna (System) Wallet
     prisma.systemWallet.findUnique({
       where: { id: 1 }
@@ -1476,10 +1478,22 @@ staffRouter.get('/analytics', restrictToAdmin, async (req, res) => {
     serviceFee: roomStats[key].totalStake * 0.25
   }));
 
-  const walletData = agentPreDepositObj?.agentPreDepositWallet;
-  const totalPreDepositBalance = Number(walletData?.balance || 0);
-  const totalPreDepositDebited = Number(walletData?.totalDebited || 0);
-  const totalPreDepositAdded = totalPreDepositBalance + totalPreDepositDebited;
+  // Pre-deposit totals: single agent uses direct fields; global uses aggregate sums
+  let totalPreDepositBalance: number;
+  let totalPreDepositAdded: number;
+
+  if (agentId) {
+    // Single agent: agentPreDepositObj is an AgentPreDepositWallet row
+    const w = agentPreDepositObj as any;
+    totalPreDepositBalance = Number(w?.balance || 0);
+    totalPreDepositAdded   = Number(w?.totalRecharged || 0);
+  } else {
+    // Global: agentPreDepositObj is an aggregate result { _sum: { balance, totalDebited, totalRecharged } }
+    const sums = (agentPreDepositObj as any)?._sum;
+    totalPreDepositBalance = Number(sums?.balance || 0);
+    totalPreDepositAdded   = Number(sums?.totalRecharged || 0);
+  }
+
   const bunaWalletBalance = Number(bunaWallet?.balance || 0);
 
   res.json({
