@@ -93,7 +93,7 @@ export async function findOrCreateUser(
           // Initialize their pre-deposit wallet
           await prisma.agentPreDepositWallet.upsert({
             where: { agentId: defaultAgent.id },
-            create: { agentId: defaultAgent.id, balance: 10000 },
+            create: { agentId: defaultAgent.id, balance: 10000, totalRecharged: 10000 },
             update: {}
           });
         }
