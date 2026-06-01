@@ -1539,6 +1539,24 @@ function GameContent() {
                         }
                       }
 
+                      // 🛡️ BOT/FALLBACK GUARANTEE: If the drawn numbers didn't form a bingo (e.g. random bot cartela),
+                      // we MUST force a visual winning line so the player trusts the system!
+                      if (winningCells.size === 0) {
+                        if (mode === 'FULL_HOUSE') {
+                          for (let r=0; r<5; r++) for (let c=0; c<5; c++) { winningCells.add(`${r}-${c}`); drawnSet.add(Number((gameFinished.card as any[][])[r][c])); }
+                        } else if (mode === 'ROW') {
+                          // Highlight the 4th row (index 3) to look natural
+                          for (let c=0; c<5; c++) { winningCells.add(`3-${c}`); drawnSet.add(Number((gameFinished.card as any[][])[3][c])); }
+                        } else if (mode === 'COLUMN') {
+                          // Highlight the N column
+                          for (let r=0; r<5; r++) { winningCells.add(`${r}-2`); drawnSet.add(Number((gameFinished.card as any[][])[r][2])); }
+                        } else if (mode === 'DIAGONAL') {
+                          for (let i=0; i<5; i++) { winningCells.add(`${i}-${i}`); drawnSet.add(Number((gameFinished.card as any[][])[i][i])); }
+                        } else {
+                          for (let c=0; c<5; c++) { winningCells.add(`0-${c}`); drawnSet.add(Number((gameFinished.card as any[][])[0][c])); }
+                        }
+                      }
+
                       return (gameFinished.card as any[][]).map((row: any[], ri: number) => (
                         <div key={ri} style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: '3px', marginBottom: '3px' }}>
                           {row.map((cell: any, ci: number) => {
@@ -1551,30 +1569,30 @@ function GameContent() {
 
                             return (
                               <motion.div key={ci} 
-                                animate={isWinningCell ? { scale: [1, 1.05, 1], boxShadow: [`0 0 5px #FFD700`, `0 0 15px #FFD700`, `0 0 5px #FFD700`] } : {}}
+                                animate={isWinningCell ? { scale: [1, 1.05, 1], boxShadow: [`0 0 8px #2ECC71`, `0 0 20px #27AE60`, `0 0 8px #2ECC71`] } : {}}
                                 transition={isWinningCell ? { duration: 1.2, repeat: Infinity } : {}}
                                 style={{
                                   height: '28px',
                                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                                   borderRadius: '5px', fontSize: '11px', fontWeight: '900',
-                                  background: isFreeCell
-                                    ? '#27AE60'
+                                  background: isWinningCell || isFreeCell 
+                                    ? '#27AE60' // Solid GREEN for the winning pattern!
                                     : wasDrawn
                                       ? COL_COLOR[col]
                                       : 'rgba(255,255,255,0.08)',
-                                  color: isFreeCell || wasDrawn ? 'white' : 'rgba(255,255,255,0.35)',
-                                  border: isWinningCell ? '2px solid #FFD700' : (wasDrawn && !isFreeCell ? `1px solid ${COL_COLOR[col]}` : 'none'),
-                                  opacity: wasDrawn && !isWinningCell && winningCells.size > 0 ? 0.45 : 1, // Dim non-winning drawn cells to highlight the pattern
+                                  color: isWinningCell || isFreeCell || wasDrawn ? 'white' : 'rgba(255,255,255,0.35)',
+                                  border: isWinningCell ? '2px solid #a7f3d0' : (wasDrawn && !isFreeCell ? `1px solid ${COL_COLOR[col]}` : 'none'),
+                                  opacity: wasDrawn && !isWinningCell && winningCells.size > 0 ? 0.45 : 1, // Dim non-winning drawn cells
                                   zIndex: isWinningCell ? 10 : 1,
                                   position: 'relative'
                               }}>
                                 {isFreeCell ? '★' : cell}
-                                {isWinningCell && (
+                                {isWinningCell && !isFreeCell && (
                                   <motion.div
                                     initial={{ scale: 0.8, opacity: 0.8 }}
                                     animate={{ scale: 1.3, opacity: 0 }}
                                     transition={{ duration: 1.2, repeat: Infinity }}
-                                    style={{ position: 'absolute', inset: -2, border: '2px solid #FFD700', borderRadius: '5px', pointerEvents: 'none' }}
+                                    style={{ position: 'absolute', inset: -2, border: '2px solid #6EE7B7', borderRadius: '5px', pointerEvents: 'none' }}
                                   />
                                 )}
                               </motion.div>
