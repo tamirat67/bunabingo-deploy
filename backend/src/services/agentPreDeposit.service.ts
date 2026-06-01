@@ -103,98 +103,153 @@ export async function debitAgentCommissionForGame(
   gameId: string,
   totalSales: Decimal
 ): Promise<{ agentId: string; commissionAmount: Decimal } | null> {
-  // Find the agent for this game (agent = referredBy of any player)
-  const ticket = await prisma.ticket.findFirst({
+  // 1. Fetch all tickets for this game, including the user and their referrer
+  const tickets = await prisma.ticket.findMany({
     where: { gameId },
-    include: { user: { select: { referredBy: true } } },
+    include: {
+      user: {
+        select: {
+          id: true,
+          isBot: true,
+          referredBy: true,
+          firstName: true,
+        }
+      }
+    }
   });
 
-  let agentId = ticket?.user?.referredBy ?? null;
-
-  // Verify the referrer is actually an AGENT. If not (e.g. they are a PLAYER), clear agentId so it falls back to default.
-  if (agentId) {
-    const agentUser = await prisma.user.findUnique({ where: { id: agentId }, select: { role: true } });
-    if (agentUser?.role !== 'AGENT' && agentUser?.role !== 'ADMIN' && agentUser?.role !== 'admin') {
-      agentId = null;
-    }
-  }
-
-  if (!agentId) {
-    // Fall back to the first active agent in the system as the default agent
-    const defaultAgent = await prisma.user.findFirst({
-      where: { role: 'AGENT' },
-      orderBy: { createdAt: 'asc' }
-    });
-    if (defaultAgent) {
-      agentId = defaultAgent.id;
-      logger.info(`[Commission] Game ${gameId}: no linked agent. Falling back to default agent ${agentId}.`);
-    }
-  }
-
-  if (!agentId) {
-    // No agent linked and no default agent found — game proceeds without commission deduction
-    logger.info(`[Commission] Game ${gameId}: no agent and no fallback found, skipping pre-deposit debit.`);
+  if (tickets.length === 0) {
+    logger.info(`[Commission] Game ${gameId}: no tickets found, skipping pre-deposit debit.`);
     return null;
   }
 
-  const wallet = await getOrCreateAgentPreDepositWallet(agentId);
-  const balance = new Decimal(wallet.balance.toString());
-  const rate = await getCompanyCommissionRate();
-  const commissionAmount = totalSales.mul(rate);
+  // Get the game's room to find the ticket price
+  const gameObj = await prisma.game.findUnique({
+    where: { id: gameId },
+    include: { room: { select: { ticketPrice: true } } }
+  });
+  if (!gameObj) {
+    logger.warn(`[Commission] Game ${gameId} not found, skipping pre-deposit debit.`);
+    return null;
+  }
+  const ticketPrice = new Decimal(gameObj.room.ticketPrice.toString());
 
-  // ── Hard block ──────────────────────────────────────────────────────────────
-  if (balance.lessThan(commissionAmount)) {
-    const msg =
-      `Insufficient commission balance. ` +
-      `Required: ${commissionAmount.toFixed(2)} ETB, ` +
-      `Available: ${balance.toFixed(2)} ETB. ` +
-      `Agent must recharge their pre-deposit wallet.`;
-    logger.warn(`[Commission] Game ${gameId} BLOCKED for agent ${agentId}: ${msg}`);
-    throw new Error(msg);
+  // 2. Group ticket prices by active agent
+  const agentSalesMap = new Map<string, Decimal>();
+
+  for (const ticket of tickets) {
+    // Skip house bot players entirely from commission calculations
+    if (ticket.user?.isBot) {
+      continue;
+    }
+
+    let agentId = ticket.user?.referredBy ?? null;
+
+    // Verify referrer is an AGENT or ADMIN
+    if (agentId) {
+      const agentUser = await prisma.user.findUnique({ where: { id: agentId }, select: { role: true } });
+      if (agentUser?.role !== 'AGENT' && agentUser?.role !== 'ADMIN' && agentUser?.role !== 'admin') {
+        agentId = null;
+      }
+    }
+
+    // Fall back to the default agent if no valid agent is associated
+    if (!agentId) {
+      const defaultAgent = await prisma.user.findFirst({
+        where: { role: 'AGENT' },
+        orderBy: { createdAt: 'asc' }
+      });
+      if (defaultAgent) {
+        agentId = defaultAgent.id;
+      }
+    }
+
+    if (agentId) {
+      const currentSales = agentSalesMap.get(agentId) || new Decimal(0);
+      agentSalesMap.set(agentId, currentSales.add(ticketPrice));
+    }
   }
 
-  const newBalance = balance.sub(commissionAmount);
+  if (agentSalesMap.size === 0) {
+    logger.info(`[Commission] Game ${gameId}: no agents associated with any real players, skipping pre-deposit debit.`);
+    return null;
+  }
 
-  // ── Atomic debit + audit log ────────────────────────────────────────────────
+  const rate = await getCompanyCommissionRate();
+  const agentCommissionMap = new Map<string, { commission: Decimal; balance: Decimal; wallet: any }>();
+
+  // 3. Pre-flight check: Verify all involved agents have sufficient balance
+  for (const [agentId, sales] of agentSalesMap.entries()) {
+    const wallet = await getOrCreateAgentPreDepositWallet(agentId);
+    const balance = new Decimal(wallet.balance.toString());
+    const commission = sales.mul(rate);
+
+    if (balance.lessThan(commission)) {
+      const agentUser = await prisma.user.findUnique({ where: { id: agentId }, select: { firstName: true } });
+      const agentName = agentUser?.firstName || 'Agent';
+      const msg =
+        `Insufficient commission balance for agent ${agentName}. ` +
+        `Required: ${commission.toFixed(2)} ETB, ` +
+        `Available: ${balance.toFixed(2)} ETB. ` +
+        `Agent must recharge their pre-deposit wallet.`;
+      logger.warn(`[Commission] Game ${gameId} BLOCKED: ${msg}`);
+      throw new Error(msg);
+    }
+
+    agentCommissionMap.set(agentId, { commission, balance, wallet });
+  }
+
+  // 4. Perform atomic debits and audit logging
   await prisma.$transaction(async (tx) => {
-    await tx.agentPreDepositWallet.update({
-      where: { agentId },
-      data: {
-        balance: newBalance,
-        totalDebited: new Decimal(wallet.totalDebited.toString()).add(commissionAmount),
-        updatedAt: new Date(),
-      },
-    });
+    for (const [agentId, data] of agentCommissionMap.entries()) {
+      const { commission, balance, wallet } = data;
+      const newBalance = balance.sub(commission);
+      const sales = agentSalesMap.get(agentId)!;
 
-    await tx.agentCommissionLog.create({
-      data: {
-        agentId,
-        walletId: wallet.id,
-        type: 'COMMISSION_DEBIT',
-        amount: commissionAmount,
-        gameId,
-        totalSales,
-        description: `Company commission (${(rate * 100).toFixed(2)}%) for game ${gameId}`,
-        balanceBefore: balance,
-        balanceAfter: newBalance,
-      },
-    });
+      await tx.agentPreDepositWallet.update({
+        where: { agentId },
+        data: {
+          balance: newBalance,
+          totalDebited: new Decimal(wallet.totalDebited.toString()).add(commission),
+          updatedAt: new Date(),
+        },
+      });
+
+      await tx.agentCommissionLog.create({
+        data: {
+          agentId,
+          walletId: wallet.id,
+          type: 'COMMISSION_DEBIT',
+          amount: commission,
+          gameId,
+          totalSales: sales,
+          description: `Company commission (${(rate * 100).toFixed(2)}%) for game ${gameId} (Agent branch sales: ${sales.toFixed(2)} ETB)`,
+          balanceBefore: balance,
+          balanceAfter: newBalance,
+        },
+      });
+
+      logger.info(
+        `[Commission] Game ${gameId}: debited ${commission.toFixed(2)} ETB from agent ${agentId}. ` +
+        `Balance: ${balance.toFixed(2)} → ${newBalance.toFixed(2)} ETB`
+      );
+
+      // Warn agent if balance is now low
+      const state = classifyBalanceState(newBalance);
+      if (state === 'RED' || state === 'YELLOW') {
+        logger.warn(
+          `[Commission] Agent ${agentId} pre-deposit balance is ${state}: ${newBalance.toFixed(2)} ETB remaining.`
+        );
+      }
+    }
   });
 
-  logger.info(
-    `[Commission] Game ${gameId}: debited ${commissionAmount.toFixed(2)} ETB from agent ${agentId}. ` +
-    `Balance: ${balance.toFixed(2)} → ${newBalance.toFixed(2)} ETB`
-  );
-
-  // Warn agent if balance is now low
-  const state = classifyBalanceState(newBalance);
-  if (state === 'RED' || state === 'YELLOW') {
-    logger.warn(
-      `[Commission] Agent ${agentId} pre-deposit balance is ${state}: ${newBalance.toFixed(2)} ETB remaining.`
-    );
+  // Return the first entry to satisfy the return type signature
+  const firstEntry = Array.from(agentCommissionMap.entries())[0];
+  if (firstEntry) {
+    return { agentId: firstEntry[0], commissionAmount: firstEntry[1].commission };
   }
-
-  return { agentId, commissionAmount };
+  return null;
 }
 
 // ─── Recharge ─────────────────────────────────────────────────────────────────

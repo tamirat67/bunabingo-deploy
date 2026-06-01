@@ -1509,6 +1509,8 @@ staffRouter.get('/analytics', restrictToAdmin, async (req, res) => {
 
 staffRouter.get('/audit', restrictToAdmin, async (req, res) => {
   try {
+    const { getCompanyCommissionRate } = await import('../services/settings.service');
+    
     const [
       bunaWallet,
       houseBotWinsAgg,
@@ -1516,7 +1518,8 @@ staffRouter.get('/audit', restrictToAdmin, async (req, res) => {
       commissionsAgg,
       agentsCount,
       totalDepositsAgg,
-      totalWithdrawalsAgg
+      totalWithdrawalsAgg,
+      rate
     ] = await Promise.all([
       prisma.systemWallet.findUnique({ where: { id: 1 } }),
       prisma.gameCycle.aggregate({ _sum: { houseWins: true } }),
@@ -1524,17 +1527,21 @@ staffRouter.get('/audit', restrictToAdmin, async (req, res) => {
       prisma.agentCommissionLog.aggregate({ where: { type: 'COMMISSION_DEBIT' }, _sum: { amount: true } }),
       prisma.user.count({ where: { role: 'AGENT' } }),
       prisma.deposit.aggregate({ where: { status: 'APPROVED' }, _sum: { amount: true } }),
-      prisma.withdrawal.aggregate({ where: { status: 'COMPLETED' }, _sum: { amount: true } })
+      prisma.withdrawal.aggregate({ where: { status: 'COMPLETED' }, _sum: { amount: true } }),
+      getCompanyCommissionRate()
     ]);
+
+    const totalSales = Number(totalSalesAgg._sum.amount || 0);
 
     res.json({
       success: true,
       data: {
         bunaWalletBalance: Number(bunaWallet?.balance || 0),
         totalHouseWins: Number(houseBotWinsAgg._sum.houseWins || 0),
-        totalSales: Number(totalSalesAgg._sum.amount || 0),
+        totalSales,
         totalCommissionsDeducted: Number(commissionsAgg._sum.amount || 0),
-        expectedCommissions: Number(totalSalesAgg._sum.amount || 0) * 0.125,
+        expectedCommissions: totalSales * rate,
+        commissionRate: rate,
         totalDeposits: Number(totalDepositsAgg._sum.amount || 0),
         totalWithdrawals: Number(totalWithdrawalsAgg._sum.amount || 0),
         agentsCount

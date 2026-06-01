@@ -66,7 +66,7 @@ export default function AdminAuditPage() {
                 <td className="text-right" style={{ fontWeight: '800' }}>{data.totalSales.toLocaleString()} ETB</td>
               </tr>
               <tr>
-                <td style={{ color: '#8c857b' }}>Expected Company Revenue (12.5%)</td>
+                <td style={{ color: '#8c857b' }}>Expected Company Revenue ({(data.commissionRate ? data.commissionRate * 100 : 12.5).toFixed(1)}%)</td>
                 <td className="text-right" style={{ fontWeight: '800' }}>{data.expectedCommissions.toLocaleString()} ETB</td>
               </tr>
               <tr style={{ background: companyRevenueMismatch ? 'rgba(239, 68, 68, 0.05)' : 'rgba(34, 197, 94, 0.05)' }}>
