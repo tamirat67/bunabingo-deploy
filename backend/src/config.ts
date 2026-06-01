@@ -32,13 +32,13 @@ export const config = {
       VIP: 2,
     },
     // ── Revenue Split ────────────────────────────────────────────────────────
-    // companyCommissionRate: 20% of TOTAL SALES → deducted from Agent Pre-Deposit Wallet
-    // agentProfitRate:       10% of TOTAL SALES → agent keeps as profit
+    // companyCommissionRate: 30% of real player sales per game → deducted from Agent Pre-Deposit
+    //   (covers 20% company revenue + 10% agent profit guarantee)
+    // agentProfitRate:       10% of TOTAL SALES → agent keeps as profit (display only)
     // playerPrizeRate:       70% of TOTAL SALES → paid out as prize pool
-    companyCommissionRate: parseFloat(process.env.COMPANY_COMMISSION_RATE || '20') / 100,  // 0.20
+    companyCommissionRate: parseFloat(process.env.COMPANY_COMMISSION_RATE || '30') / 100,  // 0.30
     agentProfitRate:       parseFloat(process.env.AGENT_PROFIT_RATE || '10') / 100,        // 0.10
     playerPrizeRate:       parseFloat(process.env.PLAYER_PRIZE_RATE || '70') / 100,        // 0.70
-    // Total house margin = companyCommissionRate + agentProfitRate = 30%
     commissionRate: 0.30,
     countdown: {
       default: 20,

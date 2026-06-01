@@ -4,7 +4,7 @@ import { logger } from '../lib/logger';
 
 // Default values loaded from config
 const DEFAULT_SETTINGS: Record<string, string> = {
-  COMPANY_COMMISSION_RATE: '20',
+  COMPANY_COMMISSION_RATE: '30',
   AGENT_PROFIT_RATE: '10',
   HOUSE_BOT_ENABLED: 'true',
   BONUS_ACTIVE: 'true',

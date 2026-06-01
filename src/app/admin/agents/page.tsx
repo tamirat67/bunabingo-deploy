@@ -271,7 +271,6 @@ export default function AgentsPage() {
               <th>Username</th>
               <th>Branch Players</th>
               <th>Pre-Deposit Balance</th>
-              <th>Stake Amount</th>
               <th>Real Profit</th>
               <th>Bot Exposure</th>
               <th style={{ textAlign: 'right' }}>Actions</th>
@@ -280,13 +279,13 @@ export default function AgentsPage() {
           <tbody>
             {loading ? (
                <tr>
-                  <td colSpan={8} style={{ padding: '40px', textAlign: 'center' }}>
+                  <td colSpan={7} style={{ padding: '40px', textAlign: 'center' }}>
                     <div className="animate-spin" style={{ width: '32px', height: '32px', border: '3px solid #d4af37', borderTopColor: 'transparent', borderRadius: '50%', margin: '0 auto' }}></div>
                   </td>
                </tr>
             ) : filteredAgents.length === 0 ? (
                <tr>
-                  <td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: 'var(--admin-text-muted)' }}>No agents matching your search.</td>
+                  <td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: 'var(--admin-text-muted)' }}>No agents matching your search.</td>
                </tr>
             ) : filteredAgents.map((agent) => (
               <tr key={agent.id}>
@@ -316,15 +315,6 @@ export default function AgentsPage() {
                      )}
                    </div>
                 </td>
-                 <td>
-                    {/* Stake Amount: real ETB recharged by admin → always positive */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                      <span style={{ fontWeight: '800', color: '#d4af37', fontSize: '14px' }}>
-                        +{Number(agent.stakeAmount ?? agent.agentPreDepositWallet?.totalRecharged ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
-                      </span>
-                      <span style={{ fontSize: '10px', color: '#a08020', fontWeight: '700', textTransform: 'uppercase' }}>Real Stake</span>
-                    </div>
-                 </td>
                  <td>
                     {/* Real Net Profit: earnings from real (non-bot) players → positive green */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
