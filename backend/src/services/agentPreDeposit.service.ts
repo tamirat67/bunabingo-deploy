@@ -153,16 +153,7 @@ export async function debitAgentCommissionForGame(
       }
     }
 
-    // Fall back to the default agent if no valid agent is associated
-    if (!agentId) {
-      const defaultAgent = await prisma.user.findFirst({
-        where: { role: 'AGENT' },
-        orderBy: { createdAt: 'asc' }
-      });
-      if (defaultAgent) {
-        agentId = defaultAgent.id;
-      }
-    }
+    // If no valid agent is associated, we do not debit any agent pre-deposit commission
 
     if (agentId) {
       const currentSales = agentSalesMap.get(agentId) || new Decimal(0);

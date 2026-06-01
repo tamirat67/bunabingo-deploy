@@ -90,16 +90,7 @@ async function main() {
                 }
               }
               
-              // Fallback to default agent
-              if (!ticketAgentId) {
-                const defaultAgent = await prisma.user.findFirst({
-                  where: { role: 'AGENT' },
-                  orderBy: { createdAt: 'asc' }
-                });
-                if (defaultAgent) {
-                  ticketAgentId = defaultAgent.id;
-                }
-              }
+              // No fallback to default agent
               
               if (ticketAgentId === log.agentId) {
                 agentTicketsCount++;

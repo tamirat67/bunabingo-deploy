@@ -92,7 +92,7 @@ router.get('/stats', async (req: Request, res: Response) => {
 
     const walletBalance = wallet ? Number(wallet.balance) : 0;
     const walletDebited = wallet ? Number(wallet.totalDebited) : 0;
-    const walletAdded = walletBalance + walletDebited;
+    const walletAdded = wallet ? Number(wallet.totalRecharged) : 0;
 
     res.json({
       playerCount,

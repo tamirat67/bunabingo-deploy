@@ -1520,7 +1520,8 @@ staffRouter.get('/analytics', restrictToAdmin, async (req, res) => {
 
   const realGrossSales = Number(realSalesAgg._sum.amount || 0);
   const botGrossSales  = Number(botSalesAgg._sum.amount || 0);
-  const commRate = 0.125; // 12.5%
+  const { getCompanyCommissionRate } = await import('../services/settings.service');
+  const commRate = await getCompanyCommissionRate();
   const realCompanyRevenue = realGrossSales * commRate;  // real ETB earned by company
   const botCompanyRevenue  = botGrossSales  * commRate;  // synthetic — NOT real profit
 
