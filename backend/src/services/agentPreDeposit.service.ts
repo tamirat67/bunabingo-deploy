@@ -9,8 +9,9 @@ import { getCompanyCommissionRate } from './settings.service';
 //
 // Business rules:
 //   TOTAL_SALES        = sum of all real player buy-ins for the game
-//   COMPANY_COMMISSION = TOTAL_SALES × 25%       ← deducted from this wallet
-//   PLAYER_PRIZE_POOL  = TOTAL_SALES × 75%       ← paid out to winner(s)
+//   COMPANY_COMMISSION = TOTAL_SALES × 20%       ← deducted from this wallet
+//   AGENT_PROFIT       = TOTAL_SALES × 10%       ← agent keeps as profit
+//   PLAYER_PRIZE_POOL  = TOTAL_SALES × 70%       ← paid out to winner(s)
 //
 // Game start is HARD-BLOCKED if:
 //   agentPreDepositBalance < COMPANY_COMMISSION

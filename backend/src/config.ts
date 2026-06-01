@@ -32,14 +32,14 @@ export const config = {
       VIP: 2,
     },
     // ── Revenue Split ────────────────────────────────────────────────────────
-    // companyCommissionRate: 25% of TOTAL SALES → deducted from Agent Pre-Deposit Wallet
-    // agentProfitRate:        0% (no separate agent split — full 25% goes to company)
-    // playerPrizeRate:       75% of TOTAL SALES → paid out as prize pool
-    companyCommissionRate: parseFloat(process.env.COMPANY_COMMISSION_RATE || '25') / 100,  // 0.25
-    agentProfitRate:       parseFloat(process.env.AGENT_PROFIT_RATE || '0') / 100,         // 0.00
-    playerPrizeRate:       parseFloat(process.env.PLAYER_PRIZE_RATE || '75') / 100,         // 0.75
-    // Legacy alias — equals companyCommissionRate + agentProfitRate = 25% total
-    commissionRate: 0.25,
+    // companyCommissionRate: 20% of TOTAL SALES → deducted from Agent Pre-Deposit Wallet
+    // agentProfitRate:       10% of TOTAL SALES → agent keeps as profit
+    // playerPrizeRate:       70% of TOTAL SALES → paid out as prize pool
+    companyCommissionRate: parseFloat(process.env.COMPANY_COMMISSION_RATE || '20') / 100,  // 0.20
+    agentProfitRate:       parseFloat(process.env.AGENT_PROFIT_RATE || '10') / 100,        // 0.10
+    playerPrizeRate:       parseFloat(process.env.PLAYER_PRIZE_RATE || '70') / 100,        // 0.70
+    // Total house margin = companyCommissionRate + agentProfitRate = 30%
+    commissionRate: 0.30,
     countdown: {
       default: 20,
       DEMO: 20,
@@ -51,7 +51,7 @@ export const config = {
     } as Record<string, number>,
     drawIntervalMs: 3000,         // 3.0 seconds between draws
     minBallsBeforeWin: 20,        // at least 20 balls must be drawn before any win is valid (~50 seconds minimum game)
-    houseEdgePercent: parseFloat(process.env.HOUSE_EDGE_PERCENT || '25'),
+    houseEdgePercent: parseFloat(process.env.HOUSE_EDGE_PERCENT || '30'),
     totalNumbers: 75,             // standard bingo 1-75
   },
   withdrawal: {
