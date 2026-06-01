@@ -445,66 +445,67 @@ export async function getAgents(page = 1, limit = 20) {
       include: { 
         wallet: true, 
         agentPreDepositWallet: true,
-        referrals: { select: { id: true } },
-        // Include depositPhones so the admin modal can pre-populate existing entries
+        referrals: { select: { id: true, isBot: true } },
       },
-      // depositPhones is a JSON field on user — select it explicitly
-
       orderBy: { createdAt: 'desc' },
     }),
     prisma.user.count({ where: { role: 'AGENT' } }),
   ]);
 
-  // Enrich each agent with real-time calculated branch metrics!
   const enrichedAgents = await Promise.all(
     agents.map(async (agent) => {
-      const referredUserIds = agent.referrals.map((r) => r.id);
+      const referrals = agent.referrals;
+      const realUserIds = referrals.filter(r => !r.isBot).map(r => r.id);
+      const botUserIds = referrals.filter(r => r.isBot).map(r => r.id);
+      const allUserIds = referrals.map(r => r.id);
 
       let totalBranchDeposited = new Decimal(0);
-      let totalBranchSales = new Decimal(0);
+      let realBranchSales = new Decimal(0);
+      let botBranchSales = new Decimal(0);
 
-      if (referredUserIds.length > 0) {
-        // 1. Sum of all APPROVED deposits made by players in this branch
-        const depositsSum = await prisma.deposit.aggregate({
-          where: {
-            status: 'APPROVED',
-            userId: { in: referredUserIds },
-          },
+      if (allUserIds.length > 0) {
+        const deposits = await prisma.deposit.aggregate({
+          where: { status: 'APPROVED', userId: { in: allUserIds } },
           _sum: { amount: true },
         });
-        if (depositsSum._sum.amount) {
-          totalBranchDeposited = new Decimal(depositsSum._sum.amount.toString());
-        }
+        totalBranchDeposited = new Decimal(deposits._sum.amount?.toString() || 0);
 
-        // 2. Sum of all completed TICKET_PURCHASE transactions made by players in this branch
-        const ticketPurchasesSum = await prisma.transaction.aggregate({
+        const sales = await prisma.transaction.findMany({
           where: {
             type: 'TICKET_PURCHASE',
             status: { in: ['completed', 'COMPLETED'] },
-            userId: { in: referredUserIds },
+            userId: { in: allUserIds },
           },
-          _sum: { amount: true },
+          select: { userId: true, amount: true },
         });
-        if (ticketPurchasesSum._sum.amount) {
-          totalBranchSales = new Decimal(ticketPurchasesSum._sum.amount.toString());
-        }
+
+        sales.forEach(s => {
+          if (realUserIds.includes(s.userId)) realBranchSales = realBranchSales.add(s.amount.toString());
+          else botBranchSales = botBranchSales.add(s.amount.toString());
+        });
       }
 
-      // 3. Net Profit = TOTAL_SALES × Agent Profit Rate
       const rate = await getAgentProfitRate();
-      const netProfit = totalBranchSales.mul(new Decimal(rate.toString()));
+      const realNetProfit = realBranchSales.mul(new Decimal(rate.toString()));
+      const botNetProfit  = botBranchSales.mul(new Decimal(rate.toString()));
 
-      // 4. Pre-Deposit Status
+      // Stake Amount = total real ETB recharged into pre-deposit wallet by admin
+      const stakeAmount = new Decimal(
+        (agent.agentPreDepositWallet?.totalRecharged ?? 0).toString()
+      );
+
       const { getAgentPreDepositStatus } = await import('./agentPreDeposit.service');
       const preDepositStatus = await getAgentPreDepositStatus(agent.id);
 
-      // Override the agent's wallet fields for the frontend
       if (agent.wallet) {
-        agent.wallet.totalDeposited = totalBranchDeposited as any;
-        agent.wallet.referralBalance = netProfit as any;
+        agent.wallet.totalDeposited  = totalBranchDeposited as any;
+        agent.wallet.referralBalance = realNetProfit as any; // real profit only
       }
 
       (agent as any).preDepositStatus = preDepositStatus;
+      (agent as any).stakeAmount    = Number(stakeAmount.toFixed(4));   // positive = real ETB staked
+      (agent as any).realNetProfit  = Number(realNetProfit.toFixed(4));  // positive = real player profit
+      (agent as any).botNetProfit   = Number(botNetProfit.toFixed(4));   // will be shown as negative on UI
 
       return agent;
     })
@@ -512,4 +513,3 @@ export async function getAgents(page = 1, limit = 20) {
 
   return { agents: enrichedAgents, total, pages: Math.ceil(total / limit) };
 }
-

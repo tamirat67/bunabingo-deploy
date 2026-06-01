@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { FiSearch, FiUserPlus, FiTrendingUp, FiUserX, FiX, FiLock, FiPhone, FiUser, FiAlertCircle, FiTrash2, FiPlus, FiEdit2, FiDollarSign, FiBarChart2 } from 'react-icons/fi';
+import { FiSearch, FiUserPlus, FiTrendingUp, FiTrendingDown, FiUserX, FiX, FiLock, FiPhone, FiUser, FiAlertCircle, FiTrash2, FiPlus, FiEdit2, FiDollarSign, FiBarChart2 } from 'react-icons/fi';
 import api from '@/lib/api';
 import { Pagination } from '@/components/Pagination';
 import BunaModal from '@/components/BunaModal';
@@ -271,21 +271,22 @@ export default function AgentsPage() {
               <th>Username</th>
               <th>Branch Players</th>
               <th>Pre-Deposit Balance</th>
-              <th>Total Volume</th>
-              <th>Net Profit</th>
+              <th>Stake Amount</th>
+              <th>Real Profit</th>
+              <th>Bot Exposure</th>
               <th style={{ textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
                <tr>
-                  <td colSpan={7} style={{ padding: '40px', textAlign: 'center' }}>
+                  <td colSpan={8} style={{ padding: '40px', textAlign: 'center' }}>
                     <div className="animate-spin" style={{ width: '32px', height: '32px', border: '3px solid #d4af37', borderTopColor: 'transparent', borderRadius: '50%', margin: '0 auto' }}></div>
                   </td>
                </tr>
             ) : filteredAgents.length === 0 ? (
                <tr>
-                  <td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: 'var(--admin-text-muted)' }}>No agents matching your search.</td>
+                  <td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: 'var(--admin-text-muted)' }}>No agents matching your search.</td>
                </tr>
             ) : filteredAgents.map((agent) => (
               <tr key={agent.id}>
@@ -315,14 +316,39 @@ export default function AgentsPage() {
                      )}
                    </div>
                 </td>
-                <td style={{ fontWeight: '600' }}>
-                   {Number(agent.wallet?.totalDeposited || 0).toLocaleString()} ETB
-                </td>
-                <td>
-                   <div style={{ color: '#4ade80', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <FiTrendingUp /> {Number(agent.wallet?.referralBalance || 0).toLocaleString()} ETB
-                   </div>
-                </td>
+                 <td>
+                    {/* Stake Amount: real ETB recharged by admin → always positive */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <span style={{ fontWeight: '800', color: '#d4af37', fontSize: '14px' }}>
+                        +{Number(agent.stakeAmount ?? agent.agentPreDepositWallet?.totalRecharged ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
+                      </span>
+                      <span style={{ fontSize: '10px', color: '#a08020', fontWeight: '700', textTransform: 'uppercase' }}>Real Stake</span>
+                    </div>
+                 </td>
+                 <td>
+                    {/* Real Net Profit: earnings from real (non-bot) players → positive green */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <div style={{ color: '#10b981', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '14px' }}>
+                        <FiTrendingUp size={13} />
+                        +{Number(agent.realNetProfit ?? agent.wallet?.referralBalance ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
+                      </div>
+                      <span style={{ fontSize: '10px', color: '#059669', fontWeight: '700', textTransform: 'uppercase' }}>Real Money</span>
+                    </div>
+                 </td>
+                 <td>
+                    {/* Bot Exposure: earnings attributed to house bots → shown as NEGATIVE (fake) */}
+                    {Number(agent.botNetProfit ?? 0) > 0 ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        <div style={{ color: '#ef4444', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '14px' }}>
+                          <FiTrendingDown size={13} />
+                          -{Number(agent.botNetProfit ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
+                        </div>
+                        <span style={{ fontSize: '10px', color: '#dc2626', fontWeight: '700', textTransform: 'uppercase' }}>Fake Balance</span>
+                      </div>
+                    ) : (
+                      <span style={{ color: 'var(--admin-text-muted)', fontSize: '13px' }}>—</span>
+                    )}
+                 </td>
                 <td style={{ textAlign: 'right' }}>
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px', flexWrap: 'wrap' }}>
                     <Link href={`/admin/agents/${agent.id}`}>
