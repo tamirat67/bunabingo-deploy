@@ -8,10 +8,9 @@ import { getCompanyCommissionRate } from './settings.service';
 // Agent Pre-Deposit Commission Control System
 //
 // Business rules:
-//   TOTAL_SALES        = sum of all player buy-ins for the game
-//   COMPANY_COMMISSION = TOTAL_SALES × 12.5%      ← deducted from this wallet
-//   AGENT_GROSS_PROFIT = TOTAL_SALES × 12.5%      ← agent keeps (informational)
-//   PLAYER_PRIZE_POOL  = TOTAL_SALES × 75%        ← paid out to winner(s)
+//   TOTAL_SALES        = sum of all real player buy-ins for the game
+//   COMPANY_COMMISSION = TOTAL_SALES × 25%       ← deducted from this wallet
+//   PLAYER_PRIZE_POOL  = TOTAL_SALES × 75%       ← paid out to winner(s)
 //
 // Game start is HARD-BLOCKED if:
 //   agentPreDepositBalance < COMPANY_COMMISSION
