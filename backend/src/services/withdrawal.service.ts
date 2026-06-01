@@ -19,10 +19,11 @@ import { config } from '../config';
 // STEP 2a — Agent APPROVES:
 //   • The pending WITHDRAWAL transaction → 'completed'.
 //   • Player's totalWithdrawn stat is incremented by the withdrawal amount.
-//   • The APPROVING AGENT'S AgentPreDepositWallet is CREDITED the same amount
-//     (they paid out physical cash via Telebirr; this reimburses their digital balance).
-//   • AgentCommissionLog entry 'WITHDRAWAL_REIMBURSE' is recorded for full audit.
 //   • Player is notified on Telegram.
+//   NOTE: The AgentPreDepositWallet is NOT touched here. It is strictly a
+//         commission-control wallet: debited only per game (12.5% of real-player
+//         sales), and recharged manually by admin. Withdrawals have zero effect
+//         on it for ALL agents.
 //
 // STEP 2b — Agent REJECTS:
 //   • The pending WITHDRAWAL transaction → 'failed'.
@@ -154,8 +155,8 @@ export async function createWithdrawalRequest(
 //  1. Withdrawal record → 'approved'
 //  2. Player's pending WITHDRAWAL transaction → 'completed'
 //  3. Player's totalWithdrawn stat is incremented
-//  4. Agent's AgentPreDepositWallet is CREDITED (reimburse the physical payout)
-//  5. Full audit trail in AgentCommissionLog
+//  4. Admin audit log is created
+// NOTE: AgentPreDepositWallet is intentionally NOT modified — for ALL agents.
 // ─────────────────────────────────────────────────────────────────────────────
 export async function approveWithdrawal(withdrawalId: string, adminId: string) {
   const withdrawal = await prisma.withdrawal.findUnique({
@@ -198,46 +199,7 @@ export async function approveWithdrawal(withdrawalId: string, adminId: string) {
       });
     }
 
-    // 4. Determine which agent to reimburse:
-    //    - First try the player's referring agent
-    //    - Fall back to the admin who approved (if they are an AGENT/ADMIN)
-    //    - Finally fall back to the first agent in the system
-    let agentToReimburseId: string | null = null;
-
-    if (withdrawal.user?.referredBy) {
-      const referringAgent = await tx.user.findUnique({
-        where: { id: withdrawal.user.referredBy },
-        select: { id: true, role: true }
-      });
-      if (referringAgent && (referringAgent.role === 'AGENT' || referringAgent.role === 'ADMIN')) {
-        agentToReimburseId = referringAgent.id;
-      }
-    }
-
-    if (!agentToReimburseId && !adminId.startsWith('tg_superadmin_')) {
-      const approvingUser = await tx.user.findUnique({
-        where: { id: adminId },
-        select: { id: true, role: true }
-      });
-      if (approvingUser && (approvingUser.role === 'AGENT' || approvingUser.role === 'ADMIN')) {
-        agentToReimburseId = approvingUser.id;
-      }
-    }
-
-    if (!agentToReimburseId) {
-      const fallbackAgent = await tx.user.findFirst({
-        where: { role: 'AGENT' },
-        orderBy: { createdAt: 'asc' },
-        select: { id: true }
-      });
-      if (fallbackAgent) agentToReimburseId = fallbackAgent.id;
-    }
-
-    // Note: The agent's AgentPreDepositWallet is NO LONGER credited here.
-    // The pre-deposit wallet is strictly used for the 25% per-game company commission.
-
-
-    // 7. Admin audit log (skip for telegram super-admin placeholder)
+    // 4. Admin audit log (skip for telegram super-admin placeholder)
     if (withdrawal.userId && !adminId.startsWith('tg_superadmin_')) {
       await tx.adminLog.create({
         data: {
@@ -249,7 +211,6 @@ export async function approveWithdrawal(withdrawalId: string, adminId: string) {
             amount: withdrawal.amount.toString(),
             bankName: withdrawal.bankName,
             accountNumber: withdrawal.accountNumber,
-            reimbursedAgent: agentToReimburseId,
           },
         },
       });

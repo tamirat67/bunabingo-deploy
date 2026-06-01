@@ -1346,9 +1346,19 @@ staffRouter.patch('/agents/:id', restrictToAdmin, async (req, res) => {
 
     // Update pre-deposit balance if provided
     if (preDepositBalance !== undefined && !isNaN(parseFloat(preDepositBalance))) {
-      await prisma.agentPreDepositWallet.updateMany({
+      const newBalance = parseFloat(preDepositBalance);
+      await prisma.agentPreDepositWallet.upsert({
         where: { agentId: req.params.id },
-        data: { balance: parseFloat(preDepositBalance) },
+        create: {
+          agentId: req.params.id,
+          balance: newBalance,
+          totalRecharged: newBalance,
+        },
+        update: {
+          balance: newBalance,
+          totalRecharged: newBalance,
+          updatedAt: new Date(),
+        },
       });
     }
 

@@ -42,7 +42,7 @@ export interface AgentPreDepositStatus {
 export async function getOrCreateAgentPreDepositWallet(agentId: string) {
   return prisma.agentPreDepositWallet.upsert({
     where: { agentId },
-    create: { agentId, balance: 0 },
+    create: { agentId, balance: 10_000 },
     update: {},
   });
 }
