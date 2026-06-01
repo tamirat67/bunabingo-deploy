@@ -1398,7 +1398,7 @@ function GameContent() {
                 width: '100%', maxWidth: '380px',
                 background: isVip
                   ? 'linear-gradient(160deg, #1C0A35 0%, #2D1442 60%, #1C0A35 100%)'
-                  : 'linear-gradient(160deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%)',
+                  : 'linear-gradient(160deg, #2b1d14 0%, #1a120c 60%, #3d2b1f 100%)',
                 borderRadius: '24px',
                 border: `2px solid ${isVip ? '#FFD700' : '#D4AF37'}`,
                 boxShadow: `0 0 60px ${isVip ? 'rgba(255,215,0,0.4)' : 'rgba(212,175,55,0.35)'}, 0 30px 80px rgba(0,0,0,0.7)`,
@@ -1414,7 +1414,7 @@ function GameContent() {
                 style={{
                   background: gameFinished.isCurrentUserWinner
                     ? 'linear-gradient(135deg, #FFD700 0%, #FF6B35 50%, #FFD700 100%)'
-                    : 'linear-gradient(135deg, #8E44AD 0%, #3498DB 50%, #8E44AD 100%)',
+                    : 'linear-gradient(135deg, #d4af37 0%, #a67c00 50%, #d4af37 100%)',
                   backgroundSize: '200% 200%',
                   padding: '20px 16px 16px',
                   textAlign: 'center',
@@ -1450,12 +1450,19 @@ function GameContent() {
                 {/* Win Mode Badge + Prize */}
                 <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginBottom: '14px', flexWrap: 'wrap' }}>
                   <div style={{
-                    background: 'linear-gradient(135deg, #E74C3C, #C0392B)',
-                    color: 'white', fontWeight: '900', fontSize: '12px',
+                    background: 'linear-gradient(135deg, #d4af37, #b8860b)',
+                    color: '#1a0a00', fontWeight: '900', fontSize: '12px',
                     padding: '5px 14px', borderRadius: '20px',
-                    letterSpacing: '0.5px', boxShadow: '0 3px 10px rgba(231,76,60,0.5)',
+                    letterSpacing: '0.5px', boxShadow: '0 3px 10px rgba(212,175,55,0.5)',
                   }}>
-                    {gameFinished.mode || 'ROW'}
+                    {(() => {
+                      const m = gameFinished.mode || 'ROW';
+                      if (m === 'FULL_HOUSE') return 'FULL HOUSE BINGO';
+                      if (m === 'DIAGONAL') return 'DIAGONAL BINGO';
+                      if (m === 'COLUMN') return 'COLUMN BINGO';
+                      if (m === 'ROW') return 'ROW BINGO';
+                      return m + ' BINGO';
+                    })()}
                   </div>
                   <div style={{
                     background: 'linear-gradient(135deg, #27AE60, #1E8449)',
