@@ -1015,8 +1015,7 @@ function SelectionContent() {
           }}>
             <div style={{
               position: 'sticky',
-              top: '50%',
-              transform: 'translateY(-50%)',
+              top: '15%',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
