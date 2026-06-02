@@ -827,7 +827,7 @@ function GameContent() {
   const fallbackCards = botCount + tickets.length;
   const allCards = Math.max(game?.currentPlayers || 0, fallbackCards) || 1;
   const totalStake = isDemo ? 0 : allCards * stake;
-  const cdText  = countdown !== null ? `${countdown}s` : (game?.status === 'WAITING' ? '...' : (game?.status === 'RUNNING' ? '🔴' : '---'));
+  const cdText  = countdown !== null ? `${countdown}s` : (game?.status === 'WAITING' ? '...' : (game?.status === 'RUNNING' ? 'LIVE' : '---'));
   const visible = tickets.filter(t => !hidden.has(t.id));
 
   const checkAnyBingo = () => {
@@ -982,7 +982,7 @@ function GameContent() {
               boxShadow: isVip ? '0 0 10px rgba(255, 215, 0, 0.2)' : 'none'
             }}>
               <div style={{ color: isVip ? '#FFD700' : T.gold, fontSize: '9px', fontWeight: '900' }}>
-                {game?.status === 'RUNNING' ? 'LIVE 🔴' : countdown !== null ? 'STARTS IN' : 'WAITING...'}
+                {game?.status === 'RUNNING' ? 'STATUS' : countdown !== null ? 'STARTS IN' : 'WAITING...'}
               </div>
               <div style={{ color: game?.status === 'RUNNING' ? 'white' : (isVip ? 'white' : (activeThemeKey === 'LIGHT' ? '#333' : 'white')), fontSize: '24px', fontWeight: '900' }}>{cdText}</div>
             </div>
