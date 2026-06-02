@@ -121,7 +121,12 @@ export async function createWithdrawalRequest(
   ]);
 
   // ─── Notify @Luel1616 (super-admin) via Telegram + web ─────────────────
-  await notifySuperAdmin(withdrawalMsg, withdrawalButtons);
+  // Non-critical: if super-admin can't be reached, the withdrawal still proceeds.
+  try {
+    await notifySuperAdmin(withdrawalMsg, withdrawalButtons);
+  } catch (notifyErr) {
+    logger.warn(`[Withdrawal] Could not notify super-admin (chat not found?) — withdrawal ${withdrawal.id} still valid.`, notifyErr);
+  }
 
   // ─── Trigger web dashboard admin event ────────────────────────────────────
   await triggerAdminEvent('new-withdrawal', {
@@ -142,7 +147,11 @@ export async function createWithdrawalRequest(
       select: { role: true, id: true, firstName: true }
     });
     if (agent && (agent.role === 'AGENT' || agent.role === 'ADMIN')) {
-      await notifyAgent(agent.id, withdrawalMsg, withdrawalButtons);
+      try {
+        await notifyAgent(agent.id, withdrawalMsg, withdrawalButtons);
+      } catch (agentNotifyErr) {
+        logger.warn(`[Withdrawal] Could not notify agent ${agent.id} — withdrawal still valid.`, agentNotifyErr);
+      }
     }
   }
 
