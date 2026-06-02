@@ -183,19 +183,18 @@ async function runGame(gameId: string): Promise<void> {
      return;
   }
 
+  let realPlayerCount = 0;
+
   // ─── Player count validation (skip for DEMO) ─────────────────────────────
   if (!isDemo) {
-    const uniquePlayerRows = await prisma.ticket.groupBy({ where: { gameId }, by: ['userId'] });
     // Count real (non-bot) players separately
     const ticketsWithUsers = await prisma.ticket.findMany({
       where: { gameId },
       select: { userId: true, user: { select: { isBot: true } } }
     });
-    const realPlayerCount = new Set(
+    realPlayerCount = new Set(
       ticketsWithUsers.filter(t => !t.user.isBot).map(t => t.userId)
     ).size;
-    // Player count validation removed - game will always start after countdown
-    // even with only 1 ticket or 1 real player, to prevent endless 60s loops.
   }
 
   // ─── CHARGE PLAYERS NOW (skip entirely for DEMO — no real money) ────────────
@@ -204,9 +203,8 @@ async function runGame(gameId: string): Promise<void> {
   let totalPrizePool = new Decimal(0);
   let totalHouseEdge = new Decimal(0);
 
-  const uniquePlayerIds = Array.from(new Set(game.tickets.map(t => t.userId)));
-  if (!isDemo && uniquePlayerIds.length < 1) {
-    logger.info(`[Game ${gameId}] Loop Guard: 0 players. Restarting 20s countdown to wait for players.`);
+  if (!isDemo && realPlayerCount < 1) {
+    logger.info(`[Game ${gameId}] Loop Guard: 0 real players found. Restarting 20s countdown to wait for real players.`);
     await startCountdown(gameId, ticketCount);
     return;
   }
