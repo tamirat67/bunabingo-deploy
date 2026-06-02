@@ -1596,27 +1596,26 @@ function GameContent() {
                       // we MUST force a visual winning line so the player trusts the system!
                       // Randomize the highlighted row/column/diagonal each time so it looks natural.
                       if (winningCells.size === 0) {
+                        // Derive a deterministic pseudo-random number from the card id so it doesn't flicker on re-renders
+                        const pRand = ((gameFinished.cardNo || 1) * 7) % 100;
                         if (mode === 'FULL_HOUSE') {
                           for (let r=0; r<5; r++) for (let c=0; c<5; c++) { winningCells.add(`${r}-${c}`); drawnSet.add(Number((gameFinished.card as any[][])[r][c])); }
                         } else if (mode === 'ROW') {
-                          // Pick a random row (0-4) — avoid middle row 2 (FREE) as sole winner
+                          // Pick a deterministic row (0, 1, 3, 4) — avoid middle row 2 (FREE) as sole winner
                           const rows = [0, 1, 3, 4];
-                          const fallbackRow = rows[Math.floor(Math.random() * rows.length)];
+                          const fallbackRow = rows[pRand % rows.length];
                           for (let c=0; c<5; c++) { winningCells.add(`${fallbackRow}-${c}`); drawnSet.add(Number((gameFinished.card as any[][])[fallbackRow][c])); }
                         } else if (mode === 'COLUMN') {
-                          // Pick a random column (0-4)
-                          const fallbackCol = Math.floor(Math.random() * 5);
+                          const fallbackCol = pRand % 5;
                           for (let r=0; r<5; r++) { winningCells.add(`${r}-${fallbackCol}`); drawnSet.add(Number((gameFinished.card as any[][])[r][fallbackCol])); }
                         } else if (mode === 'DIAGONAL') {
-                          // Randomly pick main or anti diagonal
-                          if (Math.random() > 0.5) {
+                          if (pRand % 2 === 0) {
                             for (let i=0; i<5; i++) { winningCells.add(`${i}-${i}`); drawnSet.add(Number((gameFinished.card as any[][])[i][i])); }
                           } else {
                             for (let i=0; i<5; i++) { winningCells.add(`${i}-${4-i}`); drawnSet.add(Number((gameFinished.card as any[][])[i][4-i])); }
                           }
                         } else {
-                          // Final fallback: random row
-                          const fr = [0, 1, 3, 4][Math.floor(Math.random() * 4)];
+                          const fr = [0, 1, 3, 4][pRand % 4];
                           for (let c=0; c<5; c++) { winningCells.add(`${fr}-${c}`); drawnSet.add(Number((gameFinished.card as any[][])[fr][c])); }
                         }
                       }
