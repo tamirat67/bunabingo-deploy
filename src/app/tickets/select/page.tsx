@@ -676,7 +676,7 @@ function SelectionContent() {
         setModal({
           isOpen: true,
           title: '🔴 Game In Progress!',
-          message: 'Game in progress! Securing tickets for the NEXT game. / ጨዋታ በሂደት ላይ ነው! ለሚቀጥለው ጨዋታ ካርቴላ ይግዙ።',
+          message: 'ጨዋታ በሂደት ላይ ነው! ለሚቀጥለው ጨዋታ ካርቴላ ይግዙ።',
           type: 'info',
         });
         setJoining(false);
@@ -717,7 +717,7 @@ function SelectionContent() {
         setModal({
           isOpen: true,
           title: '🔴 Game In Progress!',
-          message: 'Game in progress! Securing tickets for the NEXT game. / ጨዋታ በሂደት ላይ ነው! ለሚቀጥለው ጨዋታ ካርቴላ ይግዙ።',
+          message: 'ጨዋታ በሂደት ላይ ነው! ለሚቀጥለው ጨዋታ ካርቴላ ይግዙ።',
           type: 'info',
         });
       } else {
