@@ -163,41 +163,39 @@ export async function broadcastMessage(message: string, imageUrl?: string | null
 }
 
 /**
- * Notifies the super-admin (@Luel1616) on Telegram about a withdrawal request.
- * Looks up the user by username 'Luel1616' in the DB to get their telegramId.
- * Falls back to sending by username string if not found.
+ * Notifies the super-admin (@tanga_dreams) on Telegram about a withdrawal request.
+ * Uses hardcoded Telegram ID 5310030963 as primary, with DB lookup as backup.
  */
 export async function notifySuperAdmin(message: string, buttons?: any): Promise<void> {
-  const SUPER_ADMIN_USERNAME = 'Luel1616';
+  const SUPER_ADMIN_USERNAME = 'tanga_dreams';
+  const SUPER_ADMIN_TELEGRAM_ID = 5310030963; // @tanga_dreams
 
   try {
-    // Try to find Luel1616 in the DB (registered admin/agent)
+    // Primary: use the known Telegram ID directly (most reliable)
+    let chatId: number | string = SUPER_ADMIN_TELEGRAM_ID;
+
+    // Fallback: try DB lookup in case the ID ever changes
     const adminUser = await prisma.user.findFirst({
       where: {
         OR: [
           { username: SUPER_ADMIN_USERNAME },
           { username: `@${SUPER_ADMIN_USERNAME}` },
+          { telegramUsername: SUPER_ADMIN_USERNAME },
+          { telegramUsername: `@${SUPER_ADMIN_USERNAME}` },
         ]
       },
-      select: { telegramId: true, id: true }
+      select: { telegramId: true }
     });
 
     if (adminUser?.telegramId) {
-      // Send via numeric telegramId (most reliable)
-      await bot.telegram.sendMessage(Number(adminUser.telegramId), message, {
-        parse_mode: 'HTML',
-        ...(buttons ? buttons : {})
-      });
-      logger.info(`[Notifier] Sent withdrawal approval request to super-admin @${SUPER_ADMIN_USERNAME} (DB user).`);
-    } else {
-      // Fallback: send directly by Telegram username string
-      // This works only if the user has previously messaged the bot
-      await bot.telegram.sendMessage(`@${SUPER_ADMIN_USERNAME}`, message, {
-        parse_mode: 'HTML',
-        ...(buttons ? buttons : {})
-      });
-      logger.info(`[Notifier] Sent withdrawal approval request to @${SUPER_ADMIN_USERNAME} (by username).`);
+      chatId = Number(adminUser.telegramId);
     }
+
+    await bot.telegram.sendMessage(chatId, message, {
+      parse_mode: 'HTML',
+      ...(buttons ? buttons : {})
+    });
+    logger.info(`[Notifier] Sent withdrawal notification to super-admin @${SUPER_ADMIN_USERNAME} (chat ${chatId}).`);
   } catch (err) {
     logger.error(`[Notifier] Failed to notify super-admin @${SUPER_ADMIN_USERNAME}:`, err);
   }
