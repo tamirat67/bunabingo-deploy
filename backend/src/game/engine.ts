@@ -1572,13 +1572,34 @@ export async function joinGame(
           const realPlayerCount = realUserIds.size;
 
           if (houseBotEnabled && isBotRoom) {
-            // AUTOMATED BOT MODE: Wait 2.5 minutes for real players, OR start immediately if full.
-            const targetRealPlayers = BOT_COUNTS[game.room.type] ?? 30;
-            if (realPlayerCount >= targetRealPlayers) {
-              logger.info(`[Game ${gameId}] Target real players reached (${realPlayerCount}/${targetRealPlayers}). Auto-starting countdown without bots.`);
-              await startCountdown(gameId, currentTicketCount);
-            } else {
-              logger.info(`[Game ${gameId}] Real player joined (${realPlayerCount}/${targetRealPlayers}). Waiting for maxWaitTime (2.5m) or full room before starting.`);
+            // AUTOMATED BOT MODE: inject bots immediately when first real player joins
+            if (realPlayerCount >= 1) {
+              const takenCardIds = allTickets.map(t => (t.card as any).id as number);
+              gamesWithBotsInjectedPublic.add(gameId);
+
+              setImmediate(async () => {
+                try {
+                  await injectBotTickets(gameId, game.room.type, takenCardIds);
+                  const fullCount = await prisma.ticket.count({ where: { gameId } });
+                  const botCount = BOT_COUNTS[game.room.type] ?? 30;
+                  logger.info(`[HouseBot] Auto-starting game ${gameId} (${game.room.type}) with ${fullCount} total tickets (${botCount} bots injected)`);
+
+                  await Promise.all([
+                    triggerGameEvent(gameId, 'player-joined', {
+                      userId: 'bots',
+                      playerCount: fullCount,
+                      numTickets: botCount,
+                      totalPrize: totalPrize.toString(),
+                      serverTime: Date.now(),
+                    }),
+                    triggerGameEvent(game.roomId, 'player-count-update', { playerCount: fullCount }),
+                  ]);
+
+                  await startCountdown(gameId, fullCount);
+                } catch (e) {
+                  logger.error('[HouseBot] Bot injection / auto-start error:', e);
+                }
+              });
             }
           } else {
             // REAL PLAYERS ONLY MODE
