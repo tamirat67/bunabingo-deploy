@@ -658,12 +658,7 @@ function SelectionContent() {
     if (isInitializing || selected.length === 0 || joining) return;
     setJoining(true);
 
-    if (hasTicketsInRunningGame && runningGameId) {
-      if (roomType.startsWith('SPIN_')) router.push(`/play/spin?id=${runningGameId}&stake=${stake}`);
-      else router.push(`/game?id=${runningGameId}&type=${roomType}&price=${stake}`);
-      setJoining(false);
-      return;
-    }
+
 
     const newCardsToBuy = selected.filter(id => !ownedCardIds.includes(id));
     const totalCost = stake * newCardsToBuy.length;
@@ -1260,7 +1255,7 @@ function SelectionContent() {
             <Play size={16} fill="white" /> {(() => {
               if (joining) return 'CONFIRMING...';
               if (isInitializing) return 'LOADING...';
-              if (hasTicketsInRunningGame) return '🎮 ENTER LIVE GAME';
+              if (hasTicketsInRunningGame && selected.length === 0) return 'GAME IN PROGRESS...';
               if (isGameRunning && ownedCardIds.length > 0) return 'WAITING FOR NEXT GAME...';
               const isSelectionChanged = selected.length !== ownedCardIds.length || selected.some(id => !ownedCardIds.includes(id));
               if (isSelectionChanged) return ownedCardIds.length > 0 ? 'CONFIRM SELECTION' : 'START GAME (Waiting...)';
