@@ -794,15 +794,6 @@ function SelectionContent() {
   return (
     <div className={`selection-container ${isVip ? 'vip-theme' : 'brown'} ${isSpin ? 'spin-theme' : ''}`}>
 
-              padding: '12px 24px',
-              textAlign: 'center',
-            }}>
-              <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px', fontWeight: '700', marginBottom: '4px' }}>NEXT CHECK IN</div>
-              <div style={{ color: isVip ? '#FFD700' : '#D4AF37', fontSize: '28px', fontWeight: '900' }}>{liveGameSyncTimer}s</div>
-            </div>
-          )}
-        </div>
-      )}
 
       {/* ── Header ── */}
       <div className="selection-header-top">
