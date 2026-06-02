@@ -97,16 +97,20 @@ export function checkWin(card: BingoCard, drawnNumbers: number[]): WinResult {
     return val === 'FREE' || drawn.has(val as number);
   };
 
-  // Check rows
-  for (let r = 0; r < 5; r++) {
+  // Shuffle row/column check order so wins don't always come from the same row
+  const shuffled = [0, 1, 2, 3, 4].sort(() => Math.random() - 0.5);
+
+  // Check rows (in shuffled order)
+  for (const r of shuffled) {
     if ([0,1,2,3,4].every(c => isMarked(r, c))) {
       modes.push('ROW');
       break;
     }
   }
 
-  // Check columns
-  for (let c = 0; c < 5; c++) {
+  // Check columns (in shuffled order)
+  const shuffledCols = [0, 1, 2, 3, 4].sort(() => Math.random() - 0.5);
+  for (const c of shuffledCols) {
     if ([0,1,2,3,4].every(r => isMarked(r, c))) {
       modes.push('COLUMN');
       break;
