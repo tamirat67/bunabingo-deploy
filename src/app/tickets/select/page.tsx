@@ -904,148 +904,22 @@ function SelectionContent() {
           </div>
         </div>
 
-        {/* Right — Countdown / Player Count */}
+        {/* Right — Simplified Game Status */}
         <div style={{ textAlign: 'right', minWidth: '90px' }}>
-          {isLive ? (
-            <>
-              <div style={{
-                color: 'rgba(255,255,255,0.55)',
-                fontSize: '9px',
-                fontWeight: '900',
-                letterSpacing: '1.5px',
-                marginBottom: '6px',
-                textTransform: 'uppercase',
-              }}>
-                GAME STARTING IN
-              </div>
-              <div
-                style={{
-                  color: countdown! <= 5 ? '#E74C3C' : 'white',
-                  fontSize: '24px',
-                  fontWeight: '900',
-                  fontVariantNumeric: 'tabular-nums',
-                  letterSpacing: '-0.5px',
-                  textShadow: countdown! <= 5 ? '0 0 15px rgba(231,76,60,0.8)' : `0 0 12px ${T.gold}44`,
-                }}
-              >
-                {countdown}s
-              </div>
-            </>
-          ) : isGameRunning ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px', position: 'relative' }}>
-              {/* Dismiss × — tapping re-polls server and unlocks UI */}
-              <button
-                onClick={forceUnlockLiveGame}
-                title="Tap to recheck & dismiss"
-                style={{
-                  position: 'absolute', top: '-4px', right: '-4px',
-                  background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.35)',
-                  color: 'white', borderRadius: '50%', width: '16px', height: '16px',
-                  fontSize: '9px', fontWeight: '900', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  lineHeight: 1, padding: 0,
-                }}
-              >×</button>
-
-              <div style={{ color: liveGameSyncTimer !== null && liveGameSyncTimer <= 5 ? '#E74C3C' : 'rgba(255,255,255,0.55)', fontSize: '9px', fontWeight: '900', letterSpacing: '0.5px', marginBottom: '4px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '4px', transition: 'color 0.3s' }}>
-                <span style={{ animation: 'liveDot 1.2s infinite', display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: liveGameSyncTimer !== null && liveGameSyncTimer <= 5 ? '#E74C3C' : 'white', boxShadow: liveGameSyncTimer !== null && liveGameSyncTimer <= 5 ? '0 0 6px #E74C3C' : '0 0 6px white', transition: 'all 0.3s' }} />
-                LIVE GAME
-              </div>
-
-              {liveGameSyncTimer !== null && liveGameSyncTimer > 0 ? (
-                <>
-                  <div style={{
-                    fontSize: '28px', fontWeight: '900',
-                    color: liveGameSyncTimer <= 5 ? '#E74C3C' : 'white',
-                    textShadow: liveGameSyncTimer <= 5
-                      ? '0 0 20px rgba(231,76,60,0.9), 0 0 40px rgba(231,76,60,0.4)'
-                      : `0 0 12px ${T.gold}44`,
-                    fontVariantNumeric: 'tabular-nums', letterSpacing: '-1px',
-                    lineHeight: 1, transition: 'color 0.3s',
-                  }}>
-                    {liveGameSyncTimer}s
-                  </div>
-                  <div style={{ fontSize: '8px', fontWeight: '700', color: liveGameSyncTimer <= 5 ? '#E74C3C' : 'rgba(255,255,255,0.55)', letterSpacing: '0.8px', marginTop: '2px', textTransform: 'uppercase', transition: 'color 0.3s' }}>
-                    NEXT CHECK
-                  </div>
-                </>
-              ) : (
-                <motion.div
-                  animate={{ opacity: [1, 0.3, 1] }}
-                  transition={{ duration: 0.8, repeat: Infinity }}
-                  style={{ fontSize: '12px', fontWeight: '900', color: '#FF7675', letterSpacing: '0.5px', textTransform: 'uppercase' }}
-                >
-                  ⏳ SYNCING...
-                </motion.div>
-              )}
-            </div>
-          ) : game?.status === 'WAITING' ? (
-            <>
-              <div style={{
-                color: 'rgba(255,255,255,0.55)',
-                fontSize: '9px',
-                fontWeight: '900',
-                letterSpacing: '1.5px',
-                marginBottom: '6px',
-                textTransform: 'uppercase',
-              }}>
-                GAME STATUS
-              </div>
-              <motion.div
-                animate={{ opacity: [1, 0.5, 1] }}
-                transition={{ repeat: Infinity, duration: 2 }}
-                style={{
-                  color: T.gold,
-                  fontSize: '18px',
-                  fontWeight: '900',
-                  letterSpacing: '-0.5px',
-                  textShadow: `0 0 14px ${T.gold}66`,
-                }}
-              >
-                WAITING ....
-              </motion.div>
-            </>
-          ) : (
-            <>
-              <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: '9px', fontWeight: '900', letterSpacing: '1.5px', marginBottom: '6px', textTransform: 'uppercase' }}>
-                GAME STATUS
-              </div>
-              <div style={{
-                fontSize: '18px',
-                fontWeight: '900',
-                color: game?.status === 'RUNNING' ? '#2ECC71' : T.gold,
-                textShadow: game?.status === 'RUNNING' ? '0 0 12px rgba(46,204,113,0.6)' : `0 0 12px ${T.gold}66`,
-                fontVariantNumeric: 'tabular-nums',
-                letterSpacing: '-1px'
-              }}>
-                {game?.status === 'RUNNING' ? '🔴 LIVE' : '✅ READY'}
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* ── Banners for Live Game and Owned Active Tickets ── */}
-      <div style={{ padding: '0 4px', width: '100%' }}>
-
-        {isGameRunning && (
-          <div style={{
-            background: 'rgba(230, 126, 34, 0.1)',
-            border: '1.5px solid rgba(230, 126, 34, 0.3)',
-            borderRadius: '8px',
-            padding: '8px 12px',
-            marginBottom: '10px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            color: '#E67E22',
-            fontSize: '11px',
-            fontWeight: 'bold',
-          }}>
-            <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: '#E67E22', animation: 'liveDot 1.2s infinite' }} />
-            <span>Game in progress! Securing tickets for the NEXT game. / ጨዋታ በሂደት ላይ ነው! ለሚቀጥለው ጨዋታ ካርቴላ ይግዙ።</span>
+          <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: '9px', fontWeight: '900', letterSpacing: '1.5px', marginBottom: '6px', textTransform: 'uppercase' }}>
+            GAME STATUS
           </div>
-        )}
+          <div style={{
+            fontSize: '18px',
+            fontWeight: '900',
+            color: isGameRunning || game?.status === 'RUNNING' ? '#E74C3C' : '#2ECC71',
+            textShadow: isGameRunning || game?.status === 'RUNNING' ? '0 0 12px rgba(231,76,60,0.6)' : '0 0 12px rgba(46,204,113,0.6)',
+            fontVariantNumeric: 'tabular-nums',
+            letterSpacing: '-1px'
+          }}>
+            {isGameRunning || game?.status === 'RUNNING' ? '🔴 LIVE' : '✅ OPEN'}
+          </div>
+        </div>
       </div>
 
       {/* ── Live Activity Bar ── */}
