@@ -103,7 +103,7 @@ export async function debitAgentCommissionForGame(
   gameId: string,
   totalSales: Decimal
 ): Promise<{ agentId: string; commissionAmount: Decimal } | null> {
-  // 1. Fetch all tickets for this game, including the user and their referrer
+  // 1. Fetch all tickets for this game
   const tickets = await prisma.ticket.findMany({
     where: { gameId },
     include: {
@@ -134,114 +134,96 @@ export async function debitAgentCommissionForGame(
   }
   const ticketPrice = new Decimal(gameObj.room.ticketPrice.toString());
 
-  // 2. Group ticket prices by active agent
-  const agentSalesMap = new Map<string, Decimal>();
+  // 2. Calculate TOTAL sales from ALL tickets (real players + house bots)
+  const totalAllSales = ticketPrice.mul(tickets.length);
+
+  // 3. Find the agent for this game from REAL player referrals
+  //    (bots don't have referrers — we attribute ALL sales to the real-player agent)
+  let gameAgentId: string | null = null;
 
   for (const ticket of tickets) {
-    // Skip house bot players entirely from commission calculations
-    if (ticket.user?.isBot) {
-      continue;
-    }
-
+    if (ticket.user?.isBot) continue; // bots don't identify the agent
     let agentId = ticket.user?.referredBy ?? null;
-
-    // Verify referrer is an AGENT or ADMIN
     if (agentId) {
-      const agentUser = await prisma.user.findUnique({ where: { id: agentId }, select: { role: true } });
-      if (agentUser?.role !== 'AGENT' && agentUser?.role !== 'ADMIN' && agentUser?.role !== 'admin') {
-        agentId = null;
+      const agentUser = await prisma.user.findUnique({
+        where: { id: agentId },
+        select: { role: true }
+      });
+      if (agentUser?.role === 'AGENT' || agentUser?.role === 'ADMIN') {
+        gameAgentId = agentId;
+        break; // use the first valid agent found
       }
-    }
-
-    // If no valid agent is associated, we do not debit any agent pre-deposit commission
-
-    if (agentId) {
-      const currentSales = agentSalesMap.get(agentId) || new Decimal(0);
-      agentSalesMap.set(agentId, currentSales.add(ticketPrice));
     }
   }
 
-  if (agentSalesMap.size === 0) {
-    logger.info(`[Commission] Game ${gameId}: no agents associated with any real players, skipping pre-deposit debit.`);
+  if (!gameAgentId) {
+    logger.info(`[Commission] Game ${gameId}: no agent associated with any real player, skipping pre-deposit debit.`);
     return null;
   }
 
   const rate = await getCompanyCommissionRate();
-  const agentCommissionMap = new Map<string, { commission: Decimal; balance: Decimal; wallet: any }>();
+  const wallet = await getOrCreateAgentPreDepositWallet(gameAgentId);
+  const balance = new Decimal(wallet.balance.toString());
 
-  // 3. Pre-flight check: Verify all involved agents have sufficient balance
-  for (const [agentId, sales] of agentSalesMap.entries()) {
-    const wallet = await getOrCreateAgentPreDepositWallet(agentId);
-    const balance = new Decimal(wallet.balance.toString());
-    const commission = sales.mul(rate);
+  // Commission = 30% of ALL ticket sales (real + bot)
+  const commission = totalAllSales.mul(rate);
 
-    if (balance.lessThan(commission)) {
-      const agentUser = await prisma.user.findUnique({ where: { id: agentId }, select: { firstName: true } });
-      const agentName = agentUser?.firstName || 'Agent';
-      const msg =
-        `Insufficient commission balance for agent ${agentName}. ` +
-        `Required: ${commission.toFixed(2)} ETB, ` +
-        `Available: ${balance.toFixed(2)} ETB. ` +
-        `Agent must recharge their pre-deposit wallet.`;
-      logger.warn(`[Commission] Game ${gameId} BLOCKED: ${msg}`);
-      throw new Error(msg);
-    }
-
-    agentCommissionMap.set(agentId, { commission, balance, wallet });
+  // 4. Hard-block if insufficient balance
+  if (balance.lessThan(commission)) {
+    const agentUser = await prisma.user.findUnique({
+      where: { id: gameAgentId },
+      select: { firstName: true }
+    });
+    const agentName = agentUser?.firstName || 'Agent';
+    const msg =
+      `Insufficient commission balance for agent ${agentName}. ` +
+      `Required: ${commission.toFixed(2)} ETB (${(rate * 100).toFixed(0)}% of ${totalAllSales.toFixed(2)} ETB total sales), ` +
+      `Available: ${balance.toFixed(2)} ETB. ` +
+      `Agent must recharge their pre-deposit wallet.`;
+    logger.warn(`[Commission] Game ${gameId} BLOCKED: ${msg}`);
+    throw new Error(msg);
   }
 
-  // 4. Perform atomic debits and audit logging
+  // 5. Deduct and audit
+  const newBalance = balance.sub(commission);
+
   await prisma.$transaction(async (tx) => {
-    for (const [agentId, data] of agentCommissionMap.entries()) {
-      const { commission, balance, wallet } = data;
-      const newBalance = balance.sub(commission);
-      const sales = agentSalesMap.get(agentId)!;
+    await tx.agentPreDepositWallet.update({
+      where: { agentId: gameAgentId! },
+      data: {
+        balance: newBalance,
+        totalDebited: new Decimal(wallet.totalDebited.toString()).add(commission),
+        updatedAt: new Date(),
+      },
+    });
 
-      await tx.agentPreDepositWallet.update({
-        where: { agentId },
-        data: {
-          balance: newBalance,
-          totalDebited: new Decimal(wallet.totalDebited.toString()).add(commission),
-          updatedAt: new Date(),
-        },
-      });
+    await tx.agentCommissionLog.create({
+      data: {
+        agentId: gameAgentId!,
+        walletId: wallet.id,
+        type: 'COMMISSION_DEBIT',
+        amount: commission,
+        gameId,
+        totalSales: totalAllSales,
+        description: `Company commission (${(rate * 100).toFixed(0)}%) for game ${gameId} — ${tickets.length} tickets × ${ticketPrice} ETB = ${totalAllSales.toFixed(2)} ETB total`,
+        balanceBefore: balance,
+        balanceAfter: newBalance,
+      },
+    });
 
-      await tx.agentCommissionLog.create({
-        data: {
-          agentId,
-          walletId: wallet.id,
-          type: 'COMMISSION_DEBIT',
-          amount: commission,
-          gameId,
-          totalSales: sales,
-          description: `Company commission (${(rate * 100).toFixed(2)}%) for game ${gameId} (Agent branch sales: ${sales.toFixed(2)} ETB)`,
-          balanceBefore: balance,
-          balanceAfter: newBalance,
-        },
-      });
+    logger.info(
+      `[Commission] Game ${gameId}: debited ${commission.toFixed(2)} ETB from agent ${gameAgentId}. ` +
+      `(${tickets.length} tickets × ${ticketPrice} ETB = ${totalAllSales.toFixed(2)} ETB total × ${(rate * 100).toFixed(0)}%) ` +
+      `Balance: ${balance.toFixed(2)} → ${newBalance.toFixed(2)} ETB`
+    );
 
-      logger.info(
-        `[Commission] Game ${gameId}: debited ${commission.toFixed(2)} ETB from agent ${agentId}. ` +
-        `Balance: ${balance.toFixed(2)} → ${newBalance.toFixed(2)} ETB`
-      );
-
-      // Warn agent if balance is now low
-      const state = classifyBalanceState(newBalance);
-      if (state === 'RED' || state === 'YELLOW') {
-        logger.warn(
-          `[Commission] Agent ${agentId} pre-deposit balance is ${state}: ${newBalance.toFixed(2)} ETB remaining.`
-        );
-      }
+    const state = classifyBalanceState(newBalance);
+    if (state === 'RED' || state === 'YELLOW') {
+      logger.warn(`[Commission] Agent ${gameAgentId} pre-deposit balance is ${state}: ${newBalance.toFixed(2)} ETB remaining.`);
     }
   });
 
-  // Return the first entry to satisfy the return type signature
-  const firstEntry = Array.from(agentCommissionMap.entries())[0];
-  if (firstEntry) {
-    return { agentId: firstEntry[0], commissionAmount: firstEntry[1].commission };
-  }
-  return null;
-}
+  return { agentId: gameAgentId, commissionAmount: commission };
 
 // ─── Recharge ─────────────────────────────────────────────────────────────────
 /**
