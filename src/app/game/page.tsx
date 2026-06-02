@@ -78,6 +78,7 @@ function GameContent() {
   const redirectCountdownRef = useRef<any>(null);
   const [toast,     setToast]     = useState<string | null>(null);
   const [mounted,   setMounted]   = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const [endTime,   setEndTime]   = useState<number | null>(null);
   const [serverOff, setServerOff] = useState(0);
   const [marked,    setMarked]    = useState<Set<number>>(new Set());
@@ -111,7 +112,11 @@ function GameContent() {
   // ─── Auth guard — redirect to home if not authenticated ──────────────────────
   useEffect(() => {
     getMe().then((user) => {
-      if (!user) router.replace('/');
+      if (!user) {
+        router.replace('/');
+      } else {
+        setAuthChecked(true);
+      }
     }).catch(() => router.replace('/'));
   }, []);
 
@@ -824,6 +829,14 @@ function GameContent() {
   };
 
   const hasBingo = checkAnyBingo();
+
+  if (!authChecked) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0a0a0a' }}>
+        <div className="animate-spin" style={{ width: '40px', height: '40px', border: '3px solid #d4af37', borderTopColor: 'transparent', borderRadius: '50%' }}></div>
+      </div>
+    );
+  }
 
   return (
     <div 
