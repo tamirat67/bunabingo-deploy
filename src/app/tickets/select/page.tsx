@@ -1011,14 +1011,19 @@ function SelectionContent() {
             background: isVip
               ? 'radial-gradient(circle at top, rgba(45,20,66,0.95) 0%, rgba(28,10,53,0.98) 60%, rgba(15,4,26,1) 100%)'
               : 'linear-gradient(160deg, rgba(26,18,12,0.95) 0%, rgba(43,29,20,0.98) 50%, rgba(26,18,12,1) 100%)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '24px',
-            gap: '20px',
             backdropFilter: 'blur(4px)',
           }}>
+            <div style={{
+              position: 'sticky',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '24px',
+              gap: '20px',
+            }}>
             {/* Pulsing ring animation */}
             <motion.div
               animate={{ scale: [1, 1.15, 1], opacity: [0.6, 1, 0.6] }}
@@ -1077,6 +1082,7 @@ function SelectionContent() {
                 <div style={{ color: isVip ? '#FFD700' : '#D4AF37', fontSize: '24px', fontWeight: '900' }}>{liveGameSyncTimer}s</div>
               </div>
             )}
+            </div>
           </div>
         )}
         {Array.from({ length: isVip ? 50 : 250 }, (_, i) => i + 1).map(num => {
