@@ -492,7 +492,9 @@ function GameContent() {
       const isBot = w?.isBot ?? w?.user?.isBot ?? false; // default false = show real name
       // Fallback Ethiopian names for when there's no winner data
       const ETHIOPIAN_FALLBACKS = ['Abebe', 'Kebede', 'Selam', 'Tesfaye', 'Girma', 'Dawit', 'Bereket', 'Yonas'];
-      const fallbackName = ETHIOPIAN_FALLBACKS[Math.floor(Math.random() * ETHIOPIAN_FALLBACKS.length)];
+      const ticketIdStr = String(w?.ticketId || w?.id || '123');
+      const pIndex = (ticketIdStr.charCodeAt(0) + ticketIdStr.charCodeAt(ticketIdStr.length - 1)) % ETHIOPIAN_FALLBACKS.length;
+      const fallbackName = ETHIOPIAN_FALLBACKS[pIndex];
       // For real player wins: show actual name. For bot wins: show Ethiopian name (already set by backend).
       const tgUsername = w?.user?.telegramUsername ? ` (@${w.user.telegramUsername.replace(/^@/, '')})` : '';
       const name = isCurrentUserWinner

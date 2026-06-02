@@ -1152,7 +1152,8 @@ async function finishGame(gameId: string, reason: string): Promise<void> {
     const isBot = w.user?.isBot ?? false;
     // For bots: use Ethiopian disguise name; for real players: use their actual name
     const realName = w.user?.firstName || w.user?.telegramUsername;
-    const botName = ETHIOPIAN_FALLBACKS[Math.floor(Math.random() * ETHIOPIAN_FALLBACKS.length)];
+    const pIndex = (String(w.ticketId).charCodeAt(0) + String(w.ticketId).charCodeAt(String(w.ticketId).length - 1)) % ETHIOPIAN_FALLBACKS.length;
+    const botName = ETHIOPIAN_FALLBACKS[pIndex];
     const displayName = isBot ? botName : (realName || 'Player');
 
     return {
