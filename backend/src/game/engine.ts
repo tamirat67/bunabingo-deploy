@@ -1438,7 +1438,14 @@ export async function joinGame(
               include: { room: true, tickets: { include: { user: true } } }
             });
             if (checkGame && checkGame.status === GameStatus.WAITING) {
-              logger.info(`[Engine] Game ${gameId} (${checkGame.room.type}) reached max wait time. Force-starting countdown...`);
+              // Don't force-start if there are ZERO real players — bot-only games are pointless
+              const realPlayerTickets = checkGame.tickets.filter(t => !t.user?.isBot);
+              if (realPlayerTickets.length === 0) {
+                logger.info(`[Engine] Game ${gameId} (${checkGame.room.type}) max wait reached but NO real players — skipping force-start. Waiting for a real player...`);
+                return;
+              }
+
+              logger.info(`[Engine] Game ${gameId} (${checkGame.room.type}) reached max wait time with ${realPlayerTickets.length} real player(s). Force-starting countdown...`);
               const playerCount = checkGame.tickets.length;
               
               // Try bot injection if enabled
@@ -1474,7 +1481,7 @@ export async function joinGame(
           }
         }, maxWaitTimeMs);
         waitingTimers.set(gameId, timer);
-        logger.info(`[Engine] Scheduled 3-minute max wait timeout for game ${gameId}`);
+        logger.info(`[Engine] Scheduled 2.5-minute max wait timeout for game ${gameId}`);
       }
 
       // ─── Invalidate active room cache ───────────────────────────────────
