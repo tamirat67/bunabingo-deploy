@@ -396,7 +396,6 @@ router.post('/games/join', joinGameLimiter, async (req: Request, res: Response) 
       const demoPlaysCount = await prisma.game.count({
         where: {
           room: { type: 'DEMO' },
-          status: 'FINISHED',
           tickets: { some: { userId: user.id } },
         },
       });
