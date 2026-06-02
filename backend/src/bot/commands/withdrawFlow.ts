@@ -111,34 +111,29 @@ export async function handleWithdrawMessage(ctx: Context): Promise<boolean> {
       return true;
     }
 
-    setSession(tgUser.id, { ...session, step: 'AWAITING_BANK', amount });
-    await ctx.reply(`🏦 እባክዎ የባንክ ስም ያስገቡ (ለምሳሌ CBE, Telebirr, M-PESA)፦`, {
-      ...Markup.inlineKeyboard(CANCEL_BTN),
-    });
+    setSession(tgUser.id, { ...session, step: 'AWAITING_ACCOUNT', bankName: 'telebirr' });
+    await ctx.reply(
+      `📱 *ቴሌብር ቁጥርዎን ያስገቡ (Telebirr number):*\n\n` +
+      `_ምሳሌ: 0912345678_`,
+      {
+        parse_mode: 'Markdown',
+        ...Markup.inlineKeyboard(CANCEL_BTN),
+      }
+    );
     return true;
   }
 
-  // ── STEP 2: AWAITING_BANK ─────────────────────────────────────────────────
-  if (session.step === 'AWAITING_BANK') {
-    if (!text) return true;
-    setSession(tgUser.id, { ...session, step: 'AWAITING_ACCOUNT', bankName: text });
-    await ctx.reply(`💳 እባክዎ የሂሳብ ቁጥርዎን ያስገቡ:`, {
-      ...Markup.inlineKeyboard(CANCEL_BTN),
-    });
-    return true;
-  }
-
-  // ── STEP 3: AWAITING_ACCOUNT ──────────────────────────────────────────────
+  // ── STEP 2: AWAITING_ACCOUNT (Telebirr number) ───────────────────────────
   if (session.step === 'AWAITING_ACCOUNT') {
     if (!text) return true;
     setSession(tgUser.id, { ...session, step: 'AWAITING_NAME', accountNumber: text });
-    await ctx.reply(`👤 እባክዎ የባለቤቱን ሙሉ ስም ያስገቡ:`, {
+    await ctx.reply(`👤 የቴሌብር አካውንቱ ባለቤት ሙሉ ስም ያስገቡ:`, {
       ...Markup.inlineKeyboard(CANCEL_BTN),
     });
     return true;
   }
 
-  // ── STEP 4: AWAITING_NAME ─────────────────────────────────────────────────
+  // ── STEP 3: AWAITING_NAME ─────────────────────────────────────────────────
   if (session.step === 'AWAITING_NAME') {
     if (!text) return true;
     const accountName = text;
