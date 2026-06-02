@@ -794,89 +794,6 @@ function SelectionContent() {
   return (
     <div className={`selection-container ${isVip ? 'vip-theme' : 'brown'} ${isSpin ? 'spin-theme' : ''}`}>
 
-      {/* ══════ GAME IN PROGRESS LOCK SCREEN ══════ */}
-      {isGameRunning && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: 9999,
-          background: isVip
-            ? 'radial-gradient(circle at top, #2D1442 0%, #1C0A35 60%, #0F041A 100%)'
-            : 'linear-gradient(160deg, #1a120c 0%, #2b1d14 50%, #1a120c 100%)',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '24px',
-          gap: '24px',
-        }}>
-          {/* Pulsing ring animation */}
-          <motion.div
-            animate={{ scale: [1, 1.15, 1], opacity: [0.6, 1, 0.6] }}
-            transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
-            style={{
-              width: '110px',
-              height: '110px',
-              borderRadius: '50%',
-              border: `4px solid ${isVip ? '#FFD700' : '#D4AF37'}`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: `0 0 40px ${isVip ? 'rgba(255,215,0,0.4)' : 'rgba(212,175,55,0.3)'}`,
-            }}
-          >
-            <span style={{ fontSize: '52px' }}>🎱</span>
-          </motion.div>
-
-          {/* Title */}
-          <div style={{ textAlign: 'center' }}>
-            <motion.div
-              animate={{ opacity: [1, 0.5, 1] }}
-              transition={{ duration: 1.2, repeat: Infinity }}
-              style={{
-                color: isVip ? '#FFD700' : '#D4AF37',
-                fontSize: '22px',
-                fontWeight: '900',
-                letterSpacing: '2px',
-                marginBottom: '8px',
-              }}
-            >
-              ⏳ GAME IN PROGRESS
-            </motion.div>
-            <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '13px', fontWeight: '700', lineHeight: 1.6 }}>
-              ጨዋታ በሂደት ላይ ነው!
-            </div>
-            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px', marginTop: '6px' }}>
-              Please wait for this game to finish.
-            </div>
-            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px' }}>
-              ጨዋታው ሲጠናቀቅ ካርቴላ መምረጥ ይችላሉ።
-            </div>
-          </div>
-
-          {/* Animated dots indicating progress */}
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            {[0, 1, 2, 3].map(i => (
-              <motion.div
-                key={i}
-                animate={{ scale: [1, 1.6, 1], opacity: [0.3, 1, 0.3] }}
-                transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.25 }}
-                style={{
-                  width: '10px',
-                  height: '10px',
-                  borderRadius: '50%',
-                  background: isVip ? '#FFD700' : '#D4AF37',
-                }}
-              />
-            ))}
-          </div>
-
-          {/* Live game countdown if available */}
-          {liveGameSyncTimer !== null && liveGameSyncTimer > 0 && (
-            <div style={{
-              background: 'rgba(255,255,255,0.06)',
-              border: `1px solid ${isVip ? 'rgba(255,215,0,0.3)' : 'rgba(212,175,55,0.3)'}`,
-              borderRadius: '12px',
               padding: '12px 24px',
               textAlign: 'center',
             }}>
@@ -1217,8 +1134,86 @@ function SelectionContent() {
         </motion.div>
       )}
 
-      {/* ── Card Grid ── */}
-      <div className="grid-brown" style={{ position: 'relative' }}>
+      {/* \u2500\u2500 Card Grid \u2500\u2500 */}
+      <div className="grid-brown" style={{ position: 'relative', overflow: 'hidden' }}>
+        
+        {/* \u2550\u2550\u2550\u2550\u2550\u2550 GAME IN PROGRESS MASK \u2550\u2550\u2550\u2550\u2550\u2550 */}
+        {isGameRunning && (
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 10,
+            background: isVip
+              ? 'radial-gradient(circle at top, rgba(45,20,66,0.95) 0%, rgba(28,10,53,0.98) 60%, rgba(15,4,26,1) 100%)'
+              : 'linear-gradient(160deg, rgba(26,18,12,0.95) 0%, rgba(43,29,20,0.98) 50%, rgba(26,18,12,1) 100%)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '24px',
+            gap: '20px',
+            backdropFilter: 'blur(4px)',
+          }}>
+            {/* Pulsing ring animation */}
+            <motion.div
+              animate={{ scale: [1, 1.15, 1], opacity: [0.6, 1, 0.6] }}
+              transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+              style={{
+                width: '80px',
+                height: '80px',
+                borderRadius: '50%',
+                border: `3px solid ${isVip ? '#FFD700' : '#D4AF37'}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: `0 0 30px ${isVip ? 'rgba(255,215,0,0.4)' : 'rgba(212,175,55,0.3)'}`,
+              }}
+            >
+              <span style={{ fontSize: '40px' }}>🎱</span>
+            </motion.div>
+
+            {/* Title */}
+            <div style={{ textAlign: 'center' }}>
+              <motion.div
+                animate={{ opacity: [1, 0.5, 1] }}
+                transition={{ duration: 1.2, repeat: Infinity }}
+                style={{
+                  color: isVip ? '#FFD700' : '#D4AF37',
+                  fontSize: '20px',
+                  fontWeight: '900',
+                  letterSpacing: '1px',
+                  marginBottom: '8px',
+                }}
+              >
+                ⏳ GAME IN PROGRESS
+              </motion.div>
+              <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: '13px', fontWeight: '700', lineHeight: 1.6 }}>
+                ጨዋታ በሂደት ላይ ነው!
+              </div>
+              <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px', marginTop: '6px' }}>
+                Please wait for this game to finish.
+              </div>
+              <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}>
+                ጨዋታው ሲጠናቀቅ ካርቴላ መምረጥ ይችላሉ።
+              </div>
+            </div>
+
+            {/* Live game countdown if available */}
+            {liveGameSyncTimer !== null && liveGameSyncTimer > 0 && (
+              <div style={{
+                background: 'rgba(255,255,255,0.06)',
+                border: `1px solid ${isVip ? 'rgba(255,215,0,0.3)' : 'rgba(212,175,55,0.3)'}`,
+                borderRadius: '10px',
+                padding: '8px 20px',
+                textAlign: 'center',
+                marginTop: '10px'
+              }}>
+                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '10px', fontWeight: '700', marginBottom: '4px' }}>NEXT CHECK IN</div>
+                <div style={{ color: isVip ? '#FFD700' : '#D4AF37', fontSize: '24px', fontWeight: '900' }}>{liveGameSyncTimer}s</div>
+              </div>
+            )}
+          </div>
+        )}
         {Array.from({ length: isVip ? 50 : 250 }, (_, i) => i + 1).map(num => {
           const isOccupied = occupied.includes(num) || fakeOccupied.includes(num);
           const isSelected = selected.includes(num);
