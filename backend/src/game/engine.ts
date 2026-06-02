@@ -1219,18 +1219,21 @@ export async function createWaitingGame(roomId: string): Promise<string> {
       },
     });
 
-    // ── Immediately inject bots + start countdown (zero WAITING time) ──
-    if (room.type !== 'DEMO') {
-      setImmediate(async () => {
-        try {
+    // ── Immediately start countdown (zero WAITING time) ──
+    setImmediate(async () => {
+      try {
+        let fullCount = 0;
+        
+        // Try to inject bots if enabled and applicable
+        if (room.type !== 'DEMO') {
           const { getHouseBotEnabled } = await import('../services/settings.service');
           const botEnabled = await getHouseBotEnabled();
           const isBotRoom = newGame.id && room.type in BOT_COUNTS;
 
           if (botEnabled && isBotRoom) {
-            logger.info(`[Engine] Auto-injecting bots into new game ${newGame.id} (${room.type}) — zero WAITING.`);
+            logger.info(`[Engine] Auto-injecting bots into new game ${newGame.id} (${room.type}).`);
             await injectBotTickets(newGame.id, room.type, []);
-            const fullCount = await prisma.ticket.count({ where: { gameId: newGame.id } });
+            fullCount = await prisma.ticket.count({ where: { gameId: newGame.id } });
             gamesWithBotsInjectedPublic.add(newGame.id);
 
             await Promise.all([
@@ -1242,14 +1245,16 @@ export async function createWaitingGame(roomId: string): Promise<string> {
               }),
               triggerGameEvent(room.id, 'player-count-update', { playerCount: fullCount }),
             ]);
-
-            await startCountdown(newGame.id, fullCount);
           }
-        } catch (e) {
-          logger.error(`[Engine] Auto-start bot injection failed for game ${newGame.id}:`, e);
         }
-      });
-    }
+
+        // ALWAYS start the countdown immediately, even if no bots were injected
+        await startCountdown(newGame.id, fullCount);
+        
+      } catch (e) {
+        logger.error(`[Engine] Auto-start failed for game ${newGame.id}:`, e);
+      }
+    });
 
     return newGame.id;
   })();
@@ -1741,7 +1746,7 @@ export async function leaveGame(userId: string, gameId: string): Promise<void> {
 export async function resumeActiveCountdowns(): Promise<void> {
   try {
     const countdownGames = await prisma.game.findMany({
-      where: { status: GameStatus.COUNTDOWN },
+      where: { status: { in: [GameStatus.COUNTDOWN, GameStatus.WAITING] } },
       include: { room: true },
     });
 
