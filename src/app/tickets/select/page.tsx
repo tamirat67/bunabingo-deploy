@@ -1031,49 +1031,6 @@ function SelectionContent() {
 
       {/* ── Banners for Live Game and Owned Active Tickets ── */}
       <div style={{ padding: '0 4px', width: '100%' }}>
-        {hasTicketsInRunningGame && (
-          <div style={{
-            background: 'linear-gradient(135deg, rgba(39,174,96,0.15) 0%, rgba(46,204,113,0.05) 100%)',
-            border: `1.5px solid #27AE60`,
-            borderRadius: '8px',
-            padding: '10px 12px',
-            marginBottom: '10px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: '8px',
-            color: '#27AE60',
-            fontSize: '11px',
-            fontWeight: '900',
-            boxShadow: '0 4px 12px rgba(46,204,113,0.1)',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#27AE60', animation: 'liveDot 1.2s infinite' }} />
-              <span>You have an active game running! / ንቁ ጨዋታ አለዎት!</span>
-            </div>
-            <button
-              onClick={() => {
-                if (runningGameId) {
-                  if (roomType.startsWith('SPIN_')) router.push(`/play/spin?id=${runningGameId}&stake=${stake}`);
-                  else router.push(`/game?id=${runningGameId}&type=${roomType}&price=${stake}`);
-                }
-              }}
-              style={{
-                background: '#27AE60',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                padding: '4px 10px',
-                fontSize: '10px',
-                fontWeight: '900',
-                cursor: 'pointer',
-                boxShadow: '0 2px 6px rgba(39,174,96,0.3)',
-              }}
-            >
-              ENTER GAME
-            </button>
-          </div>
-        )}
 
         {isGameRunning && (
           <div style={{
