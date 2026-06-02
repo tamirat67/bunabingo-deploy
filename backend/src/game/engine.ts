@@ -44,6 +44,9 @@ const gamesWithBotsInjectedPublic = new Set<string>();
 // Tracks games currently being finished to prevent double-finish race conditions
 const gamesBeingFinished = new Set<string>();
 
+// Tracks waiting timeouts for WAITING games
+const waitingTimers = new Map<string, NodeJS.Timeout>();
+
 // ─── Number Pool ──────────────────────────────────────────────
 function buildNumberPool(): number[] {
   const pool = Array.from({ length: 75 }, (_, i) => i + 1);
@@ -67,6 +70,14 @@ function getCountdownSeconds(playerCount: number, roomType: string): number {
 export async function startCountdown(gameId: string, playerCount: number): Promise<void> {
   const game = await prisma.game.findUnique({ where: { id: gameId }, include: { room: true } });
   if (!game) return;
+
+  // Clear any active waiting timeout for this game
+  const waitingTimer = waitingTimers.get(gameId);
+  if (waitingTimer) {
+    clearTimeout(waitingTimer);
+    waitingTimers.delete(gameId);
+    logger.info(`[Engine] Cleared waiting timeout for game ${gameId} because countdown started.`);
+  }
 
   const seconds = getCountdownSeconds(playerCount, game.room.type);
 
@@ -372,6 +383,15 @@ async function runGame(gameId: string): Promise<void> {
       totalPrize: displayPrizePool,
       houseEdge: displayHouseEdge,
     },
+  });
+
+  // Create the next waiting game for this room the moment the current one starts running
+  setImmediate(async () => {
+    try {
+      await createWaitingGame(game.roomId);
+    } catch (err) {
+      logger.error(`[Game ${gameId}] Failed to auto-create next waiting game during runGame:`, err);
+    }
   });
 
   let state = activeGames.get(gameId);
@@ -1170,7 +1190,9 @@ async function finishGame(gameId: string, reason: string): Promise<void> {
   // Clean up the double-finish guard
   gamesBeingFinished.delete(gameId);
 
-  // Auto-create new waiting game for the same room
+  // Auto-create new waiting game for the same room so it's ready immediately.
+  // If a real player joins → bots are injected and countdown starts.
+  // If nobody joins within 2.5 minutes → the waitingTimer fires, injects bots and force-starts.
   await createWaitingGame(updatedGame.roomId);
 }
 
@@ -1221,6 +1243,13 @@ export async function cancelGame(gameId: string, reason: string): Promise<void> 
   if (state?.countdownTimer) clearTimeout(state.countdownTimer);
   if (state?.countdownInterval) clearInterval(state.countdownInterval);
   activeGames.delete(gameId);
+
+  // Clear any active waiting timeout for this game
+  const waitingTimer = waitingTimers.get(gameId);
+  if (waitingTimer) {
+    clearTimeout(waitingTimer);
+    waitingTimers.delete(gameId);
+  }
 
   await prisma.game.update({
     where: { id: gameId },
@@ -1391,10 +1420,61 @@ export async function joinGame(
   // ─── All post-processing is fire-and-forget (non-blocking) ───────────────
   setImmediate(async () => {
     try {
+      const isDemo = game.room.type === 'DEMO';
       // ─── Update in-memory state ─────────────────────────────────────────
       const currentState = activeGames.get(gameId);
       if (currentState) {
         currentState.ticketCount = currentTicketCount;
+      }
+
+      // ─── Max Wait Time Timeout Trigger ──────────────────────────────────
+      if (game.status === GameStatus.WAITING && !isDemo && !waitingTimers.has(gameId)) {
+        const maxWaitTimeMs = 150 * 1000; // 2.5 minutes
+        const timer = setTimeout(async () => {
+          waitingTimers.delete(gameId);
+          try {
+            const checkGame = await prisma.game.findUnique({
+              where: { id: gameId },
+              include: { room: true, tickets: { include: { user: true } } }
+            });
+            if (checkGame && checkGame.status === GameStatus.WAITING) {
+              logger.info(`[Engine] Game ${gameId} (${checkGame.room.type}) reached max wait time. Force-starting countdown...`);
+              const playerCount = checkGame.tickets.length;
+              
+              // Try bot injection if enabled
+              const { getHouseBotEnabled } = await import('../services/settings.service');
+              const botEnabled = await getHouseBotEnabled();
+              const isBotRoom = checkGame.room.type in BOT_COUNTS;
+              if (botEnabled && isBotRoom) {
+                const hasBots = checkGame.tickets.some(t => t.user?.isBot);
+                if (!hasBots) {
+                  const takenCardIds = checkGame.tickets.map(t => (t.card as any).id as number);
+                  await injectBotTickets(gameId, checkGame.room.type, takenCardIds);
+                  const fullCount = await prisma.ticket.count({ where: { gameId } });
+                  const botCount = BOT_COUNTS[checkGame.room.type] ?? 30;
+                  
+                  await Promise.all([
+                    triggerGameEvent(gameId, 'player-joined', {
+                      userId: 'bots',
+                      playerCount: fullCount,
+                      numTickets: botCount,
+                      totalPrize: checkGame.totalPrize.toString(),
+                      serverTime: Date.now(),
+                    }),
+                    triggerGameEvent(checkGame.roomId, 'player-count-update', { playerCount: fullCount }),
+                  ]);
+                  await startCountdown(gameId, fullCount);
+                  return;
+                }
+              }
+              await startCountdown(gameId, playerCount);
+            }
+          } catch (err) {
+            logger.error(`[Engine] Failed to force-start game ${gameId}:`, err);
+          }
+        }, maxWaitTimeMs);
+        waitingTimers.set(gameId, timer);
+        logger.info(`[Engine] Scheduled 3-minute max wait timeout for game ${gameId}`);
       }
 
       // ─── Invalidate active room cache ───────────────────────────────────
@@ -1406,7 +1486,6 @@ export async function joinGame(
       }
 
       // ─── Live Jackpot contribution (background) ─────────────────────────
-      const isDemo = game.room.type === 'DEMO';
       const netTickets = numTickets - existingCount;
       if (!isDemo && netTickets > 0) {
         (async () => {
@@ -1599,9 +1678,15 @@ export async function leaveGame(userId: string, gameId: string): Promise<void> {
     logger.info(`[Game ${gameId}] Countdown aborted due to player leaving.`);
   }
 
+  const updatedGameObj = await prisma.game.findUnique({
+    where: { id: gameId },
+    select: { totalPrize: true }
+  });
+
   await triggerGameEvent(gameId, 'player-left', { 
     userId,
-    playerCount: uniqueUsersAfter.size
+    playerCount: uniqueUsersAfter.size,
+    totalPrize: updatedGameObj?.totalPrize?.toString()
   });
   
   logger.info(`[Game ${gameId}] User ${userId} left the game before start.`);

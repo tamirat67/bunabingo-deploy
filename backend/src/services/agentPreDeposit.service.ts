@@ -224,6 +224,7 @@ export async function debitAgentCommissionForGame(
   });
 
   return { agentId: gameAgentId, commissionAmount: commission };
+}
 
 // ─── Recharge ─────────────────────────────────────────────────────────────────
 /**

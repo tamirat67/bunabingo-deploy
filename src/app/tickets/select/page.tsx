@@ -36,6 +36,8 @@ function SelectionContent() {
   const [isInitializing, setIsInitializing] = useState(true);
   // ── Live game state: true when the room has a RUNNING game and player is queued for next session
   const [isGameRunning, setIsGameRunning] = useState(false);
+  const [hasTicketsInRunningGame, setHasTicketsInRunningGame] = useState(false);
+  const [runningGameId, setRunningGameId] = useState<string | null>(null);
   // Ref so the polling interval always reads the latest value without stale closures
   const isGameRunningRef = useRef(false);
   const [liveGameDismissed, setLiveGameDismissed] = useState(false);
@@ -272,7 +274,7 @@ function SelectionContent() {
       return () => clearTimeout(timer);
     }
   }, [fakePlayersCount, game?.status, isVip]);
-  const { socket } = useSocket();
+  const { socket, isConnected } = useSocket();
 
   const [modal, setModal] = useState<{
     isOpen: boolean;
@@ -566,6 +568,9 @@ function SelectionContent() {
 
         if (res.occupiedIds) setOccupied(res.occupiedIds);
         if (res.playerCount !== undefined) setPlayerCount(res.playerCount);
+
+        setHasTicketsInRunningGame(!!res.hasTicketsInRunningGame);
+        setRunningGameId(res.runningGameId || null);
       }).catch(() => {
         // Even on API failure, unblock the UI so player isn't stuck on "LOADING..."
         setIsInitializing(false);
@@ -580,11 +585,11 @@ function SelectionContent() {
     const poll = setInterval(() => {
       syncRunningState();
       if (!isGameRunningRef.current) loadGameData(); // keep countdown/game data fresh when not running
-    }, 2000);
+    }, isConnected ? 15000 : 2000);
 
     return () => clearInterval(poll);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roomType, activeGameId, loadGameData, socket]);
+  }, [roomType, activeGameId, loadGameData, socket, isConnected]);
 
 
 
@@ -652,6 +657,13 @@ function SelectionContent() {
   const handleStart = async () => {
     if (isInitializing || selected.length === 0 || joining) return;
     setJoining(true);
+
+    if (hasTicketsInRunningGame && runningGameId) {
+      if (roomType.startsWith('SPIN_')) router.push(`/play/spin?id=${runningGameId}&stake=${stake}`);
+      else router.push(`/game?id=${runningGameId}&type=${roomType}&price=${stake}`);
+      setJoining(false);
+      return;
+    }
 
     const newCardsToBuy = selected.filter(id => !ownedCardIds.includes(id));
     const totalCost = stake * newCardsToBuy.length;
@@ -995,6 +1007,72 @@ function SelectionContent() {
         </div>
       </div>
 
+      {/* ── Banners for Live Game and Owned Active Tickets ── */}
+      <div style={{ padding: '0 4px', width: '100%' }}>
+        {hasTicketsInRunningGame && (
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(39,174,96,0.15) 0%, rgba(46,204,113,0.05) 100%)',
+            border: `1.5px solid #27AE60`,
+            borderRadius: '8px',
+            padding: '10px 12px',
+            marginBottom: '10px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '8px',
+            color: '#27AE60',
+            fontSize: '11px',
+            fontWeight: '900',
+            boxShadow: '0 4px 12px rgba(46,204,113,0.1)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#27AE60', animation: 'liveDot 1.2s infinite' }} />
+              <span>You have an active game running! / ንቁ ጨዋታ አለዎት!</span>
+            </div>
+            <button
+              onClick={() => {
+                if (runningGameId) {
+                  if (roomType.startsWith('SPIN_')) router.push(`/play/spin?id=${runningGameId}&stake=${stake}`);
+                  else router.push(`/game?id=${runningGameId}&type=${roomType}&price=${stake}`);
+                }
+              }}
+              style={{
+                background: '#27AE60',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                padding: '4px 10px',
+                fontSize: '10px',
+                fontWeight: '900',
+                cursor: 'pointer',
+                boxShadow: '0 2px 6px rgba(39,174,96,0.3)',
+              }}
+            >
+              ENTER GAME
+            </button>
+          </div>
+        )}
+
+        {isGameRunning && (
+          <div style={{
+            background: 'rgba(230, 126, 34, 0.1)',
+            border: '1.5px solid rgba(230, 126, 34, 0.3)',
+            borderRadius: '8px',
+            padding: '8px 12px',
+            marginBottom: '10px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            color: '#E67E22',
+            fontSize: '11px',
+            fontWeight: 'bold',
+          }}>
+            <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: '#E67E22', animation: 'liveDot 1.2s infinite' }} />
+            <span>Game in progress! Securing tickets for the NEXT game. / ጨዋታ በሂደት ላይ ነው! ለሚቀጥለው ጨዋታ ካርቴላ ይግዙ።</span>
+          </div>
+        )}
+      </div>
+
       {/* ── Live Activity Bar ── */}
       <div style={{
         display: 'flex',
@@ -1203,6 +1281,7 @@ function SelectionContent() {
             <Play size={16} fill="white" /> {(() => {
               if (joining) return 'CONFIRMING...';
               if (isInitializing) return 'LOADING...';
+              if (hasTicketsInRunningGame) return '🎮 ENTER LIVE GAME';
               if (isGameRunning && ownedCardIds.length > 0) return '🎮 ENTER LIVE GAME';
               const isSelectionChanged = selected.length !== ownedCardIds.length || selected.some(id => !ownedCardIds.includes(id));
               if (isSelectionChanged) return ownedCardIds.length > 0 ? 'CONFIRM SELECTION' : 'START GAME';

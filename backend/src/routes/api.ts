@@ -523,6 +523,18 @@ router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
       }
     }
 
+    let hasTicketsInRunningGame = false;
+    let runningGameId: string | null = null;
+    if (runningGame && user?.id) {
+      const userRunningTickets = await prisma.ticket.count({
+        where: { gameId: runningGame.id, userId: user.id }
+      });
+      if (userRunningTickets > 0) {
+        hasTicketsInRunningGame = true;
+        runningGameId = runningGame.id;
+      }
+    }
+
     // 3. Resolve the active/waiting game ID
     if (gameIdFromQuery) {
       // Check if the requested game is RUNNING — if so, resolve to the next WAITING game
@@ -556,7 +568,13 @@ router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
     }
     
     if (!gameId) {
-      const responseData = { occupiedIds: [], myCardIds: [], isGameRunning: isGameRunning };
+      const responseData = { 
+        occupiedIds: [], 
+        myCardIds: [], 
+        isGameRunning: isGameRunning,
+        hasTicketsInRunningGame,
+        runningGameId
+      };
       occupiedCache.set(cacheKey, { data: responseData, timestamp: now });
       return res.json(responseData);
     }
@@ -579,6 +597,8 @@ router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
       roomId: room.id, 
       playerCount,
       isGameRunning,
+      hasTicketsInRunningGame,
+      runningGameId,
       // Provide the real server start-time so every client (polling or socket)
       // anchors the 20s "NEXT CHECK" cycle to the same epoch ms.
       gameStartedAt: isGameRunning && runningGame?.startedAt ? runningGame.startedAt.getTime() : undefined,

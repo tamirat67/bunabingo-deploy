@@ -30,7 +30,7 @@ function GameContent() {
   const { T, activeThemeKey } = useTheme();
   const sp      = useSearchParams();
   const gameId  = sp.get('id');
-  const { socket } = useSocket();
+  const { socket, isConnected } = useSocket();
 
   const [game,      setGame]      = useState<any>(null);
   const [tickets,   setTickets]   = useState<any[]>([]);
@@ -548,6 +548,28 @@ function GameContent() {
       setGame((p: any) => p ? { ...p, ...d } : p);
     });
 
+    socket.on('player-joined', (d: any) => {
+      setGame((p: any) => {
+        if (!p) return p;
+        return {
+          ...p,
+          currentPlayers: d.playerCount,
+          totalPrize: d.totalPrize || p.totalPrize,
+        };
+      });
+    });
+
+    socket.on('player-left', (d: any) => {
+      setGame((p: any) => {
+        if (!p) return p;
+        return {
+          ...p,
+          currentPlayers: d.playerCount,
+          totalPrize: d.totalPrize || p.totalPrize,
+        };
+      });
+    });
+
     // Re-join and reload after reconnect (handles VPS socket drops)
     socket.on('connect', () => {
       socket.emit('join-game', gameId);
@@ -562,6 +584,8 @@ function GameContent() {
       socket.off('game-started');
       socket.off('game-finished');
       socket.off('game-update');
+      socket.off('player-joined');
+      socket.off('player-left');
       socket.off('connect');
       // Cancel any pending start-audio schedule on unmount / game change
       if (startAudioScheduled.current) clearTimeout(startAudioScheduled.current);
@@ -663,16 +687,16 @@ function GameContent() {
       return;
     }
     
-    let intervalMs = 2000;
-    if (!status) intervalMs = 2000;
-    else if (status === 'WAITING') intervalMs = 3000;
-    else if (status === 'COUNTDOWN') intervalMs = 3000;
+    let intervalMs = isConnected ? 15000 : 2000;
+    if (!status) intervalMs = isConnected ? 15000 : 2000;
+    else if (status === 'WAITING') intervalMs = isConnected ? 15000 : 3000;
+    else if (status === 'COUNTDOWN') intervalMs = isConnected ? 15000 : 3000;
     
     const poll = setInterval(() => {
       loadData();
     }, intervalMs);
     return () => clearInterval(poll);
-  }, [game?.status, loadData, router, gameFinished, playStopAudio]);
+  }, [game?.status, loadData, router, gameFinished, playStopAudio, isConnected]);
 
   // ── Card-patch effect: if socket gave gameFinished with null card, fix it from API winners ──
   // Triggered when loadData() completes and populates game.winners after the socket event.
