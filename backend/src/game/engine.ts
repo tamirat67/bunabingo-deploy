@@ -1126,8 +1126,17 @@ async function finishGame(gameId: string, reason: string): Promise<void> {
 
     // Last resort: reconstruct card rows from PREDEFINED_CARDS if we have no rows
     if (!cardRows || cardRows.length === 0) {
-      // If we don't have a cardId, just pick a random one for display so it doesn't break the UI
-      const safeCardId = cardId || Math.floor(Math.random() * 250) + 1;
+      // If we don't have a cardId, generate a deterministic pseudo-random one from ticketId 
+      // so ALL devices and page refreshes see the exact same card and winning pattern.
+      let safeCardId = cardId;
+      if (!safeCardId) {
+        const str = String(w.ticketId);
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+          hash = str.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        safeCardId = Math.abs(hash % 250) + 1;
+      }
       const pattern = PREDEFINED_CARDS[safeCardId];
       if (pattern) {
         cardRows = pattern.map((row: number[]) =>
