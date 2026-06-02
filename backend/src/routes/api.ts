@@ -537,16 +537,17 @@ router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
 
     // 3. Resolve the active/waiting game ID
     if (gameIdFromQuery) {
-      // Check if the requested game is RUNNING — if so, resolve to the next WAITING game
+      // Check if the requested game is RUNNING
       const requestedGame = await prisma.game.findUnique({ where: { id: gameIdFromQuery }, select: { status: true, roomId: true } });
       if (requestedGame && (requestedGame.status === 'RUNNING' || requestedGame.status === 'FINISHED')) {
-        // Find or auto-create the next WAITING game for this room
+        // Find the next WAITING game for this room
         const nextWaiting = await prisma.game.findFirst({
           where: { roomId: requestedGame.roomId, status: 'WAITING' },
           orderBy: { createdAt: 'desc' },
         });
         gameId = nextWaiting?.id;
-        if (!gameId) {
+        // ONLY auto-create if no game is running
+        if (!gameId && !isGameRunning) {
           const { createWaitingGame } = await import('../game/engine');
           gameId = await createWaitingGame(requestedGame.roomId);
         }
@@ -560,8 +561,8 @@ router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
         orderBy: { createdAt: 'desc' },
       });
       gameId = activeGame?.id;
-      if (!gameId) {
-        // If no WAITING or COUNTDOWN game exists (e.g. because one is RUNNING), create one
+      // ONLY auto-create if no game is running
+      if (!gameId && !isGameRunning) {
         const { createWaitingGame } = await import('../game/engine');
         gameId = await createWaitingGame(room.id);
       }

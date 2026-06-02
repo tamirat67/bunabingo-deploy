@@ -385,14 +385,7 @@ async function runGame(gameId: string): Promise<void> {
     },
   });
 
-  // Create the next waiting game for this room the moment the current one starts running
-  setImmediate(async () => {
-    try {
-      await createWaitingGame(game.roomId);
-    } catch (err) {
-      logger.error(`[Game ${gameId}] Failed to auto-create next waiting game during runGame:`, err);
-    }
-  });
+
 
   let state = activeGames.get(gameId);
   if (!state) {

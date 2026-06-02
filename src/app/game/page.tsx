@@ -1141,33 +1141,7 @@ function GameContent() {
             <span>🏆 YOUR CARTELAS ({visible.length})</span>
           </div>
 
-          {/* ── BINGO DETECTED ALERT — only shown when player daubed a full pattern ── */}
-          {hasBingo && game?.status === 'RUNNING' && (
-            <motion.div
-              animate={{
-                scale: [1, 1.04, 1],
-                boxShadow: ['0 0 10px #FFD70066', '0 0 30px #FFD700cc', '0 0 10px #FFD70066'],
-              }}
-              transition={{ duration: 0.8, repeat: Infinity }}
-              style={{
-                background: 'linear-gradient(135deg, #FFD700, #FF6B00)',
-                borderRadius: '14px',
-                padding: '10px 14px',
-                textAlign: 'center',
-                margin: '0 4px',
-                cursor: 'pointer',
-              }}
-              onClick={handleBingo}
-            >
-              <div style={{ fontSize: '20px', lineHeight: 1 }}>🎊</div>
-              <div style={{ color: '#1a0a00', fontWeight: '900', fontSize: '14px', letterSpacing: 1 }}>
-                BINGO PATTERN FOUND!
-              </div>
-              <div style={{ color: '#1a0a00', fontSize: '11px', fontWeight: '700', opacity: 0.8, marginTop: '2px' }}>
-                👆 TAP HERE or press BINGO! button NOW!
-              </div>
-            </motion.div>
-          )}
+
           {/* Single Shared B-I-N-G-O Header for all cards to save space */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '4px', padding: '0 5px' }}>
             {['B','I','N','G','O'].map(l => (
