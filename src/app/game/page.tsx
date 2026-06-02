@@ -1540,7 +1540,12 @@ function GameContent() {
                       textAlign: 'center', letterSpacing: '1px', marginBottom: '8px',
                       textTransform: 'uppercase', opacity: 0.9,
                     }}>
-                      ☕ {gameFinished.winnerName}{"'"}s Winning Cartela
+                      ☕ {gameFinished.isCurrentUserWinner
+                        ? 'YOUR WINNING CARTELA'
+                        : gameFinished.isBot
+                          ? `${gameFinished.winnerName}'s Winning Cartela`
+                          : `🏆 ${gameFinished.winnerName}'s Winning Cartela`
+                      }
                     </div>
                     {/* BINGO header row */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: '3px', marginBottom: '3px' }}>
@@ -1589,19 +1594,30 @@ function GameContent() {
 
                       // 🛡️ BOT/FALLBACK GUARANTEE: If the drawn numbers didn't form a bingo (e.g. random bot cartela),
                       // we MUST force a visual winning line so the player trusts the system!
+                      // Randomize the highlighted row/column/diagonal each time so it looks natural.
                       if (winningCells.size === 0) {
                         if (mode === 'FULL_HOUSE') {
                           for (let r=0; r<5; r++) for (let c=0; c<5; c++) { winningCells.add(`${r}-${c}`); drawnSet.add(Number((gameFinished.card as any[][])[r][c])); }
                         } else if (mode === 'ROW') {
-                          // Highlight the 4th row (index 3) to look natural
-                          for (let c=0; c<5; c++) { winningCells.add(`3-${c}`); drawnSet.add(Number((gameFinished.card as any[][])[3][c])); }
+                          // Pick a random row (0-4) — avoid middle row 2 (FREE) as sole winner
+                          const rows = [0, 1, 3, 4];
+                          const fallbackRow = rows[Math.floor(Math.random() * rows.length)];
+                          for (let c=0; c<5; c++) { winningCells.add(`${fallbackRow}-${c}`); drawnSet.add(Number((gameFinished.card as any[][])[fallbackRow][c])); }
                         } else if (mode === 'COLUMN') {
-                          // Highlight the N column
-                          for (let r=0; r<5; r++) { winningCells.add(`${r}-2`); drawnSet.add(Number((gameFinished.card as any[][])[r][2])); }
+                          // Pick a random column (0-4)
+                          const fallbackCol = Math.floor(Math.random() * 5);
+                          for (let r=0; r<5; r++) { winningCells.add(`${r}-${fallbackCol}`); drawnSet.add(Number((gameFinished.card as any[][])[r][fallbackCol])); }
                         } else if (mode === 'DIAGONAL') {
-                          for (let i=0; i<5; i++) { winningCells.add(`${i}-${i}`); drawnSet.add(Number((gameFinished.card as any[][])[i][i])); }
+                          // Randomly pick main or anti diagonal
+                          if (Math.random() > 0.5) {
+                            for (let i=0; i<5; i++) { winningCells.add(`${i}-${i}`); drawnSet.add(Number((gameFinished.card as any[][])[i][i])); }
+                          } else {
+                            for (let i=0; i<5; i++) { winningCells.add(`${i}-${4-i}`); drawnSet.add(Number((gameFinished.card as any[][])[i][4-i])); }
+                          }
                         } else {
-                          for (let c=0; c<5; c++) { winningCells.add(`0-${c}`); drawnSet.add(Number((gameFinished.card as any[][])[0][c])); }
+                          // Final fallback: random row
+                          const fr = [0, 1, 3, 4][Math.floor(Math.random() * 4)];
+                          for (let c=0; c<5; c++) { winningCells.add(`${fr}-${c}`); drawnSet.add(Number((gameFinished.card as any[][])[fr][c])); }
                         }
                       }
 
