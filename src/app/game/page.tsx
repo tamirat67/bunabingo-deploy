@@ -494,9 +494,10 @@ function GameContent() {
       const ETHIOPIAN_FALLBACKS = ['Abebe', 'Kebede', 'Selam', 'Tesfaye', 'Girma', 'Dawit', 'Bereket', 'Yonas'];
       const fallbackName = ETHIOPIAN_FALLBACKS[Math.floor(Math.random() * ETHIOPIAN_FALLBACKS.length)];
       // For real player wins: show actual name. For bot wins: show Ethiopian name (already set by backend).
+      const tgUsername = w?.user?.telegramUsername ? ` (@${w.user.telegramUsername.replace(/^@/, '')})` : '';
       const name = isCurrentUserWinner
         ? ((window as any).Telegram?.WebApp?.initDataUnsafe?.user?.first_name || w?.user?.firstName || 'You')
-        : (w ? (w.user?.firstName || fallbackName) : fallbackName);
+        : (w ? `${w.user?.firstName || fallbackName}${tgUsername}` : fallbackName);
       // Normalize card
       let rawCard = w?.card || w?.ticket?.card;
       if (typeof rawCard === 'string') { try { rawCard = JSON.parse(rawCard); } catch(e) {} }
@@ -637,9 +638,10 @@ function GameContent() {
         const isBot = w?.isBot ?? w?.user?.isBot ?? false;
         const ETHIOPIAN_FALLBACKS = ['Abebe', 'Kebede', 'Selam', 'Tesfaye', 'Girma', 'Dawit', 'Bereket', 'Yonas'];
         const fallbackName = ETHIOPIAN_FALLBACKS[Math.floor(Math.random() * ETHIOPIAN_FALLBACKS.length)];
+        const tgUsername = w?.user?.telegramUsername ? ` (@${w.user.telegramUsername.replace(/^@/, '')})` : '';
         const name = isCurrentUserWinner
           ? ((window as any).Telegram?.WebApp?.initDataUnsafe?.user?.first_name || w?.user?.firstName || 'You')
-          : (w ? (w.user?.firstName || fallbackName) : fallbackName);
+          : (w ? `${w.user?.firstName || fallbackName}${tgUsername}` : fallbackName);
         let rawCard2 = w?.card || w?.ticket?.card;
         if (typeof rawCard2 === 'string') { try { rawCard2 = JSON.parse(rawCard2); } catch(e) {} }
         if (typeof rawCard2 === 'string') { try { rawCard2 = JSON.parse(rawCard2); } catch(e) {} }
