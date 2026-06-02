@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState, useRef, Suspense, useCallback, Fragment } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { getGame, getMyCard, claimBingo } from '../../lib/api';
+import { getGame, getMyCard, claimBingo, getMe } from '../../lib/api';
 import { useSocket } from '../../context/SocketContext';
 import BunaModal from '../../components/BunaModal';
 import { Volume2, VolumeX, RefreshCw, LogOut, Plus, X, Bell, ShieldCheck } from 'lucide-react';
@@ -107,6 +107,13 @@ function GameContent() {
   useEffect(() => {
     ticketsRef.current = tickets;
   }, [tickets]);
+
+  // ─── Auth guard — redirect to home if not authenticated ──────────────────────
+  useEffect(() => {
+    getMe().then((user) => {
+      if (!user) router.replace('/');
+    }).catch(() => router.replace('/'));
+  }, []);
 
   // ─── Audio helpers ────────────────────────────────────────────────────────────
   // ballAudioRef: single persistent element for B1-O75 ball calls.
