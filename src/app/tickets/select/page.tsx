@@ -672,6 +672,16 @@ function SelectionContent() {
     const isSelectionChanged = selected.length !== ownedCardIds.length || selected.some(id => !ownedCardIds.includes(id));
 
     if (!isSelectionChanged) {
+      if (isGameRunning && !hasTicketsInRunningGame) {
+        setModal({
+          isOpen: true,
+          title: '🔴 Game In Progress!',
+          message: 'Game in progress! Securing tickets for the NEXT game. / ጨዋታ በሂደት ላይ ነው! ለሚቀጥለው ጨዋታ ካርቴላ ይግዙ።',
+          type: 'info',
+        });
+        setJoining(false);
+        return;
+      }
       // If selection is identical to owned tickets, enter the game room directly
       if (roomType.startsWith('SPIN_')) router.push(`/play/spin?id=${activeGameId}&stake=${stake}`);
       else router.push(`/game?id=${activeGameId}&type=${roomType}&price=${stake}`);
@@ -700,8 +710,20 @@ function SelectionContent() {
       if (typeof window !== 'undefined' && res.gameId && res.tickets) {
         sessionStorage.setItem(`game_tickets_${res.gameId}`, JSON.stringify(res.tickets));
       }
-      if (roomType.startsWith('SPIN_')) router.push(`/play/spin?id=${res.gameId}&stake=${stake}`);
-      else router.push(`/game?id=${res.gameId}&type=${roomType}&price=${stake}`);
+      
+      setOwnedCardIds(selected);
+      
+      if (isGameRunning) {
+        setModal({
+          isOpen: true,
+          title: '🔴 Game In Progress!',
+          message: 'Game in progress! Securing tickets for the NEXT game. / ጨዋታ በሂደት ላይ ነው! ለሚቀጥለው ጨዋታ ካርቴላ ይግዙ።',
+          type: 'info',
+        });
+      } else {
+        if (roomType.startsWith('SPIN_')) router.push(`/play/spin?id=${res.gameId}&stake=${stake}`);
+        else router.push(`/game?id=${res.gameId}&type=${roomType}&price=${stake}`);
+      }
     } catch (err: any) {
       const errData = err.response?.data;
       const errCode = errData?.error;
@@ -1282,7 +1304,7 @@ function SelectionContent() {
               if (joining) return 'CONFIRMING...';
               if (isInitializing) return 'LOADING...';
               if (hasTicketsInRunningGame) return '🎮 ENTER LIVE GAME';
-              if (isGameRunning && ownedCardIds.length > 0) return '🎮 ENTER LIVE GAME';
+              if (isGameRunning && ownedCardIds.length > 0) return 'WAITING FOR NEXT GAME...';
               const isSelectionChanged = selected.length !== ownedCardIds.length || selected.some(id => !ownedCardIds.includes(id));
               if (isSelectionChanged) return ownedCardIds.length > 0 ? 'CONFIRM SELECTION' : 'START GAME';
               return ownedCardIds.length > 0 ? 'ENTER GAME ROOM' : 'START GAME';
