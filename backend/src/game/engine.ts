@@ -206,7 +206,7 @@ async function runGame(gameId: string): Promise<void> {
 
   const uniquePlayerIds = Array.from(new Set(game.tickets.map(t => t.userId)));
   if (!isDemo && uniquePlayerIds.length < 1) {
-    logger.warn(`[Game ${gameId}] Loop Guard: 0 unique players. Restarting countdown.`);
+    logger.info(`[Game ${gameId}] Loop Guard: 0 players. Restarting 20s countdown to wait for players.`);
     await startCountdown(gameId, ticketCount);
     return;
   }
@@ -449,7 +449,7 @@ async function runSpinRaffle(gameId: string): Promise<void> {
 
   const uniqueUsers = new Set(game.tickets.map(t => t.userId));
   if (!game || game.tickets.length < game.room.minPlayers || uniqueUsers.size < 2) {
-    logger.warn(`[Spin ${gameId}] Not enough unique players (${uniqueUsers.size}/2). Restarting countdown.`);
+    logger.info(`[Spin ${gameId}] 0 players found. Restarting 20s countdown to wait for players.`);
     await startCountdown(gameId, game.tickets.length);
     return;
   }
