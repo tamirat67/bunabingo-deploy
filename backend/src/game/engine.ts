@@ -1219,6 +1219,38 @@ export async function createWaitingGame(roomId: string): Promise<string> {
       },
     });
 
+    // ── Immediately inject bots + start countdown (zero WAITING time) ──
+    if (room.type !== 'DEMO') {
+      setImmediate(async () => {
+        try {
+          const { getHouseBotEnabled } = await import('../services/settings.service');
+          const botEnabled = await getHouseBotEnabled();
+          const isBotRoom = newGame.id && room.type in BOT_COUNTS;
+
+          if (botEnabled && isBotRoom) {
+            logger.info(`[Engine] Auto-injecting bots into new game ${newGame.id} (${room.type}) — zero WAITING.`);
+            await injectBotTickets(newGame.id, room.type, []);
+            const fullCount = await prisma.ticket.count({ where: { gameId: newGame.id } });
+            gamesWithBotsInjectedPublic.add(newGame.id);
+
+            await Promise.all([
+              triggerGameEvent(newGame.id, 'player-joined', {
+                userId: 'bots',
+                playerCount: fullCount,
+                numTickets: fullCount,
+                serverTime: Date.now(),
+              }),
+              triggerGameEvent(room.id, 'player-count-update', { playerCount: fullCount }),
+            ]);
+
+            await startCountdown(newGame.id, fullCount);
+          }
+        } catch (e) {
+          logger.error(`[Engine] Auto-start bot injection failed for game ${newGame.id}:`, e);
+        }
+      });
+    }
+
     return newGame.id;
   })();
 
@@ -1603,6 +1635,7 @@ export async function joinGame(
                     logger.error('[HouseBot] Bot injection / auto-start error:', e);
                   }
                 }
+              }
             }
           } else {
             // REAL PLAYERS ONLY MODE
