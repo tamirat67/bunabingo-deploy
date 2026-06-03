@@ -565,7 +565,7 @@ function GameContent() {
       redirectTimerRef.current = setTimeout(() => {
         router.push(`/tickets/select?type=${game?.room?.type || spType}&price=${stake}`);
       }, 8000);
-    });
+    };
 
     socket.on('game-update', (d: any) => {
       setGame((p: any) => p ? { ...p, ...d } : p);
