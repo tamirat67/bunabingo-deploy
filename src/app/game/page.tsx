@@ -984,9 +984,11 @@ function GameContent() {
               boxShadow: isVip ? '0 0 10px rgba(255, 215, 0, 0.2)' : 'none'
             }}>
               <div style={{ color: isVip ? '#FFD700' : T.gold, fontSize: '9px', fontWeight: '900' }}>
-                {game?.status === 'RUNNING' ? '🔴 LIVE' : countdown !== null ? 'STARTS IN' : 'WAITING'}
+                STATUS
               </div>
-              <div style={{ color: game?.status === 'RUNNING' ? 'white' : (isVip ? 'white' : (activeThemeKey === 'LIGHT' ? '#333' : 'white')), fontSize: '24px', fontWeight: '900' }}>{cdText}</div>
+              <div style={{ color: 'white', fontSize: '24px', fontWeight: '900' }}>
+                🔴 LIVE
+              </div>
             </div>
             <motion.div 
               key={lastBall} 
