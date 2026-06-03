@@ -185,7 +185,7 @@ export async function debitAgentCommissionForGame(
     const agentName = agentUser?.firstName || 'Agent';
     const msg =
       `Insufficient commission balance for agent ${agentName}. ` +
-      `Required: ${commission.toFixed(2)} ETB (${(rate * 100).toFixed(0)}% of ${totalAllSales.toFixed(2)} ETB total sales), ` +
+      `Required: ${commission.toFixed(2)} ETB (${(rate * 100).toFixed(0)}% of ${totalRealSales.toFixed(2)} ETB total sales), ` +
       `Available: ${balance.toFixed(2)} ETB. ` +
       `Agent must recharge their pre-deposit wallet.`;
     logger.warn(`[Commission] Game ${gameId} BLOCKED: ${msg}`);
@@ -221,7 +221,7 @@ export async function debitAgentCommissionForGame(
 
     logger.info(
       `[Commission] Game ${gameId}: debited ${commission.toFixed(2)} ETB from agent ${gameAgentId}. ` +
-      `(${tickets.length} tickets × ${ticketPrice} ETB = ${totalAllSales.toFixed(2)} ETB total × ${(rate * 100).toFixed(0)}%) ` +
+      `(${tickets.length} tickets × ${ticketPrice} ETB = ${totalRealSales.toFixed(2)} ETB total × ${(rate * 100).toFixed(0)}%) ` +
       `Balance: ${balance.toFixed(2)} → ${newBalance.toFixed(2)} ETB`
     );
 
