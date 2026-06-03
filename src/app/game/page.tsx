@@ -100,6 +100,8 @@ function GameContent() {
   const isFirstLoadRef = useRef<boolean>(true);
   const playNextTimeoutRef = useRef<any>(null);
   const isGameFinishedRef = useRef<boolean>(false);
+  // Set of ball numbers already announced (prevents any duplicate or skipped calls)
+  const announcedBallsRef = useRef<Set<number>>(new Set());
   // Ref for precisely scheduling start.mp3 so all devices play it at the same server-time moment
   const startAudioScheduled = useRef<any>(null);
 
@@ -207,19 +209,17 @@ function GameContent() {
   const queueBallSounds = useCallback((numbers: number[], setLastBallFn: (n: number) => void) => {
     if (isGameFinishedRef.current) return;
 
-    const currentQueue = audioQueueRef.current;
-    // Avoid queueing any balls already in the queue or already played
-    const toAdd = numbers.filter(n => !currentQueue.includes(n) && n !== lastDrawnRef.current);
+    // Only add balls that have never been announced yet — prevents duplicates AND ensures
+    // every new ball is eventually called (no silent drops).
+    const toAdd = numbers.filter(n => !announcedBallsRef.current.has(n));
     if (toAdd.length === 0) return;
-    console.log('[AudioQueue] Adding to queue:', toAdd);
+    console.log('[AudioQueue] Queueing new balls:', toAdd);
 
-    // Combine and limit queue size to prevent backlog lag
-    let newQueue = [...currentQueue, ...toAdd];
-    if (newQueue.length > 2) {
-      // Keep only the latest 2 balls to play audio for, skip the rest to prevent lag accumulation
-      newQueue = newQueue.slice(-2);
-    }
-    audioQueueRef.current = newQueue;
+    // Mark all as announced immediately to prevent re-queueing from polling
+    toAdd.forEach(n => announcedBallsRef.current.add(n));
+
+    // Append to queue — NEVER drop any ball, every ball must be called
+    audioQueueRef.current = [...audioQueueRef.current, ...toAdd];
 
     if (!isPlayingQueueRef.current) {
       console.log('[AudioQueue] Starting queue processor');
@@ -650,12 +650,12 @@ function GameContent() {
         const isCurrentUserWinner = !!myWinnerObj;
         const w = myWinnerObj || winners[0];
         const isBot = w?.isBot ?? w?.user?.isBot ?? false;
-        const ETHIOPIAN_FALLBACKS = ['Abebe', 'Kebede', 'Selam', 'Tesfaye', 'Girma', 'Dawit', 'Bereket', 'Yonas'];
-        const fallbackName = ETHIOPIAN_FALLBACKS[Math.floor(Math.random() * ETHIOPIAN_FALLBACKS.length)];
-        const tgUsername = w?.user?.telegramUsername ? ` (@${w.user.telegramUsername.replace(/^@/, '')})` : '';
+        const ETHIOPIAN_FALLBACKS = ['Abebe', 'Kebede', 'Selam', 'Tesfaye', 'Dawit', 'Bereket', 'Yonas', 'Tigist', 'Almaz', 'Meron'];
+        const randomFallback = ETHIOPIAN_FALLBACKS[Math.floor(Math.random() * ETHIOPIAN_FALLBACKS.length)];
+        const tgUsername = (!isBot && w?.user?.telegramUsername) ? ` (@${w.user.telegramUsername.replace(/^@/, '')})` : '';
         const name = isCurrentUserWinner
           ? ((window as any).Telegram?.WebApp?.initDataUnsafe?.user?.first_name || w?.user?.firstName || 'You')
-          : (w ? `${w.user?.firstName || fallbackName}${tgUsername}` : fallbackName);
+          : (w?.user?.firstName ? `${w.user.firstName}${tgUsername}` : randomFallback);
         let rawCard2 = w?.card || w?.ticket?.card;
         if (typeof rawCard2 === 'string') { try { rawCard2 = JSON.parse(rawCard2); } catch(e) {} }
         if (typeof rawCard2 === 'string') { try { rawCard2 = JSON.parse(rawCard2); } catch(e) {} }
