@@ -426,11 +426,13 @@ function SelectionContent() {
         const endTime = (d.serverTime || Date.now()) + 20000;
         liveGameEndTimeRef.current = endTime;
         setLiveGameEndTime(endTime);
-        // FORCE REDIRECT EVERYONE AT 0s (no button click needed)
-        if (roomType.startsWith('SPIN_')) {
-          router.push(`/play/spin?id=${d.gameId || activeGameId}&stake=${stake}`);
-        } else {
-          router.push(`/game?id=${d.gameId || activeGameId}&type=${roomType}&price=${stake}`);
+        // Redirect ONLY users who have purchased tickets (or had them auto-purchased)
+        if (ownedRef.current.length > 0) {
+          if (roomType.startsWith('SPIN_')) {
+            router.push(`/play/spin?id=${d.gameId || activeGameId}&stake=${stake}`);
+          } else {
+            router.push(`/game?id=${d.gameId || activeGameId}&type=${roomType}&price=${stake}`);
+          }
         }
       });
 
