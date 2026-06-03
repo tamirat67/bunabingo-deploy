@@ -309,11 +309,22 @@ function GameContent() {
       const isFirstLoad = isFirstLoadRef.current;
       if (isFirstLoad) {
         isFirstLoadRef.current = false;
-        // On first load / mid-game join: show full history immediately, no audio
-        if (latestBall) {
+        
+        const justStarted = g.startedAt && (Date.now() - new Date(g.startedAt).getTime() < 10000);
+        
+        if (justStarted && hist.length <= 3) {
+          // Arrived via 0s auto-redirect! Play start sound and queue the first balls.
+          playStartAudio();
+          if (hist.length > 0) {
+            setTimeout(() => {
+              queueBallSounds(hist, setLastBall);
+            }, 1000); // Small delay to let start.mp3 play first
+          }
+        } else if (latestBall) {
+          // Mid-game join (lots of balls) / Late reload: show full history immediately, no audio spam
           lastDrawnRef.current = latestBall;
           setLastBall(latestBall);
-          setCalledHistory(hist); // Show all previously called balls in recent history
+          setCalledHistory(hist); 
         }
       } else {
         // During active game: board highlights sync from server history immediately.
