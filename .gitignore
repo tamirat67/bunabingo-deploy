@@ -10,4 +10,4 @@ build/
 .env
 .env.local
 .env*.local
-backend/.env
+backend/.envlost_changes_utf8.diff
