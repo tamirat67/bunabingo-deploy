@@ -1213,8 +1213,8 @@ const balance = Number(user?.wallet?.balance || 0);
               if (hasTicketsInRunningGame && selected.length === 0) return 'GAME IN PROGRESS...';
               if (isGameRunning && ownedCardIds.length > 0) return 'WAITING FOR NEXT GAME...';
               const isSelectionChanged = selected.length !== ownedCardIds.length || selected.some(id => !ownedCardIds.includes(id));
-              if (isSelectionChanged) return ownedCardIds.length > 0 ? 'CONFIRM SELECTION' : 'START GAME (Waiting...)';
-              return ownedCardIds.length > 0 ? 'ENTER GAME ROOM' : 'START GAME (Waiting...)';
+              if (isSelectionChanged) return ownedCardIds.length > 0 ? 'CONFIRM SELECTION' : 'BUY TICKETS';
+              return ownedCardIds.length > 0 ? 'ENTER GAME ROOM' : 'BUY TICKETS';
             })()}
           </button>
         </div>
