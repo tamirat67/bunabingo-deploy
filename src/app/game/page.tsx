@@ -421,22 +421,22 @@ function GameContent() {
     // Join the game room immediately
     socket.emit('join-game', gameId);
 
-    socket.on('number-drawn', (d: { number: number }) => {
+    const onNumberDrawn = (d: { number: number }) => {
       const num = Number(d.number);
       // Board highlights update immediately (so card numbers are marked)
       setDrawn(p => p.includes(num) ? p : [...p, num]);
       // Big ball display + Recent Balls: driven by audio queue together
-      // (calledHistory is updated inside processAudioQueue with setLastBall)
       queueBallSounds([num], setLastBall);
-    });
+    };
 
-    socket.on('countdown-start', (d: any) => {
+    socket.on('number-drawn', onNumberDrawn);
+
+    const onCountdownStart = (d: any) => {
       if (d.endTime) {
         const offset = d.serverTime ? (d.serverTime - Date.now()) : 0;
         setServerOff(offset);
         setEndTime(d.endTime);
         // Derive the display value immediately from the absolute server epoch
-        // so every device shows the same number regardless of network latency
         const remMs = d.endTime - Date.now() - offset;
         const rem = Math.max(0, Math.ceil(remMs / 1000));
         setCountdown(rem > 0 ? rem : null);
@@ -452,18 +452,18 @@ function GameContent() {
         setEndTime(null);
         setTimeout(loadData, 300);
       }
-    });
+    };
 
-    socket.on('countdown-tick', (d: any) => {
+    socket.on('countdown-start', onCountdownStart);
+
+    const onCountdownTick = (d: any) => {
       if (d.endTime) {
         const offset = d.serverTime ? (d.serverTime - Date.now()) : 0;
         setServerOff(offset);
         setEndTime(d.endTime);
-        // Re-derive display value from absolute server epoch on every tick
         const remMs = d.endTime - Date.now() - offset;
         const rem = Math.max(0, Math.ceil(remMs / 1000));
         setCountdown(rem > 0 ? rem : null);
-        // Re-schedule start.mp3 on every tick for accuracy
         if (startAudioScheduled.current) clearTimeout(startAudioScheduled.current);
         const msUntilStart = Math.max(0, remMs);
         startAudioScheduled.current = setTimeout(() => playStartAudio(), msUntilStart);
@@ -475,24 +475,25 @@ function GameContent() {
         setEndTime(null);
         setTimeout(loadData, 300);
       }
-    });
+    };
 
-    socket.on('game-started', () => {
-      // Clear countdown immediately — don't wait for async loadData() to finish
+    socket.on('countdown-tick', onCountdownTick);
+
+    const onGameStarted = () => {
       setCountdown(null);
       setEndTime(null);
       loadData();
-      // Fallback: only plays if scheduled timeout hasn't fired yet (debounce prevents double-play)
       playStartAudio();
-    });
+    };
 
-    socket.on('game-finished', (d: any) => {
+    socket.on('game-started', onGameStarted);
+
+    const onGameFinished = (d: any) => {
       loadData();
       playStopAudio();
       const tgUserId = typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.initDataUnsafe?.user?.id
         ? String((window as any).Telegram.WebApp.initDataUnsafe.user.id)
         : '';
-      // Match by telegramId (reliable) OR userId (fallback) OR ticketId
       const myWinnerObj = (d.winners || []).find((winner: any) => 
         (tgUserId && winner.telegramId && String(winner.telegramId) === tgUserId) ||
         (tgUserId && String(winner.userId) === tgUserId) ||
@@ -501,10 +502,6 @@ function GameContent() {
       const isCurrentUserWinner = !!myWinnerObj;
       const w = myWinnerObj || d.winners?.[0];
       const isBot = w?.isBot ?? w?.user?.isBot ?? false;
-      // Backend already sets the correct display name:
-      // - Real players → their actual first name
-      // - Bots → a random Ethiopian disguise name (computed server-side per ticketId)
-      // NEVER fall back to a hardcoded string — it always produced the same name ("Girma").
       const ETHIOPIAN_FALLBACKS = ['Abebe', 'Kebede', 'Selam', 'Tesfaye', 'Dawit', 'Bereket', 'Yonas', 'Tigist', 'Almaz', 'Meron'];
       let nameHash = 0;
       const nameSeed = String(gameId) + String(w?.ticketId || w?.id || '123');
@@ -519,9 +516,7 @@ function GameContent() {
       const name = isCurrentUserWinner
         ? (((window as any).Telegram?.WebApp?.initDataUnsafe?.user?.first_name || w?.user?.firstName || 'You') + tgUsername)
         : (w?.user?.firstName ? `${w.user.firstName}${tgUsername}` : randomFallback);
-      // Normalize card
       let rawCard = w?.card || w?.ticket?.card;
-      if (typeof rawCard === 'string') { try { rawCard = JSON.parse(rawCard); } catch(e) {} }
       if (typeof rawCard === 'string') { try { rawCard = JSON.parse(rawCard); } catch(e) {} }
       let cardNo: number | undefined = rawCard?.id ?? w?.cardId ?? undefined;
       let cardRows = rawCard ? (Array.isArray(rawCard) ? rawCard : (rawCard.rows ?? null)) : null;
