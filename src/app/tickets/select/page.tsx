@@ -866,10 +866,7 @@ const balance = Number(user?.wallet?.balance || 0);
             <Trophy size={9} /> PRIZE POOL
           </div>
           {/* Main prize amount — this is what the winner receives */}
-          <motion.div
-            key={prize}
-            initial={{ opacity: 0.6, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
+          <div
             style={{
               color: 'white',
               fontSize: '24px',
@@ -880,7 +877,7 @@ const balance = Number(user?.wallet?.balance || 0);
             }}
           >
             {prize.toFixed(0)} ETB
-          </motion.div>
+          </div>
           {/* Pool info only — no internal commission breakdown */}
           <div style={{ fontSize: '9px', fontWeight: '700', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.5px', marginTop: '5px' }}>
             Pool: {totalStake.toFixed(0)} ETB
@@ -901,11 +898,7 @@ const balance = Number(user?.wallet?.balance || 0);
               🔴 LIVE
             </div>
           ) : countdown !== null && countdown > 0 ? (
-            <motion.div
-              key={countdown}
-              initial={{ scale: 1.3, opacity: 0.6 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.15 }}
+            <div
               style={{
                 fontSize: countdown <= 5 ? '38px' : '32px',
                 fontWeight: '900',
@@ -917,7 +910,7 @@ const balance = Number(user?.wallet?.balance || 0);
               }}
             >
               {countdown}s
-            </motion.div>
+            </div>
           ) : (
             <div style={{ fontSize: '20px', fontWeight: '900', color: '#2ECC71', textShadow: '0 0 12px rgba(46,204,113,0.6)' }}>
               ✅ OPEN
