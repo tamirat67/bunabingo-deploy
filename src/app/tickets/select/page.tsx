@@ -881,48 +881,48 @@ const balance = Number(user?.wallet?.balance || 0);
           >
             {prize.toFixed(0)} ETB
           </motion.div>
-          {/* Commission breakdown — transparent for players */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            marginTop: '5px',
-          }}>
-            <div style={{
-              fontSize: '9px',
-              fontWeight: '700',
-              color: 'rgba(255,255,255,0.45)',
-              letterSpacing: '0.5px',
-            }}>
-              Pool: {totalStake.toFixed(0)} ETB
-            </div>
-            <div style={{ width: '1px', height: '10px', background: 'rgba(255,255,255,0.2)' }} />
-            <div style={{
-              fontSize: '9px',
-              fontWeight: '700',
-              color: 'rgba(255,165,0,0.7)',
-              letterSpacing: '0.5px',
-            }}>
-              House: {companyComm.toFixed(0)} ETB (20%) | Agent: {agentComm.toFixed(0)} ETB (10%)
-            </div>
+          {/* Pool info only — no internal commission breakdown */}
+          <div style={{ fontSize: '9px', fontWeight: '700', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.5px', marginTop: '5px' }}>
+            Pool: {totalStake.toFixed(0)} ETB
           </div>
         </div>
 
-        {/* Right — Simplified Game Status */}
-        <div style={{ textAlign: 'right', minWidth: '90px' }}>
-          <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: '9px', fontWeight: '900', letterSpacing: '1.5px', marginBottom: '6px', textTransform: 'uppercase' }}>
-            GAME STATUS
+        {/* Right — Countdown / Status */}
+        <div style={{ textAlign: 'center', minWidth: '90px' }}>
+          <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: '9px', fontWeight: '900', letterSpacing: '1.5px', marginBottom: '4px', textTransform: 'uppercase' }}>
+            {isGameRunning || game?.status === 'RUNNING'
+              ? 'LIVE GAME'
+              : countdown !== null && countdown > 0
+              ? 'STARTS IN'
+              : 'NEXT GAME'}
           </div>
-          <div style={{
-            fontSize: '18px',
-            fontWeight: '900',
-            color: isGameRunning || game?.status === 'RUNNING' ? '#E74C3C' : '#2ECC71',
-            textShadow: isGameRunning || game?.status === 'RUNNING' ? '0 0 12px rgba(231,76,60,0.6)' : '0 0 12px rgba(46,204,113,0.6)',
-            fontVariantNumeric: 'tabular-nums',
-            letterSpacing: '-1px'
-          }}>
-            {isGameRunning || game?.status === 'RUNNING' ? '🔴 LIVE' : '✅ OPEN'}
-          </div>
+          {isGameRunning || game?.status === 'RUNNING' ? (
+            <div style={{ fontSize: '22px', fontWeight: '900', color: '#E74C3C', textShadow: '0 0 14px rgba(231,76,60,0.7)', letterSpacing: '-1px' }}>
+              🔴 LIVE
+            </div>
+          ) : countdown !== null && countdown > 0 ? (
+            <motion.div
+              key={countdown}
+              initial={{ scale: 1.3, opacity: 0.6 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.15 }}
+              style={{
+                fontSize: countdown <= 5 ? '38px' : '32px',
+                fontWeight: '900',
+                color: countdown <= 5 ? '#E74C3C' : urgencyColor,
+                textShadow: `0 0 18px ${countdown <= 5 ? 'rgba(231,76,60,0.9)' : urgencyColor + '88'}`,
+                fontVariantNumeric: 'tabular-nums',
+                letterSpacing: '-2px',
+                lineHeight: 1,
+              }}
+            >
+              {countdown}s
+            </motion.div>
+          ) : (
+            <div style={{ fontSize: '20px', fontWeight: '900', color: '#2ECC71', textShadow: '0 0 12px rgba(46,204,113,0.6)' }}>
+              ✅ OPEN
+            </div>
+          )}
         </div>
       </div>
 
