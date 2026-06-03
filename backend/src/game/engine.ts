@@ -444,12 +444,13 @@ async function runGame(gameId: string): Promise<void> {
     state.targetWinMode = targetWinMode; // save it so checkAllTickets can prioritize it
   }
 
-  // Start draw loop instantly with NO idle delay as requested
+  // Start draw loop
   if (state.drawInterval) clearInterval(state.drawInterval);
   state.drawInterval = setInterval(() => drawNumber(gameId), config.game.drawIntervalMs);
   
-  // Call the very first ball immediately
-  drawNumber(gameId);
+  // NOTE: We intentionally DO NOT call drawNumber(gameId) immediately here anymore.
+  // Waiting for the first interval (3s) gives the frontend time to play the "start.mp3"
+  // audio without the first ball's audio overlapping it!
 }
 
 /**
