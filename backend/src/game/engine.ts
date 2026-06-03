@@ -391,9 +391,12 @@ async function runGame(gameId: string): Promise<void> {
   } else {
     // ticketCount includes ALL tickets (real + bots) since bots are injected before runGame
     const totalStakeAll = new Decimal(unitPrice).mul(ticketCount);
-    displayHouseEdge  = totalStakeAll.mul(houseEdgePercent).div(100);         // 25% of all stakes
-    displayPrizePool  = totalStakeAll.sub(displayHouseEdge);                  // 75% of all stakes
-    logger.info(`[Game ${gameId}] Total stake (${ticketCount} cards × ${unitPrice} ETB) = ${totalStakeAll} ETB | House 25% = ${displayHouseEdge} ETB | Prize 75% = ${displayPrizePool} ETB`);
+    const totalRealStake = new Decimal(unitPrice).mul(realPlayerCount);
+    
+    // Commission is 30% of REAL player stakes only. Bot stakes go 100% to prize pool.
+    displayHouseEdge  = totalRealStake.mul(houseEdgePercent).div(100);
+    displayPrizePool  = totalStakeAll.sub(displayHouseEdge);
+    logger.info(`[Game ${gameId}] Total stake (${ticketCount} cards × ${unitPrice} ETB) = ${totalStakeAll} ETB | Real Player Stake (${realPlayerCount} cards) = ${totalRealStake} ETB | House ${houseEdgePercent}% of Real = ${displayHouseEdge} ETB | Prize = ${displayPrizePool} ETB`);
   }
 
   await prisma.game.update({
@@ -1475,11 +1478,22 @@ export async function joinGame(
       const pCount = uniqueUsers.size;
       const tCount = allTickets.length;
 
-      // 7. Calculate & Update prize pool
+      // 7. Calculate & Update prize pool (Bots contribute 100% to prize, real players contribute 70%)
       const houseEdgePercent = config.game.houseEdgePercent;
-      const totalSales = new Decimal(unitPrice).mul(tCount);
-      const houseEdge = totalSales.mul(houseEdgePercent).div(100);
-      const prizePool = totalSales.sub(houseEdge);
+      
+      // Fetch all users to separate bots from real players
+      const users = await tx.user.findMany({
+        where: { id: { in: Array.from(uniqueUsers) } },
+        select: { id: true, isBot: true }
+      });
+      const botUserIds = new Set(users.filter(u => u.isBot).map(u => u.id));
+      
+      const realTicketCount = allTickets.filter(t => !botUserIds.has(t.userId)).length;
+      
+      const totalStakeAll = new Decimal(unitPrice).mul(tCount);
+      const totalRealStake = new Decimal(unitPrice).mul(realTicketCount);
+      const houseEdge = totalRealStake.mul(houseEdgePercent).div(100);
+      const prizePool = totalStakeAll.sub(houseEdge);
 
       await tx.game.update({
         where: { id: gameId },
