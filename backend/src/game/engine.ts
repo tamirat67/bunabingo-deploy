@@ -68,7 +68,13 @@ function getCountdownSeconds(playerCount: number, roomType: string): number {
 
 // ─── Start Countdown ──────────────────────────────────────────
 export async function startCountdown(gameId: string, playerCount: number): Promise<void> {
-  const game = await prisma.game.findUnique({ where: { id: gameId }, include: { room: true } });
+  const game = await prisma.game.findUnique({
+    where: { id: gameId },
+    include: {
+      room: true,
+      tickets: { include: { user: { select: { isBot: true } } } },
+    },
+  });
   if (!game) return;
 
   // Clear any active waiting timeout for this game
@@ -79,7 +85,15 @@ export async function startCountdown(gameId: string, playerCount: number): Promi
     logger.info(`[Engine] Cleared waiting timeout for game ${gameId} because countdown started.`);
   }
 
-  const seconds = getCountdownSeconds(playerCount, game.room.type);
+  // Default countdown from config (e.g. 20s for STANDARD, etc.)
+  let seconds = getCountdownSeconds(playerCount, game.room.type);
+
+  // INSTANT-START: if at least 1 real (non-bot) player has a ticket, skip the countdown
+  const hasRealPlayer = game.tickets.some(t => !t.user?.isBot);
+  if (hasRealPlayer) {
+    seconds = 0;
+    logger.info(`[Game ${gameId}] Real player has a ticket — starting immediately (0s countdown).`);
+  }
 
   await prisma.game.update({
     where: { id: gameId },
