@@ -1618,7 +1618,7 @@ export async function joinGame(
               if (!waitingTimers.has(gameId)) {
                 // ── Wait 30s for more real players before injecting bots & starting countdown ──
                 // This gives real players a fair window to join before bots fill the room.
-                const REAL_PLAYER_WAIT_MS = 30_000;
+                const REAL_PLAYER_WAIT_MS = 20_000;
                 logger.info(`[Game ${gameId}] First real player joined. Waiting ${REAL_PLAYER_WAIT_MS / 1000}s for more players before injecting bots.`);
 
                 // Broadcast waiting state so frontend shows "STARTS IN 30s"
