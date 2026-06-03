@@ -425,14 +425,12 @@ async function runGame(gameId: string): Promise<void> {
     state.numberPool = riggedPool; // override the random pool with the rigged one
   }
 
-  // Start draw loop — wait 3.5s so start.mp3 announcement finishes before first ball audio
+  // Start draw loop instantly with NO idle delay as requested
   if (state.drawInterval) clearInterval(state.drawInterval);
-  setTimeout(() => {
-    const currentState = activeGames.get(gameId);
-    if (currentState) {
-      currentState.drawInterval = setInterval(() => drawNumber(gameId), config.game.drawIntervalMs);
-    }
-  }, 3500);
+  state.drawInterval = setInterval(() => drawNumber(gameId), config.game.drawIntervalMs);
+  
+  // Call the very first ball immediately
+  drawNumber(gameId);
 }
 
 /**
