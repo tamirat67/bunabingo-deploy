@@ -506,7 +506,12 @@ function GameContent() {
       // - Bots → a random Ethiopian disguise name (computed server-side per ticketId)
       // NEVER fall back to a hardcoded string — it always produced the same name ("Girma").
       const ETHIOPIAN_FALLBACKS = ['Abebe', 'Kebede', 'Selam', 'Tesfaye', 'Dawit', 'Bereket', 'Yonas', 'Tigist', 'Almaz', 'Meron'];
-      const randomFallback = ETHIOPIAN_FALLBACKS[Math.floor(Math.random() * ETHIOPIAN_FALLBACKS.length)];
+      let nameHash = 0;
+      const nameSeed = String(gameId) + String(w?.ticketId || w?.id || '123');
+      for (let i = 0; i < nameSeed.length; i++) {
+        nameHash = nameSeed.charCodeAt(i) + ((nameHash << 5) - nameHash);
+      }
+      const randomFallback = ETHIOPIAN_FALLBACKS[Math.abs(nameHash) % ETHIOPIAN_FALLBACKS.length];
       const tgUsername = (!isBot && w?.user?.telegramUsername) ? ` (@${w.user.telegramUsername.replace(/^@/, '')})` : '';
       const name = isCurrentUserWinner
         ? ((window as any).Telegram?.WebApp?.initDataUnsafe?.user?.first_name || w?.user?.firstName || 'You')
@@ -522,9 +527,14 @@ function GameContent() {
       if (cardRows && (!Array.isArray(cardRows[0]) || cardRows.length !== 5)) cardRows = null;
 
       // 🛡️ GUARANTEED FALLBACK: If no valid 5x5 grid exists, generate one from standard patterns
-      // Use a random card to avoid always showing the same card when data is missing.
+      // Use a deterministic random card to avoid always showing the same card, but keep it consistent across clients.
       if (!cardRows) {
-        cardNo = cardNo && cardNo > 0 ? cardNo : (Math.floor(Math.random() * 250) + 1);
+        let cardHash = 0;
+        const cardSeed = String(gameId) + String(w?.ticketId || w?.id || '123');
+        for (let i = 0; i < cardSeed.length; i++) {
+          cardHash = cardSeed.charCodeAt(i) + ((cardHash << 5) - cardHash);
+        }
+        cardNo = cardNo && cardNo > 0 ? cardNo : (Math.abs(cardHash) % 250) + 1;
         const pattern = PREDEFINED_CARDS[cardNo];
         if (pattern) {
           cardRows = pattern.map((row: number[]) => row.map((c: number) => c === 0 ? 'FREE' : c));
@@ -651,7 +661,12 @@ function GameContent() {
         const w = myWinnerObj || winners[0];
         const isBot = w?.isBot ?? w?.user?.isBot ?? false;
         const ETHIOPIAN_FALLBACKS = ['Abebe', 'Kebede', 'Selam', 'Tesfaye', 'Dawit', 'Bereket', 'Yonas', 'Tigist', 'Almaz', 'Meron'];
-        const randomFallback = ETHIOPIAN_FALLBACKS[Math.floor(Math.random() * ETHIOPIAN_FALLBACKS.length)];
+        let nameHash = 0;
+        const nameSeed = String(gameId) + String(w?.ticketId || w?.id || '123');
+        for (let i = 0; i < nameSeed.length; i++) {
+          nameHash = nameSeed.charCodeAt(i) + ((nameHash << 5) - nameHash);
+        }
+        const randomFallback = ETHIOPIAN_FALLBACKS[Math.abs(nameHash) % ETHIOPIAN_FALLBACKS.length];
         const tgUsername = (!isBot && w?.user?.telegramUsername) ? ` (@${w.user.telegramUsername.replace(/^@/, '')})` : '';
         const name = isCurrentUserWinner
           ? ((window as any).Telegram?.WebApp?.initDataUnsafe?.user?.first_name || w?.user?.firstName || 'You')
@@ -667,7 +682,12 @@ function GameContent() {
 
         // 🛡️ GUARANTEED FALLBACK
         if (!cardRows2) {
-          cardNo2 = cardNo2 || Math.floor(Math.random() * 250) + 1;
+          let cardHash = 0;
+          const cardSeed = String(gameId) + String(w?.ticketId || w?.id || '123');
+          for (let i = 0; i < cardSeed.length; i++) {
+            cardHash = cardSeed.charCodeAt(i) + ((cardHash << 5) - cardHash);
+          }
+          cardNo2 = cardNo2 || (Math.abs(cardHash) % 250) + 1;
           const pattern = PREDEFINED_CARDS[cardNo2];
           if (pattern) {
             cardRows2 = pattern.map((row: number[]) => row.map((c: number) => c === 0 ? 'FREE' : c));
