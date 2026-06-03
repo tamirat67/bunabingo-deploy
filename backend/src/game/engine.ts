@@ -1616,24 +1616,36 @@ export async function joinGame(
           if (houseBotEnabled && isBotRoom) {
             if (realPlayerCount >= 1) {
               if (!waitingTimers.has(gameId)) {
-                logger.info(`[Game ${gameId}] First real player joined. Injecting bots and starting countdown immediately.`);
-                
-                if (waitingTimers.has(gameId)) {
-                  clearTimeout(waitingTimers.get(gameId));
+                // ── Wait 30s for more real players before injecting bots & starting countdown ──
+                // This gives real players a fair window to join before bots fill the room.
+                const REAL_PLAYER_WAIT_MS = 30_000;
+                logger.info(`[Game ${gameId}] First real player joined. Waiting ${REAL_PLAYER_WAIT_MS / 1000}s for more players before injecting bots.`);
+
+                // Broadcast waiting state so frontend shows "STARTS IN 30s"
+                await triggerGameEvent(gameId, 'countdown-start', {
+                  seconds: REAL_PLAYER_WAIT_MS / 1000,
+                  playerCount: currentTicketCount,
+                  endTime: Date.now() + REAL_PLAYER_WAIT_MS,
+                  serverTime: Date.now(),
+                });
+
+                const waitTimer = setTimeout(async () => {
                   waitingTimers.delete(gameId);
-                }
-                
-                if (!gamesWithBotsInjectedPublic.has(gameId)) {
+                  if (gamesWithBotsInjectedPublic.has(gameId)) return;
+
+                  // Re-check game is still waiting before injecting
+                  const currentGame = await prisma.game.findUnique({ where: { id: gameId }, select: { status: true } });
+                  if (!currentGame || currentGame.status !== GameStatus.WAITING) return;
+
                   gamesWithBotsInjectedPublic.add(gameId);
                   try {
-                    // Fetch current tickets to avoid duplicates
                     const currentTickets = await prisma.ticket.findMany({ where: { gameId }, select: { card: true } });
                     const takenCardIds = currentTickets.map(t => (t.card as any).id as number);
-                    
+
                     await injectBotTickets(gameId, game.room.type, takenCardIds);
                     const fullCount = await prisma.ticket.count({ where: { gameId } });
                     const botCount = BOT_COUNTS[game.room.type] ?? 30;
-                    logger.info(`[HouseBot] Auto-starting game ${gameId} (${game.room.type}) with ${fullCount} total tickets (${botCount} bots injected)`);
+                    logger.info(`[HouseBot] Wait window elapsed. Starting game ${gameId} with ${fullCount} total tickets (${botCount} bots).`);
 
                     await Promise.all([
                       triggerGameEvent(gameId, 'player-joined', {
@@ -1650,8 +1662,13 @@ export async function joinGame(
                   } catch (e) {
                     logger.error('[HouseBot] Bot injection / auto-start error:', e);
                   }
-                }
+                }, REAL_PLAYER_WAIT_MS);
+
+                waitingTimers.set(gameId, waitTimer);
               }
+              // If more real players join during the waiting window, they simply get
+              // added to the room. The existing timer will fire and start the game
+              // for everyone who joined. No need to reset the timer.
             }
           } else {
             // REAL PLAYERS ONLY MODE
