@@ -654,6 +654,10 @@ function SelectionContent() {
     });
   };
 
+const balance = Number(user?.wallet?.balance || 0);
+  const bonusBalance = Number(user?.wallet?.bonusBalance || 0);
+  const totalAvailable = balance + bonusBalance;
+
   const handleStart = async () => {
     if (isInitializing || selected.length === 0 || joining) return;
     setJoining(true);
@@ -685,13 +689,11 @@ function SelectionContent() {
     }
 
     // Selection has changed, we must send joinGame to update tickets in the database
-    const bonusBalance = Number(user?.wallet?.bonusBalance || 0);
-    const totalAvailableAtJoin = Number(balance) + bonusBalance;
-    if (newCardsToBuy.length > 0 && totalAvailableAtJoin < totalCost && roomType !== 'DEMO') {
+    if (newCardsToBuy.length > 0 && totalAvailable < totalCost && roomType !== 'DEMO') {
       setModal({
         isOpen: true,
         title: 'Insufficient Balance / የኪስዎ ቀሪ በቂ አይደለም ⚠️',
-        message: `You need ${totalCost} ETB to purchase ${newCardsToBuy.length} card(s). You have ${Number(balance).toFixed(2)} ETB (Main) + ${bonusBalance.toFixed(2)} ETB (Bonus) = ${totalAvailableAtJoin.toFixed(2)} ETB total. / ${totalCost} ETB ያስፈልግዎታል። ዋና: ${Number(balance).toFixed(2)} + ቦነስ: ${bonusBalance.toFixed(2)} = ${totalAvailableAtJoin.toFixed(2)} ETB ብቻ አለ།`,
+        message: `You need ${totalCost} ETB to purchase ${newCardsToBuy.length} card(s). You have ${balance.toFixed(2)} ETB (Main) + ${bonusBalance.toFixed(2)} ETB (Bonus) = ${totalAvailable.toFixed(2)} ETB total. Please deposit to continue. / ${totalCost} ETB ያስፈልግዎታልᢾ ${balance.toFixed(2)} + ቦነስ: ${bonusBalance.toFixed(2)} = ${totalAvailable.toFixed(2)} ETB ብቻ አለ།`,
         type: 'balance',
         onConfirm: () => router.push('/wallet')
       });
@@ -758,28 +760,30 @@ function SelectionContent() {
 
   };
 
-  const balance = user?.wallet?.balance || 0;
   const isDark = activeThemeKey === 'DARK' || activeThemeKey === 'GRAY';
 
   const displayPlayerCount = playerCount + fakePlayersCount;
   
   // ─── Prize / Stake / Commission calculation ─────────────────────────────
-  // occupiedCount is used by the UI to show "X held" and "X cards snatched"
+  // 30% house edge: 20% company commission + 10% agent commission
+  // 70% of ticket sales goes to prize pool for winners
   const totalOccupiedList = Array.from(new Set([...occupied, ...fakeOccupied]));
   const occupiedCount = totalOccupiedList.filter(id => !ownedCardIds.includes(id)).length;
 
-  // Real prize pool = displayed players × stake × 75%
-  // Align calculations perfectly with player count displayed in the UI:
-  // e.g. 34 visible players * 10 stake = 340 ETB pool, keeping company commission 25% (85 ETB) and prize pool 75% (255 ETB)
   const baseCards = displayPlayerCount || 1;
   const allCards = Math.max(game?.tickets?.length || 0, baseCards) || 1;
   const totalStake = allCards * stake;
-  // 25% company commission kept; 75% goes to winner as prize pool
-  const companyComm = Math.round(totalStake * 0.25);
-  const houseComm = companyComm; // alias for any existing references
+  
+  // House edge: 30% of total stake
+  const houseEdge = Math.round(totalStake * 0.30);
+  // Company gets 20% of stake (66.67% of house edge)
+  const companyComm = Math.round(totalStake * 0.20);
+  // Agent gets 10% of stake (33.33% of house edge)
+  const agentComm = Math.round(totalStake * 0.10);
+  // Prize pool: 70% of stake
   const prize = Math.max(
     game?.totalPrize && Number(game.totalPrize) > 0 ? Number(game.totalPrize) : 0,
-    Math.round(totalStake * 0.75)
+    Math.round(totalStake * 0.70)
   );
 
   const formatCountdown = (secs: number) => {
@@ -899,7 +903,7 @@ function SelectionContent() {
               color: 'rgba(255,165,0,0.7)',
               letterSpacing: '0.5px',
             }}>
-              House: {companyComm.toFixed(0)} ETB (25%)
+              House: {companyComm.toFixed(0)} ETB (20%) | Agent: {agentComm.toFixed(0)} ETB (10%)
             </div>
           </div>
         </div>
