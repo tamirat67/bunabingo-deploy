@@ -426,13 +426,11 @@ function SelectionContent() {
         const endTime = (d.serverTime || Date.now()) + 20000;
         liveGameEndTimeRef.current = endTime;
         setLiveGameEndTime(endTime);
-        // Automatically redirect to the game if the user has purchased tickets
-        if (ownedRef.current.length > 0) {
-          if (roomType.startsWith('SPIN_')) {
-            router.push(`/play/spin?id=${d.gameId || activeGameId}&stake=${stake}`);
-          } else {
-            router.push(`/game?id=${d.gameId || activeGameId}&type=${roomType}&price=${stake}`);
-          }
+        // FORCE REDIRECT EVERYONE AT 0s (no button click needed)
+        if (roomType.startsWith('SPIN_')) {
+          router.push(`/play/spin?id=${d.gameId || activeGameId}&stake=${stake}`);
+        } else {
+          router.push(`/game?id=${d.gameId || activeGameId}&type=${roomType}&price=${stake}`);
         }
       });
 
@@ -451,14 +449,27 @@ function SelectionContent() {
       });
 
       socket.on('countdown-tick', (d: any) => {
+        let currentRem = 0;
         if (d.endTime && d.serverTime) {
           const offset = d.serverTime - Date.now();
           setServerOff(offset);
           setEndTime(d.endTime);
           const rem = Math.max(0, Math.ceil((d.endTime - Date.now() - offset) / 1000));
           setCountdown(rem > 0 ? rem : null);
+          currentRem = rem;
         } else {
           setCountdown(d.secondsRemaining);
+          currentRem = d.secondsRemaining;
+        }
+        // Auto-buy tickets at 1s if they are selected but not purchased
+        if (currentRem === 1 && selectedRef.current.length > 0 && !joining) {
+          // Fire-and-forget the buy process so it completes before 0s lock
+          buyTickets(roomType, activeGameId, selectedRef.current).then(res => {
+            if (res && res.tickets) {
+              setOwnedCardIds(res.tickets.map((t: any) => t.card.id));
+              setSelected([]);
+            }
+          }).catch(() => {});
         }
         if (typeof d.playerCount === 'number') {
           setPlayerCount(d.playerCount);
@@ -1201,22 +1212,24 @@ const balance = Number(user?.wallet?.balance || 0);
           <button className="btn-refresh-blue" onClick={() => window.location.reload()}>
             <RefreshCw size={16} /> Refresh
           </button>
-          <button
-            className={`btn-start-game ${selected.length > 0 && !isInitializing ? 'active' : ''}`}
-            disabled={selected.length === 0 || joining || isInitializing}
-            onClick={handleStart}
-            style={isInitializing ? { background: '#555', borderBottomColor: '#333', opacity: 0.6, cursor: 'not-allowed' } : undefined}
-          >
-            <Play size={16} fill="white" /> {(() => {
-              if (joining) return 'CONFIRMING...';
-              if (isInitializing) return 'LOADING...';
-              if (hasTicketsInRunningGame && selected.length === 0) return 'GAME IN PROGRESS...';
-              if (isGameRunning && ownedCardIds.length > 0) return 'WAITING FOR NEXT GAME...';
-              const isSelectionChanged = selected.length !== ownedCardIds.length || selected.some(id => !ownedCardIds.includes(id));
-              if (isSelectionChanged) return ownedCardIds.length > 0 ? 'CONFIRM SELECTION' : 'BUY TICKETS';
-              return ownedCardIds.length > 0 ? 'ENTER GAME ROOM' : 'BUY TICKETS';
-            })()}
-          </button>
+          {countdown !== 0 && (
+            <button
+              className={`btn-start-game ${selected.length > 0 && !isInitializing ? 'active' : ''}`}
+              disabled={selected.length === 0 || joining || isInitializing}
+              onClick={handleStart}
+              style={isInitializing ? { background: '#555', borderBottomColor: '#333', opacity: 0.6, cursor: 'not-allowed' } : undefined}
+            >
+              <Play size={16} fill="white" /> {(() => {
+                if (joining) return 'CONFIRMING...';
+                if (isInitializing) return 'LOADING...';
+                if (hasTicketsInRunningGame && selected.length === 0) return 'GAME IN PROGRESS...';
+                if (isGameRunning && ownedCardIds.length > 0) return 'WAITING FOR NEXT GAME...';
+                const isSelectionChanged = selected.length !== ownedCardIds.length || selected.some(id => !ownedCardIds.includes(id));
+                if (isSelectionChanged) return ownedCardIds.length > 0 ? 'CONFIRM SELECTION' : 'BUY TICKETS';
+                return ownedCardIds.length > 0 ? 'ENTER GAME ROOM' : 'BUY TICKETS';
+              })()}
+            </button>
+          )}
         </div>
       </div>
 
