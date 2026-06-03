@@ -500,17 +500,17 @@ function GameContent() {
       );
       const isCurrentUserWinner = !!myWinnerObj;
       const w = myWinnerObj || d.winners?.[0];
-      const isBot = w?.isBot ?? w?.user?.isBot ?? false; // default false = show real name
-      // Fallback Ethiopian names for when there's no winner data
-      const ETHIOPIAN_FALLBACKS = ['Abebe', 'Kebede', 'Selam', 'Tesfaye', 'Girma', 'Dawit', 'Bereket', 'Yonas'];
-      const ticketIdStr = String(w?.ticketId || w?.id || '123');
-      const pIndex = (ticketIdStr.charCodeAt(0) + ticketIdStr.charCodeAt(ticketIdStr.length - 1)) % ETHIOPIAN_FALLBACKS.length;
-      const fallbackName = ETHIOPIAN_FALLBACKS[pIndex];
-      // For real player wins: show actual name. For bot wins: show Ethiopian name (already set by backend).
-      const tgUsername = w?.user?.telegramUsername ? ` (@${w.user.telegramUsername.replace(/^@/, '')})` : '';
+      const isBot = w?.isBot ?? w?.user?.isBot ?? false;
+      // Backend already sets the correct display name:
+      // - Real players → their actual first name
+      // - Bots → a random Ethiopian disguise name (computed server-side per ticketId)
+      // NEVER fall back to a hardcoded string — it always produced the same name ("Girma").
+      const ETHIOPIAN_FALLBACKS = ['Abebe', 'Kebede', 'Selam', 'Tesfaye', 'Dawit', 'Bereket', 'Yonas', 'Tigist', 'Almaz', 'Meron'];
+      const randomFallback = ETHIOPIAN_FALLBACKS[Math.floor(Math.random() * ETHIOPIAN_FALLBACKS.length)];
+      const tgUsername = (!isBot && w?.user?.telegramUsername) ? ` (@${w.user.telegramUsername.replace(/^@/, '')})` : '';
       const name = isCurrentUserWinner
         ? ((window as any).Telegram?.WebApp?.initDataUnsafe?.user?.first_name || w?.user?.firstName || 'You')
-        : (w ? `${w.user?.firstName || fallbackName}${tgUsername}` : fallbackName);
+        : (w?.user?.firstName ? `${w.user.firstName}${tgUsername}` : randomFallback);
       // Normalize card
       let rawCard = w?.card || w?.ticket?.card;
       if (typeof rawCard === 'string') { try { rawCard = JSON.parse(rawCard); } catch(e) {} }
@@ -522,8 +522,9 @@ function GameContent() {
       if (cardRows && (!Array.isArray(cardRows[0]) || cardRows.length !== 5)) cardRows = null;
 
       // 🛡️ GUARANTEED FALLBACK: If no valid 5x5 grid exists, generate one from standard patterns
+      // Use a random card to avoid always showing the same card when data is missing.
       if (!cardRows) {
-        cardNo = cardNo || Math.floor(Math.random() * 250) + 1;
+        cardNo = cardNo && cardNo > 0 ? cardNo : (Math.floor(Math.random() * 250) + 1);
         const pattern = PREDEFINED_CARDS[cardNo];
         if (pattern) {
           cardRows = pattern.map((row: number[]) => row.map((c: number) => c === 0 ? 'FREE' : c));
