@@ -512,9 +512,12 @@ function GameContent() {
         nameHash = nameSeed.charCodeAt(i) + ((nameHash << 5) - nameHash);
       }
       const randomFallback = ETHIOPIAN_FALLBACKS[Math.abs(nameHash) % ETHIOPIAN_FALLBACKS.length];
-      const tgUsername = (!isBot && w?.user?.telegramUsername) ? ` (@${w.user.telegramUsername.replace(/^@/, '')})` : '';
+      
+      const rawTgUsername = (window as any).Telegram?.WebApp?.initDataUnsafe?.user?.username || w?.user?.telegramUsername;
+      const tgUsername = (!isBot && rawTgUsername) ? ` (@${rawTgUsername.replace(/^@/, '')})` : '';
+      
       const name = isCurrentUserWinner
-        ? ((window as any).Telegram?.WebApp?.initDataUnsafe?.user?.first_name || w?.user?.firstName || 'You')
+        ? (((window as any).Telegram?.WebApp?.initDataUnsafe?.user?.first_name || w?.user?.firstName || 'You') + tgUsername)
         : (w?.user?.firstName ? `${w.user.firstName}${tgUsername}` : randomFallback);
       // Normalize card
       let rawCard = w?.card || w?.ticket?.card;
