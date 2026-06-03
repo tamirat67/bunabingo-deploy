@@ -134,15 +134,23 @@ export async function debitAgentCommissionForGame(
   }
   const ticketPrice = new Decimal(gameObj.room.ticketPrice.toString());
 
-  // 2. Calculate TOTAL sales from ALL tickets (real players + house bots)
-  const totalAllSales = ticketPrice.mul(tickets.length);
+  // 2. Separate real player tickets from house bot tickets
+  const realTickets = tickets.filter(t => !t.user?.isBot);
+  const realTicketCount = realTickets.length;
+
+  if (realTicketCount === 0) {
+    logger.info(`[Commission] Game ${gameId}: no real player tickets found, skipping pre-deposit debit.`);
+    return null;
+  }
+
+  // Commission is calculated ONLY on real player ticket sales (NOT bots)
+  const totalRealSales = ticketPrice.mul(realTicketCount);
 
   // 3. Find the agent for this game from REAL player referrals
-  //    (bots don't have referrers — we attribute ALL sales to the real-player agent)
+  //    (bots don't have referrers — we attribute sales to the real-player agent)
   let gameAgentId: string | null = null;
 
-  for (const ticket of tickets) {
-    if (ticket.user?.isBot) continue; // bots don't identify the agent
+  for (const ticket of realTickets) {
     let agentId = ticket.user?.referredBy ?? null;
     if (agentId) {
       const agentUser = await prisma.user.findUnique({
@@ -165,8 +173,8 @@ export async function debitAgentCommissionForGame(
   const wallet = await getOrCreateAgentPreDepositWallet(gameAgentId);
   const balance = new Decimal(wallet.balance.toString());
 
-  // Commission = 30% of ALL ticket sales (real + bot)
-  const commission = totalAllSales.mul(rate);
+  // Commission = rate% of REAL player ticket sales ONLY (bots excluded)
+  const commission = totalRealSales.mul(rate);
 
   // 4. Hard-block if insufficient balance
   if (balance.lessThan(commission)) {
@@ -204,8 +212,8 @@ export async function debitAgentCommissionForGame(
         type: 'COMMISSION_DEBIT',
         amount: commission,
         gameId,
-        totalSales: totalAllSales,
-        description: `Company commission (${(rate * 100).toFixed(0)}%) for game ${gameId} — ${tickets.length} tickets × ${ticketPrice} ETB = ${totalAllSales.toFixed(2)} ETB total`,
+        totalSales: totalRealSales,
+        description: `Company commission (${(rate * 100).toFixed(0)}%) for game ${gameId} — ${realTicketCount} real player tickets × ${ticketPrice} ETB = ${totalRealSales.toFixed(2)} ETB real sales (bots excluded)`,
         balanceBefore: balance,
         balanceAfter: newBalance,
       },
