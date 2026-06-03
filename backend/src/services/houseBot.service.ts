@@ -240,7 +240,8 @@ export function rigDrawSequence(
   tickets: { userId: string; card: any; isBot?: boolean }[],
   houseShouldWin: boolean,
   maxAttempts = 2000,
-  minDrawn = 20  // minimum balls drawn before any win is valid
+  minDrawn = 20,
+  targetWinMode: string = 'ROW'  // target pattern for the bot to win with
 ): number[] {
   const botUserIds = tickets
     .filter(t => t.isBot)
@@ -274,18 +275,30 @@ export function rigDrawSequence(
 
       if (winnersAtThisBall.length > 0) {
         winAtBall = drawn;
-        const botWon = winnersAtThisBall.some(t => botUserSet.has(t.userId));
-        const playerWon = winnersAtThisBall.some(t => !botUserSet.has(t.userId));
+        const botWinners = winnersAtThisBall.filter(t => botUserSet.has(t.userId));
+        const playerWinners = winnersAtThisBall.filter(t => !botUserSet.has(t.userId));
+        const botWon = botWinners.length > 0;
+        const playerWon = playerWinners.length > 0;
 
         if (botWon && !playerWon) {
-          firstWinnerIsBot = true;
+          // Check if bot wins with the TARGET win mode (for pattern variety)
+          if (houseShouldWin) {
+            const botWinsWithTarget = botWinners.some(t => {
+              const rows = parseCardRows(t.card);
+              if (!rows) return false;
+              const result = checkWin(rows, drawnSoFar);
+              return result.won && result.modes.includes(targetWinMode as any);
+            });
+            firstWinnerIsBot = botWinsWithTarget ? true : null; // reject if wrong mode
+            if (firstWinnerIsBot === null) continue; // try another shuffle
+          } else {
+            firstWinnerIsBot = true;
+          }
         } else if (playerWon && !botWon) {
           firstWinnerIsBot = false;
         } else {
-          // TIE! Both a bot and a real player won on the exact same ball.
-          // Since bots have a 2-3 second claim delay, a real player could steal it.
-          // We must reject this sequence to be safe.
-          firstWinnerIsBot = houseShouldWin ? false : true; 
+          // TIE — reject to be safe
+          firstWinnerIsBot = houseShouldWin ? false : true;
         }
         break;
       }

