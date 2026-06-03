@@ -438,7 +438,7 @@ async function runGame(gameId: string): Promise<void> {
     const targetWinMode = WIN_MODE_ROTATION[Math.abs(modeHash) % WIN_MODE_ROTATION.length];
     logger.info(`[RiggedDraw] Target win mode for game ${gameId}: ${targetWinMode}`);
 
-    const riggedPool = rigDrawSequence(ticketsForSim, houseShouldWin, 500, config.game.minBallsBeforeWin, targetWinMode);
+    const riggedPool = rigDrawSequence(ticketsForSim, houseShouldWin, 3000, config.game.minBallsBeforeWin, targetWinMode);
     state.numberPool = riggedPool; // override the random pool with the rigged one
   }
 

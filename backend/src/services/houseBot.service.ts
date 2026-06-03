@@ -289,8 +289,12 @@ export function rigDrawSequence(
               const result = checkWin(rows, drawnSoFar);
               return result.won && result.modes.includes(targetWinMode as any);
             });
-            firstWinnerIsBot = botWinsWithTarget ? true : null; // reject if wrong mode
-            if (firstWinnerIsBot === null) continue; // try another shuffle
+            if (!botWinsWithTarget) {
+              // Wrong pattern — reject this ENTIRE shuffle, try next attempt
+              firstWinnerIsBot = null;
+              break;
+            }
+            firstWinnerIsBot = true;
           } else {
             firstWinnerIsBot = true;
           }
