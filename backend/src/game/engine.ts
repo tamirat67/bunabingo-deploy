@@ -78,6 +78,22 @@ export async function startCountdown(gameId: string, playerCount: number): Promi
   });
   if (!game) return;
 
+  // STRICT SINGLETON ENFORCEMENT: Never start a game if another is active in this room
+  if (game.room.type !== 'DEMO') {
+    const activeOverlap = await prisma.game.findFirst({
+      where: { 
+        roomId: game.roomId, 
+        status: { in: ['RUNNING', 'COUNTDOWN'] },
+        id: { not: gameId }
+      }
+    });
+    
+    if (activeOverlap) {
+      logger.info(`[Engine] Game ${gameId} countdown blocked because game ${activeOverlap.id} is currently ${activeOverlap.status}. Staying WAITING.`);
+      return;
+    }
+  }
+
   // Clear any active waiting timeout for this game
   const waitingTimer = waitingTimers.get(gameId);
   if (waitingTimer) {
@@ -1247,7 +1263,14 @@ export async function createWaitingGame(roomId: string): Promise<string> {
         where: { roomId, status: { in: ['WAITING', 'COUNTDOWN'] } },
         orderBy: { createdAt: 'desc' },
       });
-      if (existing) return existing.id;
+      if (existing) {
+        // If the game was stuck in WAITING (e.g. because a previous game was running), start it now!
+        if (existing.status === 'WAITING') {
+          const fullCount = await prisma.ticket.count({ where: { gameId: existing.id } });
+          await startCountdown(existing.id, fullCount);
+        }
+        return existing.id;
+      }
     }
     
     const newGame = await prisma.game.create({
