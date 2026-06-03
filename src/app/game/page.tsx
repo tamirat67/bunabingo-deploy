@@ -593,6 +593,19 @@ function GameContent() {
       });
     });
 
+    socket.on('claim-success', () => {
+      setClaiming(false);
+      // The game-ended event is fired globally and will pop the winner modal natively
+    });
+
+    socket.on('claim-error', (err: any) => {
+      setClaiming(false);
+      const isTooEarlyMsg = err.message?.toLowerCase().includes('wait') || err.message?.toLowerCase().includes('minimum');
+      if (!isTooEarlyMsg) {
+        showAlert('Bingo Claim', err.message || 'No Bingo detected yet! Check your patterns.', 'info');
+      }
+    });
+
     // Re-join and reload after reconnect (handles VPS socket drops)
     socket.on('connect', () => {
       socket.emit('join-game', gameId);
@@ -609,6 +622,8 @@ function GameContent() {
       socket.off('game-update');
       socket.off('player-joined');
       socket.off('player-left');
+      socket.off('claim-success');
+      socket.off('claim-error');
       socket.off('connect');
       // Cancel any pending start-audio schedule on unmount / game change
       if (startAudioScheduled.current) clearTimeout(startAudioScheduled.current);
@@ -810,6 +825,14 @@ function GameContent() {
       return;
     }
 
+    // Fast socket claim ("clicke boom")
+    if (socket && socket.connected) {
+      socket.emit('claim-bingo', { gameId });
+      // Socket listeners for 'claim-success' and 'claim-error' will handle the rest
+      return;
+    }
+
+    // Fallback to slow HTTP API if socket is down
     try { 
       const res = await claimBingo(gameId);
       if (res.won) {

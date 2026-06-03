@@ -147,6 +147,21 @@ export function initSocket(server: HttpServer) {
       logger.info(`[Socket] Socket ${socket.id} left game room: ${gameId}`);
     });
 
+    socket.on('claim-bingo', async (data: { gameId: string }) => {
+      const gId = data?.gameId;
+      if (!userId || !gId) return;
+      
+      try {
+        const { claimBingoWin } = await import('../game/engine');
+        // Engine's claimBingoWin handles validation and triggering the global game-ended event
+        await claimBingoWin(gId, userId);
+        socket.emit('claim-success', { gameId: gId });
+      } catch (err: any) {
+        logger.warn(`[Socket Claim] User ${userId} failed to claim ${gId}: ${err.message}`);
+        socket.emit('claim-error', { message: err.message });
+      }
+    });
+
     socket.on('disconnect', () => {
       logger.info(`[Socket] Client disconnected: ${socket.id}`);
     });
