@@ -223,7 +223,15 @@ function GameContent() {
 
     if (!isPlayingQueueRef.current) {
       console.log('[AudioQueue] Starting queue processor');
-      processAudioQueue(setLastBallFn);
+      isPlayingQueueRef.current = true; // Lock immediately
+      
+      // Prevent first ball audio from overlapping with start.mp3
+      const timeSinceStartAudio = Date.now() - lastStartAudioPlayed.current;
+      if (timeSinceStartAudio < 2500) {
+        setTimeout(() => processAudioQueue(setLastBallFn), 2500 - timeSinceStartAudio);
+      } else {
+        processAudioQueue(setLastBallFn);
+      }
     }
   }, [processAudioQueue]);
 
