@@ -333,12 +333,12 @@ function DashboardContent() {
             <div className="card-icon-container">
               <FiDollarSign size={20} />
             </div>
-            <span className="card-pill" style={{ color: '#22c55e', background: 'rgba(34, 197, 94, 0.1)' }}>25% Share</span>
+            <span className="card-pill" style={{ color: '#22c55e', background: 'rgba(34, 197, 94, 0.1)' }}>20% Share</span>
           </div>
           <div className="card-body">
             <div className="card-label">COMPANY REVENUE</div>
             <div className="card-value">{companyRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB</div>
-            <div className="card-subtext">12.5% of Total Stake</div>
+            <div className="card-subtext">20% of Real Stake</div>
           </div>
         </div>
 
@@ -347,12 +347,12 @@ function DashboardContent() {
             <div className="card-icon-container">
               <FiUsers size={20} />
             </div>
-            <span className="card-pill" style={{ color: '#22c55e', background: 'rgba(34, 197, 94, 0.1)' }}>25% Share</span>
+            <span className="card-pill" style={{ color: '#22c55e', background: 'rgba(34, 197, 94, 0.1)' }}>10% Share</span>
           </div>
           <div className="card-body">
             <div className="card-label">AGENT REVENUE</div>
             <div className="card-value">{agentRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB</div>
-            <div className="card-subtext">12.5% of Total Stake</div>
+            <div className="card-subtext">10% of Real Stake</div>
           </div>
         </div>
 
@@ -443,7 +443,7 @@ function DashboardContent() {
             <div style={{ background: '#f0fdf4', borderRadius: '14px', padding: '16px', border: '1px solid #86efac' }}>
               <div style={{ fontSize: '10px', fontWeight: '900', color: '#16a34a', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>✅ Real Company Revenue</div>
               <div style={{ fontSize: '22px', fontWeight: '900', color: '#14532d' }}>{realCompanyRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-              <div style={{ fontSize: '11px', color: '#16a34a', marginTop: '4px' }}>ETB — 12.5% of real sales</div>
+              <div style={{ fontSize: '11px', color: '#16a34a', marginTop: '4px' }}>ETB — 20% of real sales</div>
             </div>
 
             {/* Bot Company Revenue (synthetic) */}
@@ -507,15 +507,15 @@ function DashboardContent() {
           {/* How Commission Works Card */}
           <div className="premium-card">
             <h3 className="premium-card-title" style={{ fontSize: '14px', fontWeight: '900', borderBottom: 'none', paddingBottom: 0, marginBottom: '8px' }}>
-              HOW COMMISSION WORKS (25% PER GAME)
+              HOW COMMISSION WORKS (30% ON REAL STAKE)
             </h3>
             <p style={{ fontSize: '13px', color: '#8c857b', marginBottom: '20px', lineHeight: '1.5' }}>
-              For every bet placed on any game, 25% of the stake goes to the company and 75% goes to winners.
+              For every bet placed by a <b>REAL PLAYER</b>, 30% of the stake goes to commission and 70% goes to the prize pool. Bot stakes are not charged commission and go 100% to winners.
             </p>
             
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', background: '#faf8f5', borderRadius: '16px', padding: '16px 12px', border: '1px solid rgba(0,0,0,0.03)', margin: '16px 0' }}>
               <div style={{ textAlign: 'center', flex: 1 }}>
-                <div style={{ fontSize: '10px', fontWeight: '800', color: '#8c857b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Stake</div>
+                <div style={{ fontSize: '10px', fontWeight: '800', color: '#8c857b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Real Stake</div>
                 <div style={{ fontSize: '14px', fontWeight: '900', color: '#3d2b1f', marginTop: '4px' }}>100 ETB</div>
               </div>
               
@@ -524,8 +524,8 @@ function DashboardContent() {
               </div>
               
               <div style={{ textAlign: 'center', flex: 1 }}>
-                <div style={{ fontSize: '10px', fontWeight: '800', color: '#8c857b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Company (25%)</div>
-                <div style={{ fontSize: '14px', fontWeight: '900', color: '#3d2b1f', marginTop: '4px' }}>25 ETB</div>
+                <div style={{ fontSize: '10px', fontWeight: '800', color: '#8c857b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Commission (30%)</div>
+                <div style={{ fontSize: '14px', fontWeight: '900', color: '#3d2b1f', marginTop: '4px' }}>30 ETB</div>
               </div>
               
               <div style={{ color: '#d4cbbd', display: 'flex', alignItems: 'center' }}>
@@ -533,13 +533,13 @@ function DashboardContent() {
               </div>
               
               <div style={{ textAlign: 'center', flex: 1 }}>
-                <div style={{ fontSize: '10px', fontWeight: '800', color: '#8c857b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Winners (75%)</div>
-                <div style={{ fontSize: '14px', fontWeight: '900', color: '#3d2b1f', marginTop: '4px' }}>75 ETB</div>
+                <div style={{ fontSize: '10px', fontWeight: '800', color: '#8c857b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Winners (70%)</div>
+                <div style={{ fontSize: '14px', fontWeight: '900', color: '#3d2b1f', marginTop: '4px' }}>70 ETB</div>
               </div>
             </div>
             
             <p style={{ fontSize: '12px', color: '#8c857b', fontStyle: 'italic', margin: 0 }}>
-              This is the same for all games on the platform.
+              Of the 30 ETB commission: 20 ETB to Company, 10 ETB to Agent.
             </p>
           </div>
 
@@ -553,7 +553,7 @@ function DashboardContent() {
                     <th>GAME TYPE</th>
                     <th>ENTRY FEE</th>
                     <th>TOTAL STAKE</th>
-                    <th className="text-right">SERVICE FEE (25%)</th>
+                    <th className="text-right">SERVICE FEE (30% of Real)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -602,15 +602,15 @@ function DashboardContent() {
                   <td className="text-right" style={{ fontWeight: '700' }}>{globalSales.toLocaleString()} ETB</td>
                 </tr>
                 <tr>
-                  <td>Total Service Fee (25%)</td>
-                  <td className="text-right" style={{ fontWeight: '700' }}>{(globalSales * 0.25).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB</td>
+                  <td>Total Service Fee (30% of Real)</td>
+                  <td className="text-right" style={{ fontWeight: '700' }}>{((companyRevenue + agentRevenue) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB</td>
                 </tr>
                 <tr className="highlighted-row">
-                  <td>Company Revenue (25%)</td>
+                  <td>Company Revenue (20%)</td>
                   <td className="text-right">{companyRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB</td>
                 </tr>
                 <tr className="highlighted-row">
-                  <td>Agent Revenue (25%)</td>
+                  <td>Agent Revenue (10%)</td>
                   <td className="text-right">{agentRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB</td>
                 </tr>
                 <tr>
@@ -632,20 +632,20 @@ function DashboardContent() {
             <div className="revenue-split-box">
               <div className="revenue-split-title">
                 <FiInfo size={14} />
-                <span>REVENUE SPLIT (PER 100 ETB STAKE)</span>
+                <span>REVENUE SPLIT (PER 100 ETB REAL STAKE)</span>
               </div>
               <ul className="revenue-split-list">
                 <li className="revenue-split-item" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ color: '#d4af37', fontWeight: 'bold' }}>•</span>
-                  <span>75% goes to Winners (75 ETB)</span>
+                  <span>70% goes to Winners (70 ETB)</span>
                 </li>
                 <li className="revenue-split-item" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ color: '#d4af37', fontWeight: 'bold' }}>•</span>
-                  <span>12.5% goes to Company (12.5 ETB)</span>
+                  <span>20% goes to Company (20 ETB)</span>
                 </li>
                 <li className="revenue-split-item" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ color: '#d4af37', fontWeight: 'bold' }}>•</span>
-                  <span>12.5% goes to Agent (12.5 ETB)</span>
+                  <span>10% goes to Agent (10 ETB)</span>
                 </li>
               </ul>
             </div>
