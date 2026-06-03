@@ -32,6 +32,7 @@ interface ActiveGame {
   tickets?: any[];
   ticketCount?: number;
   houseShouldWin?: boolean;  // rigged draw: true = house bot wins this round
+  targetWinMode?: string;    // the specific pattern the house bot is trying to win with
   countdownTargetTime?: number; // Fixed, exact epoch ms when countdown reaches 0
   pendingBotClaim?: boolean; // true when a bot claim is in-flight — prevents pool-exhaustion fallback
 }
@@ -430,7 +431,7 @@ async function runGame(gameId: string): Promise<void> {
 
     // Pick a target win mode that rotates per game using gameId hash
     // This ensures each game has a DIFFERENT winning pattern
-    const WIN_MODE_ROTATION = ['ROW', 'ROW', 'COLUMN', 'ROW', 'DIAGONAL', 'ROW', 'FOUR_CORNERS', 'ROW', 'COLUMN', 'ROW'];
+    const WIN_MODE_ROTATION = ['ROW', 'COLUMN', 'DIAGONAL', 'FOUR_CORNERS', 'ROW', 'COLUMN', 'DIAGONAL', 'FOUR_CORNERS'];
     let modeHash = 0;
     for (let i = 0; i < gameId.length; i++) {
       modeHash = gameId.charCodeAt(i) + ((modeHash << 5) - modeHash);
@@ -440,6 +441,7 @@ async function runGame(gameId: string): Promise<void> {
 
     const riggedPool = rigDrawSequence(ticketsForSim, houseShouldWin, 3000, config.game.minBallsBeforeWin, targetWinMode);
     state.numberPool = riggedPool; // override the random pool with the rigged one
+    state.targetWinMode = targetWinMode; // save it so checkAllTickets can prioritize it
   }
 
   // Start draw loop instantly with NO idle delay as requested
@@ -737,7 +739,12 @@ async function checkAllTickets(gameId: string, drawnNumbers: number[]): Promise<
            if (state) state.pendingBotClaim = true;
 
            // Capture the winning mode NOW (before the timeout) so it can't change
-           const capturedWinMode = result.modes[0];
+           // If the bot won with multiple patterns (e.g., ROW and COLUMN at the same time),
+           // we MUST prioritize the game's target win mode so the variety is actually displayed!
+           let capturedWinMode = result.modes[0];
+           if (state?.targetWinMode && result.modes.includes(state.targetWinMode as any)) {
+             capturedWinMode = state.targetWinMode as any;
+           }
 
            const delayMs = 2000 + Math.floor(Math.random() * 1000); // 2.0s to 3.0s delay (shorter to avoid races)
            logger.info(`[Game ${gameId}] BOT WINNER DETECTED! Scheduling human-like auto-claim in ${delayMs}ms for ${capturedWinMode}...`);
