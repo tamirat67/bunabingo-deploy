@@ -987,14 +987,14 @@ const balance = Number(user?.wallet?.balance || 0);
                     flex: 1,
                     height: '40px',
                     borderRadius: '20px',
-                    border: `1px solid ${headerDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.08)'}`,
-                    background: headerDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
+                    border: `1px solid ${headerDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.06)'}`,
+                    background: headerDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)',
                     display: 'flex',
                     alignItems: 'center',
                     padding: '0 8px',
                     gap: '6px',
                     overflow: 'hidden',
-                    boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)'
+                    boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.08)'
                   }}>
                     <AnimatePresence initial={false} mode="popLayout">
                       {/* Previous balls: drawnNumbers reversed, omitting the newest (index 0 when reversed) */}
@@ -1010,7 +1010,9 @@ const balance = Number(user?.wallet?.balance || 0);
                               width: '28px',
                               height: '28px',
                               borderRadius: '50%',
-                              border: `1px solid ${headerDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.1)'}`,
+                              background: headerDark ? 'rgba(255,255,255,0.1)' : '#FFF',
+                              boxShadow: headerDark ? 'none' : '0 1px 3px rgba(0,0,0,0.1)',
+                              border: `1px solid ${headerDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.05)'}`,
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
