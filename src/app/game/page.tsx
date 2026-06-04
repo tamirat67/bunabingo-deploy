@@ -1043,7 +1043,7 @@ function GameContent() {
       </div>
 
       {/* ── Stats Row ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', padding: '8px', background: isVip ? 'rgba(255,255,255,0.02)' : T.statBg, borderBottom: isVip ? '1px solid rgba(255,215,0,0.2)' : `1px solid ${T.gold}44` }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px', padding: '4px', background: isVip ? 'rgba(255,255,255,0.02)' : T.statBg, borderBottom: isVip ? '1px solid rgba(255,215,0,0.2)' : `1px solid ${T.gold}44` }}>
         {[
           ['GAME ID',   gameId?.slice(-6).toUpperCase() || '--'],
           ['CARDS',     `${allCards}`],
@@ -1059,21 +1059,21 @@ function GameContent() {
               border: isVip 
                 ? (isPrize ? 'none' : '1px solid rgba(255, 215, 0, 0.25)') 
                 : `1px solid ${T.gold}33`, 
-              padding: '6px 4px', 
+              padding: '3px 2px', 
               textAlign: 'center', 
-              borderRadius: '8px',
+              borderRadius: '6px',
               backdropFilter: isVip && !isPrize ? 'blur(10px)' : 'none',
               boxShadow: isVip && isPrize ? '0 4px 15px rgba(255, 215, 0, 0.3)' : 'none',
             }}>
               <div style={{ 
-                fontSize: '8px', 
+                fontSize: '7px', 
                 fontWeight: 'bold', 
                 color: isVip 
                   ? (isPrize ? 'rgba(28, 10, 53, 0.8)' : '#FFD700') 
                   : (isPrize ? T.header : T.brown)
               }}>{l}</div>
               <div style={{ 
-                fontSize: '12px', 
+                fontSize: '11px', 
                 fontWeight: '900', 
                 color: isVip 
                   ? (isPrize ? '#1C0A35' : 'white') 

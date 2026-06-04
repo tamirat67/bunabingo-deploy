@@ -951,8 +951,194 @@ const balance = Number(user?.wallet?.balance || 0);
           <ChevronLeft size={20} color={isVip ? '#C471ED' : '#4B3621'} />
         </button>
 
-        {/* Live Ball Calls — matching the requested layout */}
-        {isGameRunning && drawnNumbers.length > 0 ? (
+        {/* Live Ball Calls — always show when game is running */}
+        {isGameRunning ? (
+          <div style={{
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            gap: '6px',
+            minWidth: 0,
+          }}>
+            {(() => {
+              const headerDark = isDark || isVip || isSpin;
+              return (
+                <>
+                  {drawnNumbers.length > 0 ? (
+                    <>
+                      {/* Left: Big Ball (Newest) */}
+                      {(() => {
+                        const newestNum = drawnNumbers[drawnNumbers.length - 1];
+                        const { letter, bgColor } = getBallDetails(newestNum);
+                        return (
+                          <div style={{
+                            width: '44px',
+                            height: '44px',
+                            borderRadius: '50%',
+                            background: `radial-gradient(circle at 35% 35%, #fff, ${bgColor})`,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            boxShadow: `0 3px 8px rgba(0,0,0,0.3), inset -2px -2px 4px rgba(0,0,0,0.2)`,
+                            flexShrink: 0,
+                            position: 'relative',
+                            border: '2px solid rgba(255,255,255,0.6)'
+                          }}>
+                            <span style={{ fontSize: '10px', fontWeight: '900', color: '#fff', lineHeight: 1, position: 'absolute', top: '5px', textShadow: '0 1px 2px rgba(0,0,0,0.4)' }}>{letter}</span>
+                            <span style={{ fontSize: '20px', fontWeight: '900', color: '#fff', lineHeight: 1, marginTop: '8px', letterSpacing: '-1px', textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>{newestNum}</span>
+                          </div>
+                        );
+                      })()}
+
+                      {/* Middle: Previous balls box */}
+                      <div style={{
+                        flex: 1,
+                        height: '40px',
+                        borderRadius: '20px',
+                        border: `1px solid ${headerDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.06)'}`,
+                        background: headerDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        padding: '0 8px',
+                        gap: '6px',
+                        overflow: 'hidden',
+                        boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.08)'
+                      }}>
+                        <AnimatePresence initial={false} mode="popLayout">
+                          {[...drawnNumbers].reverse().slice(1, 4).map((num) => {
+                            const { letter, bgColor } = getBallDetails(num);
+                            return (
+                              <motion.div
+                                key={num}
+                                initial={{ scale: 0, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.3, opacity: 0 }}
+                                style={{
+                                  width: '32px',
+                                  height: '32px',
+                                  borderRadius: '50%',
+                                  background: `radial-gradient(circle at 35% 35%, #fff, ${bgColor})`,
+                                  boxShadow: `0 2px 5px rgba(0,0,0,0.3), inset -1px -1px 3px rgba(0,0,0,0.2)`,
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  flexShrink: 0,
+                                  position: 'relative',
+                                  border: '1.5px solid rgba(255,255,255,0.6)'
+                                }}
+                              >
+                                <span style={{ fontSize: '7px', fontWeight: '900', color: '#fff', lineHeight: 1, position: 'absolute', top: '3px', textShadow: '0 1px 2px rgba(0,0,0,0.4)' }}>{letter}</span>
+                                <span style={{ fontSize: '14px', fontWeight: '900', color: '#fff', lineHeight: 1, marginTop: '6px', letterSpacing: '-0.5px', textShadow: '0 1px 2px rgba(0,0,0,0.4)' }}>{num}</span>
+                              </motion.div>
+                            );
+                          })}
+                        </AnimatePresence>
+                      </div>
+
+                      {/* Right: Count pill */}
+                      <div style={{
+                        height: '32px',
+                        borderRadius: '16px',
+                        border: `1px solid ${headerDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.08)'}`,
+                        padding: '0 10px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        background: headerDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
+                        color: headerDark ? '#FFF' : '#1a1d2e',
+                        fontSize: '12px',
+                        fontWeight: '900',
+                        flexShrink: 0
+                      }}>
+                        <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#f1c40f' }} />
+                        {drawnNumbers.length} / 75
+                      </div>
+                    </>
+                  ) : (
+                    /* Waiting for first ball */
+                    <div style={{
+                      height: '32px',
+                      borderRadius: '16px',
+                      padding: '0 12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      background: headerDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
+                      color: headerDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.4)',
+                      fontSize: '11px',
+                      fontWeight: '700',
+                    }}>
+                      <motion.div
+                        animate={{ opacity: [1, 0.3, 1] }}
+                        transition={{ duration: 1.2, repeat: Infinity }}
+                        style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#E74C3C' }}
+                      />
+                      LIVE — waiting for balls...
+                    </div>
+                  )}
+
+                  {/* Mic toggle — always visible when game is live */}
+                  <button
+                    onClick={() => {
+                      const next = !soundOn;
+                      setSoundOn(next);
+                      soundOnSelectRef.current = next;
+                      localStorage.setItem('game_sound', next ? 'true' : 'false');
+                      // Unlock audio context on mobile (requires user gesture)
+                      if (next) {
+                        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+                        if (ctx.state === 'suspended') ctx.resume();
+                        if (!ballAudioRefSelect.current) {
+                          ballAudioRefSelect.current = new Audio();
+                        }
+                      } else if (ballAudioRefSelect.current) {
+                        ballAudioRefSelect.current.pause();
+                      }
+                    }}
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '50%',
+                      border: 'none',
+                      background: soundOn
+                        ? (headerDark ? 'rgba(46,204,113,0.25)' : 'rgba(46,204,113,0.15)')
+                        : (headerDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'),
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      flexShrink: 0,
+                      boxShadow: soundOn ? '0 0 8px rgba(46,204,113,0.4)' : 'none',
+                      transition: 'all 0.2s ease',
+                    }}
+                    title={soundOn ? 'Mute live calls' : 'Unmute live calls'}
+                  >
+                    {soundOn
+                      ? <Mic size={14} color="#2ECC71" />
+                      : <MicOff size={14} color={headerDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.3)'} />
+                    }
+                  </button>
+                </>
+              );
+            })()}
+          </div>
+        ) : (
+          <div className="header-text">
+            <h1 style={{ color: isVip ? '#C471ED' : '#3D2B1F', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <ShieldCheck size={24} /> BUNA GAME ZONE
+              {isVip && (
+                <span style={{ background: 'linear-gradient(135deg, #FFD700, #FFA500)', color: '#1C0A35', fontSize: '9px', fontWeight: '900', padding: '2px 8px', borderRadius: '12px', boxShadow: '0 0 10px rgba(255, 215, 0, 0.6)', display: 'inline-flex', alignItems: 'center', gap: '3px', border: '1.5px solid #FFF', letterSpacing: '0.5px' }}>
+                  👑 BOSS VIP
+                </span>
+              )}
+            </h1>
+            <p style={{ color: isVip ? 'rgba(255,255,255,0.7)' : 'rgba(61,43,31,0.6)', fontWeight: 800 }}>{roomType} • STAKE {stake} ETB</p>
+          </div>
+        )}
+      </div>
           <div style={{
             flex: 1,
             display: 'flex',
