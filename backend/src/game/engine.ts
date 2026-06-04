@@ -380,23 +380,23 @@ async function runGame(gameId: string): Promise<void> {
   }
 
   // ─── Mark game as RUNNING (both real and DEMO) ────────────────────────────
-  // Prize pool = 75% of ALL sold cards (real players + house bots)
-  // House commission = 25% of ALL sold cards
-  // Agent commission (calculated above) stays based on real player sales only
+  // Prize pool = 70% of REAL PLAYER stakes ONLY (bot stakes are synthetic, not real cash)
+  // House commission = 30% of REAL PLAYER stakes (20% company + 10% agent) — from pre-deposit
+  // Bot stakes are visual only: they inflate player count but do NOT add real cash to prize pool
   let displayPrizePool: Decimal;
   let displayHouseEdge: Decimal;
   if (isDemo) {
     displayPrizePool = new Decimal(100);
     displayHouseEdge = new Decimal(0);
   } else {
-    // ticketCount includes ALL tickets (real + bots) since bots are injected before runGame
-    const totalStakeAll = new Decimal(unitPrice).mul(ticketCount);
     const totalRealStake = new Decimal(unitPrice).mul(realPlayerCount);
     
-    // Commission is 30% of REAL player stakes only. Bot stakes go 100% to prize pool.
-    displayHouseEdge  = totalRealStake.mul(houseEdgePercent).div(100);
-    displayPrizePool  = totalStakeAll.sub(displayHouseEdge);
-    logger.info(`[Game ${gameId}] Total stake (${ticketCount} cards × ${unitPrice} ETB) = ${totalStakeAll} ETB | Real Player Stake (${realPlayerCount} cards) = ${totalRealStake} ETB | House ${houseEdgePercent}% of Real = ${displayHouseEdge} ETB | Prize = ${displayPrizePool} ETB`);
+    // Commission is 30% of REAL player stakes only (from agent pre-deposit).
+    // Prize pool is 70% of REAL player stakes — this is actual cash on hand.
+    // Bot stakes are purely visual and do NOT contribute to the real prize pool.
+    displayHouseEdge = totalRealStake.mul(houseEdgePercent).div(100);
+    displayPrizePool = totalRealStake.sub(displayHouseEdge); // = realStake × 70%
+    logger.info(`[Game ${gameId}] Real Player Stake (${realPlayerCount} cards × ${unitPrice} ETB) = ${totalRealStake} ETB | Commission (${houseEdgePercent}%) = ${displayHouseEdge} ETB | Prize Pool (70% of real) = ${displayPrizePool} ETB`);
   }
 
   await prisma.game.update({

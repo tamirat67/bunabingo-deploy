@@ -857,13 +857,12 @@ function GameContent() {
   if (!mounted) return null;
 
   // ─── Prize / Stake / Commission calculation ─────────────────────────────
-  // Prize pool = 75% of ALL sold cards (real + bots), set by backend in game.totalPrize.
-  // Fallback estimate uses bot counts while game data is loading.
-  const BOT_COUNTS_FRONTEND: Record<string, number> = { CASUAL: 30, STANDARD: 30, PRO: 30, JACKPOT: 10, VIP: 10 };
+  // Prize pool = 70% of REAL PLAYER stakes only — set by backend in game.totalPrize.
+  // Bot stakes are visual only — they do NOT add to the real prize pool.
   const roomTypeName = game?.room?.type || spType || 'STANDARD';
-  const botCount     = BOT_COUNTS_FRONTEND[roomTypeName] ?? 30;
   
-  const fallbackPrize = Math.round((botCount + tickets.length) * stake * 0.75);
+  // Fallback: estimate based on real ticket count × 70% while game data is loading
+  const fallbackPrize = Math.round(tickets.length * stake * 0.70);
   const prize = isDemo
     ? (game?.totalPrize ? Number(game.totalPrize) : 100)
     : Math.max(
@@ -871,7 +870,7 @@ function GameContent() {
         fallbackPrize
       );
 
-  const fallbackHouseComm = Math.round((botCount + tickets.length) * stake * 0.25);
+  const fallbackHouseComm = Math.round(tickets.length * stake * 0.30);
   const houseComm = isDemo
     ? 0
     : Math.max(
