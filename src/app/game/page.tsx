@@ -277,18 +277,28 @@ function GameContent() {
   }, []);
 
   // Play stop.mp3 exactly once per game — guarded by stopAudioFiredRef
-  const playStopAudio = useCallback(() => {
-    if (!soundOnRef.current) return;
-    if (stopAudioFiredRef.current) return;  // already played for this game
+  // onComplete fires after stop.mp3 finishes (or immediately if muted / already played)
+  const playStopAudio = useCallback((onComplete?: () => void) => {
+    let completedOnce = false;
+    const safeComplete = () => {
+      if (!completedOnce) {
+        completedOnce = true;
+        if (onComplete) onComplete();
+      }
+    };
+    if (stopAudioFiredRef.current) { safeComplete(); return; } // already played
     stopAudioFiredRef.current = true;
+    if (!soundOnRef.current) { safeComplete(); return; } // muted — skip audio, fire callback
     try {
       // Store in ref so the element is NOT garbage collected before it finishes playing
       const el = new Audio('/audio/stop.mp3');
       stopAudioRef.current = el;
-      el.onended = () => { stopAudioRef.current = null; };
-      el.onerror = () => { stopAudioRef.current = null; };
-      el.play().catch(() => { stopAudioRef.current = null; });
-    } catch (e) {}
+      el.onended = () => { stopAudioRef.current = null; safeComplete(); };
+      el.onerror = () => { stopAudioRef.current = null; safeComplete(); };
+      el.play().catch(() => { stopAudioRef.current = null; safeComplete(); });
+      // Safety cap: show modal after 4s max even if audio hangs
+      setTimeout(safeComplete, 4000);
+    } catch (e) { safeComplete(); }
   }, []);
 
   // Modal State
@@ -543,9 +553,6 @@ function GameContent() {
         ballAudioRef.current.currentTime = 0;
       }
 
-      // ── Play stop.mp3 NOW (before modal renders) so browser audio context is available ──
-      playStopAudio();
-
       // ── Build winner data immediately from socket payload (no network wait) ──
       const tgUserId = typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.initDataUnsafe?.user?.id
         ? String((window as any).Telegram.WebApp.initDataUnsafe.user.id)
@@ -607,22 +614,24 @@ function GameContent() {
         drawnNumbers: d.drawnNumbers || drawn || [],
       };
 
-      // ── Show modal IMMEDIATELY — no setTimeout delay needed ──
-      // stop.mp3 was already started above; the 10ms delay was unnecessary.
-      setGameFinished(winnerData);
-      setRedirectSecs(4);
-      redirectCountdownRef.current = setInterval(() => {
-        setRedirectSecs(s => {
-          if (s <= 1) {
-            clearInterval(redirectCountdownRef.current);
-            return 0;
-          }
-          return s - 1;
-        });
-      }, 1000);
-      redirectTimerRef.current = setTimeout(() => {
-        router.push(`/tickets/select?type=${game?.room?.type || spType}&price=${stake}`);
-      }, 4000);
+      // ── Play stop.mp3, then show winner modal as soon as it finishes ──
+      // Winner data is already built — we just wait for the audio to complete.
+      playStopAudio(() => {
+        setGameFinished(winnerData);
+        setRedirectSecs(4);
+        redirectCountdownRef.current = setInterval(() => {
+          setRedirectSecs(s => {
+            if (s <= 1) {
+              clearInterval(redirectCountdownRef.current);
+              return 0;
+            }
+            return s - 1;
+          });
+        }, 1000);
+        redirectTimerRef.current = setTimeout(() => {
+          router.push(`/tickets/select?type=${game?.room?.type || spType}&price=${stake}`);
+        }, 4000);
+      });
 
       // ── Fetch fresh game data in background (updates card/prize if server has more details) ──
       loadData();
