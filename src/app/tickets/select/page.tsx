@@ -696,8 +696,30 @@ function SelectionContent() {
         }
 
         // ── Show winner modal to ALL guests on the selection page ────────────
-        if (d && (d.winnerName || d.winnerId)) {
-          setGameFinishedData({ ...d, isCurrentUserWinner: false });
+        // Backend sends: { winners: [{user:{firstName}, winMode, prizeAmount, card:{id,rows}, cardId, ...}], drawnNumbers, gamePrize }
+        const winners = d?.winners || [];
+        const w = winners[0]; // first (and usually only) winner
+        if (w) {
+          // Parse name
+          const winnerName = w.user?.firstName || w.user?.telegramUsername || 'Player';
+          // Parse card rows
+          let rawCard = w.card || w.ticket?.card;
+          if (typeof rawCard === 'string') { try { rawCard = JSON.parse(rawCard); } catch(e) {} }
+          let cardRows = rawCard ? (Array.isArray(rawCard) ? rawCard : (rawCard.rows ?? null)) : null;
+          if (typeof cardRows === 'string') { try { cardRows = JSON.parse(cardRows); } catch(e) {} }
+          if (cardRows && (!Array.isArray(cardRows[0]) || cardRows.length !== 5)) cardRows = null;
+          const cardNo: number | undefined = rawCard?.id ?? w.cardId ?? undefined;
+
+          setGameFinishedData({
+            winnerName,
+            prize: parseFloat(String(w.prizeAmount ?? 0)) || parseFloat(String(d.gamePrize ?? 0)) || 0,
+            mode: w.winMode || 'ROW',
+            card: cardRows,
+            cardNo,
+            isBot: w.isBot ?? w.user?.isBot ?? false,
+            drawnNumbers: d.drawnNumbers || [],
+            isCurrentUserWinner: false,
+          });
           setWinnerRedirectSecs(4);
           if (winnerRedirectRef.current) clearInterval(winnerRedirectRef.current);
           winnerRedirectRef.current = setInterval(() => {
