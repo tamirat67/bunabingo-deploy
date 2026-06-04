@@ -36,7 +36,7 @@ function SelectionContent() {
   const [isInitializing, setIsInitializing] = useState(true);
   // ── Live game state: true when the room has a RUNNING game and player is queued for next session
   const [isGameRunning, setIsGameRunning] = useState(false);
-  const [recentBall, setRecentBall] = useState<number | null>(null);
+  const [drawnNumbers, setDrawnNumbers] = useState<number[]>([]);
   const [hasTicketsInRunningGame, setHasTicketsInRunningGame] = useState(false);
   const [runningGameId, setRunningGameId] = useState<string | null>(null);
   // Ref so the polling interval always reads the latest value without stale closures
@@ -480,7 +480,12 @@ function SelectionContent() {
       });
 
       socket.on('number-drawn', (d: any) => {
-        if (d.number !== undefined) setRecentBall(d.number);
+        if (d.number !== undefined) {
+          setDrawnNumbers(prev => {
+            if (!prev.includes(d.number)) return [...prev, d.number];
+            return prev;
+          });
+        }
       });
 
       // ── When the RUNNING game finishes, this lobby wakes up as next game ──
@@ -489,7 +494,7 @@ function SelectionContent() {
         isGameRunningRef.current = false;
         setLiveGameDismissed(true);
         setCountdown(null);
-        setRecentBall(null);
+        setDrawnNumbers([]);
         setEndTime(null);
         setLiveGameSyncTimer(null);
         liveGameEndTimeRef.current = null;
@@ -524,6 +529,17 @@ function SelectionContent() {
   useEffect(() => {
     setSelected(prev => prev.filter(id => !occupied.includes(id)));
   }, [occupied]);
+
+  const gridRef = useRef<HTMLDivElement>(null);
+
+  // Helper to format bingo balls
+  const getBallDetails = (num: number) => {
+    if (num <= 15) return { letter: 'B', color: '#E74C3C' }; // Red
+    if (num <= 30) return { letter: 'I', color: '#E67E22' }; // Orange
+    if (num <= 45) return { letter: 'N', color: '#3498DB' }; // Blue
+    if (num <= 60) return { letter: 'G', color: '#2ECC71' }; // Green
+    return { letter: 'O', color: '#9B59B6' }; // Purple
+  };
 
   // ─── Auto-redirect to bingo calling page when game launches (30+1 trigger) ───
   // Catches cases where the game-started socket event was missed due to timing.
@@ -938,6 +954,57 @@ const balance = Number(user?.wallet?.balance || 0);
         </div>
       </div>
 
+      {/* ── Recent Balls Row ── */}
+      {isGameRunning && drawnNumbers.length > 0 && (
+        <div style={{
+          background: 'rgba(230, 218, 195, 0.2)',
+          borderRadius: '16px',
+          padding: '10px 16px',
+          marginBottom: '8px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          overflowX: 'auto',
+          scrollbarWidth: 'none',
+          whiteSpace: 'nowrap'
+        }}>
+          <div style={{
+            fontSize: '11px',
+            fontWeight: '900',
+            color: T.header,
+            lineHeight: 1.2,
+            textTransform: 'uppercase',
+            minWidth: '50px'
+          }}>
+            RECENT<br/>BALLS
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {drawnNumbers.slice().reverse().map((num, i) => {
+              const { letter, color } = getBallDetails(num);
+              return (
+                <div key={i} style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '50%',
+                  background: color,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#FFF',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+                  border: '2px solid rgba(255,255,255,0.8)',
+                  flexShrink: 0
+                }}>
+                  <span style={{ fontSize: '10px', fontWeight: '800', lineHeight: 1 }}>{letter}</span>
+                  <span style={{ fontSize: '16px', fontWeight: '900', lineHeight: 1 }}>{num}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* ── Live Activity Bar ── */}
       <div style={{
         display: 'flex',
@@ -1051,18 +1118,10 @@ const balance = Number(user?.wallet?.balance || 0);
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: recentBall ? (isVip ? 'radial-gradient(circle at 30% 30%, #FFD700, #B8860B)' : 'radial-gradient(circle at 30% 30%, #FFF, #CCC)') : 'transparent',
                 boxShadow: `0 0 30px ${isVip ? 'rgba(255,215,0,0.4)' : 'rgba(212,175,55,0.3)'}`,
-                color: recentBall ? '#000' : 'inherit'
               }}
             >
-              {recentBall ? (
-                <span style={{ fontSize: '36px', fontWeight: '900', textShadow: '0 1px 2px rgba(255,255,255,0.5)' }}>
-                  {recentBall}
-                </span>
-              ) : (
-                <span style={{ fontSize: '40px' }}>🎱</span>
-              )}
+              <span style={{ fontSize: '40px' }}>🎱</span>
             </motion.div>
 
             {/* Title */}
