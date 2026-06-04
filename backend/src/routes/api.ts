@@ -534,6 +534,16 @@ router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
       }
     }
 
+    let drawnNumbers: number[] = [];
+    if (runningGame) {
+      const { getActiveGames } = await import('../game/engine');
+      const activeGames = getActiveGames();
+      const state = activeGames.get(runningGame.id);
+      if (state) {
+        drawnNumbers = state.drawnNumbers || [];
+      }
+    }
+
     // 3. Resolve the active/waiting game ID
     if (gameIdFromQuery) {
       // Check if the requested game is RUNNING
@@ -573,7 +583,8 @@ router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
         myCardIds: [], 
         isGameRunning: isGameRunning,
         hasTicketsInRunningGame,
-        runningGameId
+        runningGameId,
+        drawnNumbers
       };
       occupiedCache.set(cacheKey, { data: responseData, timestamp: now });
       return res.json(responseData);
@@ -599,9 +610,8 @@ router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
       isGameRunning,
       hasTicketsInRunningGame,
       runningGameId,
-      // Provide the real server start-time so every client (polling or socket)
-      // anchors the 20s "NEXT CHECK" cycle to the same epoch ms.
       gameStartedAt: isGameRunning && runningGame?.startedAt ? runningGame.startedAt.getTime() : undefined,
+      drawnNumbers
     };
 
     occupiedCache.set(cacheKey, { data: responseData, timestamp: now });

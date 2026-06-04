@@ -606,6 +606,9 @@ function SelectionContent() {
 
         setHasTicketsInRunningGame(!!res.hasTicketsInRunningGame);
         setRunningGameId(res.runningGameId || null);
+        if ((res as any).drawnNumbers) {
+          setDrawnNumbers((res as any).drawnNumbers);
+        }
       }).catch(() => {
         // Even on API failure, unblock the UI so player isn't stuck on "LOADING..."
         setIsInitializing(false);
