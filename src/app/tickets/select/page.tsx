@@ -1006,7 +1006,7 @@ const balance = Number(user?.wallet?.balance || 0);
                     <AnimatePresence initial={false} mode="popLayout">
                       {/* Previous balls: drawnNumbers reversed, omitting the newest (index 0 when reversed) */}
                       {[...drawnNumbers].reverse().slice(1, 4).map((num) => {
-                        const { letter, color } = getBallDetails(num);
+                        const { letter, bgColor } = getBallDetails(num);
                         return (
                           <motion.div
                             key={num}
