@@ -5,7 +5,7 @@ import { getMe, joinGame, getOccupiedCards, getGame } from '../../../lib/api';
 import { PREDEFINED_CARDS } from '../../../lib/predefinedCards';
 import { useSocket } from '../../../context/SocketContext';
 import BunaModal from '../../../components/BunaModal';
-import { ChevronLeft, RefreshCw, Play, ShieldCheck, Eye, Users, Trophy, Zap, Crown, Clock } from 'lucide-react';
+import { ChevronLeft, ShieldCheck, Eye, Users, Trophy, Zap, Crown, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../../context/ThemeContext';
 
@@ -1400,29 +1400,7 @@ const balance = Number(user?.wallet?.balance || 0);
           )}
         </div>
 
-        <div className="footer-right-actions">
-          <button className="btn-refresh-blue" onClick={() => window.location.reload()}>
-            <RefreshCw size={16} /> Refresh
-          </button>
-          {countdown !== 0 && (
-            <button
-              className={`btn-start-game ${selected.length > 0 && !isInitializing ? 'active' : ''}`}
-              disabled={selected.length === 0 || joining || isInitializing}
-              onClick={handleStart}
-              style={isInitializing ? { background: '#555', borderBottomColor: '#333', opacity: 0.6, cursor: 'not-allowed' } : undefined}
-            >
-              <Play size={16} fill="white" /> {(() => {
-                if (joining) return 'CONFIRMING...';
-                if (isInitializing) return 'LOADING...';
-                if (hasTicketsInRunningGame && selected.length === 0) return 'GAME IN PROGRESS...';
-                if (isGameRunning && ownedCardIds.length > 0) return 'WAITING FOR NEXT GAME...';
-                const isSelectionChanged = selected.length !== ownedCardIds.length || selected.some(id => !ownedCardIds.includes(id));
-                if (isSelectionChanged) return ownedCardIds.length > 0 ? 'CONFIRM SELECTION' : 'BUY TICKETS';
-                return ownedCardIds.length > 0 ? 'ENTER GAME ROOM' : 'BUY TICKETS';
-              })()}
-            </button>
-          )}
-        </div>
+
       </div>
 
       {/* banner removed — mask is now inside grid-brown above */}
