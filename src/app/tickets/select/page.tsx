@@ -627,11 +627,11 @@ function SelectionContent() {
 
   // Helper to format bingo balls
   const getBallDetails = (num: number) => {
-    if (num <= 15) return { letter: 'B', color: '#E74C3C' }; // Red
-    if (num <= 30) return { letter: 'I', color: '#E67E22' }; // Orange
-    if (num <= 45) return { letter: 'N', color: '#3498DB' }; // Blue
-    if (num <= 60) return { letter: 'G', color: '#2ECC71' }; // Green
-    return { letter: 'O', color: '#9B59B6' }; // Purple
+    if (num <= 15) return { letter: 'B', color: '#fff', bgColor: '#E74C3C' };  // Red
+    if (num <= 30) return { letter: 'I', color: '#fff', bgColor: '#E67E22' };  // Orange
+    if (num <= 45) return { letter: 'N', color: '#fff', bgColor: '#3498DB' };  // Blue
+    if (num <= 60) return { letter: 'G', color: '#fff', bgColor: '#27AE60' };  // Green
+    return { letter: 'O', color: '#fff', bgColor: '#8E44AD' };                 // Purple
   };
 
 
@@ -708,7 +708,13 @@ function SelectionContent() {
           socket.emit('join-game', newRunningId);
         }
         if ((res as any).drawnNumbers) {
-          setDrawnNumbers((res as any).drawnNumbers);
+          const incoming: number[] = (res as any).drawnNumbers;
+          setDrawnNumbers(prev => {
+            // Queue audio only for genuinely new numbers not yet announced
+            const newBalls = incoming.filter(n => !announcedSelectRef.current.has(n));
+            newBalls.forEach(n => queueSelectBall(n));
+            return incoming;
+          });
         }
       }).catch(() => {
         // Even on API failure, unblock the UI so player isn't stuck on "LOADING..."
@@ -961,23 +967,24 @@ const balance = Number(user?.wallet?.balance || 0);
                   {/* Left: Big Ball (Newest) */}
                   {(() => {
                     const newestNum = drawnNumbers[drawnNumbers.length - 1];
-                    const { letter, color } = getBallDetails(newestNum);
+                    const { letter, bgColor } = getBallDetails(newestNum);
                     return (
                       <div style={{
-                        width: '46px',
-                        height: '46px',
+                        width: '44px',
+                        height: '44px',
                         borderRadius: '50%',
-                        background: '#f8f9fa',
+                        background: `radial-gradient(circle at 35% 35%, #fff, ${bgColor})`,
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        boxShadow: 'inset -2px -2px 4px rgba(0,0,0,0.1), 0 2px 5px rgba(0,0,0,0.3)',
+                        boxShadow: `0 3px 8px rgba(0,0,0,0.3), inset -2px -2px 4px rgba(0,0,0,0.2)`,
                         flexShrink: 0,
-                        position: 'relative'
+                        position: 'relative',
+                        border: '2px solid rgba(255,255,255,0.6)'
                       }}>
-                        <span style={{ fontSize: '10px', fontWeight: '900', color: '#E74C3C', lineHeight: 1, position: 'absolute', top: '5px' }}>{letter}</span>
-                        <span style={{ fontSize: '24px', fontWeight: '900', color: '#1a1d2e', lineHeight: 1, marginTop: '8px', letterSpacing: '-1px' }}>{newestNum}</span>
+                        <span style={{ fontSize: '10px', fontWeight: '900', color: '#fff', lineHeight: 1, position: 'absolute', top: '5px', textShadow: '0 1px 2px rgba(0,0,0,0.4)' }}>{letter}</span>
+                        <span style={{ fontSize: '20px', fontWeight: '900', color: '#fff', lineHeight: 1, marginTop: '8px', letterSpacing: '-1px', textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>{newestNum}</span>
                       </div>
                     );
                   })()}
@@ -1007,21 +1014,21 @@ const balance = Number(user?.wallet?.balance || 0);
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.3, opacity: 0 }}
                             style={{
-                              width: '28px',
+                              minWidth: '36px',
                               height: '28px',
-                              borderRadius: '50%',
-                              background: headerDark ? 'rgba(255,255,255,0.1)' : '#FFF',
-                              boxShadow: headerDark ? 'none' : '0 1px 3px rgba(0,0,0,0.1)',
-                              border: `1px solid ${headerDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.05)'}`,
+                              borderRadius: '14px',
+                              background: bgColor,
+                              boxShadow: `0 2px 5px rgba(0,0,0,0.25)`,
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
                               gap: '2px',
-                              flexShrink: 0
+                              flexShrink: 0,
+                              padding: '0 6px'
                             }}
                           >
-                            <span style={{ fontSize: '9px', fontWeight: '900', color }}>{letter}</span>
-                            <span style={{ fontSize: '12px', fontWeight: '900', color: headerDark ? '#FFF' : '#1a1d2e' }}>{num}</span>
+                            <span style={{ fontSize: '9px', fontWeight: '900', color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>{letter}</span>
+                            <span style={{ fontSize: '12px', fontWeight: '900', color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>{num}</span>
                           </motion.div>
                         );
                       })}
