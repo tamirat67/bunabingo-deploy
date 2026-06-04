@@ -595,10 +595,10 @@ function DashboardContent() {
           {isAdmin && (
             <div className="premium-card" style={{ marginBottom: '24px' }}>
               <h3 className="premium-card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <FiPlay style={{ color: '#d4af37' }} /> START PUBLIC GAME
+                <FiPlay style={{ color: '#d4af37' }} /> START LOBBY GAME
               </h3>
               <p style={{ fontSize: '13px', color: '#8c857b', marginBottom: '16px' }}>
-                Public games allow players from any agent to join. Commission goes directly to the platform.
+                Lobby games allow players from any agent to join. Commission goes directly to the platform.
               </p>
               <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                 <select 
