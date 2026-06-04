@@ -609,7 +609,7 @@ function GameContent() {
         drawnNumbers: d.drawnNumbers || drawn || [],
       };
 
-      // ── Delay modal by 400ms so stop.mp3 can start playing BEFORE the modal renders ──
+      // ── Delay modal slightly (10ms) so stop.mp3 can start playing BEFORE the modal renders ──
       setTimeout(() => {
         setGameFinished(winnerData);
         // Start redirect countdown
@@ -626,7 +626,7 @@ function GameContent() {
         redirectTimerRef.current = setTimeout(() => {
           router.push(`/tickets/select?type=${game?.room?.type || spType}&price=${stake}`);
         }, 4000);
-      }, 400);
+      }, 10);
     };
 
     socket.on('game-update', (d: any) => {
