@@ -37,6 +37,7 @@ function SelectionContent() {
   // ── Live game state: true when the room has a RUNNING game and player is queued for next session
   const [isGameRunning, setIsGameRunning] = useState(false);
   const [drawnNumbers, setDrawnNumbers] = useState<number[]>([]);
+  const [latestBall, setLatestBall] = useState<number | null>(null);
   const [hasTicketsInRunningGame, setHasTicketsInRunningGame] = useState(false);
   const [runningGameId, setRunningGameId] = useState<string | null>(null);
   // Ref so the polling interval always reads the latest value without stale closures
@@ -493,6 +494,9 @@ function SelectionContent() {
             if (!prev.includes(d.number)) return [...prev, d.number];
             return prev;
           });
+          // Flash the latest ball in the header
+          setLatestBall(d.number);
+          setTimeout(() => setLatestBall(null), 2000);
         }
       });
 
@@ -856,55 +860,90 @@ const balance = Number(user?.wallet?.balance || 0);
           <ChevronLeft size={20} color={isVip ? '#C471ED' : '#4B3621'} />
         </button>
 
-        {/* Recent Balls Ticker — scrolls right-to-left when game is live */}
+        {/* Recent Balls Ticker — newest ball pops in, older ones scroll right-to-left */}
         {isGameRunning && drawnNumbers.length > 0 ? (
           <div style={{
             flex: 1,
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
+            gap: '6px',
             overflow: 'hidden',
             minWidth: 0,
           }}>
+            {/* Label */}
             <div style={{
-              fontSize: '10px',
+              fontSize: '9px',
               fontWeight: '900',
               color: isVip ? '#FFD700' : '#4B3621',
               whiteSpace: 'nowrap',
               lineHeight: 1.2,
               textTransform: 'uppercase',
+              flexShrink: 0,
             }}>
               RECENT<br/>BALLS
             </div>
+
+            {/* Latest ball — big animated pop-in */}
+            {latestBall !== null && (() => {
+              const { letter, color } = getBallDetails(latestBall);
+              return (
+                <div key={latestBall} style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '50%',
+                  background: color,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#FFF',
+                  boxShadow: `0 0 18px ${color}, 0 2px 8px rgba(0,0,0,0.4)`,
+                  border: '2.5px solid #FFF',
+                  flexShrink: 0,
+                  animation: 'ballPop 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards',
+                  zIndex: 2,
+                }}>
+                  <span style={{ fontSize: '9px', fontWeight: '900', lineHeight: 1 }}>{letter}</span>
+                  <span style={{ fontSize: '15px', fontWeight: '900', lineHeight: 1 }}>{latestBall}</span>
+                </div>
+              );
+            })()}
+
+            {/* Scrolling older balls */}
             <div style={{ overflow: 'hidden', flex: 1, minWidth: 0 }}>
               <div style={{
                 display: 'flex',
-                gap: '6px',
-                animation: 'tickerScroll 12s linear infinite',
+                gap: '5px',
+                animation: 'tickerScroll 14s linear infinite',
                 width: 'max-content',
               }}>
-                {[...drawnNumbers].reverse().concat([...drawnNumbers].reverse()).map((num, i) => {
-                  const { letter, color } = getBallDetails(num);
-                  return (
-                    <div key={i} style={{
-                      width: '34px',
-                      height: '34px',
-                      borderRadius: '50%',
-                      background: color,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#FFF',
-                      boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
-                      border: '2px solid rgba(255,255,255,0.7)',
-                      flexShrink: 0,
-                    }}>
-                      <span style={{ fontSize: '9px', fontWeight: '800', lineHeight: 1 }}>{letter}</span>
-                      <span style={{ fontSize: '14px', fontWeight: '900', lineHeight: 1 }}>{num}</span>
-                    </div>
-                  );
-                })}
+                {(() => {
+                  const older = [...drawnNumbers].reverse().slice(latestBall !== null ? 1 : 0);
+                  const doubled = [...older, ...older];
+                  return doubled.map((num, i) => {
+                    const { letter, color } = getBallDetails(num);
+                    return (
+                      <div key={i} style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        background: color,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#FFF',
+                        boxShadow: '0 2px 5px rgba(0,0,0,0.25)',
+                        border: '2px solid rgba(255,255,255,0.65)',
+                        flexShrink: 0,
+                        opacity: 0.85,
+                      }}>
+                        <span style={{ fontSize: '8px', fontWeight: '800', lineHeight: 1 }}>{letter}</span>
+                        <span style={{ fontSize: '13px', fontWeight: '900', lineHeight: 1 }}>{num}</span>
+                      </div>
+                    );
+                  });
+                })()}
               </div>
             </div>
           </div>
@@ -1342,6 +1381,12 @@ const balance = Number(user?.wallet?.balance || 0);
       />
 
       <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes ballPop {
+          0%   { transform: scale(0) rotate(-20deg); opacity: 0; }
+          60%  { transform: scale(1.25) rotate(5deg); opacity: 1; }
+          80%  { transform: scale(0.95) rotate(-2deg); }
+          100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
         @keyframes tickerScroll {
           0%   { transform: translateX(0); }
           100% { transform: translateX(-50%); }
