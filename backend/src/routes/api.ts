@@ -856,7 +856,7 @@ router.get('/games/:gameId', async (req: Request, res: Response) => {
           fallbackId = cardId;
         } else {
           let cardHash = 0;
-          const cardSeed = String(game.id) + String(w.ticketId || w.id || '123');
+          const cardSeed = String(w.ticketId); // MUST match engine.ts exactly
           for (let i = 0; i < cardSeed.length; i++) {
             cardHash = cardSeed.charCodeAt(i) + ((cardHash << 5) - cardHash);
           }
@@ -877,6 +877,28 @@ router.get('/games/:gameId', async (req: Request, res: Response) => {
       // Expose isBot + telegramId at top level so frontend can identify current user
       w.isBot = w.user?.isBot ?? false;
       w.telegramId = w.user?.telegramId ? String(w.user.telegramId) : null;
+      
+      const realName = w.user?.firstName || w.user?.telegramUsername;
+      const ETHIOPIAN_NAMES = [
+        'Abebe', 'Kebede', 'Selam', 'Tesfaye', 'Dawit', 'Yonas', 'Tigist', 'Almaz',
+        'Meron', 'Hiwot', 'Tizita', 'Biruk', 'Nahom', 'Eyob', 'Liya', 'Saron',
+        'Kalkidan', 'Robel', 'Bethel', 'Henok', 'Rahel', 'Tsion', 'Abel', 'Eden',
+      ];
+      let nameHash = 0;
+      // MUST match engine.ts exactly: String(game.id) + String(w.ticketId)
+      // Do not add fallbacks like || w.id because engine.ts does not.
+      const nameSeed = String(game.id) + String(w.ticketId);
+      for (let i = 0; i < nameSeed.length; i++) {
+        nameHash = nameSeed.charCodeAt(i) + ((nameHash << 5) - nameHash);
+      }
+      const botName = ETHIOPIAN_NAMES[Math.abs(nameHash) % ETHIOPIAN_NAMES.length];
+      const displayName = w.isBot ? botName : (realName || 'Player');
+      
+      w.displayName = displayName;
+      if (w.user) {
+        w.user.firstName = displayName;
+        w.user.telegramUsername = w.isBot ? displayName.toLowerCase() : (w.user.telegramUsername || displayName.toLowerCase());
+      }
     }
   }
   
