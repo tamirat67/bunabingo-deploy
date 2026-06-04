@@ -987,8 +987,8 @@ const balance = Number(user?.wallet?.balance || 0);
                             position: 'relative',
                             border: '2px solid rgba(255,255,255,0.6)'
                           }}>
-                            <span style={{ fontSize: '10px', fontWeight: '900', color: '#fff', lineHeight: 1, position: 'absolute', top: '5px', textShadow: '0 1px 2px rgba(0,0,0,0.4)' }}>{letter}</span>
-                            <span style={{ fontSize: '20px', fontWeight: '900', color: '#fff', lineHeight: 1, marginTop: '8px', letterSpacing: '-1px', textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>{newestNum}</span>
+                            <span style={{ fontSize: '11px', fontWeight: '900', color: '#fff', lineHeight: 1, opacity: 0.9, textShadow: '0 1px 2px rgba(0,0,0,0.4)' }}>{letter}</span>
+                            <span style={{ fontSize: '22px', fontWeight: '900', color: '#fff', lineHeight: 1, marginTop: '-2px', letterSpacing: '-1px', textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>{newestNum}</span>
                           </div>
                         );
                       })()}
@@ -1032,8 +1032,8 @@ const balance = Number(user?.wallet?.balance || 0);
                                   border: '1.5px solid rgba(255,255,255,0.6)'
                                 }}
                               >
-                                <span style={{ fontSize: '7px', fontWeight: '900', color: '#fff', lineHeight: 1, position: 'absolute', top: '3px', textShadow: '0 1px 2px rgba(0,0,0,0.4)' }}>{letter}</span>
-                                <span style={{ fontSize: '14px', fontWeight: '900', color: '#fff', lineHeight: 1, marginTop: '6px', letterSpacing: '-0.5px', textShadow: '0 1px 2px rgba(0,0,0,0.4)' }}>{num}</span>
+                                <span style={{ fontSize: '8px', fontWeight: '900', color: '#fff', lineHeight: 1, opacity: 0.9, textShadow: '0 1px 2px rgba(0,0,0,0.4)' }}>{letter}</span>
+                                <span style={{ fontSize: '14px', fontWeight: '900', color: '#fff', lineHeight: 1, marginTop: '-1px', letterSpacing: '-0.5px', textShadow: '0 1px 2px rgba(0,0,0,0.4)' }}>{num}</span>
                               </motion.div>
                             );
                           })}
