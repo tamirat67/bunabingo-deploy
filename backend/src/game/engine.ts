@@ -888,14 +888,21 @@ export async function claimBingoWin(gameId: string, userId: string): Promise<{ w
     if (eligibleClaim) {
       const { mode, ticketId } = eligibleClaim;
       
-      // Process everything fast!
-      await processWinner(gameId, userId, ticketId, mode, drawnNumbers);
-      
-      // Finalize game
-      await finishGame(gameId, `Bingo claimed: ${mode}`);
-      
-      const prizeAmount = new Decimal(game.totalPrize);
-      return { won: true, mode, prize: Number(prizeAmount) };
+      try {
+        // Process everything fast!
+        await processWinner(gameId, userId, ticketId, mode, drawnNumbers);
+        
+        // Finalize game
+        await finishGame(gameId, `Bingo claimed: ${mode}`);
+        
+        const prizeAmount = new Decimal(game.totalPrize);
+        return { won: true, mode, prize: Number(prizeAmount) };
+      } catch (err: any) {
+        if (err.message === 'WINNER_ALREADY_EXISTS') {
+          return { won: false, error: 'Someone else already won this game! Better luck next time.' };
+        }
+        throw err;
+      }
     }
 
     return { 
@@ -944,6 +951,12 @@ async function processWinner(
 
   // ─── Perform all winner logic in ONE TRANSACTION ───
   await prisma.$transaction(async (tx) => {
+    // 0. RACE CONDITION GUARD: ensure NO winners exist for this game yet
+    const existingWinner = await tx.winner.findFirst({ where: { gameId } });
+    if (existingWinner) {
+      throw new Error('WINNER_ALREADY_EXISTS');
+    }
+
     // 1. Create winner record (always)
     await tx.winner.create({
       data: { gameId, userId, ticketId, winMode, prizeAmount },
