@@ -56,6 +56,7 @@ function SelectionContent() {
   const [runningGameId, setRunningGameId] = useState<string | null>(null);
   // Ref so the polling interval always reads the latest value without stale closures
   const isGameRunningRef = useRef(false);
+  const lastGameRunningChangeTimeRef = useRef(0);
   const redirectedRef = useRef(false);
   const [liveGameDismissed, setLiveGameDismissed] = useState(false);
   // ── Server-time-anchored countdown for the LIVE GAME "NEXT CHECK" banner ──
@@ -547,6 +548,7 @@ function SelectionContent() {
       socket.on('game-started', (d: any) => {
         setGame((prev: any) => prev ? { ...prev, status: 'RUNNING' } : { status: 'RUNNING' });
         isGameRunningRef.current = true;
+        lastGameRunningChangeTimeRef.current = Date.now();
         setIsGameRunning(true);
         // Anchor the 20s NEXT CHECK cycle to the real server timestamp
         const endTime = (d.serverTime || Date.now()) + 20000;
@@ -568,6 +570,7 @@ function SelectionContent() {
       // remaining seconds instead of starting a fresh independent 20s clock.
       socket.on('game-running-sync', (d: any) => {
         isGameRunningRef.current = true;
+        lastGameRunningChangeTimeRef.current = Date.now();
         setIsGameRunning(true);
         setLiveGameDismissed(false);
         const cycleMs = (d.cycleSeconds || 20) * 1000;
@@ -723,6 +726,12 @@ function SelectionContent() {
 
         // Update isGameRunning based on authoritative server response
         if (nowRunning !== wasRunning) {
+          // If the socket JUST told us the game started, don't trust a stale polling response saying it hasn't
+          if (!nowRunning && wasRunning && Date.now() - lastGameRunningChangeTimeRef.current < 4000) {
+            return;
+          }
+          lastGameRunningChangeTimeRef.current = Date.now();
+          
           isGameRunningRef.current = nowRunning;
           setIsGameRunning(nowRunning);
           if (!nowRunning && wasRunning) {
@@ -770,7 +779,13 @@ function SelectionContent() {
           setDrawnNumbers(prev => {
             // Queue audio only for genuinely new numbers not yet announced
             const newBalls = incoming.filter(n => !announcedSelectRef.current.has(n));
-            newBalls.forEach(n => queueSelectBall(n));
+            
+            if (prev.length === 0 && incoming.length > 0) {
+              // Initial load: don't play a bombardment of 15 sounds! Just mark as announced.
+              incoming.forEach(n => announcedSelectRef.current.add(n));
+            } else {
+              newBalls.forEach(n => queueSelectBall(n));
+            }
             return incoming;
           });
         }
