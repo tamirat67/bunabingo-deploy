@@ -28,7 +28,8 @@ export async function findOrCreateUser(
     last_name?: string;
   },
   referredById?: string,
-  phoneNumber?: string
+  phoneNumber?: string,
+  isPublicPlayer: boolean = false  // true = joined without agent referral link
 ) {
   const telegramId = BigInt(telegramUser.id);
   logger.info(`[Auth] findOrCreateUser triggered for TG ID: ${telegramId.toString()}`);
@@ -59,8 +60,9 @@ export async function findOrCreateUser(
         }
       }
 
-      // If no valid referrer is provided and they are a regular player, auto-assign default agent (Sisay @Luel1616)
-      if (!isAdminUser && !referredBy) {
+      // If no valid referrer is provided and they are a regular player,
+      // auto-assign to default agent — BUT skip this for public players.
+      if (!isAdminUser && !referredBy && !isPublicPlayer) {
         let defaultAgent = await prisma.user.findFirst({
           where: {
             OR: [
@@ -131,6 +133,7 @@ export async function findOrCreateUser(
           referredBy: referredBy || (referredById && referredById.length > 20 ? referredById : undefined),
           phone: phoneNumber || undefined,
           phoneNumber: phoneNumber || undefined,
+          isPublicPlayer: isPublicPlayer && !referredBy, // mark only if truly no agent
         },
       });
       logger.info(`[Auth] User record created: ${user.id} with role ${role}`);

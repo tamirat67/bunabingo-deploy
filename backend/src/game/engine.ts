@@ -350,11 +350,12 @@ async function runGame(gameId: string): Promise<void> {
 
     // ─── Agent Commission (real game only) ──────────────────────────────────
     const totalSales = totalPrizePool.add(totalHouseEdge);
-    try {
-      await debitAgentCommissionForGame(gameId, totalSales);
-    } catch (commissionErr: any) {
-      logger.error(`[Game ${gameId}] Commission debit FAILED — cancelling game:`, commissionErr);
-      for (const [userId, userTickets] of ticketsByUser) {
+    if (!game.isPublic) {
+      try {
+        await debitAgentCommissionForGame(gameId, totalSales);
+      } catch (commissionErr: any) {
+        logger.error(`[Game ${gameId}] Commission debit FAILED — cancelling game:`, commissionErr);
+        for (const [userId, userTickets] of ticketsByUser) {
         // Skip house bots during refunds
         if (botUserMap.get(userId) === true) continue;
 
@@ -373,6 +374,9 @@ async function runGame(gameId: string): Promise<void> {
       await prisma.game.update({ where: { id: gameId }, data: { status: GameStatus.CANCELLED, cancelledAt: new Date(), cancelReason: commissionErr.message } });
       await triggerGameEvent(gameId, 'game-cancelled', { gameId, reason: commissionErr.message });
       return;
+    }
+    } else {
+      logger.info(`[Game ${gameId}] Public Game — agent commission skipped (goes directly to platform)`);
     }
 
     // Note: Jackpot contribution is now handled in real-time live upon user ticket purchase inside joinGame()

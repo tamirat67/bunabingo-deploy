@@ -24,6 +24,9 @@ export async function handleStart(ctx: Context) {
       return handleWithdraw(ctx);
     }
 
+    // ── Public game: player joins without an agent referral link ─────────────
+    const isPublicJoin = startPayload === 'public';
+
     if (startPayload && startPayload !== tgUser.id.toString()) {
       try {
         let referrer = null;
@@ -59,7 +62,9 @@ export async function handleStart(ctx: Context) {
         first_name: tgUser.first_name,
         last_name:  tgUser.last_name,
       },
-      validReferrerId
+      isPublicJoin ? undefined : validReferrerId,
+      undefined,
+      isPublicJoin  // ← public player: no agent auto-assignment
     );
 
     await getOrCreateWallet(user.id);
