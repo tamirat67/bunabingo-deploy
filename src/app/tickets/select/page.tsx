@@ -1447,7 +1447,6 @@ const balance = Number(user?.wallet?.balance || 0);
             background: isVip
               ? 'radial-gradient(circle at top, rgba(45,20,66,0.95) 0%, rgba(28,10,53,0.98) 60%, rgba(15,4,26,1) 100%)'
               : 'linear-gradient(160deg, rgba(26,18,12,0.95) 0%, rgba(43,29,20,0.98) 50%, rgba(26,18,12,1) 100%)',
-            backdropFilter: 'blur(4px)',
           }}>
             <div style={{
               position: 'sticky',
