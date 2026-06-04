@@ -445,8 +445,8 @@ function SelectionContent() {
         const endTime = (d.serverTime || Date.now()) + 20000;
         liveGameEndTimeRef.current = endTime;
         setLiveGameEndTime(endTime);
-        // Redirect ONLY users who have purchased tickets (or had them auto-purchased)
-        if (ownedRef.current.length > 0 && !redirectedRef.current) {
+        // Redirect ALL users automatically so they can watch the live game
+        if (!redirectedRef.current) {
           redirectedRef.current = true;
           if (roomType.startsWith('SPIN_')) {
             router.push(`/play/spin?id=${d.gameId || activeGameId}&stake=${stake}`);
@@ -559,7 +559,8 @@ function SelectionContent() {
   // ─── Auto-redirect to bingo calling page when game launches (30+1 trigger) ───
   // Catches cases where the game-started socket event was missed due to timing.
   useEffect(() => {
-    if (game?.status === 'RUNNING' && ownedCardIds.length > 0 && activeGameId && !redirectedRef.current) {
+    // Redirect ALL users automatically when the game status becomes RUNNING
+    if (game?.status === 'RUNNING' && activeGameId && !redirectedRef.current) {
       redirectedRef.current = true;
       if (roomType.startsWith('SPIN_')) {
         router.push(`/play/spin?id=${activeGameId}&stake=${stake}`);
@@ -567,7 +568,7 @@ function SelectionContent() {
         router.push(`/game?id=${activeGameId}&type=${roomType}&price=${stake}`);
       }
     }
-  }, [game?.status, ownedCardIds.length, activeGameId, roomType, stake, router]);
+  }, [game?.status, activeGameId, roomType, stake, router]);
 
   // ─── Poll every 2s: getOccupiedCards is the SINGLE source of truth for isGameRunning ───
   // This handles all cases: page refresh during game, missed socket events, etc.
