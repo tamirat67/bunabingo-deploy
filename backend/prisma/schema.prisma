@@ -125,7 +125,6 @@ model Game {
   finishedAt       DateTime?   @db.Timestamptz(6) @map("finished_at")
   cancelledAt      DateTime?   @db.Timestamptz(6) @map("cancelled_at")
   cancelReason     String?     @map("cancel_reason")
-  isPublic         Boolean     @default(false) @map("is_public") // cross-agent public game
   createdAt        DateTime    @default(now()) @db.Timestamptz(6) @map("created_at")
 
   room             Room        @relation(fields: [roomId], references: [id])

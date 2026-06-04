@@ -15,8 +15,6 @@ function DashboardContent() {
   const [agents, setAgents] = useState<any[]>([]);
   const [selectedAgent, setSelectedAgent] = useState<string>('');
   const [loading, setLoading] = useState(true);
-  const [startingPublicGame, setStartingPublicGame] = useState(false);
-  const [publicGameRoomType, setPublicGameRoomType] = useState('CASUAL');
   const searchParams = useSearchParams();
   const router = useRouter();
   const dateParam = searchParams.get('date') || '';
@@ -591,50 +589,6 @@ function DashboardContent() {
         </div>
 
         <div>
-          {/* Public Games Control (Admin Only) */}
-          {isAdmin && (
-            <div className="premium-card" style={{ marginBottom: '24px' }}>
-              <h3 className="premium-card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <FiPlay style={{ color: '#d4af37' }} /> START LOBBY GAME
-              </h3>
-              <p style={{ fontSize: '13px', color: '#8c857b', marginBottom: '16px' }}>
-                Lobby games allow players from any agent to join. Commission goes directly to the platform.
-              </p>
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                <select 
-                  className="agent-select" 
-                  value={publicGameRoomType}
-                  onChange={(e) => setPublicGameRoomType(e.target.value)}
-                  style={{ flex: 1 }}
-                >
-                  <option value="CASUAL">Casual (10 ETB)</option>
-                  <option value="STANDARD">Standard (20 ETB)</option>
-                  <option value="PRO">Pro (50 ETB)</option>
-                  <option value="JACKPOT">Jackpot (100 ETB)</option>
-                  <option value="VIP">VIP (200 ETB)</option>
-                </select>
-                <button 
-                  className="action-btn action-btn-success"
-                  disabled={startingPublicGame}
-                  onClick={async () => {
-                    setStartingPublicGame(true);
-                    try {
-                      await api.post('/admin/games/start-public', { roomType: publicGameRoomType });
-                      alert('Public game started successfully!');
-                    } catch (err: any) {
-                      alert(err.response?.data?.error || 'Failed to start public game');
-                    } finally {
-                      setStartingPublicGame(false);
-                    }
-                  }}
-                  style={{ padding: '0 24px', height: '42px', fontSize: '14px', fontWeight: 'bold' }}
-                >
-                  {startingPublicGame ? 'Starting...' : 'Start Game 🌍'}
-                </button>
-              </div>
-            </div>
-          )}
-
           {/* Daily Summary */}
           <div className="premium-card">
             <div className="summary-header-row" style={{ borderBottom: '1px solid rgba(0,0,0,0.05)', paddingBottom: '12px', marginBottom: '16px' }}>
