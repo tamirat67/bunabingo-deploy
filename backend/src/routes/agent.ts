@@ -40,16 +40,15 @@ router.get('/stats', async (req: Request, res: Response) => {
       activePlayersToday,
       activeGames
     ] = await Promise.all([
-      prisma.user.count({ where: { referredBy: agent.id } }),
+      prisma.user.count({ where: { referredBy: agent.id, isBot: false } }),
       prisma.deposit.aggregate({
-        where: { user: { referredBy: agent.id }, status: 'approved' },
+        where: { user: { referredBy: agent.id, isBot: false }, status: 'approved' },
         _sum: { amount: true }
       }),
-      // Total Sales = Total spent on tickets by players under this agent during selected date
-      // Use case-insensitive status match to handle both 'completed' and 'COMPLETED'
+      // Total Sales = Total spent on tickets by REAL players under this agent during selected date
       prisma.transaction.aggregate({
         where: { 
-          user: { referredBy: agent.id }, 
+          user: { referredBy: agent.id, isBot: false }, 
           type: 'TICKET_PURCHASE',
           status: { in: ['completed', 'COMPLETED'] },
           createdAt: { gte: todayStart, lte: todayEnd }
@@ -69,11 +68,11 @@ router.get('/stats', async (req: Request, res: Response) => {
       prisma.agentPreDepositWallet.findUnique({
         where: { agentId: agent.id }
       }),
-      // Distinct players active under this agent today
+      // Distinct REAL players active under this agent today
       prisma.transaction.groupBy({
         by: ['userId'],
         where: {
-          user: { referredBy: agent.id },
+          user: { referredBy: agent.id, isBot: false },
           createdAt: { gte: todayStart, lte: todayEnd }
         }
       }),
