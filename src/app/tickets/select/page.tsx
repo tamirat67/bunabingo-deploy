@@ -33,29 +33,21 @@ function SelectionContent() {
   const [newlyOccupied, setNewlyOccupied] = useState<number[]>([]);
   const [fakePlayersCount, setFakePlayersCount] = useState(0);
   const [fakeOccupied, setFakeOccupied] = useState<number[]>([]);
+  const [mounted, setMounted] = useState(false);
   // isInitializing: true until the very first getOccupiedCards call resolves.
   // While true the grid stays covered so there's no flash of unlocked UI on refresh.
   const [isInitializing, setIsInitializing] = useState(true);
   // Persist isGameRunning across refresh via sessionStorage so the mask shows instantly
-  const [initialGameRunning] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
-    return sessionStorage.getItem('select_game_running') === '1';
-  });
-  const [initialDrawnNumbers] = useState<number[]>(() => {
-    if (typeof window === 'undefined') return [];
-    try {
-      const raw = sessionStorage.getItem('select_drawn_numbers');
-      return raw ? JSON.parse(raw) : [];
-    } catch { return []; }
-  });
+  const [initialGameRunning, setInitialGameRunning] = useState(false);
+  const [initialDrawnNumbers, setInitialDrawnNumbers] = useState<number[]>([]);
   // ── Live game state: true when the room has a RUNNING game and player is queued for next session
-  const [isGameRunning, setIsGameRunning] = useState(initialGameRunning);
+  const [isGameRunning, setIsGameRunning] = useState(false);
   const [drawnNumbers, setDrawnNumbers] = useState<number[]>([]);
 
   const [hasTicketsInRunningGame, setHasTicketsInRunningGame] = useState(false);
   const [runningGameId, setRunningGameId] = useState<string | null>(null);
   // Ref so the polling interval always reads the latest value without stale closures
-  const isGameRunningRef = useRef(initialGameRunning);
+  const isGameRunningRef = useRef(false);
   const lastGameRunningChangeTimeRef = useRef(0);
   // Stable ref for activeGameId — lets socket/polling effects read the latest ID
   // without needing it in their dependency arrays (prevents full effect re-mount on every poll update)
@@ -93,6 +85,24 @@ function SelectionContent() {
   const userRef = useRef<any>(null);
   // Tracks whether the component is still mounted — used to stop audio after navigation
   const mountedRef = useRef(true);
+
+  useEffect(() => {
+    setMounted(true);
+    if (typeof window !== 'undefined') {
+      const running = sessionStorage.getItem('select_game_running') === '1';
+      setInitialGameRunning(running);
+      setIsGameRunning(running);
+      isGameRunningRef.current = running;
+      try {
+        const raw = sessionStorage.getItem('select_drawn_numbers');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          setInitialDrawnNumbers(parsed);
+          setDrawnNumbers(parsed);
+        }
+      } catch (e) {}
+    }
+  }, []);
 
   useEffect(() => {
     selectedRef.current = selected;
@@ -504,6 +514,16 @@ function SelectionContent() {
     getMe().then(setUser).catch(() => {});
     loadGameData();
 
+    const handleConnect = () => {
+      if (socket) {
+        socket.emit('join-game', roomType);
+        if (activeGameIdRef.current) socket.emit('join-game', activeGameIdRef.current);
+        if (lastJoinedRunningGameIdRef.current) {
+          socket.emit('join-game', lastJoinedRunningGameIdRef.current);
+        }
+      }
+    };
+
     // 1. Initial Quick Fetch (REST Fallback)
     getOccupiedCards(roomType, activeGameIdRef.current).then(res => {
       setOccupied(res.occupiedIds || []);
@@ -517,6 +537,7 @@ function SelectionContent() {
       if (res.gameId) {
         activeGameIdRef.current = res.gameId;
         setActiveGameId(res.gameId);
+        loadGameData(res.gameId);
       }
       // NOTE: isGameRunning is NOT set here — syncRunningState (polling) is the
       // single source of truth. Setting it here causes a race condition where
@@ -525,6 +546,8 @@ function SelectionContent() {
 
     // 2. High-Performance WebSocket Sync (Real-time & Zero Network Overhead)
     if (socket) {
+      socket.on('connect', handleConnect);
+
       socket.emit('join-game', roomType);
       if (activeGameIdRef.current) socket.emit('join-game', activeGameIdRef.current);
 
@@ -677,6 +700,7 @@ function SelectionContent() {
 
     return () => {
       if (socket) {
+        socket.off('connect', handleConnect);
         socket.off('occupied-sync');
         socket.off('countdown-start');
         socket.off('countdown-tick');
@@ -1106,7 +1130,7 @@ const balance = Number(user?.wallet?.balance || 0);
     : drawnNumbers;
 
   // Prevent the "flash of unmasked cartelas" if a game is running but we haven't fetched the first poll yet
-  if (isInitializing && !initialGameRunning) {
+  if (!mounted || (isInitializing && !initialGameRunning)) {
     return (
       <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center', background: T.bg }}>
         <div style={{ width: '40px', height: '40px', border: `4px solid ${T.gold}`, borderTopColor: 'transparent', borderRadius: '50%', animation: 'loader-spin 1s linear infinite' }}>
