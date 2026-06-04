@@ -37,7 +37,7 @@ function SelectionContent() {
   // ── Live game state: true when the room has a RUNNING game and player is queued for next session
   const [isGameRunning, setIsGameRunning] = useState(false);
   const [drawnNumbers, setDrawnNumbers] = useState<number[]>([]);
-  const [latestBall, setLatestBall] = useState<number | null>(null);
+
   const [hasTicketsInRunningGame, setHasTicketsInRunningGame] = useState(false);
   const [runningGameId, setRunningGameId] = useState<string | null>(null);
   // Ref so the polling interval always reads the latest value without stale closures
@@ -53,7 +53,16 @@ function SelectionContent() {
   const liveGameEndTimeRef = useRef<number | null>(null);   // always-fresh ref for use inside intervals
   const liveGameSyncRef = useRef<any>(null);
   const prevOccupied = useRef<number[]>([]);
-  
+
+  // ── Audio: live ball-calling while guests wait on selection page ──────────
+  const ballAudioRefSelect    = useRef<HTMLAudioElement | null>(null);
+  const audioQueueSelectRef   = useRef<number[]>([]);
+  const isPlayingSelectRef    = useRef<boolean>(false);
+  const announcedSelectRef    = useRef<Set<number>>(new Set());
+  const soundOnSelectRef      = useRef<boolean>(true);
+  // Stored in ref so recursive calls never get a stale closure
+  const playNextSelectBallRef = useRef<() => void>(() => {});
+
   const selectedRef = useRef<number[]>([]);
   const ownedRef = useRef<number[]>([]);
   const occupiedRef = useRef<number[]>([]);
@@ -177,6 +186,67 @@ function SelectionContent() {
       if (liveGameSyncRef.current) clearInterval(liveGameSyncRef.current);
     });
   };
+
+  // ── Audio init: persistent element for B1-O75 calls on this page ────────
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      ballAudioRefSelect.current = new Audio();
+      const saved = localStorage.getItem('game_sound');
+      soundOnSelectRef.current = saved !== 'false';
+    }
+  }, []);
+
+  // Define the recursive queue processor via ref — avoids stale closure on self-call
+  useEffect(() => {
+    playNextSelectBallRef.current = () => {
+      if (audioQueueSelectRef.current.length === 0) {
+        isPlayingSelectRef.current = false;
+        return;
+      }
+      isPlayingSelectRef.current = true;
+      const num = audioQueueSelectRef.current.shift()!;
+      if (!soundOnSelectRef.current) {
+        // Muted: keep queue alive with a tiny gap
+        setTimeout(() => playNextSelectBallRef.current(), 150);
+        return;
+      }
+      const col = num <= 15 ? 'B' : num <= 30 ? 'I' : num <= 45 ? 'N' : num <= 60 ? 'G' : 'O';
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        setTimeout(() => playNextSelectBallRef.current(), 300);
+      };
+      try {
+        const el = ballAudioRefSelect.current;
+        if (el) {
+          el.onended = null; el.onerror = null; el.pause(); el.currentTime = 0;
+          el.src = `/audio/${col}${num}.mp3`; el.load();
+          el.onended = finish; el.onerror = finish;
+          el.play().catch(() => {
+            try {
+              const f = new Audio(`/audio/${col}${num}.mp3`);
+              f.onended = finish; f.onerror = finish; f.play().catch(finish);
+            } catch (_) { finish(); }
+          });
+        } else {
+          const f = new Audio(`/audio/${col}${num}.mp3`);
+          f.onended = finish; f.onerror = finish; f.play().catch(finish);
+        }
+      } catch(e) { finish(); }
+      setTimeout(finish, 5000); // safety cap so queue never gets permanently stuck
+    };
+  }, []);
+
+  // Enqueue a ball number for audio — deduplicates and starts the processor if idle
+  const queueSelectBall = useCallback((num: number) => {
+    if (announcedSelectRef.current.has(num)) return;
+    announcedSelectRef.current.add(num);
+    audioQueueSelectRef.current.push(num);
+    if (!isPlayingSelectRef.current) {
+      playNextSelectBallRef.current();
+    }
+  }, []);
 
   // Clean up fakeOccupied if they overlap with selected, owned, or real occupied cards
   useEffect(() => {
@@ -492,13 +562,13 @@ function SelectionContent() {
 
       socket.on('number-drawn', (d: any) => {
         if (d.number !== undefined) {
+          // Update drawn history list immediately for display
           setDrawnNumbers(prev => {
             if (!prev.includes(d.number)) return [...prev, d.number];
             return prev;
           });
-          // Flash the latest ball in the header
-          setLatestBall(d.number);
-          setTimeout(() => setLatestBall(null), 2000);
+          // 🔊 Play the ball audio — one by one, no overlap
+          queueSelectBall(d.number);
         }
       });
 
@@ -513,6 +583,14 @@ function SelectionContent() {
         setLiveGameSyncTimer(null);
         liveGameEndTimeRef.current = null;
         setLiveGameEndTime(null);
+        // Reset live-calling audio so next game starts clean
+        audioQueueSelectRef.current = [];
+        isPlayingSelectRef.current = false;
+        announcedSelectRef.current = new Set();
+        if (ballAudioRefSelect.current) {
+          ballAudioRefSelect.current.pause();
+          ballAudioRefSelect.current.currentTime = 0;
+        }
 
         getOccupiedCards(roomType, activeGameId).then(res => {
           if (res.gameId) {
@@ -536,6 +614,7 @@ function SelectionContent() {
         socket.off('game-started');
         socket.off('game-running-sync');
         socket.off('game-finished');
+        socket.off('number-drawn'); // fix: was missing from cleanup
       }
     };
   }, [roomType, activeGameId, socket, loadGameData, user?.id, router, stake]);
@@ -865,13 +944,13 @@ const balance = Number(user?.wallet?.balance || 0);
           <ChevronLeft size={20} color={isVip ? '#C471ED' : '#4B3621'} />
         </button>
 
-        {/* Recent Balls Ticker — newest ball pops in, older ones scroll right-to-left */}
+        {/* Live Ball Calls — each ball springs in one by one as it is announced */}
         {isGameRunning && drawnNumbers.length > 0 ? (
           <div style={{
             flex: 1,
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
+            gap: '5px',
             overflow: 'hidden',
             minWidth: 0,
           }}>
@@ -885,72 +964,46 @@ const balance = Number(user?.wallet?.balance || 0);
               textTransform: 'uppercase',
               flexShrink: 0,
             }}>
-              RECENT<br/>BALLS
+              LIVE<br/>CALLS
             </div>
 
-            {/* Latest ball — big animated pop-in */}
-            {latestBall !== null && (() => {
-              const { letter, color } = getBallDetails(latestBall);
-              return (
-                <div key={latestBall} style={{
-                  width: '42px',
-                  height: '42px',
-                  borderRadius: '50%',
-                  background: color,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#FFF',
-                  boxShadow: `0 0 18px ${color}, 0 2px 8px rgba(0,0,0,0.4)`,
-                  border: '2.5px solid #FFF',
-                  flexShrink: 0,
-                  animation: 'ballPop 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards',
-                  zIndex: 2,
-                }}>
-                  <span style={{ fontSize: '9px', fontWeight: '900', lineHeight: 1 }}>{letter}</span>
-                  <span style={{ fontSize: '15px', fontWeight: '900', lineHeight: 1 }}>{latestBall}</span>
-                </div>
-              );
-            })()}
-
-            {/* Scrolling older balls */}
-            <div style={{ overflow: 'hidden', flex: 1, minWidth: 0 }}>
-              <div style={{
-                display: 'flex',
-                gap: '5px',
-                animation: 'tickerScroll 14s linear infinite',
-                width: 'max-content',
-              }}>
-                {(() => {
-                  const older = [...drawnNumbers].reverse().slice(latestBall !== null ? 1 : 0);
-                  const doubled = [...older, ...older];
-                  return doubled.map((num, i) => {
-                    const { letter, color } = getBallDetails(num);
-                    return (
-                      <div key={i} style={{
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: '50%',
-                        background: color,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#FFF',
-                        boxShadow: '0 2px 5px rgba(0,0,0,0.25)',
-                        border: '2px solid rgba(255,255,255,0.65)',
-                        flexShrink: 0,
-                        opacity: 0.85,
-                      }}>
-                        <span style={{ fontSize: '8px', fontWeight: '800', lineHeight: 1 }}>{letter}</span>
-                        <span style={{ fontSize: '13px', fontWeight: '900', lineHeight: 1 }}>{num}</span>
-                      </div>
-                    );
-                  });
-                })()}
-              </div>
-            </div>
+            {/* Newest ball on left (big + glow), older ones shrink right — no scrolling */}
+            <AnimatePresence initial={false} mode="popLayout">
+              {[...drawnNumbers].reverse().slice(0, 5).map((num, i) => {
+                const { letter, color } = getBallDetails(num);
+                const isNewest = i === 0;
+                return (
+                  <motion.div
+                    key={num}
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 - i * 0.13 }}
+                    exit={{ scale: 0.3, opacity: 0 }}
+                    transition={{ type: 'spring', stiffness: 420, damping: 22 }}
+                    style={{
+                      width: isNewest ? '42px' : '30px',
+                      height: isNewest ? '42px' : '30px',
+                      borderRadius: '50%',
+                      background: color,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#FFF',
+                      boxShadow: isNewest
+                        ? `0 0 18px ${color}, 0 2px 8px rgba(0,0,0,0.4)`
+                        : '0 2px 5px rgba(0,0,0,0.25)',
+                      border: isNewest
+                        ? '2.5px solid #FFF'
+                        : '2px solid rgba(255,255,255,0.65)',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <span style={{ fontSize: isNewest ? '9px' : '8px', fontWeight: '900', lineHeight: 1 }}>{letter}</span>
+                    <span style={{ fontSize: isNewest ? '15px' : '12px', fontWeight: '900', lineHeight: 1 }}>{num}</span>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
           </div>
         ) : (
           <div className="header-text">
