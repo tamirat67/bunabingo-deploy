@@ -83,7 +83,7 @@ function SelectionContent() {
   const [soundOn, setSoundOn] = useState(true); // UI state for mic button
   // ── Winner announcement modal ─────────────────────────────────────────────
   const [gameFinishedData, setGameFinishedData] = useState<any>(null);
-  const [winnerRedirectSecs, setWinnerRedirectSecs] = useState(8);
+  const [winnerRedirectSecs, setWinnerRedirectSecs] = useState(4);
   const winnerRedirectRef = useRef<any>(null);
   // Stored in ref so recursive calls never get a stale closure
   const playNextSelectBallRef = useRef<() => void>(() => {});
@@ -698,7 +698,7 @@ function SelectionContent() {
         // ── Show winner modal to ALL guests on the selection page ────────────
         if (d && (d.winnerName || d.winnerId)) {
           setGameFinishedData({ ...d, isCurrentUserWinner: false });
-          setWinnerRedirectSecs(8);
+          setWinnerRedirectSecs(4);
           if (winnerRedirectRef.current) clearInterval(winnerRedirectRef.current);
           winnerRedirectRef.current = setInterval(() => {
             setWinnerRedirectSecs(prev => {
@@ -2005,7 +2005,7 @@ const balance = Number(user?.wallet?.balance || 0);
                   <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: '4px', height: '4px', marginTop: '8px', overflow: 'hidden' }}>
                     <motion.div
                       initial={{ width: '100%' }}
-                      animate={{ width: `${(winnerRedirectSecs / 8) * 100}%` }}
+                      animate={{ width: `${(winnerRedirectSecs / 4) * 100}%` }}
                       transition={{ duration: 0.9 }}
                       style={{ height: '100%', background: 'linear-gradient(90deg, #FFD700, #FF6B35)', borderRadius: '4px' }}
                     />
