@@ -1114,9 +1114,12 @@ function GameContent() {
               style={{ 
                 width: '65px', 
                 height: '65px', 
-                background: lastBall 
-                  ? (isVip ? 'linear-gradient(135deg, #FFD700 0%, #C471ED 100%)' : COL_COLOR[colLabel(lastBall)]) 
-                  : (isVip ? 'rgba(255,255,255,0.05)' : T.statBg), 
+                backgroundColor: lastBall 
+                  ? (isVip ? '#C471ED' : COL_COLOR[colLabel(lastBall)]) 
+                  : (isVip ? 'rgba(255,255,255,0.05)' : T.statBg),
+                backgroundImage: lastBall
+                  ? (isVip ? 'linear-gradient(135deg, #FFD700 0%, #C471ED 100%)' : 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 35%), radial-gradient(circle at 75% 75%, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0) 60%)')
+                  : 'none',
                 borderRadius: '50%', 
                 display: 'flex', 
                 flexDirection: 'column', 
@@ -1150,18 +1153,19 @@ function GameContent() {
                     initial={{ scale: 0.5, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     style={{
-                      background: color,
+                      backgroundColor: isVip ? '#C471ED' : COL_COLOR[label],
+                      backgroundImage: isVip ? 'linear-gradient(135deg, #FFD700 0%, #C471ED 100%)' : 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 35%), radial-gradient(circle at 75% 75%, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0) 60%)',
                       color: isVip ? '#1C0A35' : 'white',
                       fontWeight: '900',
-                      width: '28px',
-                      height: '28px',
+                      width: '32px',
+                      height: '32px',
                       borderRadius: '50%',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      border: isVip ? '1.5px solid #FFD700' : '1.5px solid white',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.15)'
+                      border: isVip ? '1.5px solid #FFD700' : '1.5px solid rgba(255,255,255,0.6)',
+                      boxShadow: '0 2px 5px rgba(0,0,0,0.3), inset -1px -1px 3px rgba(0,0,0,0.2)'
                     }}
                   >
                     <span style={{ fontSize: '8px', lineHeight: 1, opacity: 0.8 }}>{label}</span>
