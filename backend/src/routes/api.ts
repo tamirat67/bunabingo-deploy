@@ -536,11 +536,19 @@ router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
 
     let drawnNumbers: number[] = [];
     if (runningGame) {
+      // 1. Try in-memory first (fastest)
       const { getActiveGames } = await import('../game/engine');
-      const activeGames = getActiveGames();
-      const state = activeGames.get(runningGame.id);
-      if (state) {
-        drawnNumbers = state.drawnNumbers || [];
+      const memState = getActiveGames().get(runningGame.id);
+      if (memState && memState.drawnNumbers && memState.drawnNumbers.length > 0) {
+        drawnNumbers = memState.drawnNumbers;
+      } else {
+        // 2. Fallback to DB drawHistory (works after server restart)
+        const history = await prisma.drawHistory.findMany({
+          where: { gameId: runningGame.id },
+          orderBy: { drawnAt: 'asc' },
+          select: { number: true },
+        });
+        drawnNumbers = history.map(h => h.number);
       }
     }
 
