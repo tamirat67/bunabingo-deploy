@@ -881,6 +881,8 @@ function GameContent() {
         fallbackHouseComm
       );
 
+  const BOT_COUNTS_FRONTEND: Record<string, number> = { CASUAL: 30, STANDARD: 30, PRO: 30, JACKPOT: 10, VIP: 10 };
+  const botCount = BOT_COUNTS_FRONTEND[roomTypeName] ?? 30;
   const fallbackCards = botCount + tickets.length;
   const allCards = Math.max(game?.currentPlayers || 0, fallbackCards) || 1;
   const totalStake = isDemo ? 0 : allCards * stake;
