@@ -240,13 +240,38 @@ function GameContent() {
     }
   }, [processAudioQueue]);
 
-  // Play start.mp3 exactly once per game — guarded by startAudioFiredRef
-  const playStartAudio = useCallback(() => {
-    if (!soundOnRef.current) return;
-    if (startAudioFiredRef.current) return;  // already played for this game
+  // Play start.mp3 exactly once per game — guarded by startAudioFiredRef.
+  // onComplete fires after start.mp3 finishes (or immediately if already played/muted).
+  const playStartAudio = useCallback((onComplete?: () => void) => {
+    let completedOnce = false;
+    const safeComplete = () => {
+      if (!completedOnce) {
+        completedOnce = true;
+        if (onComplete) onComplete();
+      }
+    };
+
+    if (!soundOnRef.current) {
+      safeComplete();
+      return;
+    }
+    if (startAudioFiredRef.current) {
+      // Already played for this game — proceed immediately
+      safeComplete();
+      return;
+    }
     startAudioFiredRef.current = true;
     lastStartAudioPlayed.current = Date.now();
-    try { new Audio('/audio/start.mp3').play().catch(() => {}); } catch (e) {}
+    try {
+      const startEl = new Audio('/audio/start.mp3');
+      startEl.onended = safeComplete;
+      startEl.onerror = safeComplete;
+      startEl.play().catch(safeComplete);
+      // Safety: call complete after 8s max so balls never get stuck
+      setTimeout(safeComplete, 8000);
+    } catch (e) {
+      safeComplete();
+    }
   }, []);
 
   // Play stop.mp3 exactly once per game — guarded by stopAudioFiredRef
@@ -329,13 +354,16 @@ function GameContent() {
       if (isFirstLoad) {
         isFirstLoadRef.current = false;
 
-        // The game starts equally for all players. If it's running, always play start.mp3.
         if (g.status === 'RUNNING') {
-          playStartAudio();
-        }
-
-        if (hist.length > 0) {
-          // Always queue all balls sequentially so visual and audio match "one by one"
+          // ✅ SEQUENCE: start.mp3 plays fully first, THEN balls are called one by one.
+          // No ball is ever shown or heard without being announced through the queue.
+          playStartAudio(() => {
+            if (hist.length > 0) {
+              queueBallSounds(hist, setLastBall);
+            }
+          });
+        } else if (hist.length > 0) {
+          // Game not yet running but has history (rare edge case)
           queueBallSounds(hist, setLastBall);
         }
       } else {
@@ -485,11 +513,12 @@ function GameContent() {
     socket.on('countdown-tick', onCountdownTick);
 
     const onGameStarted = () => {
-      // ✅ REAL-TIME: start.mp3 plays HERE and ONLY HERE — when server says game actually started.
+      // ✅ REAL-TIME: start.mp3 plays first, THEN loadData fetches balls and queues them one by one.
       setCountdown(null);
       setEndTime(null);
-      loadData();
-      playStartAudio();
+      playStartAudio(() => {
+        loadData();
+      });
     };
 
     socket.on('game-started', onGameStarted);
