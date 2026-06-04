@@ -176,44 +176,22 @@ export async function debitAgentCommissionForGame(
   // Commission = rate% of REAL player ticket sales ONLY (bots excluded)
   const commission = totalRealSales.mul(rate);
 
-  // 4. Soft-warn if insufficient balance — NEVER cancel the game over this
+  // 4. HARD-BLOCK if agent pre-deposit balance is insufficient.
+  //    Game is NOT allowed until agent tops up their pre-deposit wallet.
   if (balance.lessThan(commission)) {
     const agentUser = await prisma.user.findUnique({
       where: { id: gameAgentId },
       select: { firstName: true }
     });
     const agentName = agentUser?.firstName || 'Agent';
-    logger.warn(
-      `[Commission] Game ${gameId} — Agent ${agentName} balance LOW: ` +
-      `need ${commission.toFixed(2)} ETB, have ${balance.toFixed(2)} ETB. ` +
-      `Debiting available balance and logging deficit.`
-    );
-    // Debit whatever is available (could be 0), do NOT block the game
-    const actualDebit = Decimal.max(balance, new Decimal(0));
-    if (actualDebit.greaterThan(0)) {
-      await prisma.agentPreDepositWallet.update({
-        where: { agentId: gameAgentId },
-        data: {
-          balance: new Decimal(0),
-          totalDebited: new Decimal(wallet.totalDebited.toString()).add(actualDebit),
-          updatedAt: new Date(),
-        },
-      });
-      await prisma.agentCommissionLog.create({
-        data: {
-          agentId: gameAgentId,
-          walletId: wallet.id,
-          type: 'COMMISSION_DEBIT',
-          amount: actualDebit,
-          gameId,
-          totalSales: totalRealSales,
-          balanceBefore: balance,
-          balanceAfter: new Decimal(0),
-          description: `Partial commission debit (deficit: ${commission.sub(actualDebit).toFixed(2)} ETB)`,
-        },
-      });
-    }
-    return { agentId: gameAgentId, commissionAmount: actualDebit };
+    const msg =
+      `Agent pre-deposit balance insufficient for ${agentName}. ` +
+      `Required: ${commission.toFixed(2)} ETB, ` +
+      `Available: ${balance.toFixed(2)} ETB. ` +
+      `Agent must top up their pre-deposit wallet before games can start.`;
+    logger.warn(`[Commission] Game ${gameId} BLOCKED: ${msg}`);
+    throw new Error(msg);
+  }
 
   // 5. Deduct and audit
   const newBalance = balance.sub(commission);
@@ -223,7 +201,7 @@ export async function debitAgentCommissionForGame(
       where: { agentId: gameAgentId! },
       data: {
         balance: newBalance,
-        totalDebited: new Decimal(wallet.totalDebited.toString()).add(commission),
+        totalDebited: new Decimal(wallet.totalDebited?.toString() ?? 0).add(commission),
         updatedAt: new Date(),
       },
     });
