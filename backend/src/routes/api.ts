@@ -1618,7 +1618,10 @@ staffRouter.get('/audit', restrictToAdmin, async (req, res) => {
       agentsCount,
       totalDepositsAgg,
       totalWithdrawalsAgg,
-      rate
+      rate,
+      realSalesAgg,
+      botSalesAgg,
+      agentPreDepositAgg
     ] = await Promise.all([
       prisma.systemWallet.findUnique({ where: { id: 1 } }),
       prisma.gameCycle.aggregate({ _sum: { houseWins: true } }),
@@ -1627,10 +1630,17 @@ staffRouter.get('/audit', restrictToAdmin, async (req, res) => {
       prisma.user.count({ where: { role: 'AGENT' } }),
       prisma.deposit.aggregate({ where: { status: 'APPROVED' }, _sum: { amount: true } }),
       prisma.withdrawal.aggregate({ where: { status: 'COMPLETED' }, _sum: { amount: true } }),
-      getCompanyCommissionRate()
+      getCompanyCommissionRate(),
+      prisma.transaction.aggregate({ where: { type: 'TICKET_PURCHASE', status: 'COMPLETED', user: { isBot: false } }, _sum: { amount: true } }),
+      prisma.transaction.aggregate({ where: { type: 'TICKET_PURCHASE', status: 'COMPLETED', user: { isBot: true } }, _sum: { amount: true } }),
+      prisma.agentPreDepositWallet.aggregate({ _sum: { totalRecharged: true, totalDebited: true, balance: true } })
     ]);
 
     const totalSales = Number(totalSalesAgg._sum.amount || 0);
+    const realPlayerSales = Number(realSalesAgg._sum.amount || 0);
+    const botSales = Number(botSalesAgg._sum.amount || 0);
+    const totalCommissionsDeducted = Number(commissionsAgg._sum.amount || 0);
+    const expectedCommissions = realPlayerSales * rate;
 
     res.json({
       success: true,
@@ -1638,12 +1648,17 @@ staffRouter.get('/audit', restrictToAdmin, async (req, res) => {
         bunaWalletBalance: Number(bunaWallet?.balance || 0),
         totalHouseWins: Number(houseBotWinsAgg._sum.houseWins || 0),
         totalSales,
-        totalCommissionsDeducted: Number(commissionsAgg._sum.amount || 0),
-        expectedCommissions: totalSales * rate,
+        realPlayerSales,
+        botSales,
+        totalCommissionsDeducted,
+        expectedCommissions,
         commissionRate: rate,
         totalDeposits: Number(totalDepositsAgg._sum.amount || 0),
         totalWithdrawals: Number(totalWithdrawalsAgg._sum.amount || 0),
-        agentsCount
+        agentsCount,
+        agentPreDepositTotalRecharged: Number(agentPreDepositAgg._sum?.totalRecharged || 0),
+        agentPreDepositTotalDebited: Number(agentPreDepositAgg._sum?.totalDebited || 0),
+        agentPreDepositCurrentBalance: Number(agentPreDepositAgg._sum?.balance || 0),
       }
     });
   } catch (err: any) {
