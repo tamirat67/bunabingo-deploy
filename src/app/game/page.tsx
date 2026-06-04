@@ -563,32 +563,23 @@ function GameContent() {
         ticketsRef.current.some(t => String(t.id) === String(winner.ticketId) || String(t.userId) === String(winner.userId))
       );
       const isCurrentUserWinner = !!myWinnerObj;
+      // For NON-winner display: always use the first winner from the broadcast
+      // to ensure all devices show the same person.
       const w = myWinnerObj || d.winners?.[0];
       const isBot = w?.isBot ?? w?.user?.isBot ?? false;
-      // MUST match the 24-name array in backend/src/game/engine.ts exactly
-      const ETHIOPIAN_NAMES_FE = [
-        'Abebe', 'Kebede', 'Selam', 'Tesfaye', 'Dawit', 'Yonas', 'Tigist', 'Almaz',
-        'Meron', 'Hiwot', 'Tizita', 'Biruk', 'Nahom', 'Eyob', 'Liya', 'Saron',
-        'Kalkidan', 'Robel', 'Bethel', 'Henok', 'Rahel', 'Tsion', 'Abel', 'Eden',
-      ];
-      let nameHash = 0;
-      // Seed must match engine.ts: gameId + String(w.ticketId)
-      const nameSeed = String(gameId) + String(w?.ticketId || '123');
-      for (let i = 0; i < nameSeed.length; i++) {
-        nameHash = nameSeed.charCodeAt(i) + ((nameHash << 5) - nameHash);
-      }
-      const deterministicBotName = ETHIOPIAN_NAMES_FE[Math.abs(nameHash) % ETHIOPIAN_NAMES_FE.length];
-      
+
+      // ── Use backend displayName directly — NEVER recompute locally ──────────
+      // engine.ts sets w.displayName = the canonical bot/player name.
+      // This is the SINGLE source of truth; all devices receive the exact same value.
+      const backendDisplayName = w?.displayName || w?.user?.firstName || w?.user?.telegramUsername;
       const rawTgUsername = (window as any).Telegram?.WebApp?.initDataUnsafe?.user?.username || w?.user?.telegramUsername;
       const tgUsername = (!isBot && rawTgUsername) ? ` (@${rawTgUsername.replace(/^@/, '')})` : '';
-      
-      // Trust w.user.firstName first — backend always sets this to the correct displayName.
-      // Only fall back to local computation if somehow missing (shouldn't happen).
+
       const name = isCurrentUserWinner
-        ? (((window as any).Telegram?.WebApp?.initDataUnsafe?.user?.first_name || w?.user?.firstName || 'You') + tgUsername)
+        ? (((window as any).Telegram?.WebApp?.initDataUnsafe?.user?.first_name || backendDisplayName || 'You') + tgUsername)
         : (isBot
-            ? (w?.user?.firstName || deterministicBotName)
-            : (w?.user?.firstName ? `${w.user.firstName}${tgUsername}` : deterministicBotName));
+            ? (backendDisplayName || 'Player')
+            : (backendDisplayName ? `${backendDisplayName}${tgUsername}` : 'Player'));
       let rawCard = w?.card || w?.ticket?.card;
       if (typeof rawCard === 'string') { try { rawCard = JSON.parse(rawCard); } catch(e) {} }
       let cardNo: number | undefined = rawCard?.id ?? w?.cardId ?? undefined;
@@ -753,27 +744,15 @@ function GameContent() {
         const isCurrentUserWinner = !!myWinnerObj;
         const w = myWinnerObj || winners[0];
         const isBot = w?.isBot ?? w?.user?.isBot ?? false;
-        // MUST match the 24-name array in backend/src/game/engine.ts exactly
-        const ETHIOPIAN_NAMES_FE2 = [
-          'Abebe', 'Kebede', 'Selam', 'Tesfaye', 'Dawit', 'Yonas', 'Tigist', 'Almaz',
-          'Meron', 'Hiwot', 'Tizita', 'Biruk', 'Nahom', 'Eyob', 'Liya', 'Saron',
-          'Kalkidan', 'Robel', 'Bethel', 'Henok', 'Rahel', 'Tsion', 'Abel', 'Eden',
-        ];
-        let nameHash = 0;
-        // Seed must match engine.ts: gameId + String(w.ticketId)
-        const nameSeed = String(gameId) + String(w?.ticketId || '123');
-        for (let i = 0; i < nameSeed.length; i++) {
-          nameHash = nameSeed.charCodeAt(i) + ((nameHash << 5) - nameHash);
-        }
-        const deterministicBotName2 = ETHIOPIAN_NAMES_FE2[Math.abs(nameHash) % ETHIOPIAN_NAMES_FE2.length];
+
+        // ── Use backend displayName directly — NEVER recompute locally ──────
+        const backendDisplayName2 = w?.displayName || w?.user?.firstName || w?.user?.telegramUsername;
         const tgUsername = (!isBot && w?.user?.telegramUsername) ? ` (@${w.user.telegramUsername.replace(/^@/, '')})` : '';
-        // Trust w.user.firstName first — backend always sets this to the correct displayName in engine.ts.
-        // Only fall back to local computation if somehow missing.
         const name = isCurrentUserWinner
-          ? ((window as any).Telegram?.WebApp?.initDataUnsafe?.user?.first_name || w?.user?.firstName || 'You')
+          ? ((window as any).Telegram?.WebApp?.initDataUnsafe?.user?.first_name || backendDisplayName2 || 'You')
           : (isBot
-              ? (w?.user?.firstName || deterministicBotName2)
-              : (w?.user?.firstName ? `${w.user.firstName}${tgUsername}` : deterministicBotName2));
+              ? (backendDisplayName2 || 'Player')
+              : (backendDisplayName2 ? `${backendDisplayName2}${tgUsername}` : 'Player'));
         let rawCard2 = w?.card || w?.ticket?.card;
         if (typeof rawCard2 === 'string') { try { rawCard2 = JSON.parse(rawCard2); } catch(e) {} }
         if (typeof rawCard2 === 'string') { try { rawCard2 = JSON.parse(rawCard2); } catch(e) {} }

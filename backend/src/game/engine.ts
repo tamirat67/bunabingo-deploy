@@ -1268,6 +1268,7 @@ async function finishGame(gameId: string, reason: string): Promise<void> {
       card: finalCard,
       cardId: cardId || finalCard.id,
       isBot,                // real flag — frontend uses this for display logic
+      displayName,          // ← single source of truth: always use this on frontend, never recompute
       user: {
         firstName: displayName,
         telegramUsername: isBot
