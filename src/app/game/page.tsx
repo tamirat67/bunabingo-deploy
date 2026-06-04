@@ -551,8 +551,8 @@ function GameContent() {
         isBot,
         drawnNumbers: d.drawnNumbers || drawn || [],
       });
-      // Start 5-second countdown then redirect to cartela selection
-      setRedirectSecs(8);
+      // Start 4-second countdown then redirect to cartela selection
+      setRedirectSecs(4);
       redirectCountdownRef.current = setInterval(() => {
         setRedirectSecs(s => {
           if (s <= 1) {
@@ -564,7 +564,7 @@ function GameContent() {
       }, 1000);
       redirectTimerRef.current = setTimeout(() => {
         router.push(`/tickets/select?type=${game?.room?.type || spType}&price=${stake}`);
-      }, 8000);
+      }, 4000);
     };
 
     socket.on('game-update', (d: any) => {

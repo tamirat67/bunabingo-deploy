@@ -777,7 +777,7 @@ async function checkAllTickets(gameId: string, drawnNumbers: number[]): Promise<
              capturedWinMode = state.targetWinMode as any;
            }
 
-           const delayMs = 2000 + Math.floor(Math.random() * 1000); // 2.0s to 3.0s delay (shorter to avoid races)
+           const delayMs = 1000 + Math.floor(Math.random() * 500); // 1.0s to 1.5s delay
            logger.info(`[Game ${gameId}] BOT WINNER DETECTED! Scheduling human-like auto-claim in ${delayMs}ms for ${capturedWinMode}...`);
            
            setTimeout(async () => {
