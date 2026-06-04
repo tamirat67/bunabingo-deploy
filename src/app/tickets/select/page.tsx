@@ -1008,7 +1008,7 @@ const balance = Number(user?.wallet?.balance || 0);
                         boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.08)'
                       }}>
                         <AnimatePresence initial={false} mode="popLayout">
-                          {[...drawnNumbers].reverse().slice(1, 4).map((num) => {
+                          {[...drawnNumbers].reverse().slice(1, 7).map((num) => {
                             const { letter, bgColor } = getBallDetails(num);
                             return (
                               <motion.div
