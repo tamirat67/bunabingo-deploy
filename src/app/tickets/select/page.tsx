@@ -33,7 +33,21 @@ function SelectionContent() {
   const [newlyOccupied, setNewlyOccupied] = useState<number[]>([]);
   const [fakePlayersCount, setFakePlayersCount] = useState(0);
   const [fakeOccupied, setFakeOccupied] = useState<number[]>([]);
+  // isInitializing: true until the very first getOccupiedCards call resolves.
+  // While true the grid stays covered so there's no flash of unlocked UI on refresh.
   const [isInitializing, setIsInitializing] = useState(true);
+  // Persist isGameRunning across refresh via sessionStorage so the mask shows instantly
+  const [initialGameRunning] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return sessionStorage.getItem('select_game_running') === '1';
+  });
+  const [initialDrawnNumbers] = useState<number[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const raw = sessionStorage.getItem('select_drawn_numbers');
+      return raw ? JSON.parse(raw) : [];
+    } catch { return []; }
+  });
   // ── Live game state: true when the room has a RUNNING game and player is queued for next session
   const [isGameRunning, setIsGameRunning] = useState(false);
   const [drawnNumbers, setDrawnNumbers] = useState<number[]>([]);
@@ -67,6 +81,8 @@ function SelectionContent() {
   const selectedRef = useRef<number[]>([]);
   const ownedRef = useRef<number[]>([]);
   const occupiedRef = useRef<number[]>([]);
+  // Tracks whether the component is still mounted — used to stop audio after navigation
+  const mountedRef = useRef(true);
 
   useEffect(() => {
     selectedRef.current = selected;
@@ -190,16 +206,36 @@ function SelectionContent() {
 
   // ── Audio init: persistent element for B1-O75 calls on this page ────────
   useEffect(() => {
+    mountedRef.current = true;
     if (typeof window !== 'undefined') {
       ballAudioRefSelect.current = new Audio();
       const saved = localStorage.getItem('game_sound');
       soundOnSelectRef.current = saved !== 'false';
     }
+    // Cleanup: stop audio + clear queue when component unmounts (navigating away)
+    return () => {
+      mountedRef.current = false;
+      audioQueueSelectRef.current = [];
+      isPlayingSelectRef.current = false;
+      if (ballAudioRefSelect.current) {
+        ballAudioRefSelect.current.pause();
+        ballAudioRefSelect.current.onended = null;
+        ballAudioRefSelect.current.onerror = null;
+        ballAudioRefSelect.current.src = '';
+        ballAudioRefSelect.current = null;
+      }
+    };
   }, []);
 
   // Define the recursive queue processor via ref — avoids stale closure on self-call
   useEffect(() => {
     playNextSelectBallRef.current = () => {
+      // Stop processing if component has unmounted (user navigated away)
+      if (!mountedRef.current) {
+        audioQueueSelectRef.current = [];
+        isPlayingSelectRef.current = false;
+        return;
+      }
       if (audioQueueSelectRef.current.length === 0) {
         isPlayingSelectRef.current = false;
         return;
@@ -208,7 +244,7 @@ function SelectionContent() {
       const num = audioQueueSelectRef.current.shift()!;
       if (!soundOnSelectRef.current) {
         // Muted: keep queue alive with a tiny gap
-        setTimeout(() => playNextSelectBallRef.current(), 150);
+        setTimeout(() => { if (mountedRef.current) playNextSelectBallRef.current(); }, 150);
         return;
       }
       const col = num <= 15 ? 'B' : num <= 30 ? 'I' : num <= 45 ? 'N' : num <= 60 ? 'G' : 'O';
@@ -216,7 +252,7 @@ function SelectionContent() {
       const finish = () => {
         if (done) return;
         done = true;
-        setTimeout(() => playNextSelectBallRef.current(), 300);
+        setTimeout(() => { if (mountedRef.current) playNextSelectBallRef.current(); }, 300);
       };
       try {
         const el = ballAudioRefSelect.current;
@@ -615,7 +651,17 @@ function SelectionContent() {
         socket.off('game-started');
         socket.off('game-running-sync');
         socket.off('game-finished');
-        socket.off('number-drawn'); // fix: was missing from cleanup
+        socket.off('number-drawn');
+      }
+      // Kill audio immediately when socket effect tears down (navigation / dep change)
+      audioQueueSelectRef.current = [];
+      isPlayingSelectRef.current = false;
+      if (ballAudioRefSelect.current) {
+        try {
+          ballAudioRefSelect.current.pause();
+          ballAudioRefSelect.current.onended = null;
+          ballAudioRefSelect.current.onerror = null;
+        } catch (_) {}
       }
     };
   }, [roomType, activeGameId, socket, loadGameData, user?.id, router, stake]);
@@ -663,6 +709,17 @@ function SelectionContent() {
         // Always read from ref — never from stale closure
         const wasRunning = isGameRunningRef.current;
         const nowRunning = !!res.isGameRunning;
+
+        // Persist running state + drawn numbers to sessionStorage so next refresh
+        // can show the mask immediately without waiting for the first poll
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('select_game_running', nowRunning ? '1' : '0');
+          if (nowRunning && (res as any).drawnNumbers) {
+            sessionStorage.setItem('select_drawn_numbers', JSON.stringify((res as any).drawnNumbers));
+          } else if (!nowRunning) {
+            sessionStorage.removeItem('select_drawn_numbers');
+          }
+        }
 
         // Update isGameRunning based on authoritative server response
         if (nowRunning !== wasRunning) {
@@ -740,7 +797,8 @@ function SelectionContent() {
 
 
   const toggleSelect = (num: number) => {
-    if (isInitializing) return;
+    // Hard block: never allow selection while a game is running
+    if (isGameRunningRef.current || isInitializing) return;
     
     if (!user && roomType !== 'DEMO') {
       showAlert('Loading...', 'Please wait while we fetch your wallet balance.', 'info');
@@ -952,6 +1010,14 @@ const balance = Number(user?.wallet?.balance || 0);
   const isLive = countdown !== null && countdown > 0;
   const urgencyColor = countdown !== null && countdown <= 5 ? '#E74C3C' : T.gold;
 
+  // Effective game-running state: true if confirmed by server OR if we have sessionStorage
+  // hint from the previous load. This eliminates the flicker on refresh.
+  const effectiveGameRunning = isGameRunning || (isInitializing && initialGameRunning);
+  // Effective drawn numbers: use server data once available, fall back to sessionStorage on init
+  const effectiveDrawnNumbers = (isInitializing && drawnNumbers.length === 0)
+    ? initialDrawnNumbers
+    : drawnNumbers;
+
   return (
     <div className={`selection-container ${isVip ? 'vip-theme' : 'brown'} ${isSpin ? 'spin-theme' : ''}`}>
 
@@ -963,7 +1029,7 @@ const balance = Number(user?.wallet?.balance || 0);
         </button>
 
         {/* Live Ball Calls — always show when game is running */}
-        {isGameRunning ? (
+        {effectiveGameRunning ? (
           <div style={{
             flex: 1,
             display: 'flex',
@@ -976,11 +1042,11 @@ const balance = Number(user?.wallet?.balance || 0);
               const headerDark = isDark || isVip || isSpin;
               return (
                 <>
-                  {drawnNumbers.length > 0 ? (
+                  {effectiveDrawnNumbers.length > 0 ? (
                     <>
                       {/* Left: Big Ball (Newest) */}
                       {(() => {
-                        const newestNum = drawnNumbers[drawnNumbers.length - 1];
+                        const newestNum = effectiveDrawnNumbers[effectiveDrawnNumbers.length - 1];
                         const { letter, bgColor } = getBallDetails(newestNum);
                         return (
                           <div style={{
@@ -1019,7 +1085,7 @@ const balance = Number(user?.wallet?.balance || 0);
                         boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.08)'
                       }}>
                         <AnimatePresence initial={false} mode="popLayout">
-                          {[...drawnNumbers].reverse().slice(1, 7).map((num) => {
+                          {[...effectiveDrawnNumbers].reverse().slice(1, 7).map((num) => {
                             const { letter, bgColor } = getBallDetails(num);
                             return (
                               <motion.div
@@ -1067,7 +1133,7 @@ const balance = Number(user?.wallet?.balance || 0);
                         flexShrink: 0
                       }}>
                         <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#f1c40f' }} />
-                        {drawnNumbers.length} / 75
+                        {effectiveDrawnNumbers.length} / 75
                       </div>
                     </>
                   ) : (
@@ -1217,13 +1283,13 @@ const balance = Number(user?.wallet?.balance || 0);
         {/* Right — Countdown / Status */}
         <div style={{ textAlign: 'center', minWidth: '90px' }}>
           <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: '9px', fontWeight: '900', letterSpacing: '1.5px', marginBottom: '4px', textTransform: 'uppercase' }}>
-            {isGameRunning || game?.status === 'RUNNING'
+            {effectiveGameRunning || game?.status === 'RUNNING'
               ? 'LIVE GAME'
               : countdown !== null && countdown > 0
               ? 'STARTS IN'
               : 'NEXT GAME'}
           </div>
-          {isGameRunning || game?.status === 'RUNNING' ? (
+          {effectiveGameRunning || game?.status === 'RUNNING' ? (
             <div style={{ fontSize: '22px', fontWeight: '900', color: '#E74C3C', textShadow: '0 0 14px rgba(231,76,60,0.7)', letterSpacing: '-1px' }}>
               🔴 LIVE
             </div>
@@ -1283,14 +1349,16 @@ const balance = Number(user?.wallet?.balance || 0);
 
 
       {/* \u2500\u2500 Card Grid \u2500\u2500 */}
-      <div className="grid-brown" style={{ position: 'relative', overflow: 'hidden' }}>
+      <div className="grid-brown" style={{ position: 'relative', overflow: 'hidden', pointerEvents: effectiveGameRunning ? 'none' : undefined }}>
         
         {/* \u2550\u2550\u2550\u2550\u2550\u2550 GAME IN PROGRESS MASK \u2550\u2550\u2550\u2550\u2550\u2550 */}
-        {isGameRunning && (
+        {effectiveGameRunning && (
           <div style={{
             position: 'absolute',
             inset: 0,
             zIndex: 10,
+            pointerEvents: 'all',
+            cursor: 'not-allowed',
             background: isVip
               ? 'radial-gradient(circle at top, rgba(45,20,66,0.95) 0%, rgba(28,10,53,0.98) 60%, rgba(15,4,26,1) 100%)'
               : 'linear-gradient(160deg, rgba(26,18,12,0.95) 0%, rgba(43,29,20,0.98) 50%, rgba(26,18,12,1) 100%)',
@@ -1376,7 +1444,7 @@ const balance = Number(user?.wallet?.balance || 0);
           return (
             <div
               key={num}
-              className={`num-brown ${isSelected ? 'selected' : ''} ${isOccupied ? 'occupied occupied-pulse' : ''} ${isOwned ? 'owned' : ''} ${isNewlySnatched ? 'newly-snatched' : ''}`}
+              className={`num-brown ${isSelected ? 'selected' : ''} ${isOccupied ? 'occupied' : ''} ${isOwned ? 'owned' : ''} ${isNewlySnatched ? 'newly-snatched' : ''}`}
               style={{
                 background: isOwned
                   ? 'linear-gradient(135deg, #1C0A35, #D4AF37)'
@@ -1510,17 +1578,8 @@ const balance = Number(user?.wallet?.balance || 0);
           0%   { transform: translateX(0); }
           100% { transform: translateX(-50%); }
         }
-        @keyframes occupiedGreenPulse {
-          0%   { background: linear-gradient(135deg, #1E8449, #27AE60); box-shadow: 0 0 4px rgba(46,204,113,0.4); border-color: #27AE60; }
-          50%  { background: linear-gradient(135deg, #27AE60, #2ECC71); box-shadow: 0 0 14px rgba(46,204,113,0.8); border-color: #2ECC71; }
-          100% { background: linear-gradient(135deg, #1E8449, #27AE60); box-shadow: 0 0 4px rgba(46,204,113,0.4); border-color: #27AE60; }
-        }
-        .occupied-pulse {
-          animation: occupiedGreenPulse 2s infinite ease-in-out !important;
-          color: white !important;
-          opacity: 1 !important;
-          border: 1.5px solid #2ecc71 !important;
-        }
+        /* occupied-pulse is intentionally removed — all occupied cards are solid green.
+           Only newly-snatched cards get the flash animation below. */
         @keyframes snatchFlash {
           0%   { transform: scale(1.25); }
           100% { transform: scale(1); }
