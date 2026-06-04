@@ -60,6 +60,7 @@ function SelectionContent() {
   // Stable ref for activeGameId — lets socket/polling effects read the latest ID
   // without needing it in their dependency arrays (prevents full effect re-mount on every poll update)
   const activeGameIdRef = useRef<string | undefined>(gameId);
+  const lastJoinedRunningGameIdRef = useRef<string | null>(null);
   const redirectedRef = useRef(false);
   const [liveGameDismissed, setLiveGameDismissed] = useState(false);
   // ── Server-time-anchored countdown for the LIVE GAME "NEXT CHECK" banner ──
@@ -796,8 +797,10 @@ function SelectionContent() {
         setHasTicketsInRunningGame(!!res.hasTicketsInRunningGame);
         const newRunningId = res.runningGameId || null;
         setRunningGameId(newRunningId);
-        // Subscribe to the running game's socket channel so we receive number-drawn events
-        if (newRunningId && socket) {
+        // Subscribe to the running game's socket channel ONLY if we haven't already
+        // This prevents spamming the server and triggering redundant game-running-sync responses every 5 seconds.
+        if (newRunningId && socket && lastJoinedRunningGameIdRef.current !== newRunningId) {
+          lastJoinedRunningGameIdRef.current = newRunningId;
           socket.emit('join-game', newRunningId);
         }
         if ((res as any).drawnNumbers) {
@@ -812,7 +815,13 @@ function SelectionContent() {
             } else {
               newBalls.forEach(n => queueSelectBall(n));
             }
-            return incoming;
+            
+            // Fix: Only overwrite if the API array is newer/longer than our current state.
+            // This prevents stale API cache responses from deleting newly drawn socket balls.
+            if (incoming.length >= prev.length) {
+              return incoming;
+            }
+            return prev;
           });
         }
       }).catch(() => {
