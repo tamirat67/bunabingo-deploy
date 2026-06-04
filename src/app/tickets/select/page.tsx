@@ -555,13 +555,6 @@ function SelectionContent() {
     return { letter: 'O', color: '#9B59B6' }; // Purple
   };
 
-  // Prefetch game page to avoid loading delay when redirecting
-  useEffect(() => {
-    if (countdown !== null && countdown <= 5) {
-      router.prefetch(`/game`);
-      router.prefetch(`/play/spin`);
-    }
-  }, [countdown, router]);
 
   // ─── Auto-redirect to bingo calling page when game launches (30+1 trigger) ───
   // Catches cases where the game-started socket event was missed due to timing.
