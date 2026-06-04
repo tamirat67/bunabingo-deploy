@@ -710,28 +710,48 @@ function SelectionContent() {
           if (cardRows && (!Array.isArray(cardRows[0]) || cardRows.length !== 5)) cardRows = null;
           const cardNo: number | undefined = rawCard?.id ?? w.cardId ?? undefined;
 
-          setGameFinishedData({
-            winnerName,
-            prize: parseFloat(String(w.prizeAmount ?? 0)) || parseFloat(String(d.gamePrize ?? 0)) || 0,
-            mode: w.winMode || 'ROW',
-            card: cardRows,
-            cardNo,
-            isBot: w.isBot ?? w.user?.isBot ?? false,
-            drawnNumbers: d.drawnNumbers || [],
-            isCurrentUserWinner: false,
-          });
-          setWinnerRedirectSecs(4);
-          if (winnerRedirectRef.current) clearInterval(winnerRedirectRef.current);
-          winnerRedirectRef.current = setInterval(() => {
-            setWinnerRedirectSecs(prev => {
-              if (prev <= 1) {
-                clearInterval(winnerRedirectRef.current);
-                setGameFinishedData(null);
-                return 0;
-              }
-              return prev - 1;
+          const showModal = () => {
+            setGameFinishedData({
+              winnerName,
+              prize: parseFloat(String(w.prizeAmount ?? 0)) || parseFloat(String(d.gamePrize ?? 0)) || 0,
+              mode: w.winMode || 'ROW',
+              card: cardRows,
+              cardNo,
+              isBot: w.isBot ?? w.user?.isBot ?? false,
+              drawnNumbers: d.drawnNumbers || [],
+              isCurrentUserWinner: false,
             });
-          }, 1000);
+            setWinnerRedirectSecs(4);
+            if (winnerRedirectRef.current) clearInterval(winnerRedirectRef.current);
+            winnerRedirectRef.current = setInterval(() => {
+              setWinnerRedirectSecs(prev => {
+                if (prev <= 1) {
+                  clearInterval(winnerRedirectRef.current);
+                  setGameFinishedData(null);
+                  return 0;
+                }
+                return prev - 1;
+              });
+            }, 1000);
+          };
+
+          // To ensure ALL devices see the modal at exactly the same time, we must
+          // wait for stop.mp3 to finish just like the active game page does.
+          if (soundOnSelectRef.current) {
+            try {
+              const el = new Audio('/audio/stop.mp3');
+              let completed = false;
+              const safeShow = () => { if (!completed) { completed = true; showModal(); } };
+              el.onended = safeShow;
+              el.onerror = safeShow;
+              el.play().catch(safeShow);
+              setTimeout(safeShow, 4000); // safety fallback
+            } catch (e) {
+              showModal();
+            }
+          } else {
+            showModal();
+          }
         }
 
         getOccupiedCards(roomType, activeGameIdRef.current).then(res => {
