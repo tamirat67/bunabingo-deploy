@@ -119,22 +119,48 @@ export function initSocket(server: HttpServer) {
     // If the game is already RUNNING, tell the client when it started so
     // every device computes the exact same position inside the 20-second
     // poll cycle — no more independent clocks drifting apart.
+    // IMPORTANT: When the client joins via room-type string (e.g. 'STANDARD'),
+    // resolvedGameId points to the WAITING game — so we MUST also check explicitly
+    // for a RUNNING game in the same room to fire this sync correctly.
     try {
       const { default: prisma } = await import('./prisma');
-      const lookupId = resolvedGameId || gameOrRoom;
-      if (lookupId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(lookupId)) {
-        const game = await prisma.game.findUnique({
-          where: { id: lookupId },
-          select: { status: true, startedAt: true }
-        });
-        if (game?.status === 'RUNNING' && game.startedAt) {
-          socket.emit('game-running-sync', {
-            gameStartedAt: game.startedAt.getTime(),
-            serverTime: Date.now(),
-            cycleSeconds: 20,
+      const isRoomTypeJoin = ['DEMO', 'CASUAL', 'STANDARD', 'PRO', 'JACKPOT', 'VIP'].includes(gameOrRoom) || gameOrRoom.startsWith('SPIN_');
+
+      let runningGame: { id: string; status: string; startedAt: Date | null } | null = null;
+
+      if (isRoomTypeJoin) {
+        // For room-type joins, look up the room and find any RUNNING game directly
+        const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+        const room = await prisma.room.findFirst({ where: { type: gameOrRoom as any, isActive: true }, select: { id: true } });
+        if (room) {
+          runningGame = await prisma.game.findFirst({
+            where: { roomId: room.id, status: 'RUNNING', startedAt: { gte: tenMinutesAgo } },
+            select: { id: true, status: true, startedAt: true },
           });
-          logger.info(`[Socket] Sent game-running-sync to ${socket.id}, startedAt=${game.startedAt.toISOString()}`);
         }
+      } else {
+        // For UUID joins, check the specific game directly
+        const lookupId = resolvedGameId || gameOrRoom;
+        if (lookupId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(lookupId)) {
+          runningGame = await prisma.game.findUnique({
+            where: { id: lookupId },
+            select: { id: true, status: true, startedAt: true },
+          });
+          if (runningGame?.status !== 'RUNNING') runningGame = null;
+        }
+      }
+
+      if (runningGame && runningGame.startedAt) {
+        // Auto-join this socket to the running game's channel so it receives number-drawn,
+        // game-finished etc. even though it joined via room-type string
+        socket.join(`game_${runningGame.id}`);
+        socket.emit('game-running-sync', {
+          gameId: runningGame.id,
+          gameStartedAt: runningGame.startedAt.getTime(),
+          serverTime: Date.now(),
+          cycleSeconds: 20,
+        });
+        logger.info(`[Socket] Sent game-running-sync to ${socket.id} (joined via ${gameOrRoom}), runningGameId=${runningGame.id}, startedAt=${runningGame.startedAt.toISOString()}`);
       }
     } catch (e) {
       logger.warn(`[Socket] Could not sync running-game state for ${gameOrRoom}:`, e);

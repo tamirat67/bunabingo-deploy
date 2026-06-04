@@ -570,6 +570,8 @@ function SelectionContent() {
       // ── Late-join sync: server tells us when the running game started ──────
       // Allows a client that (re)loads mid-game to immediately show the correct
       // remaining seconds instead of starting a fresh independent 20s clock.
+      // The server now also sends the runningGameId so we can join its socket
+      // room and receive number-drawn / game-finished events in real-time.
       socket.on('game-running-sync', (d: any) => {
         isGameRunningRef.current = true;
         lastGameRunningChangeTimeRef.current = Date.now();
@@ -580,6 +582,10 @@ function SelectionContent() {
         const endTime = Date.now() + (cycleMs - elapsed);
         liveGameEndTimeRef.current = endTime;
         setLiveGameEndTime(endTime);
+        // Auto-join the running game's socket room so we receive real-time events
+        if (d.gameId && socket) {
+          socket.emit('join-game', d.gameId);
+        }
       });
 
       socket.on('countdown-tick', (d: any) => {
@@ -729,8 +735,9 @@ function SelectionContent() {
 
         // Update isGameRunning based on authoritative server response
         if (nowRunning !== wasRunning) {
-          // If the socket JUST told us the game started OR finished, don't trust a stale polling response saying the opposite
-          if (Date.now() - lastGameRunningChangeTimeRef.current < 4000) {
+          // If the socket JUST told us the game started OR finished, don't trust a stale polling response saying the opposite.
+          // 1.5s is enough to let a fresh socket event settle before a racing poll can overwrite it.
+          if (Date.now() - lastGameRunningChangeTimeRef.current < 1500) {
             return;
           }
           lastGameRunningChangeTimeRef.current = Date.now();
@@ -802,12 +809,13 @@ function SelectionContent() {
     // Run immediately on mount / dependency change to catch refresh-during-game
     syncRunningState();
 
-    // Then poll every 2s continuously (covers WAITING, COUNTDOWN, RUNNING states)
-    // isGameRunning is NOT in deps — we use the ref so the interval never resets
+    // Poll every 5s when socket is connected (covers missed events, game transitions),
+    // or every 2s when disconnected (no socket fallback available).
+    // Using 5s (not 15s) ensures a newly started game is detected within seconds.
     const poll = setInterval(() => {
       syncRunningState();
       if (!isGameRunningRef.current) loadGameData(); // keep countdown/game data fresh when not running
-    }, isConnected ? 15000 : 2000);
+    }, isConnected ? 5000 : 2000);
 
     return () => clearInterval(poll);
   // eslint-disable-next-line react-hooks/exhaustive-deps
