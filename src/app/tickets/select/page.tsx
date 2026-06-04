@@ -36,6 +36,7 @@ function SelectionContent() {
   const [isInitializing, setIsInitializing] = useState(true);
   // ── Live game state: true when the room has a RUNNING game and player is queued for next session
   const [isGameRunning, setIsGameRunning] = useState(false);
+  const [recentBall, setRecentBall] = useState<number | null>(null);
   const [hasTicketsInRunningGame, setHasTicketsInRunningGame] = useState(false);
   const [runningGameId, setRunningGameId] = useState<string | null>(null);
   // Ref so the polling interval always reads the latest value without stale closures
@@ -478,12 +479,17 @@ function SelectionContent() {
         }
       });
 
+      socket.on('number-drawn', (d: any) => {
+        if (d.number !== undefined) setRecentBall(d.number);
+      });
+
       // ── When the RUNNING game finishes, this lobby wakes up as next game ──
       socket.on('game-finished', () => {
         setIsGameRunning(false);
         isGameRunningRef.current = false;
         setLiveGameDismissed(true);
         setCountdown(null);
+        setRecentBall(null);
         setEndTime(null);
         setLiveGameSyncTimer(null);
         liveGameEndTimeRef.current = null;
@@ -1045,10 +1051,18 @@ const balance = Number(user?.wallet?.balance || 0);
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                background: recentBall ? (isVip ? 'radial-gradient(circle at 30% 30%, #FFD700, #B8860B)' : 'radial-gradient(circle at 30% 30%, #FFF, #CCC)') : 'transparent',
                 boxShadow: `0 0 30px ${isVip ? 'rgba(255,215,0,0.4)' : 'rgba(212,175,55,0.3)'}`,
+                color: recentBall ? '#000' : 'inherit'
               }}
             >
-              <span style={{ fontSize: '40px' }}>🎱</span>
+              {recentBall ? (
+                <span style={{ fontSize: '36px', fontWeight: '900', textShadow: '0 1px 2px rgba(255,255,255,0.5)' }}>
+                  {recentBall}
+                </span>
+              ) : (
+                <span style={{ fontSize: '40px' }}>🎱</span>
+              )}
             </motion.div>
 
             {/* Title */}
