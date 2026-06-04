@@ -329,26 +329,14 @@ function GameContent() {
       if (isFirstLoad) {
         isFirstLoadRef.current = false;
 
-        // If game is already running when we join, ensure start audio fires if it's early
-        if (g.status === 'RUNNING' && hist.length <= 5) {
+        // The game starts equally for all players. If it's running, always play start.mp3.
+        if (g.status === 'RUNNING') {
           playStartAudio();
         }
 
-        if (latestBall) {
-          if (hist.length <= 5) {
-            // Early join: queue all balls sequentially so visual and audio match "one by one"
-            queueBallSounds(hist, setLastBall);
-          } else {
-            // Late join: instantly show all history visually, only announce the last ball
-            setCalledHistory(hist);
-            if (hist.length > 1) {
-              hist.slice(0, -1).forEach((n: number) => announcedBallsRef.current.add(n));
-            }
-            queueBallSounds([latestBall], setLastBall);
-          }
-        } else if (hist.length > 0) {
-          setCalledHistory(hist);
-          hist.forEach((n: number) => announcedBallsRef.current.add(n));
+        if (hist.length > 0) {
+          // Always queue all balls sequentially so visual and audio match "one by one"
+          queueBallSounds(hist, setLastBall);
         }
       } else {
         // During active game: board highlights sync from server history immediately.
