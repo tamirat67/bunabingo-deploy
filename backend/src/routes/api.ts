@@ -808,6 +808,7 @@ router.get('/games/:gameId', async (req: Request, res: Response) => {
       room: true,
       drawHistory: { orderBy: { sequence: 'asc' } },
       winners: {
+        orderBy: { id: 'asc' },
         include: {
           user: { select: { firstName: true, telegramUsername: true, isBot: true, telegramId: true } },
           ticket: { select: { card: true } }

@@ -1134,6 +1134,7 @@ async function finishGame(gameId: string, reason: string): Promise<void> {
       user: { select: { firstName: true, telegramUsername: true, isBot: true, telegramId: true } },
       ticket: { select: { card: true } }
     },
+    orderBy: { id: 'asc' },
   });
 
   // ─── LAST RESORT: If no winner was recorded but we have tickets, force one NOW ──
