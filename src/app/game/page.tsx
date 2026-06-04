@@ -329,21 +329,25 @@ function GameContent() {
       if (isFirstLoad) {
         isFirstLoadRef.current = false;
 
+        // If game is already running when we join, ensure start audio fires if it's early
+        if (g.status === 'RUNNING' && hist.length <= 5) {
+          playStartAudio();
+        }
+
         if (latestBall) {
-          // Show full board history visually immediately
-          setCalledHistory(hist);
-
-          if (hist.length > 1) {
-            // Mark ALL the older balls (everything except the very latest) as announced
-            // so the audio queue never replays them — the user already missed them.
-            hist.slice(0, -1).forEach((n: number) => announcedBallsRef.current.add(n));
+          if (hist.length <= 5) {
+            // Early join: queue all balls sequentially so visual and audio match "one by one"
+            queueBallSounds(hist, setLastBall);
+          } else {
+            // Late join: instantly show all history visually, only announce the last ball
+            setCalledHistory(hist);
+            if (hist.length > 1) {
+              hist.slice(0, -1).forEach((n: number) => announcedBallsRef.current.add(n));
+            }
+            queueBallSounds([latestBall], setLastBall);
           }
-
-          // Queue ONLY the latest/current ball for audio so user hears it called.
-          // This also adds latestBall to announcedBallsRef inside queueBallSounds.
-          queueBallSounds([latestBall], setLastBall);
         } else if (hist.length > 0) {
-          // Edge case: latestBall is undefined but hist has items — mark all, no audio
+          setCalledHistory(hist);
           hist.forEach((n: number) => announcedBallsRef.current.add(n));
         }
       } else {
