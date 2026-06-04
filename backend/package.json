@@ -11,7 +11,8 @@
     "db:migrate": "npx prisma migrate dev",
     "db:push": "npx prisma db push",
     "db:studio": "npx prisma studio",
-    "db:seed": "ts-node prisma/seed.ts"
+    "db:seed": "ts-node prisma/seed.ts",
+    "db:wipe": "ts-node src/scripts/clear_transactions.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.10.0",
