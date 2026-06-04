@@ -227,7 +227,11 @@ async function runGame(gameId: string): Promise<void> {
   let totalPrizePool = new Decimal(0);
   let totalHouseEdge = new Decimal(0);
 
-  if (!isDemo && realPlayerCount < 1) {
+  const { getHouseBotEnabled } = await import('../services/settings.service');
+  const houseBotEnabled = await getHouseBotEnabled();
+  const isBotRoom = game.room.type in BOT_COUNTS;
+
+  if (!isDemo && realPlayerCount < 1 && !(houseBotEnabled && isBotRoom)) {
     logger.info(`[Game ${gameId}] Loop Guard: 0 real players found. Restarting 20s countdown to wait for real players.`);
     await startCountdown(gameId, ticketCount);
     return;

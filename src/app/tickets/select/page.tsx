@@ -339,6 +339,22 @@ function SelectionContent() {
     return () => clearInterval(timer);
   }, [endTime, serverOff]);
 
+  // Reliable Auto-buy Effect
+  useEffect(() => {
+    if (countdown === 1 && selected.length > 0 && !joining) {
+      setJoining(true);
+      joinGame(roomType, selected).then(res => {
+        if (res && res.tickets) {
+          setOwnedCardIds(res.tickets.map((t: any) => t.card.id));
+          setSelected([]);
+        }
+      }).catch(() => {}).finally(() => {
+        // Only release joining lock if we are still on the page, but let it stay true during transition
+        setTimeout(() => setJoining(false), 2000);
+      });
+    }
+  }, [countdown, selected, joining, roomType]);
+
   useEffect(() => {
     if (roomType.toUpperCase().includes('SPIN')) {
       showAlert(
@@ -464,16 +480,8 @@ function SelectionContent() {
           setCountdown(d.secondsRemaining);
           currentRem = d.secondsRemaining;
         }
-        // Auto-buy tickets at 1s if they are selected but not purchased
-        if (currentRem === 1 && selectedRef.current.length > 0 && !joining) {
-          // Fire-and-forget the buy process so it completes before 0s lock
-          joinGame(roomType, selectedRef.current).then(res => {
-            if (res && res.tickets) {
-              setOwnedCardIds(res.tickets.map((t: any) => t.card.id));
-              setSelected([]);
-            }
-          }).catch(() => {});
-        }
+        // Auto-buy logic moved to useEffect to ensure it fires reliably
+
         if (typeof d.playerCount === 'number') {
           setPlayerCount(d.playerCount);
         }
