@@ -742,6 +742,12 @@ function SelectionContent() {
   const toggleSelect = (num: number) => {
     if (isInitializing) return;
     
+    if (!user && roomType !== 'DEMO') {
+      showAlert('Loading...', 'Please wait while we fetch your wallet balance.', 'info');
+      getMe().then(setUser).catch(() => {});
+      return;
+    }
+
     // 1. If the card is owned/occupied by another player
     if (occupied.includes(num) || fakeOccupied.includes(num)) {
       // Card is already visually green with cursor:not-allowed — silently block, no alert popup
@@ -806,9 +812,14 @@ const balance = Number(user?.wallet?.balance || 0);
 
   const handleStart = async () => {
     if (isInitializing || selected.length === 0 || joining) return;
+    
+    if (!user && roomType !== 'DEMO') {
+      showAlert('Loading...', 'Please wait while we fetch your wallet balance.', 'info');
+      getMe().then(setUser).catch(() => {});
+      return;
+    }
+    
     setJoining(true);
-
-
 
     const newCardsToBuy = selected.filter(id => !ownedCardIds.includes(id));
     const totalCost = stake * newCardsToBuy.length;
