@@ -228,13 +228,8 @@ async function runGame(gameId: string): Promise<void> {
   let totalHouseEdge = new Decimal(0);
 
   if (!isDemo && realPlayerCount < 1) {
-    logger.warn(`[Game ${gameId}] No real players found at game start — cancelling to stop infinite loop.`);
-    await prisma.game.update({
-      where: { id: gameId },
-      data: { status: GameStatus.CANCELLED, cancelledAt: new Date(), cancelReason: 'No real players joined before game started' },
-    });
-    gamesWithBotsInjectedPublic.delete(gameId);
-    await createWaitingGame(game.roomId);
+    logger.info(`[Game ${gameId}] Loop Guard: 0 real players found. Restarting 20s countdown to wait for real players.`);
+    await startCountdown(gameId, ticketCount);
     return;
   }
 
@@ -1311,15 +1306,10 @@ export async function createWaitingGame(roomId: string): Promise<string> {
         orderBy: { createdAt: 'desc' },
       });
       if (existing) {
-        // Only start countdown on a stuck WAITING game if real players are already in it
+        // If the game was stuck in WAITING (e.g. because a previous game was running), start it now!
         if (existing.status === 'WAITING') {
-          const realCount = await prisma.ticket.count({
-            where: { gameId: existing.id, user: { isBot: false } }
-          });
-          if (realCount > 0) {
-            const fullCount = await prisma.ticket.count({ where: { gameId: existing.id } });
-            await startCountdown(existing.id, fullCount);
-          }
+          const fullCount = await prisma.ticket.count({ where: { gameId: existing.id } });
+          await startCountdown(existing.id, fullCount);
         }
         return existing.id;
       }
@@ -1362,9 +1352,8 @@ export async function createWaitingGame(roomId: string): Promise<string> {
           }
         }
 
-        // Do NOT auto-start countdown — wait for a real player to join.
-        // The countdown will be triggered in joinGame when a real player selects a card.
-        logger.info(`[Engine] Game ${newGame.id} is WAITING for a real player. Bots pre-loaded: ${fullCount} tickets.`);
+        // ALWAYS start the countdown immediately, even if no bots were injected
+        await startCountdown(newGame.id, fullCount);
         
       } catch (e) {
         logger.error(`[Engine] Auto-start failed for game ${newGame.id}:`, e);
@@ -1718,7 +1707,7 @@ export async function joinGame(
         const joiningUser = await prisma.user.findUnique({ where: { id: userId }, select: { isBot: true } });
         const joinerIsReal = !joiningUser?.isBot;
 
-        if (joinerIsReal) {
+        if (joinerIsReal && !gamesWithBotsInjectedPublic.has(gameId)) {
           const ticketsWithUsers = await prisma.ticket.findMany({
             where: { gameId },
             select: { userId: true, user: { select: { isBot: true } } }
@@ -1730,16 +1719,18 @@ export async function joinGame(
 
           if (houseBotEnabled && isBotRoom) {
             if (realPlayerCount >= 1) {
-              if (!gamesWithBotsInjectedPublic.has(gameId)) {
-                // Bots not yet injected — inject them now then start countdown
+              if (!waitingTimers.has(gameId) && !gamesWithBotsInjectedPublic.has(gameId)) {
                 gamesWithBotsInjectedPublic.add(gameId);
                 try {
+                  // Inject bots immediately so real players can see the full lobby
                   const currentTickets = await prisma.ticket.findMany({ where: { gameId }, select: { card: true } });
                   const takenCardIds = currentTickets.map(t => (t.card as any).id as number);
+
                   await injectBotTickets(gameId, game.room.type, takenCardIds);
                   const fullCount = await prisma.ticket.count({ where: { gameId } });
                   const botCount = BOT_COUNTS[game.room.type] ?? 30;
-                  logger.info(`[HouseBot] Real player joined. Injected ${botCount} bots. Starting countdown for game ${gameId}.`);
+                  logger.info(`[HouseBot] Real player joined. Injected ${botCount} bots. Starting 20s countdown for game ${gameId}.`);
+
                   await Promise.all([
                     triggerGameEvent(gameId, 'player-joined', {
                       userId: 'bots',
@@ -1750,21 +1741,17 @@ export async function joinGame(
                     }),
                     triggerGameEvent(game.roomId, 'player-count-update', { playerCount: fullCount }),
                   ]);
+
+                  // Start the proper 20s countdown — ticks every second, game launches at 0s
                   await startCountdown(gameId, fullCount);
                 } catch (e) {
                   gamesWithBotsInjectedPublic.delete(gameId);
                   logger.error('[HouseBot] Bot injection / auto-start error:', e);
                 }
-              } else {
-                // Bots already pre-injected from createWaitingGame, but no countdown started yet
-                // Start countdown now that the first real player has joined
-                const fullCount = await prisma.ticket.count({ where: { gameId } });
-                logger.info(`[HouseBot] Real player joined pre-loaded game ${gameId}. Starting countdown with ${fullCount} tickets.`);
-                await startCountdown(gameId, fullCount);
               }
             }
           } else {
-            // REAL PLAYERS ONLY MODE (house bot disabled)
+            // REAL PLAYERS ONLY MODE
             if (realPlayerCount >= game.room.minPlayers) {
               logger.info(`[Game ${gameId}] Minimum real players reached (${realPlayerCount}/${game.room.minPlayers}). Auto-starting countdown.`);
               await startCountdown(gameId, currentTicketCount);
