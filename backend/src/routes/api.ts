@@ -524,13 +524,15 @@ router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
 
     let hasTicketsInRunningGame = false;
     let runningGameId: string | null = null;
-    if (runningGame && user?.id) {
-      const userRunningTickets = await prisma.ticket.count({
-        where: { gameId: runningGame.id, userId: user.id }
-      });
-      if (userRunningTickets > 0) {
-        hasTicketsInRunningGame = true;
-        runningGameId = runningGame.id;
+    if (runningGame) {
+      runningGameId = runningGame.id; // Always return so frontend can join socket for live calls
+      if (user?.id) {
+        const userRunningTickets = await prisma.ticket.count({
+          where: { gameId: runningGame.id, userId: user.id }
+        });
+        if (userRunningTickets > 0) {
+          hasTicketsInRunningGame = true;
+        }
       }
     }
 
