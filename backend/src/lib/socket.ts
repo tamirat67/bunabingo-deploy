@@ -152,9 +152,22 @@ export function initSocket(server: HttpServer) {
       if (!userId || !gId) return;
       
       try {
+        const { default: prisma } = await import('./prisma');
+        let dbUserId = userId;
+        
+        // If the socket connected with a Telegram ID (numeric), look up the real UUID
+        if (/^\d+$/.test(userId)) {
+          const user = await prisma.user.findUnique({
+            where: { telegramId: BigInt(userId) },
+            select: { id: true }
+          });
+          if (!user) throw new Error('User not found');
+          dbUserId = user.id;
+        }
+
         const { claimBingoWin } = await import('../game/engine');
         // Engine's claimBingoWin handles validation and triggering the global game-ended event
-        await claimBingoWin(gId, userId);
+        await claimBingoWin(gId, dbUserId);
         socket.emit('claim-success', { gameId: gId });
       } catch (err: any) {
         logger.warn(`[Socket Claim] User ${userId} failed to claim ${gId}: ${err.message}`);
