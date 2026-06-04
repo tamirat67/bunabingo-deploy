@@ -5,7 +5,7 @@ import { getMe, joinGame, getOccupiedCards, getGame } from '../../../lib/api';
 import { PREDEFINED_CARDS } from '../../../lib/predefinedCards';
 import { useSocket } from '../../../context/SocketContext';
 import BunaModal from '../../../components/BunaModal';
-import { ChevronLeft, ShieldCheck, Eye, Users, Trophy, Zap, Crown, Clock, Mic, MicOff } from 'lucide-react';
+import { ChevronLeft, ShieldCheck, Trophy, Zap, Crown, Clock, Mic, MicOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../../context/ThemeContext';
 
@@ -1147,10 +1147,8 @@ const balance = Number(user?.wallet?.balance || 0);
         <div className="capsule-white"><div className="l">WALLET</div><div className="v">{Number(balance).toFixed(0)}</div></div>
         <div className="capsule-white"><div className="l">BONUS</div><div className="v">{Number(user?.wallet?.bonusBalance || 0).toFixed(0)}</div></div>
         <div className="capsule-white"><div className="l">PLAYERS</div><div className="v">{displayPlayerCount}</div></div>
-        <div className="capsule-brown total-box"><div className="l" style={{ color: 'rgba(255,255,255,0.5)' }}>STAKE</div><div className="v">{stake}</div></div>
+        <div className="capsule-brown total-box"><div className="l" style={{ color: 'rgba(255,255,255,0.5)' }}>PRIZE</div><div className="v">{prize.toFixed(0)}</div></div>
       </div>
-
-
 
       {/* ── PREMIUM JACKPOT + COUNTDOWN BANNER ── */}
       <div style={{
@@ -1158,15 +1156,15 @@ const balance = Number(user?.wallet?.balance || 0);
           ? 'linear-gradient(135deg, #0F0A02 0%, #1C1208 50%, #0F0A02 100%)'
           : 'linear-gradient(135deg, #1C1208 0%, #2D1F0A 60%, #1C1208 100%)',
         border: `2px solid ${urgencyColor}`,
-        borderRadius: '16px',
-        padding: '10px 14px',
-        margin: '4px 0 6px',
+        borderRadius: '14px',
+        padding: '8px 12px',
+        margin: '3px 0 4px',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
         position: 'relative',
         overflow: 'hidden',
-        boxShadow: `0 8px 32px rgba(0,0,0,0.45), 0 0 0 1px ${urgencyColor}22, inset 0 1px 0 rgba(255,255,255,0.04)`,
+        boxShadow: `0 6px 24px rgba(0,0,0,0.4), 0 0 0 1px ${urgencyColor}22, inset 0 1px 0 rgba(255,255,255,0.04)`,
       }}>
         {/* Shimmer sweep */}
         <div className="jackpot-shimmer" />
@@ -1194,7 +1192,7 @@ const balance = Number(user?.wallet?.balance || 0);
           <div
             style={{
               color: 'white',
-              fontSize: '24px',
+              fontSize: '22px',
               fontWeight: '900',
               lineHeight: 1,
               letterSpacing: '-0.5px',
@@ -1202,10 +1200,6 @@ const balance = Number(user?.wallet?.balance || 0);
             }}
           >
             {prize.toFixed(0)} ETB
-          </div>
-          {/* Pool info only — no internal commission breakdown */}
-          <div style={{ fontSize: '9px', fontWeight: '700', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.5px', marginTop: '5px' }}>
-            Pool: {totalStake.toFixed(0)} ETB
           </div>
         </div>
 
@@ -1249,8 +1243,8 @@ const balance = Number(user?.wallet?.balance || 0);
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '4px',
-        marginBottom: '4px',
+        padding: '2px 4px',
+        marginBottom: '2px',
       }}>
         {/* Left: card select label */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -1258,24 +1252,8 @@ const balance = Number(user?.wallet?.balance || 0);
             SELECT YOUR CARDS ({stake} ETB)
           </span>
         </div>
-        {/* Right: selection counter + players */}
+        {/* Right: selection counter */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {occupiedCount > 0 && (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              background: 'rgba(46,204,113,0.12)',
-              border: '1px solid rgba(46,204,113,0.3)',
-              borderRadius: '12px',
-              padding: '2px 8px',
-              fontSize: '10px',
-              fontWeight: '900',
-              color: '#27AE60',
-            }}>
-              <Eye size={10} /> {occupiedCount} held
-            </div>
-          )}
           <div style={{
             background: T.gold,
             color: T.header,
@@ -1291,35 +1269,7 @@ const balance = Number(user?.wallet?.balance || 0);
         </div>
       </div>
 
-      {/* ── Players Browsing Indicator ── */}
-      {displayPlayerCount > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: -4 }}
-          animate={{ opacity: 1, y: 0 }}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '3px 8px',
-            marginBottom: '4px',
-            background: `${T.gold}11`,
-            border: `1px solid ${T.gold}33`,
-            borderRadius: '10px',
-            fontSize: '10px',
-            fontWeight: '800',
-            color: T.brown,
-          }}
-        >
-          <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#2ECC71', boxShadow: '0 0 6px #2ECC71', animation: 'liveDot 1.5s infinite' }} />
-          <Users size={11} color={T.gold} />
-          <span><strong style={{ color: T.text }}>{displayPlayerCount}</strong> players active now</span>
-          {occupiedCount > 0 && (
-            <span style={{ marginLeft: 'auto', color: '#E67E22', fontWeight: '900' }}>
-              🔥 {occupiedCount} cards snatched!
-            </span>
-          )}
-        </motion.div>
-      )}
+
 
       {/* \u2500\u2500 Card Grid \u2500\u2500 */}
       <div className="grid-brown" style={{ position: 'relative', overflow: 'hidden' }}>
