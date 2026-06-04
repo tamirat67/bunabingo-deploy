@@ -700,8 +700,24 @@ function SelectionContent() {
         const winners = d?.winners || [];
         const w = winners[0]; // first (and usually only) winner
         if (w) {
-          // Parse name
-          const winnerName = w.user?.firstName || w.user?.telegramUsername || 'Player';
+          // Parse name — trust backend's displayName first.
+          // Fallback uses the EXACT same 24-name array + seed as backend/src/game/engine.ts
+          // so bot names are always identical across all devices.
+          const isWinnerBot = w.isBot ?? w.user?.isBot ?? false;
+          const ETHIOPIAN_NAMES_SEL = [
+            'Abebe', 'Kebede', 'Selam', 'Tesfaye', 'Dawit', 'Yonas', 'Tigist', 'Almaz',
+            'Meron', 'Hiwot', 'Tizita', 'Biruk', 'Nahom', 'Eyob', 'Liya', 'Saron',
+            'Kalkidan', 'Robel', 'Bethel', 'Henok', 'Rahel', 'Tsion', 'Abel', 'Eden',
+          ];
+          let selNameHash = 0;
+          const selNameSeed = String(d.gameId || activeGameIdRef.current) + String(w?.ticketId || '123');
+          for (let i = 0; i < selNameSeed.length; i++) {
+            selNameHash = selNameSeed.charCodeAt(i) + ((selNameHash << 5) - selNameHash);
+          }
+          const selBotFallback = ETHIOPIAN_NAMES_SEL[Math.abs(selNameHash) % ETHIOPIAN_NAMES_SEL.length];
+          const winnerName = isWinnerBot
+            ? (w.user?.firstName || selBotFallback)
+            : (w.user?.firstName || w.user?.telegramUsername || 'Player');
           // Parse card rows
           let rawCard = w.card || w.ticket?.card;
           if (typeof rawCard === 'string') { try { rawCard = JSON.parse(rawCard); } catch(e) {} }

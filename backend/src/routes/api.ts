@@ -979,11 +979,11 @@ router.get('/leaderboard', async (req: Request, res: Response) => {
 
       let displayName = user?.telegramUsername || user?.firstName || 'Buna Player';
       if (user?.isBot) {
+        // MUST match the 24-name array in backend/src/game/engine.ts
         const ETHIOPIAN_NAMES = [
-          'Abebe', 'Kebede', 'Selam', 'Tesfaye', 'Dawit', 
-          'Bereket', 'Yonas', 'Tigist', 'Almaz', 'Meron',
-          'Samuel', 'Ephrem', 'Daniel', 'Marta', 'Genet',
-          'Yodit', 'Hanna', 'Eden', 'Lidia', 'Abel'
+          'Abebe', 'Kebede', 'Selam', 'Tesfaye', 'Dawit', 'Yonas', 'Tigist', 'Almaz',
+          'Meron', 'Hiwot', 'Tizita', 'Biruk', 'Nahom', 'Eyob', 'Liya', 'Saron',
+          'Kalkidan', 'Robel', 'Bethel', 'Henok', 'Rahel', 'Tsion', 'Abel', 'Eden',
         ];
         let nameHash = 0;
         const nameSeed = String(w.userId);
