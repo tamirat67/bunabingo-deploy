@@ -1098,6 +1098,7 @@ async function finishGame(gameId: string, reason: string): Promise<void> {
   gamesBeingFinished.add(gameId);
 
   const state = activeGames.get(gameId);
+  const capturedRoomType = state?.roomType; // capture before delete
   if (state?.drawInterval) clearInterval(state.drawInterval);
   if (state?.countdownTimer) clearTimeout(state.countdownTimer);
   if (state?.countdownInterval) clearInterval(state.countdownInterval);
@@ -1284,6 +1285,18 @@ async function finishGame(gameId: string, reason: string): Promise<void> {
     gamePrize: safeTotalPrize,
     drawnNumbers: state?.drawnNumbers || []
   });
+  // ── Also broadcast to the room-type channel so ALL guests on the selection
+  // page (who joined via room-type string, not the running gameId) receive the
+  // winner announcement.  This mirrors how number-drawn and occupied-sync work.
+  if (capturedRoomType) {
+    await triggerGameEvent(capturedRoomType, 'game-finished', {
+      gameId,
+      reason,
+      winners: publicWinners,
+      gamePrize: safeTotalPrize,
+      drawnNumbers: state?.drawnNumbers || []
+    });
+  }
   await triggerAdminEvent('game-finished', { gameId, reason });
   logger.info(`[Game ${gameId}] Finished: ${reason}`);
 
