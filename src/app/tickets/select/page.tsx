@@ -851,21 +851,76 @@ const balance = Number(user?.wallet?.balance || 0);
 
 
       {/* ── Header ── */}
-      <div className="selection-header-top">
+      <div className="selection-header-top" style={{ alignItems: 'center' }}>
         <button className="btn-back" onClick={() => router.push('/')}>
           <ChevronLeft size={20} color={isVip ? '#C471ED' : '#4B3621'} />
         </button>
-        <div className="header-text">
-          <h1 style={{ color: isVip ? '#C471ED' : '#3D2B1F', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <ShieldCheck size={24} /> BUNA GAME ZONE
-            {isVip && (
-              <span style={{ background: 'linear-gradient(135deg, #FFD700, #FFA500)', color: '#1C0A35', fontSize: '9px', fontWeight: '900', padding: '2px 8px', borderRadius: '12px', boxShadow: '0 0 10px rgba(255, 215, 0, 0.6)', display: 'inline-flex', alignItems: 'center', gap: '3px', border: '1.5px solid #FFF', letterSpacing: '0.5px' }}>
-                👑 BOSS VIP
-              </span>
-            )}
-          </h1>
-          <p style={{ color: isVip ? 'rgba(255,255,255,0.7)' : 'rgba(61,43,31,0.6)', fontWeight: 800 }}>{roomType} • STAKE {stake} ETB</p>
-        </div>
+
+        {/* Recent Balls Ticker — scrolls right-to-left when game is live */}
+        {isGameRunning && drawnNumbers.length > 0 ? (
+          <div style={{
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            overflow: 'hidden',
+            minWidth: 0,
+          }}>
+            <div style={{
+              fontSize: '10px',
+              fontWeight: '900',
+              color: isVip ? '#FFD700' : '#4B3621',
+              whiteSpace: 'nowrap',
+              lineHeight: 1.2,
+              textTransform: 'uppercase',
+            }}>
+              RECENT<br/>BALLS
+            </div>
+            <div style={{ overflow: 'hidden', flex: 1, minWidth: 0 }}>
+              <div style={{
+                display: 'flex',
+                gap: '6px',
+                animation: 'tickerScroll 12s linear infinite',
+                width: 'max-content',
+              }}>
+                {[...drawnNumbers].reverse().concat([...drawnNumbers].reverse()).map((num, i) => {
+                  const { letter, color } = getBallDetails(num);
+                  return (
+                    <div key={i} style={{
+                      width: '34px',
+                      height: '34px',
+                      borderRadius: '50%',
+                      background: color,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#FFF',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
+                      border: '2px solid rgba(255,255,255,0.7)',
+                      flexShrink: 0,
+                    }}>
+                      <span style={{ fontSize: '9px', fontWeight: '800', lineHeight: 1 }}>{letter}</span>
+                      <span style={{ fontSize: '14px', fontWeight: '900', lineHeight: 1 }}>{num}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="header-text">
+            <h1 style={{ color: isVip ? '#C471ED' : '#3D2B1F', fontWeight: 900, display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <ShieldCheck size={24} /> BUNA GAME ZONE
+              {isVip && (
+                <span style={{ background: 'linear-gradient(135deg, #FFD700, #FFA500)', color: '#1C0A35', fontSize: '9px', fontWeight: '900', padding: '2px 8px', borderRadius: '12px', boxShadow: '0 0 10px rgba(255, 215, 0, 0.6)', display: 'inline-flex', alignItems: 'center', gap: '3px', border: '1.5px solid #FFF', letterSpacing: '0.5px' }}>
+                  👑 BOSS VIP
+                </span>
+              )}
+            </h1>
+            <p style={{ color: isVip ? 'rgba(255,255,255,0.7)' : 'rgba(61,43,31,0.6)', fontWeight: 800 }}>{roomType} • STAKE {stake} ETB</p>
+          </div>
+        )}
       </div>
 
       {/* ── Stats Row ── */}
@@ -969,57 +1024,6 @@ const balance = Number(user?.wallet?.balance || 0);
           )}
         </div>
       </div>
-
-      {/* ── Recent Balls Row ── */}
-      {isGameRunning && drawnNumbers.length > 0 && (
-        <div style={{
-          background: 'rgba(230, 218, 195, 0.2)',
-          borderRadius: '16px',
-          padding: '10px 16px',
-          marginBottom: '8px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          overflowX: 'auto',
-          scrollbarWidth: 'none',
-          whiteSpace: 'nowrap'
-        }}>
-          <div style={{
-            fontSize: '11px',
-            fontWeight: '900',
-            color: T.header,
-            lineHeight: 1.2,
-            textTransform: 'uppercase',
-            minWidth: '50px'
-          }}>
-            RECENT<br/>BALLS
-          </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            {drawnNumbers.slice().reverse().map((num, i) => {
-              const { letter, color } = getBallDetails(num);
-              return (
-                <div key={i} style={{
-                  width: '38px',
-                  height: '38px',
-                  borderRadius: '50%',
-                  background: color,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#FFF',
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
-                  border: '2px solid rgba(255,255,255,0.8)',
-                  flexShrink: 0
-                }}>
-                  <span style={{ fontSize: '10px', fontWeight: '800', lineHeight: 1 }}>{letter}</span>
-                  <span style={{ fontSize: '16px', fontWeight: '900', lineHeight: 1 }}>{num}</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {/* ── Live Activity Bar ── */}
       <div style={{
@@ -1338,6 +1342,10 @@ const balance = Number(user?.wallet?.balance || 0);
       />
 
       <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes tickerScroll {
+          0%   { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
         @keyframes occupiedGreenPulse {
           0%   { background: linear-gradient(135deg, #1E8449, #27AE60); box-shadow: 0 0 4px rgba(46,204,113,0.4); border-color: #27AE60; }
           50%  { background: linear-gradient(135deg, #27AE60, #2ECC71); box-shadow: 0 0 14px rgba(46,204,113,0.8); border-color: #2ECC71; }
