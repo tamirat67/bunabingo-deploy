@@ -869,6 +869,9 @@ export async function claimBingoWin(gameId: string, userId: string): Promise<{ w
     // Guard: minimum balls must be drawn before any real player can claim
     const drawnCount = await prisma.drawHistory.count({ where: { gameId } });
     if (drawnCount < config.game.minBallsBeforeWin) {
+      if (oldInterval && state && !state.drawInterval) {
+        state.drawInterval = setInterval(() => drawNumber(gameId), config.game.drawIntervalMs);
+      }
       return { won: false, error: `Game just started — wait for more balls! (${drawnCount}/${config.game.minBallsBeforeWin} minimum)` };
     }
 
@@ -1881,6 +1884,73 @@ export async function resumeActiveCountdowns(): Promise<void> {
     }
   } catch (e) {
     logger.error('[Recovery] Failed to resume active countdowns:', e);
+  }
+}
+
+// ─── Resume RUNNING Games After Server Restart ──────────────────────────────
+export async function resumeRunningGames(): Promise<void> {
+  try {
+    const runningGames = await prisma.game.findMany({
+      where: { status: GameStatus.RUNNING },
+      include: { 
+        room: true,
+        drawHistory: { orderBy: { sequence: 'asc' } },
+        tickets: { include: { user: { select: { isBot: true } } } }
+      },
+    });
+
+    if (runningGames.length === 0) return;
+
+    logger.info(`[Recovery] Found ${runningGames.length} game(s) in RUNNING status — resuming draws.`);
+
+    for (const game of runningGames) {
+      if (game.room.type.startsWith('SPIN_')) continue; // Spins don't have ball draws
+      
+      const existingState = activeGames.get(game.id);
+      if (existingState?.drawInterval) continue; // already ticking
+
+      const drawnNumbers = game.drawHistory.map(d => d.number);
+      const drawnSet = new Set(drawnNumbers);
+      const pool = buildNumberPool().filter(n => !drawnSet.has(n));
+
+      // Recreate state
+      const state: ActiveGame = {
+        gameId: game.id,
+        roomType: game.room.type as any,
+        drawnNumbers,
+        numberPool: pool,
+        tickets: game.tickets,
+        ticketCount: game.tickets.length,
+      };
+
+      // Restore house bot rig state if bots exist and it's not a demo
+      const hasBotPlayers = game.tickets.some(t => t.user?.isBot);
+      if (game.room.type !== 'DEMO' && hasBotPlayers) {
+        state.houseShouldWin = await shouldHouseWinThisGame(game.room.type);
+        const WIN_MODE_ROTATION = ['ROW', 'COLUMN', 'DIAGONAL', 'FOUR_CORNERS', 'ROW', 'COLUMN', 'DIAGONAL', 'FOUR_CORNERS'];
+        let modeHash = 0;
+        for (let i = 0; i < game.id.length; i++) {
+          modeHash = game.id.charCodeAt(i) + ((modeHash << 5) - modeHash);
+        }
+        state.targetWinMode = WIN_MODE_ROTATION[Math.abs(modeHash) % WIN_MODE_ROTATION.length];
+        
+        const ticketsForSim = game.tickets.map(t => ({
+          userId: t.userId,
+          card: t.card,
+          isBot: t.user?.isBot ?? false,
+        }));
+        
+        // Rig the remaining pool
+        state.numberPool = rigDrawSequence(ticketsForSim, state.houseShouldWin, 3000, config.game.minBallsBeforeWin, state.targetWinMode).filter(n => !drawnSet.has(n));
+      }
+
+      activeGames.set(game.id, state);
+      
+      state.drawInterval = setInterval(() => drawNumber(game.id), config.game.drawIntervalMs);
+      logger.info(`[Recovery] Resumed draw loop for game ${game.id} (already drawn ${drawnNumbers.length} balls).`);
+    }
+  } catch (e) {
+    logger.error('[Recovery] Failed to resume running games:', e);
   }
 }
 

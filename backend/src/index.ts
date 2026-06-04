@@ -81,11 +81,13 @@ async function main() {
   // Re-creates in-memory timers for any game stuck in COUNTDOWN
   // so all players see a live countdown immediately on reconnect.
   try {
-    const { resumeActiveCountdowns } = await import('./game/engine');
+    const { resumeActiveCountdowns, resumeRunningGames } = await import('./game/engine');
     await resumeActiveCountdowns();
     logger.info('✅ Active countdowns resumed');
+    await resumeRunningGames();
+    logger.info('✅ Active running games resumed');
   } catch (resumeErr) {
-    logger.error('❌ Failed to resume countdowns:', resumeErr);
+    logger.error('❌ Failed to resume countdowns/games:', resumeErr);
   }
 
   // ─── Background Jobs ─────────────────────────────────────
