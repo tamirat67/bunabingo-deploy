@@ -977,15 +977,15 @@ const balance = Number(user?.wallet?.balance || 0);
                             height: '44px',
                             borderRadius: '50%',
                             backgroundColor: bgColor,
-                            backgroundImage: 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 35%), radial-gradient(circle at 75% 75%, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0) 60%)',
+                            backgroundImage: 'radial-gradient(circle at 35% 35%, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 25%)',
                             display: 'flex',
                             flexDirection: 'column',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            boxShadow: `0 3px 8px rgba(0,0,0,0.3), inset -2px -2px 4px rgba(0,0,0,0.2)`,
+                            boxShadow: `inset -4px -4px 8px rgba(0,0,0,0.4), inset 2px 2px 6px rgba(255,255,255,0.6), 0 3px 8px rgba(0,0,0,0.3)`,
                             flexShrink: 0,
                             position: 'relative',
-                            border: '2px solid rgba(255,255,255,0.6)'
+                            border: '1.5px solid rgba(255,255,255,0.4)'
                           }}>
                             <span style={{ fontSize: '11px', fontWeight: '900', color: '#fff', lineHeight: 1, opacity: 0.9, textShadow: '0 1px 2px rgba(0,0,0,0.4)' }}>{letter}</span>
                             <span style={{ fontSize: '22px', fontWeight: '900', color: '#fff', lineHeight: 1, marginTop: '-2px', letterSpacing: '-1px', textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>{newestNum}</span>
@@ -1021,15 +1021,15 @@ const balance = Number(user?.wallet?.balance || 0);
                                   height: '32px',
                                   borderRadius: '50%',
                                   backgroundColor: bgColor,
-                                  backgroundImage: 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 35%), radial-gradient(circle at 75% 75%, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0) 60%)',
-                                  boxShadow: `0 2px 5px rgba(0,0,0,0.3), inset -1px -1px 3px rgba(0,0,0,0.2)`,
+                                  backgroundImage: 'radial-gradient(circle at 35% 35%, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 25%)',
+                                  boxShadow: `inset -3px -3px 6px rgba(0,0,0,0.4), inset 2px 2px 4px rgba(255,255,255,0.6), 0 2px 5px rgba(0,0,0,0.3)`,
                                   display: 'flex',
                                   flexDirection: 'column',
                                   alignItems: 'center',
                                   justifyContent: 'center',
                                   flexShrink: 0,
                                   position: 'relative',
-                                  border: '1.5px solid rgba(255,255,255,0.6)'
+                                  border: '1.5px solid rgba(255,255,255,0.4)'
                                 }}
                               >
                                 <span style={{ fontSize: '8px', fontWeight: '900', color: '#fff', lineHeight: 1, opacity: 0.9, textShadow: '0 1px 2px rgba(0,0,0,0.4)' }}>{letter}</span>

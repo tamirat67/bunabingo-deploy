@@ -1118,7 +1118,7 @@ function GameContent() {
                   ? (isVip ? '#C471ED' : COL_COLOR[colLabel(lastBall)]) 
                   : (isVip ? 'rgba(255,255,255,0.05)' : T.statBg),
                 backgroundImage: lastBall
-                  ? (isVip ? 'linear-gradient(135deg, #FFD700 0%, #C471ED 100%)' : 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 35%), radial-gradient(circle at 75% 75%, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0) 60%)')
+                  ? (isVip ? 'linear-gradient(135deg, #FFD700 0%, #C471ED 100%)' : 'radial-gradient(circle at 35% 35%, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 25%)')
                   : 'none',
                 borderRadius: '50%', 
                 display: 'flex', 
@@ -1126,9 +1126,11 @@ function GameContent() {
                 alignItems: 'center', 
                 justifyContent: 'center', 
                 fontWeight: '900', 
-                border: isVip ? '4px solid #FFD700' : `4px solid ${T.gold}`, 
+                border: isVip ? '4px solid #FFD700' : '2px solid rgba(255,255,255,0.4)',
                 color: lastBall ? (isVip ? '#1C0A35' : 'white') : (isVip ? '#FFD700' : T.brown),
-                boxShadow: isVip ? '0 0 15px rgba(255, 215, 0, 0.6)' : 'none'
+                boxShadow: lastBall 
+                  ? (isVip ? '0 0 15px rgba(255, 215, 0, 0.6)' : 'inset -5px -5px 12px rgba(0,0,0,0.4), inset 3px 3px 8px rgba(255,255,255,0.6), 0 4px 10px rgba(0,0,0,0.3)')
+                  : 'none'
               }}
             >
               {lastBall ? (
@@ -1154,7 +1156,7 @@ function GameContent() {
                     animate={{ scale: 1, opacity: 1 }}
                     style={{
                       backgroundColor: isVip ? '#C471ED' : COL_COLOR[label],
-                      backgroundImage: isVip ? 'linear-gradient(135deg, #FFD700 0%, #C471ED 100%)' : 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 35%), radial-gradient(circle at 75% 75%, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0) 60%)',
+                      backgroundImage: isVip ? 'linear-gradient(135deg, #FFD700 0%, #C471ED 100%)' : 'radial-gradient(circle at 35% 35%, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 25%)',
                       color: isVip ? '#1C0A35' : 'white',
                       fontWeight: '900',
                       width: '32px',
@@ -1164,8 +1166,8 @@ function GameContent() {
                       flexDirection: 'column',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      border: isVip ? '1.5px solid #FFD700' : '1.5px solid rgba(255,255,255,0.6)',
-                      boxShadow: '0 2px 5px rgba(0,0,0,0.3), inset -1px -1px 3px rgba(0,0,0,0.2)'
+                      border: isVip ? '1.5px solid #FFD700' : '1.5px solid rgba(255,255,255,0.4)',
+                      boxShadow: isVip ? '0 2px 4px rgba(0,0,0,0.15)' : 'inset -3px -3px 6px rgba(0,0,0,0.4), inset 2px 2px 4px rgba(255,255,255,0.6), 0 2px 5px rgba(0,0,0,0.3)'
                     }}
                   >
                     <span style={{ fontSize: '8px', lineHeight: 1, opacity: 0.8 }}>{label}</span>
