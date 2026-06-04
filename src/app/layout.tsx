@@ -36,7 +36,7 @@ export default function RootLayout({
         />
         <SocketProvider>
           <ThemeProvider>
-            <Suspense fallback={<div></div>}>
+            <Suspense fallback={<div style={{ minHeight: '100vh', backgroundColor: '#FFF9E1' }}></div>}>
               {children}
             </Suspense>
             <Navbar />

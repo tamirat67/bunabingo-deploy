@@ -42,6 +42,7 @@ function SelectionContent() {
   const [runningGameId, setRunningGameId] = useState<string | null>(null);
   // Ref so the polling interval always reads the latest value without stale closures
   const isGameRunningRef = useRef(false);
+  const redirectedRef = useRef(false);
   const [liveGameDismissed, setLiveGameDismissed] = useState(false);
   // ── Server-time-anchored countdown for the LIVE GAME "NEXT CHECK" banner ──
   // liveGameEndTime is the UTC epoch ms when the current 20s poll-cycle ends.
@@ -445,7 +446,8 @@ function SelectionContent() {
         liveGameEndTimeRef.current = endTime;
         setLiveGameEndTime(endTime);
         // Redirect ONLY users who have purchased tickets (or had them auto-purchased)
-        if (ownedRef.current.length > 0) {
+        if (ownedRef.current.length > 0 && !redirectedRef.current) {
+          redirectedRef.current = true;
           if (roomType.startsWith('SPIN_')) {
             router.push(`/play/spin?id=${d.gameId || activeGameId}&stake=${stake}`);
           } else {
@@ -553,17 +555,26 @@ function SelectionContent() {
     return { letter: 'O', color: '#9B59B6' }; // Purple
   };
 
+  // Prefetch game page to avoid loading delay when redirecting
+  useEffect(() => {
+    if (countdown !== null && countdown <= 5) {
+      router.prefetch(`/game`);
+      router.prefetch(`/play/spin`);
+    }
+  }, [countdown, router]);
+
   // ─── Auto-redirect to bingo calling page when game launches (30+1 trigger) ───
   // Catches cases where the game-started socket event was missed due to timing.
   useEffect(() => {
-    if (game?.status === 'RUNNING' && ownedCardIds.length > 0 && activeGameId) {
+    if (game?.status === 'RUNNING' && ownedCardIds.length > 0 && activeGameId && !redirectedRef.current) {
+      redirectedRef.current = true;
       if (roomType.startsWith('SPIN_')) {
         router.push(`/play/spin?id=${activeGameId}&stake=${stake}`);
       } else {
         router.push(`/game?id=${activeGameId}&type=${roomType}&price=${stake}`);
       }
     }
-  }, [game?.status]);
+  }, [game?.status, ownedCardIds.length, activeGameId, roomType, stake, router]);
 
   // ─── Poll every 2s: getOccupiedCards is the SINGLE source of truth for isGameRunning ───
   // This handles all cases: page refresh during game, missed socket events, etc.

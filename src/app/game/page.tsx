@@ -84,6 +84,7 @@ function GameContent() {
   const [marked,    setMarked]    = useState<Set<number>>(new Set());
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [audioUnlocked, setAudioUnlocked] = useState(false);
+  const audioUnlockedRef = useRef(false);
   const [claiming,      setClaiming]      = useState(false);
   const [calledHistory, setCalledHistory] = useState<number[]>([]);
 
@@ -104,6 +105,9 @@ function GameContent() {
   const announcedBallsRef = useRef<Set<number>>(new Set());
   // Ref for precisely scheduling start.mp3 so all devices play it at the same server-time moment
   const startAudioScheduled = useRef<any>(null);
+  // Guards to prevent start.mp3 / stop.mp3 from firing more than once per game lifecycle
+  const startAudioFiredRef = useRef<boolean>(false);
+  const stopAudioFiredRef  = useRef<boolean>(false);
 
 
   const ticketsRef = useRef<any[]>([]);
@@ -153,9 +157,13 @@ function GameContent() {
     try {
       const el = ballAudioRef.current;
       if (el) {
+        // Fully reset the element before loading a new source to avoid overlap
+        el.onended = null;
+        el.onerror = null;
         el.pause();
         el.currentTime = 0;
         el.src = `/audio/${col}${num}.mp3`;
+        el.load();
         el.onended = safeComplete;
         el.onerror = safeComplete;
         el.play().catch(() => {
@@ -178,7 +186,7 @@ function GameContent() {
     }
 
     // Safety timeout in case audio hangs indefinitely
-    setTimeout(safeComplete, 4500);
+    setTimeout(safeComplete, 5000);
   }, []);
 
   const processAudioQueue = useCallback((setLastBallFn: (n: number) => void) => {
@@ -188,7 +196,7 @@ function GameContent() {
     }
     isPlayingQueueRef.current = true;
     const nextBall = audioQueueRef.current.shift();
-    if (nextBall) {
+    if (nextBall !== undefined) {
       console.log('[AudioQueue] Playing ball:', nextBall);
       lastDrawnRef.current = nextBall;
       // ── Synchronize visual BIG BALL and RECENT BALLS with the audio ──
@@ -197,9 +205,13 @@ function GameContent() {
       
       // Wait for ball audio to ACTUALLY finish before playing next
       playBallSound(nextBall, () => {
-        playNextTimeoutRef.current = setTimeout(() => {
-          processAudioQueue(setLastBallFn);
-        }, 200); // 200ms natural gap after audio finishes
+        if (!isGameFinishedRef.current) {
+          playNextTimeoutRef.current = setTimeout(() => {
+            processAudioQueue(setLastBallFn);
+          }, 300); // 300ms natural gap after audio finishes
+        } else {
+          isPlayingQueueRef.current = false;
+        }
       });
     } else {
       isPlayingQueueRef.current = false;
@@ -221,22 +233,27 @@ function GameContent() {
     // Append to queue — NEVER drop any ball, every ball must be called
     audioQueueRef.current = [...audioQueueRef.current, ...toAdd];
 
+    // Only start the processor if it is not already running
     if (!isPlayingQueueRef.current) {
       console.log('[AudioQueue] Starting queue processor');
       processAudioQueue(setLastBallFn);
     }
   }, [processAudioQueue]);
 
+  // Play start.mp3 exactly once per game — guarded by startAudioFiredRef
   const playStartAudio = useCallback(() => {
     if (!soundOnRef.current) return;
-    const now = Date.now();
-    if (now - lastStartAudioPlayed.current < 2500) return;
-    lastStartAudioPlayed.current = now;
+    if (startAudioFiredRef.current) return;  // already played for this game
+    startAudioFiredRef.current = true;
+    lastStartAudioPlayed.current = Date.now();
     try { new Audio('/audio/start.mp3').play().catch(() => {}); } catch (e) {}
   }, []);
 
+  // Play stop.mp3 exactly once per game — guarded by stopAudioFiredRef
   const playStopAudio = useCallback(() => {
     if (!soundOnRef.current) return;
+    if (stopAudioFiredRef.current) return;  // already played for this game
+    stopAudioFiredRef.current = true;
     try { new Audio('/audio/stop.mp3').play().catch(() => {}); } catch (e) {}
   }, []);
 
@@ -304,51 +321,39 @@ function GameContent() {
       setDrawn(hist);
       const latestBall = hist.at(-1);
 
-      // ── Polling audio fallback: queue ball sounds if polling found new numbers ──
-      // This fires when socket misses the event (mobile network drop, proxy issues).
+      // ── Audio queue management ──────────────────────────────────────────────────
+      // On first load: mark OLD balls as announced (no audio replay) but queue
+      // the LATEST ball so the user always hears what is currently being called.
+      // On subsequent polls: catch any socket-missed balls via the announced filter.
       const isFirstLoad = isFirstLoadRef.current;
       if (isFirstLoad) {
         isFirstLoadRef.current = false;
-        
-        const justStarted = g.startedAt && (Date.now() - new Date(g.startedAt).getTime() < 10000);
-        
-        if (justStarted && hist.length <= 3) {
-          // Arrived via 0s auto-redirect! Play start sound and queue the first balls.
-          playStartAudio();
-          if (hist.length > 0) {
-            setTimeout(() => {
-              queueBallSounds(hist, setLastBall);
-            }, 1000); // Small delay to let start.mp3 play first
+
+        if (latestBall) {
+          // Show full board history visually immediately
+          setCalledHistory(hist);
+
+          if (hist.length > 1) {
+            // Mark ALL the older balls (everything except the very latest) as announced
+            // so the audio queue never replays them — the user already missed them.
+            hist.slice(0, -1).forEach((n: number) => announcedBallsRef.current.add(n));
           }
-        } else if (latestBall) {
-          // Mid-game join (lots of balls) / Late reload: show full history immediately, no audio spam
-          lastDrawnRef.current = latestBall;
-          setLastBall(latestBall);
-          setCalledHistory(hist); 
+
+          // Queue ONLY the latest/current ball for audio so user hears it called.
+          // This also adds latestBall to announcedBallsRef inside queueBallSounds.
+          queueBallSounds([latestBall], setLastBall);
+        } else if (hist.length > 0) {
+          // Edge case: latestBall is undefined but hist has items — mark all, no audio
+          hist.forEach((n: number) => announcedBallsRef.current.add(n));
         }
       } else {
         // During active game: board highlights sync from server history immediately.
         // calledHistory (Recent Balls) and Big Ball Display are driven by audio queue
         // together inside processAudioQueue — so they always match in order.
 
-        // Queue audio only for NEW balls not yet played
-        let newBalls: number[] = [];
-        if (lastDrawnRef.current === 0) {
-          newBalls = hist;
-        } else {
-          const playedIndex = hist.indexOf(lastDrawnRef.current);
-          if (playedIndex !== -1) {
-            newBalls = hist.slice(playedIndex + 1);
-          } else {
-            // Fallback: last played ball not in history — queue latest if new
-            if (latestBall && latestBall !== lastDrawnRef.current) {
-              newBalls = [latestBall];
-            }
-          }
-        }
-
+        // Queue audio for every ball NOT yet announced (catches socket-missed events).
+        const newBalls: number[] = hist.filter((n: number) => !announcedBallsRef.current.has(n));
         if (newBalls.length > 0) {
-          // processAudioQueue will update both setLastBall + calledHistory together
           queueBallSounds(newBalls, setLastBall);
         }
       }
@@ -366,6 +371,11 @@ function GameContent() {
     lastDrawnRef.current = 0;
     audioQueueRef.current = [];
     isPlayingQueueRef.current = false;
+    announcedBallsRef.current = new Set();
+    startAudioFiredRef.current = false;
+    stopAudioFiredRef.current = false;
+    clearTimeout(playNextTimeoutRef.current);
+    if (startAudioScheduled.current) clearTimeout(startAudioScheduled.current);
     setCalledHistory([]);
   }, [gameId]);
 
@@ -379,12 +389,19 @@ function GameContent() {
       isPlayingQueueRef.current = false;
       clearTimeout(playNextTimeoutRef.current);
       if (ballAudioRef.current) {
+        ballAudioRef.current.onended = null;
+        ballAudioRef.current.onerror = null;
         ballAudioRef.current.pause();
         ballAudioRef.current.currentTime = 0;
       }
-      if (status !== 'FINISHED') {
+      if (status === 'WAITING' || status === 'COUNTDOWN') {
+        // Game hasn't started yet — clear everything for a fresh start
+        announcedBallsRef.current = new Set();
+        startAudioFiredRef.current = false;
+        stopAudioFiredRef.current = false;
         setCalledHistory([]);
       }
+      // Note: for FINISHED status we keep calledHistory visible until redirect
     }
   }, [game?.status, gameFinished]);
 
@@ -432,18 +449,15 @@ function GameContent() {
     socket.on('number-drawn', onNumberDrawn);
 
     const onCountdownStart = (d: any) => {
+      // countdown-start: update display only — NO audio here.
+      // start.mp3 fires exclusively on the 'game-started' event.
       if (d.endTime) {
         const offset = d.serverTime ? (d.serverTime - Date.now()) : 0;
         setServerOff(offset);
         setEndTime(d.endTime);
-        // Derive the display value immediately from the absolute server epoch
         const remMs = d.endTime - Date.now() - offset;
         const rem = Math.max(0, Math.ceil(remMs / 1000));
         setCountdown(rem > 0 ? rem : null);
-        // Schedule start.mp3 to play at the exact server endTime (cross-device sync)
-        if (startAudioScheduled.current) clearTimeout(startAudioScheduled.current);
-        const msUntilStart = Math.max(0, remMs);
-        startAudioScheduled.current = setTimeout(() => playStartAudio(), msUntilStart);
       } else {
         setCountdown(d.seconds);
       }
@@ -457,6 +471,8 @@ function GameContent() {
     socket.on('countdown-start', onCountdownStart);
 
     const onCountdownTick = (d: any) => {
+      // countdown-tick: update display only — NO audio here.
+      // start.mp3 fires exclusively on the 'game-started' event.
       if (d.endTime) {
         const offset = d.serverTime ? (d.serverTime - Date.now()) : 0;
         setServerOff(offset);
@@ -464,9 +480,6 @@ function GameContent() {
         const remMs = d.endTime - Date.now() - offset;
         const rem = Math.max(0, Math.ceil(remMs / 1000));
         setCountdown(rem > 0 ? rem : null);
-        if (startAudioScheduled.current) clearTimeout(startAudioScheduled.current);
-        const msUntilStart = Math.max(0, remMs);
-        startAudioScheduled.current = setTimeout(() => playStartAudio(), msUntilStart);
       } else {
         setCountdown(d.secondsRemaining);
       }
@@ -480,6 +493,7 @@ function GameContent() {
     socket.on('countdown-tick', onCountdownTick);
 
     const onGameStarted = () => {
+      // ✅ REAL-TIME: start.mp3 plays HERE and ONLY HERE — when server says game actually started.
       setCountdown(null);
       setEndTime(null);
       loadData();
@@ -721,7 +735,9 @@ function GameContent() {
             ? (game.drawHistory as any[]).map((d: any) => d.number)
             : (drawn || []),
         });
-        playStopAudio();
+        // ⛔ Do NOT call playStopAudio() here.
+        // stop.mp3 fires ONLY from the real-time 'game-finished' socket event.
+        // This polling fallback is only reached when socket was missed entirely.
         setRedirectSecs(8);
         redirectCountdownRef.current = setInterval(() => {
           setRedirectSecs(s => {
@@ -745,7 +761,7 @@ function GameContent() {
       loadData();
     }, intervalMs);
     return () => clearInterval(poll);
-  }, [game?.status, loadData, router, gameFinished, playStopAudio, isConnected]);
+  }, [game?.status, loadData, router, gameFinished, isConnected]);
 
   // ── Card-patch effect: if socket gave gameFinished with null card, fix it from API winners ──
   // Triggered when loadData() completes and populates game.winners after the socket event.
@@ -797,16 +813,35 @@ function GameContent() {
   };
 
   const unlockAudio = () => {
-    if (audioUnlocked) return;
+    if (audioUnlockedRef.current) return;
+    audioUnlockedRef.current = true;
+    
+    // If the game audio queue is actively announcing balls, the browser 
+    // has ALREADY unlocked the audio! Do NOT hijack it now.
+    if (isPlayingQueueRef.current) {
+      setAudioUnlocked(true);
+      return;
+    }
+
     setAudioUnlocked(true);
     // Unlock ballAudioRef with a silent play on first user gesture
     const unlock = (el: HTMLAudioElement | null, src: string) => {
       if (!el) return;
+      
+      // Double safety guard: If something is already playing right now, skip.
+      if (!el.paused && el.currentTime > 0) return;
+      
+      const prevSrc = el.src;
       el.volume = 0;
       el.src = src;
       const p = el.play();
       if (p !== undefined) {
-        p.then(() => { el.pause(); el.currentTime = 0; el.volume = 1; }).catch(() => {});
+        p.then(() => { 
+          el.pause(); 
+          el.currentTime = 0; 
+          el.volume = 1; 
+          if (prevSrc) el.src = prevSrc; // Restore so queue doesn't break
+        }).catch(() => {});
       }
     };
     try { unlock(ballAudioRef.current, '/audio/B1.mp3'); } catch (e) {}
@@ -854,7 +889,7 @@ function GameContent() {
     }
   };
 
-  if (!mounted) return null;
+  if (!mounted) return <div style={{ minHeight: '100vh', backgroundColor: '#FFF9E1' }}></div>;
 
   // ─── Prize / Stake / Commission calculation ─────────────────────────────
   // Prize pool = Guaranteed Minimum OR 70% of REAL PLAYER stakes (whichever is higher).
