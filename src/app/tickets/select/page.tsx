@@ -63,6 +63,7 @@ function SelectionContent() {
   const lastJoinedRunningGameIdRef = useRef<string | null>(null);
   const redirectedRef = useRef(false);
   const [liveGameDismissed, setLiveGameDismissed] = useState(false);
+  const [currentBallSelect, setCurrentBallSelect] = useState<number | null>(null);
   // ── Server-time-anchored countdown for the LIVE GAME "NEXT CHECK" banner ──
   // liveGameEndTime is the UTC epoch ms when the current 20s poll-cycle ends.
   // Every device derives the display counter from the same epoch, so all
@@ -250,8 +251,10 @@ function SelectionContent() {
       }
       isPlayingSelectRef.current = true;
       const num = audioQueueSelectRef.current.shift()!;
-      if (!soundOnSelectRef.current) {
-        // Muted: keep queue alive with a tiny gap
+      setCurrentBallSelect(num); // Keep big ball UI in sync with audio
+      
+      if (!soundOnSelectRef.current || !ballAudioRefSelect.current) {
+        // Muted or no audio: keep queue alive with a tiny gap
         setTimeout(() => { if (mountedRef.current) playNextSelectBallRef.current(); }, 150);
         return;
       }
@@ -720,6 +723,18 @@ function SelectionContent() {
     }
   }, [game?.status, activeGameId, roomType, stake, router, ownedCardIds.length]);
 
+  // Ensure we rejoin socket rooms on reconnect
+  useEffect(() => {
+    if (!socket) return;
+    const onDisconnect = () => {
+      lastJoinedRunningGameIdRef.current = null;
+    };
+    socket.on('disconnect', onDisconnect);
+    return () => {
+      socket.off('disconnect', onDisconnect);
+    };
+  }, [socket]);
+
   // ─── Poll every 2s: getOccupiedCards is the SINGLE source of truth for isGameRunning ───
   // This handles all cases: page refresh during game, missed socket events, etc.
   // NOTE: isGameRunning is intentionally read via isGameRunningRef (not state) so this
@@ -815,7 +830,7 @@ function SelectionContent() {
             
             // Fix: Only overwrite if the API array is newer/longer than our current state.
             // This prevents stale API cache responses from deleting newly drawn socket balls.
-            if (incoming.length >= prev.length) {
+            if (incoming.length > prev.length) {
               return incoming;
             }
             return prev;
@@ -966,7 +981,7 @@ const balance = Number(user?.wallet?.balance || 0);
     if (newCardsToBuy.length > 0 && totalAvailable < totalCost && roomType !== 'DEMO') {
       setModal({
         isOpen: true,
-        title: 'Insufficient Balance / የኪስዎ ቀሪ በቂ አይደለም ⚠️',
+        title: 'የኪስዎ ቀሪ በቂ አይደለም ⚠️',
         message: `You need ${totalCost} ETB to purchase ${newCardsToBuy.length} card(s). You have ${balance.toFixed(2)} ETB (Main) + ${bonusBalance.toFixed(2)} ETB (Bonus) = ${totalAvailable.toFixed(2)} ETB total. Please deposit to continue. / ${totalCost} ETB ያስፈልግዎታልᢾ ${balance.toFixed(2)} + ቦነስ: ${bonusBalance.toFixed(2)} = ${totalAvailable.toFixed(2)} ETB ብቻ አለ།`,
         type: 'balance',
         onConfirm: () => router.push('/wallet')
@@ -1116,7 +1131,7 @@ const balance = Number(user?.wallet?.balance || 0);
                     <>
                       {/* Left: Big Ball (Newest) */}
                       {(() => {
-                        const newestNum = effectiveDrawnNumbers[effectiveDrawnNumbers.length - 1];
+                        const newestNum = currentBallSelect || effectiveDrawnNumbers[effectiveDrawnNumbers.length - 1];
                         const { letter, bgColor } = getBallDetails(newestNum);
                         return (
                           <div style={{
