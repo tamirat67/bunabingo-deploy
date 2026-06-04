@@ -179,12 +179,12 @@ h1, h2, h3 { font-weight: 900; text-transform: uppercase; letter-spacing: 1px; }
 .header-text p { font-size: 10px; font-weight: 900; color: rgba(61, 43, 31, 0.4); }
 
 .stats-row-brown { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 8px; }
-.capsule-brown { background: #E8DCC4; padding: 6px; border-radius: 10px; text-align: center; }
-.capsule-brown .l { font-size: 8px; font-weight: 900; color: rgba(61, 43, 31, 0.4); margin-bottom: 2px; }
-.capsule-brown .v { font-size: 14px; font-weight: 900; }
-.capsule-white { background: var(--white); padding: 8px; border-radius: 12px; text-align: center; }
-.capsule-white .l { font-size: 8px; font-weight: 900; color: rgba(61, 43, 31, 0.4); margin-bottom: 2px; }
-.capsule-white .v { font-size: 14px; font-weight: 900; color: var(--coffee-dark); }
+.capsule-brown { background: #E8DCC4; padding: 4px; border-radius: 8px; text-align: center; }
+.capsule-brown .l { font-size: 8px; font-weight: 900; color: rgba(61, 43, 31, 0.4); margin-bottom: 0px; }
+.capsule-brown .v { font-size: 12px; font-weight: 900; }
+.capsule-white { background: var(--white); padding: 4px; border-radius: 8px; text-align: center; }
+.capsule-white .l { font-size: 8px; font-weight: 900; color: rgba(61, 43, 31, 0.4); margin-bottom: 0px; }
+.capsule-white .v { font-size: 12px; font-weight: 900; color: var(--coffee-dark); }
 .total-box { background: #3D2B1F; color: white; }
 .total-box .l { color: rgba(255,255,255,0.5); }
 
