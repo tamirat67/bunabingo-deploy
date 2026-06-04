@@ -546,9 +546,7 @@ function GameContent() {
       // ── Play stop.mp3 NOW (before modal renders) so browser audio context is available ──
       playStopAudio();
 
-      loadData();
-
-      // ── Build winner data (same logic as before) ──
+      // ── Build winner data immediately from socket payload (no network wait) ──
       const tgUserId = typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.initDataUnsafe?.user?.id
         ? String((window as any).Telegram.WebApp.initDataUnsafe.user.id)
         : '';
@@ -609,24 +607,25 @@ function GameContent() {
         drawnNumbers: d.drawnNumbers || drawn || [],
       };
 
-      // ── Delay modal slightly (10ms) so stop.mp3 can start playing BEFORE the modal renders ──
-      setTimeout(() => {
-        setGameFinished(winnerData);
-        // Start redirect countdown
-        setRedirectSecs(4);
-        redirectCountdownRef.current = setInterval(() => {
-          setRedirectSecs(s => {
-            if (s <= 1) {
-              clearInterval(redirectCountdownRef.current);
-              return 0;
-            }
-            return s - 1;
-          });
-        }, 1000);
-        redirectTimerRef.current = setTimeout(() => {
-          router.push(`/tickets/select?type=${game?.room?.type || spType}&price=${stake}`);
-        }, 4000);
-      }, 10);
+      // ── Show modal IMMEDIATELY — no setTimeout delay needed ──
+      // stop.mp3 was already started above; the 10ms delay was unnecessary.
+      setGameFinished(winnerData);
+      setRedirectSecs(4);
+      redirectCountdownRef.current = setInterval(() => {
+        setRedirectSecs(s => {
+          if (s <= 1) {
+            clearInterval(redirectCountdownRef.current);
+            return 0;
+          }
+          return s - 1;
+        });
+      }, 1000);
+      redirectTimerRef.current = setTimeout(() => {
+        router.push(`/tickets/select?type=${game?.room?.type || spType}&price=${stake}`);
+      }, 4000);
+
+      // ── Fetch fresh game data in background (updates card/prize if server has more details) ──
+      loadData();
     };
 
     socket.on('game-update', (d: any) => {
@@ -800,7 +799,7 @@ function GameContent() {
       return;
     }
     
-    let intervalMs = isConnected ? 15000 : 2000;
+    let intervalMs = 3000; // poll every 3s while RUNNING — catches missed game-finished quickly
     if (!status) intervalMs = isConnected ? 15000 : 2000;
     else if (status === 'WAITING') intervalMs = isConnected ? 15000 : 3000;
     else if (status === 'COUNTDOWN') intervalMs = isConnected ? 15000 : 3000;
