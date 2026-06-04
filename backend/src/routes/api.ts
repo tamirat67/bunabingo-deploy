@@ -545,7 +545,7 @@ router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
         // 2. Fallback to DB drawHistory (works after server restart)
         const history = await prisma.drawHistory.findMany({
           where: { gameId: runningGame.id },
-          orderBy: { drawnAt: 'asc' },
+          orderBy: { createdAt: 'asc' },
           select: { number: true },
         });
         drawnNumbers = history.map(h => h.number);
