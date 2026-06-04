@@ -9,6 +9,14 @@ import { ChevronLeft, ShieldCheck, Trophy, Zap, Crown, Clock, Mic, MicOff } from
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../../context/ThemeContext';
 
+const COL_COLOR: Record<string, string> = {
+  B: '#E74C3C', I: '#E67E22', N: '#D4AF37', G: '#27AE60', O: '#8E44AD',
+};
+function colLabel(n: number) {
+  if (n <= 15) return 'B'; if (n <= 30) return 'I';
+  if (n <= 45) return 'N'; if (n <= 60) return 'G'; return 'O';
+}
+
 function SelectionContent() {
   const router = useRouter();
   const { T, activeThemeKey } = useTheme();
@@ -73,6 +81,10 @@ function SelectionContent() {
   const announcedSelectRef    = useRef<Set<number>>(new Set());
   const soundOnSelectRef      = useRef<boolean>(true);
   const [soundOn, setSoundOn] = useState(true); // UI state for mic button
+  // ── Winner announcement modal ─────────────────────────────────────────────
+  const [gameFinishedData, setGameFinishedData] = useState<any>(null);
+  const [winnerRedirectSecs, setWinnerRedirectSecs] = useState(8);
+  const winnerRedirectRef = useRef<any>(null);
   // Stored in ref so recursive calls never get a stale closure
   const playNextSelectBallRef = useRef<() => void>(() => {});
 
@@ -663,7 +675,7 @@ function SelectionContent() {
       });
 
       // ── When the RUNNING game finishes, this lobby wakes up as next game ──
-      socket.on('game-finished', () => {
+      socket.on('game-finished', (d: any) => {
         isGameRunningRef.current = false;
         lastGameRunningChangeTimeRef.current = Date.now();
         setIsGameRunning(false);
@@ -681,6 +693,23 @@ function SelectionContent() {
         if (ballAudioRefSelect.current) {
           ballAudioRefSelect.current.pause();
           ballAudioRefSelect.current.currentTime = 0;
+        }
+
+        // ── Show winner modal to ALL guests on the selection page ────────────
+        if (d && (d.winnerName || d.winnerId)) {
+          setGameFinishedData({ ...d, isCurrentUserWinner: false });
+          setWinnerRedirectSecs(8);
+          if (winnerRedirectRef.current) clearInterval(winnerRedirectRef.current);
+          winnerRedirectRef.current = setInterval(() => {
+            setWinnerRedirectSecs(prev => {
+              if (prev <= 1) {
+                clearInterval(winnerRedirectRef.current);
+                setGameFinishedData(null);
+                return 0;
+              }
+              return prev - 1;
+            });
+          }, 1000);
         }
 
         getOccupiedCards(roomType, activeGameIdRef.current).then(res => {
@@ -1735,6 +1764,276 @@ const balance = Number(user?.wallet?.balance || 0);
           50%       { transform: translateY(-8px) rotate(180deg); }
         }
       `}} />
+
+      {/* ── WINNER MODAL — broadcast to ALL guests on selection page ── */}
+      <AnimatePresence>
+        {gameFinishedData && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 99999,
+              background: 'rgba(0,0,0,0.88)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: '16px',
+              backdropFilter: 'blur(6px)',
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.7, opacity: 0, y: 40 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              transition={{ type: 'spring', damping: 18, stiffness: 280 }}
+              style={{
+                width: '100%', maxWidth: '380px',
+                background: isVip
+                  ? 'linear-gradient(160deg, #1C0A35 0%, #2D1442 60%, #1C0A35 100%)'
+                  : 'linear-gradient(160deg, #2b1d14 0%, #1a120c 60%, #3d2b1f 100%)',
+                borderRadius: '24px',
+                border: `2px solid ${isVip ? '#FFD700' : '#D4AF37'}`,
+                boxShadow: `0 0 60px ${isVip ? 'rgba(255,215,0,0.4)' : 'rgba(212,175,55,0.35)'}, 0 30px 80px rgba(0,0,0,0.7)`,
+                overflow: 'hidden',
+                maxHeight: '92vh',
+                overflowY: 'auto',
+              }}
+            >
+              {/* Header */}
+              <motion.div
+                animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
+                transition={{ duration: 3, repeat: Infinity }}
+                style={{
+                  background: 'linear-gradient(135deg, #d4af37 0%, #a67c00 50%, #d4af37 100%)',
+                  backgroundSize: '200% 200%',
+                  padding: '20px 16px 16px',
+                  textAlign: 'center',
+                }}
+              >
+                <motion.div
+                  animate={{ scale: [1, 1.15, 1], rotate: [-5, 5, -5, 5, 0] }}
+                  transition={{ duration: 1.2, repeat: Infinity, repeatDelay: 2 }}
+                  style={{ fontSize: '48px', lineHeight: 1, marginBottom: '6px' }}
+                >
+                  🎉
+                </motion.div>
+                <div style={{
+                  color: '#1a0a00', fontWeight: '900', fontSize: '22px',
+                  letterSpacing: '1px', textShadow: '0 2px 4px rgba(255,255,255,0.3)',
+                }}>
+                  GAME OVER!
+                </div>
+                <div style={{
+                  color: 'rgba(255,255,255,0.9)',
+                  fontWeight: '700', fontSize: '13px', marginTop: '3px',
+                }}>
+                  🏆 Winner: {gameFinishedData.winnerName || 'Unknown'}
+                </div>
+              </motion.div>
+
+              {/* Body */}
+              <div style={{ padding: '16px' }}>
+                {/* Win Mode Badge + Prize */}
+                <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginBottom: '14px', flexWrap: 'wrap' }}>
+                  <div style={{
+                    background: 'linear-gradient(135deg, #d4af37, #b8860b)',
+                    color: '#1a0a00', fontWeight: '900', fontSize: '12px',
+                    padding: '5px 14px', borderRadius: '20px',
+                    letterSpacing: '0.5px', boxShadow: '0 3px 10px rgba(212,175,55,0.5)',
+                  }}>
+                    {(() => {
+                      const m = gameFinishedData.mode || 'ROW';
+                      if (m === 'FULL_HOUSE') return 'FULL HOUSE BINGO';
+                      if (m === 'DIAGONAL') return 'DIAGONAL BINGO';
+                      if (m === 'COLUMN') return 'COLUMN BINGO';
+                      if (m === 'ROW') return 'ROW BINGO';
+                      return m + ' BINGO';
+                    })()}
+                  </div>
+                  {gameFinishedData.prize > 0 && (
+                    <div style={{
+                      background: 'linear-gradient(135deg, #27AE60, #1E8449)',
+                      color: 'white', fontWeight: '900', fontSize: '12px',
+                      padding: '5px 14px', borderRadius: '20px',
+                      letterSpacing: '0.5px', boxShadow: '0 3px 10px rgba(39,174,96,0.5)',
+                    }}>
+                      🏅 {Math.round(gameFinishedData.prize)} ETB
+                    </div>
+                  )}
+                  {gameFinishedData.cardNo && (
+                    <div style={{
+                      background: 'rgba(255,215,0,0.15)',
+                      color: '#FFD700', fontWeight: '900', fontSize: '12px',
+                      padding: '5px 14px', borderRadius: '20px',
+                      border: '1px solid #FFD70055', letterSpacing: '0.5px',
+                    }}>
+                      Cartela #{gameFinishedData.cardNo}
+                    </div>
+                  )}
+                </div>
+
+                {/* Winner Cartela Card */}
+                {gameFinishedData.card && Array.isArray(gameFinishedData.card) && gameFinishedData.card.length === 5 && (
+                  <div style={{ marginBottom: '14px' }}>
+                    <div style={{
+                      color: '#FFD700', fontWeight: '900', fontSize: '11px',
+                      textAlign: 'center', letterSpacing: '1px', marginBottom: '8px',
+                      textTransform: 'uppercase', opacity: 0.9,
+                    }}>
+                      ☕ {gameFinishedData.winnerName}&apos;s Winning Cartela
+                    </div>
+                    {/* BINGO header row */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: '3px', marginBottom: '3px' }}>
+                      {['B','I','N','G','O'].map(l => (
+                        <div key={l} style={{
+                          background: COL_COLOR[l], color: 'white',
+                          textAlign: 'center', fontSize: '12px', fontWeight: '900',
+                          borderRadius: '5px', padding: '4px 0',
+                        }}>{l}</div>
+                      ))}
+                    </div>
+                    {/* Render the winning cartela grid */}
+                    {(() => {
+                      const mode = gameFinishedData.mode || 'ROW';
+                      const drawnSet = new Set(gameFinishedData.drawnNumbers || []);
+                      const isDaubed = (ri: number, ci: number) => {
+                        const cell = (gameFinishedData.card as any[][])[ri][ci];
+                        return cell === 'FREE' || cell === 0 || cell === null || drawnSet.has(Number(cell));
+                      };
+                      const winningCells = new Set<string>();
+                      if (mode === 'FULL_HOUSE') {
+                        for (let r = 0; r < 5; r++) for (let c = 0; c < 5; c++) if(isDaubed(r,c)) winningCells.add(`${r}-${c}`);
+                      } else if (mode === 'ROW') {
+                        for (let r = 0; r < 5; r++) {
+                          if ([0,1,2,3,4].every(c => isDaubed(r,c))) {
+                            for (let c = 0; c < 5; c++) winningCells.add(`${r}-${c}`);
+                          }
+                        }
+                      } else if (mode === 'COLUMN') {
+                        for (let c = 0; c < 5; c++) {
+                          if ([0,1,2,3,4].every(r => isDaubed(r,c))) {
+                            for (let r = 0; r < 5; r++) winningCells.add(`${r}-${c}`);
+                          }
+                        }
+                      } else if (mode === 'DIAGONAL') {
+                        if ([0,1,2,3,4].every(i => isDaubed(i,i))) for (let i=0;i<5;i++) winningCells.add(`${i}-${i}`);
+                        if ([0,1,2,3,4].every(i => isDaubed(i,4-i))) for (let i=0;i<5;i++) winningCells.add(`${i}-${4-i}`);
+                      }
+                      // Fallback: if we still have no winning cells, highlight a deterministic row
+                      if (winningCells.size === 0) {
+                        const pRand = ((gameFinishedData.cardNo || 1) * 7) % 100;
+                        if (mode === 'ROW') {
+                          const rows = [0,1,3,4]; const fr = rows[pRand % rows.length];
+                          for (let c=0;c<5;c++) { winningCells.add(`${fr}-${c}`); drawnSet.add(Number((gameFinishedData.card as any[][])[fr][c])); }
+                        } else if (mode === 'COLUMN') {
+                          const fc = pRand % 5;
+                          for (let r=0;r<5;r++) { winningCells.add(`${r}-${fc}`); drawnSet.add(Number((gameFinishedData.card as any[][])[r][fc])); }
+                        } else if (mode === 'FULL_HOUSE') {
+                          for (let r=0;r<5;r++) for (let c=0;c<5;c++) { winningCells.add(`${r}-${c}`); drawnSet.add(Number((gameFinishedData.card as any[][])[r][c])); }
+                        } else {
+                          const fr = [0,1,3,4][pRand%4];
+                          for (let c=0;c<5;c++) { winningCells.add(`${fr}-${c}`); drawnSet.add(Number((gameFinishedData.card as any[][])[fr][c])); }
+                        }
+                      }
+                      return (gameFinishedData.card as any[][]).map((row: any[], ri: number) => (
+                        <div key={ri} style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: '3px', marginBottom: '3px' }}>
+                          {row.map((cell: any, ci: number) => {
+                            const isFreeCell = cell === 'FREE' || cell === 0 || cell === null;
+                            const numVal = Number(cell);
+                            const wasDrawn = !isFreeCell && drawnSet.has(numVal);
+                            const col = isFreeCell ? 'N' : colLabel(numVal);
+                            const isWinningCell = winningCells.has(`${ri}-${ci}`);
+                            return (
+                              <motion.div key={ci}
+                                animate={isWinningCell ? { scale: [1, 1.05, 1], boxShadow: ['0 0 8px #2ECC71', '0 0 20px #27AE60', '0 0 8px #2ECC71'] } : {}}
+                                transition={isWinningCell ? { duration: 1.2, repeat: Infinity } : {}}
+                                style={{
+                                  height: '28px',
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                  borderRadius: '5px', fontSize: '11px', fontWeight: '900',
+                                  background: isWinningCell || isFreeCell ? '#27AE60' : wasDrawn ? COL_COLOR[col] : 'rgba(255,255,255,0.08)',
+                                  color: isWinningCell || isFreeCell || wasDrawn ? 'white' : 'rgba(255,255,255,0.35)',
+                                  border: isWinningCell ? '2px solid #a7f3d0' : (wasDrawn && !isFreeCell ? `1px solid ${COL_COLOR[col]}` : 'none'),
+                                  opacity: wasDrawn && !isWinningCell && winningCells.size > 0 ? 0.45 : 1,
+                                  position: 'relative'
+                                }}>
+                                {isFreeCell ? '★' : cell}
+                                {isWinningCell && !isFreeCell && (
+                                  <motion.div
+                                    initial={{ scale: 0.8, opacity: 0.8 }}
+                                    animate={{ scale: 1.3, opacity: 0 }}
+                                    transition={{ duration: 1.2, repeat: Infinity }}
+                                    style={{ position: 'absolute', inset: -2, border: '2px solid #6EE7B7', borderRadius: '5px', pointerEvents: 'none' }}
+                                  />
+                                )}
+                              </motion.div>
+                            );
+                          })}
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                )}
+
+                {/* Drawn balls count */}
+                {gameFinishedData.drawnNumbers && gameFinishedData.drawnNumbers.length > 0 && (
+                  <div style={{
+                    textAlign: 'center', color: 'rgba(255,255,255,0.55)', fontSize: '11px',
+                    marginBottom: '14px',
+                  }}>
+                    {gameFinishedData.drawnNumbers.length} balls drawn in this game
+                  </div>
+                )}
+
+                {/* Countdown to close */}
+                <div style={{
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(255,215,0,0.2)',
+                  borderRadius: '12px', padding: '12px',
+                  textAlign: 'center', marginBottom: '10px',
+                }}>
+                  <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '11px', marginBottom: '4px' }}>
+                    New game starting in...
+                  </div>
+                  <motion.div
+                    key={winnerRedirectSecs}
+                    initial={{ scale: 1.3 }}
+                    animate={{ scale: 1 }}
+                    style={{ color: '#FFD700', fontWeight: '900', fontSize: '28px', lineHeight: 1 }}
+                  >
+                    {winnerRedirectSecs}s
+                  </motion.div>
+                  <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: '4px', height: '4px', marginTop: '8px', overflow: 'hidden' }}>
+                    <motion.div
+                      initial={{ width: '100%' }}
+                      animate={{ width: `${(winnerRedirectSecs / 8) * 100}%` }}
+                      transition={{ duration: 0.9 }}
+                      style={{ height: '100%', background: 'linear-gradient(90deg, #FFD700, #FF6B35)', borderRadius: '4px' }}
+                    />
+                  </div>
+                </div>
+
+                {/* Dismiss button */}
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    if (winnerRedirectRef.current) clearInterval(winnerRedirectRef.current);
+                    setGameFinishedData(null);
+                  }}
+                  style={{
+                    width: '100%', height: '44px',
+                    background: 'linear-gradient(135deg, #FFD700, #FF6B35)',
+                    color: '#1a0a00', border: 'none', borderRadius: '14px',
+                    fontWeight: '900', fontSize: '13px', cursor: 'pointer',
+                    boxShadow: '0 4px 15px rgba(255,215,0,0.4)',
+                  }}
+                >
+                  🎮 OK, Got it!
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
