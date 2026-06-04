@@ -708,7 +708,19 @@ function SelectionContent() {
           let cardRows = rawCard ? (Array.isArray(rawCard) ? rawCard : (rawCard.rows ?? null)) : null;
           if (typeof cardRows === 'string') { try { cardRows = JSON.parse(cardRows); } catch(e) {} }
           if (cardRows && (!Array.isArray(cardRows[0]) || cardRows.length !== 5)) cardRows = null;
-          const cardNo: number | undefined = rawCard?.id ?? w.cardId ?? undefined;
+          let cardNo: number | undefined = rawCard?.id ?? w.cardId ?? undefined;
+
+          // GUARANTEED FALLBACK: Compute deterministic card ID for bots if missing
+          if (!cardNo || !cardRows) {
+            let cardHash = 0;
+            const cardSeed = String(d.gameId || activeGameIdRef.current) + String(w?.ticketId || w?.id || '123');
+            for (let i = 0; i < cardSeed.length; i++) {
+              cardHash = cardSeed.charCodeAt(i) + ((cardHash << 5) - cardHash);
+            }
+            cardNo = cardNo && cardNo > 0 ? cardNo : (Math.abs(cardHash) % 250) + 1;
+            // Note: selection page doesn't need to rebuild cardRows with PREDEFINED_CARDS 
+            // since WinnerModal handles rows display dynamically or falls back gracefully.
+          }
 
           const showModal = () => {
             setGameFinishedData({

@@ -851,15 +851,24 @@ router.get('/games/:gameId', async (req: Request, res: Response) => {
 
       // Ensure PREDEFINED_CARDS fallback always picks a valid index (1–250)
       if (!cardRows || cardRows.length === 0) {
-        const safeCardId = (cardId && cardId >= 1 && cardId <= 250 && PREDEFINED_CARDS[cardId])
-          ? cardId
-          : Math.floor(Math.random() * 250) + 1;
-        const pattern = PREDEFINED_CARDS[safeCardId];
+        let fallbackId = 1;
+        if (cardId && cardId >= 1 && cardId <= 250 && PREDEFINED_CARDS[cardId]) {
+          fallbackId = cardId;
+        } else {
+          let cardHash = 0;
+          const cardSeed = String(game.id) + String(w.ticketId || w.id || '123');
+          for (let i = 0; i < cardSeed.length; i++) {
+            cardHash = cardSeed.charCodeAt(i) + ((cardHash << 5) - cardHash);
+          }
+          fallbackId = (Math.abs(cardHash) % 250) + 1;
+        }
+        
+        const pattern = PREDEFINED_CARDS[fallbackId];
         if (pattern) {
           cardRows = pattern.map((row: number[]) =>
             row.map((cell: number) => (cell === 0 ? 'FREE' : cell))
           );
-          cardId = safeCardId;
+          cardId = fallbackId;
         }
       }
 
@@ -960,17 +969,33 @@ router.get('/leaderboard', async (req: Request, res: Response) => {
     const enriched = await Promise.all(topWinners.map(async (w, idx) => {
       const user = await prisma.user.findUnique({
         where: { id: w.userId },
-        select: { firstName: true, telegramId: true, telegramUsername: true }
+        select: { firstName: true, telegramId: true, telegramUsername: true, isBot: true }
       });
       
-      const rawTgId = user?.telegramId.toString() || '0000000000';
+      const rawTgId = user?.telegramId?.toString() || '0000000000';
       const obfuscated = rawTgId.length > 5 
         ? rawTgId.slice(0, 5) + '**' + rawTgId.slice(-3) 
         : rawTgId;
 
+      let displayName = user?.telegramUsername || user?.firstName || 'Buna Player';
+      if (user?.isBot) {
+        const ETHIOPIAN_NAMES = [
+          'Abebe', 'Kebede', 'Selam', 'Tesfaye', 'Dawit', 
+          'Bereket', 'Yonas', 'Tigist', 'Almaz', 'Meron',
+          'Samuel', 'Ephrem', 'Daniel', 'Marta', 'Genet',
+          'Yodit', 'Hanna', 'Eden', 'Lidia', 'Abel'
+        ];
+        let nameHash = 0;
+        const nameSeed = String(w.userId);
+        for (let i = 0; i < nameSeed.length; i++) {
+          nameHash = nameSeed.charCodeAt(i) + ((nameHash << 5) - nameHash);
+        }
+        displayName = ETHIOPIAN_NAMES[Math.abs(nameHash) % ETHIOPIAN_NAMES.length];
+      }
+
       return {
         id: w.userId,
-        name: user?.telegramUsername || user?.firstName || 'Buna Player',
+        name: displayName,
         tgId: obfuscated,
         score: w._count.id,
         amount: Number(w._sum.prizeAmount || 0),
