@@ -1037,6 +1037,17 @@ const balance = Number(user?.wallet?.balance || 0);
     ? initialDrawnNumbers
     : drawnNumbers;
 
+  // Prevent the "flash of unmasked cartelas" if a game is running but we haven't fetched the first poll yet
+  if (isInitializing && !initialGameRunning) {
+    return (
+      <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center', background: T.bg }}>
+        <div style={{ width: '40px', height: '40px', border: `4px solid ${T.gold}`, borderTopColor: 'transparent', borderRadius: '50%', animation: 'loader-spin 1s linear infinite' }}>
+          <style>{`@keyframes loader-spin { 100% { transform: rotate(360deg); } }`}</style>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`selection-container ${isVip ? 'vip-theme' : 'brown'} ${isSpin ? 'spin-theme' : ''}`}>
 
