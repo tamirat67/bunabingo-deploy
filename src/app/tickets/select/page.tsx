@@ -57,6 +57,9 @@ function SelectionContent() {
   // Ref so the polling interval always reads the latest value without stale closures
   const isGameRunningRef = useRef(initialGameRunning);
   const lastGameRunningChangeTimeRef = useRef(0);
+  // Stable ref for activeGameId — lets socket/polling effects read the latest ID
+  // without needing it in their dependency arrays (prevents full effect re-mount on every poll update)
+  const activeGameIdRef = useRef<string | undefined>(gameId);
   const redirectedRef = useRef(false);
   const [liveGameDismissed, setLiveGameDismissed] = useState(false);
   // ── Server-time-anchored countdown for the LIVE GAME "NEXT CHECK" banner ──
@@ -101,6 +104,11 @@ function SelectionContent() {
   useEffect(() => {
     isGameRunningRef.current = isGameRunning;
   }, [isGameRunning]);
+
+  // Keep activeGameIdRef in sync with state — effects use the ref to avoid re-mounting
+  useEffect(() => {
+    activeGameIdRef.current = activeGameId;
+  }, [activeGameId]);
 
   // Keep the liveGameEndTime ref in sync so the interval can always read the latest value
   useEffect(() => { liveGameEndTimeRef.current = liveGameEndTime; }, [liveGameEndTime]);
@@ -180,8 +188,7 @@ function SelectionContent() {
 
   // ── Force-dismiss: re-poll server; unlock regardless if response says not running ──
   const forceUnlockLiveGame = () => {
-    getOccupiedCards(roomType, activeGameId).then(res => {
-      const nowRunning = !!res?.isGameRunning;
+    getOccupiedCards(roomType, activeGameIdRef.current).then(res => {
       // Unlock in all cases — player shouldn't be permanently stuck
       isGameRunningRef.current = false;
       setIsGameRunning(false);
@@ -192,7 +199,7 @@ function SelectionContent() {
       // Clear announced balls so the NEXT game's audio works correctly
       announcedSelectRef.current.clear();
       if (liveGameSyncRef.current) clearInterval(liveGameSyncRef.current);
-      if (res?.gameId) { setActiveGameId(res.gameId); loadGameData(res.gameId); }
+      if (res?.gameId) { activeGameIdRef.current = res.gameId; setActiveGameId(res.gameId); loadGameData(res.gameId); }
       if (res?.occupiedIds) setOccupied(res.occupiedIds);
       if (res?.playerCount !== undefined) setPlayerCount(res.playerCount);
     }).catch(() => {
@@ -402,7 +409,8 @@ function SelectionContent() {
   };
 
   const loadGameData = useCallback((forcedGameId?: string) => {
-    const gid = forcedGameId || activeGameId;
+    // Use the ref so this callback is stable and never needs activeGameId in its deps
+    const gid = forcedGameId || activeGameIdRef.current;
     if (!gid) return;
     getGame(gid).then(g => {
       setGame(g);
@@ -434,7 +442,8 @@ function SelectionContent() {
         setEndTime(null);
       }
     }).catch(() => {});
-  }, [activeGameId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // stable — reads activeGameIdRef.current so no activeGameId dep needed
 
   // Local countdown fallback
   useEffect(() => {
@@ -487,7 +496,7 @@ function SelectionContent() {
     loadGameData();
 
     // 1. Initial Quick Fetch (REST Fallback)
-    getOccupiedCards(roomType, activeGameId).then(res => {
+    getOccupiedCards(roomType, activeGameIdRef.current).then(res => {
       setOccupied(res.occupiedIds || []);
       prevOccupied.current = res.occupiedIds || [];
       setPlayerCount(res.playerCount || 0);
@@ -497,6 +506,7 @@ function SelectionContent() {
       }
       // Auto-switch to next WAITING game if current is RUNNING
       if (res.gameId) {
+        activeGameIdRef.current = res.gameId;
         setActiveGameId(res.gameId);
       }
       // NOTE: isGameRunning is NOT set here — syncRunningState (polling) is the
@@ -507,7 +517,7 @@ function SelectionContent() {
     // 2. High-Performance WebSocket Sync (Real-time & Zero Network Overhead)
     if (socket) {
       socket.emit('join-game', roomType);
-      if (activeGameId) socket.emit('join-game', activeGameId);
+      if (activeGameIdRef.current) socket.emit('join-game', activeGameIdRef.current);
 
       socket.on('occupied-sync', (data: any) => {
         if (data.tickets) {
@@ -557,12 +567,12 @@ function SelectionContent() {
         liveGameEndTimeRef.current = endTime;
         setLiveGameEndTime(endTime);
         // Redirect ONLY users who bought tickets for this game
-        if (!redirectedRef.current && ownedCardIds.length > 0) {
+        if (!redirectedRef.current && ownedRef.current.length > 0) {
           redirectedRef.current = true;
           if (roomType.startsWith('SPIN_')) {
-            router.push(`/play/spin?id=${d.gameId || activeGameId}&stake=${stake}`);
+            router.push(`/play/spin?id=${d.gameId || activeGameIdRef.current}&stake=${stake}`);
           } else {
-            router.push(`/game?id=${d.gameId || activeGameId}&type=${roomType}&price=${stake}`);
+            router.push(`/game?id=${d.gameId || activeGameIdRef.current}&type=${roomType}&price=${stake}`);
           }
         }
       });
@@ -641,8 +651,9 @@ function SelectionContent() {
           ballAudioRefSelect.current.currentTime = 0;
         }
 
-        getOccupiedCards(roomType, activeGameId).then(res => {
+        getOccupiedCards(roomType, activeGameIdRef.current).then(res => {
           if (res.gameId) {
+            activeGameIdRef.current = res.gameId;
             setActiveGameId(res.gameId);
             loadGameData(res.gameId);
             if (socket) socket.emit('join-game', res.gameId);
@@ -676,7 +687,10 @@ function SelectionContent() {
         } catch (_) {}
       }
     };
-  }, [roomType, activeGameId, socket, loadGameData, user?.id, router, stake]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomType, socket, loadGameData, user?.id, router, stake]);
+  // NOTE: activeGameId intentionally omitted — we use activeGameIdRef.current inside
+  // to prevent the entire socket effect from re-mounting on every game ID update.
 
   useEffect(() => {
     setSelected(prev => prev.filter(id => !occupied.includes(id)));
@@ -714,7 +728,7 @@ function SelectionContent() {
   // interval is stable and never torn down/recreated on every game-state change.
   useEffect(() => {
     const syncRunningState = () => {
-      getOccupiedCards(roomType, activeGameId).then(res => {
+      getOccupiedCards(roomType, activeGameIdRef.current).then(res => {
         setIsInitializing(false);
         if (!res) return;
 
@@ -769,7 +783,8 @@ function SelectionContent() {
         }
 
         // Switch to the correct game ID if it changed (next waiting game after finish)
-        if (res.gameId && res.gameId !== activeGameId && !nowRunning) {
+        if (res.gameId && res.gameId !== activeGameIdRef.current && !nowRunning) {
+          activeGameIdRef.current = res.gameId;
           setActiveGameId(res.gameId);
           loadGameData(res.gameId);
           if (socket) socket.emit('join-game', res.gameId);
@@ -819,7 +834,9 @@ function SelectionContent() {
 
     return () => clearInterval(poll);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roomType, activeGameId, loadGameData, socket, isConnected]);
+  }, [roomType, loadGameData, socket, isConnected]);
+  // NOTE: activeGameId intentionally omitted — we use activeGameIdRef.current inside
+  // so the polling interval is never re-created on game ID updates (would cause a flash).
 
 
 
