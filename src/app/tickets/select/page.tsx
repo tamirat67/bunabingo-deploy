@@ -613,7 +613,12 @@ function SelectionContent() {
         if (res.playerCount !== undefined) setPlayerCount(res.playerCount);
 
         setHasTicketsInRunningGame(!!res.hasTicketsInRunningGame);
-        setRunningGameId(res.runningGameId || null);
+        const newRunningId = res.runningGameId || null;
+        setRunningGameId(newRunningId);
+        // Subscribe to the running game's socket channel so we receive number-drawn events
+        if (newRunningId && socket) {
+          socket.emit('join-game', newRunningId);
+        }
         if ((res as any).drawnNumbers) {
           setDrawnNumbers((res as any).drawnNumbers);
         }
