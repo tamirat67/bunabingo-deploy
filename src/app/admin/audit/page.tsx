@@ -171,7 +171,7 @@ export default function AdminAuditPage() {
           <table className="premium-table">
             <tbody>
               <tr>
-                <td style={{ color: '#8c857b' }}>Total Recharged (All Agents)</td>
+                <td style={{ color: '#8c857b' }}>Total Admin Refills (All Agents)</td>
                 <td className="text-right" style={{ fontWeight: '800', color: '#22c55e' }}>+{fmt(data.agentPreDepositTotalRecharged)} ETB</td>
               </tr>
               <tr>

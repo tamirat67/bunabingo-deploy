@@ -289,14 +289,14 @@ function DashboardContent() {
             {/* Total Recharged */}
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontSize: '11px', fontWeight: '800', color: '#60a5fa', letterSpacing: '1px', marginBottom: '4px', textTransform: 'uppercase' }}>
-                Total Recharged
+                Total Admin Refills
               </div>
               <div style={{ fontSize: '32px', fontWeight: '900', color: '#60a5fa', fontFamily: 'Inter, sans-serif' }}>
                 +{preDepositAdded.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 <span style={{ fontSize: '18px', color: '#60a5fa', marginLeft: '6px' }}>ETB</span>
               </div>
               <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>
-                Lifetime deposits by all agents
+                Cumulative refills admin added to agents
               </div>
             </div>
 
