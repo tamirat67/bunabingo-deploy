@@ -616,8 +616,9 @@ function SelectionContent() {
 
       // ── When the RUNNING game finishes, this lobby wakes up as next game ──
       socket.on('game-finished', () => {
-        setIsGameRunning(false);
         isGameRunningRef.current = false;
+        lastGameRunningChangeTimeRef.current = Date.now();
+        setIsGameRunning(false);
         setLiveGameDismissed(true);
         setCountdown(null);
         setDrawnNumbers([]);
@@ -728,8 +729,8 @@ function SelectionContent() {
 
         // Update isGameRunning based on authoritative server response
         if (nowRunning !== wasRunning) {
-          // If the socket JUST told us the game started, don't trust a stale polling response saying it hasn't
-          if (!nowRunning && wasRunning && Date.now() - lastGameRunningChangeTimeRef.current < 4000) {
+          // If the socket JUST told us the game started OR finished, don't trust a stale polling response saying the opposite
+          if (Date.now() - lastGameRunningChangeTimeRef.current < 4000) {
             return;
           }
           lastGameRunningChangeTimeRef.current = Date.now();
@@ -1301,13 +1302,13 @@ const balance = Number(user?.wallet?.balance || 0);
         {/* Right — Countdown / Status */}
         <div style={{ textAlign: 'center', minWidth: '90px' }}>
           <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: '9px', fontWeight: '900', letterSpacing: '1.5px', marginBottom: '4px', textTransform: 'uppercase' }}>
-            {effectiveGameRunning || game?.status === 'RUNNING'
+            {effectiveGameRunning
               ? 'LIVE GAME'
               : countdown !== null && countdown > 0
               ? 'STARTS IN'
               : 'NEXT GAME'}
           </div>
-          {effectiveGameRunning || game?.status === 'RUNNING' ? (
+          {effectiveGameRunning ? (
             <div style={{ fontSize: '22px', fontWeight: '900', color: '#E74C3C', textShadow: '0 0 14px rgba(231,76,60,0.7)', letterSpacing: '-1px' }}>
               🔴 LIVE
             </div>
