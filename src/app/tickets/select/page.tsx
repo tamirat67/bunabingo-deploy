@@ -49,13 +49,13 @@ function SelectionContent() {
     } catch { return []; }
   });
   // ── Live game state: true when the room has a RUNNING game and player is queued for next session
-  const [isGameRunning, setIsGameRunning] = useState(false);
+  const [isGameRunning, setIsGameRunning] = useState(initialGameRunning);
   const [drawnNumbers, setDrawnNumbers] = useState<number[]>([]);
 
   const [hasTicketsInRunningGame, setHasTicketsInRunningGame] = useState(false);
   const [runningGameId, setRunningGameId] = useState<string | null>(null);
   // Ref so the polling interval always reads the latest value without stale closures
-  const isGameRunningRef = useRef(false);
+  const isGameRunningRef = useRef(initialGameRunning);
   const lastGameRunningChangeTimeRef = useRef(0);
   const redirectedRef = useRef(false);
   const [liveGameDismissed, setLiveGameDismissed] = useState(false);
@@ -189,6 +189,8 @@ function SelectionContent() {
       setLiveGameSyncTimer(null);
       liveGameEndTimeRef.current = null;
       setLiveGameEndTime(null);
+      // Clear announced balls so the NEXT game's audio works correctly
+      announcedSelectRef.current.clear();
       if (liveGameSyncRef.current) clearInterval(liveGameSyncRef.current);
       if (res?.gameId) { setActiveGameId(res.gameId); loadGameData(res.gameId); }
       if (res?.occupiedIds) setOccupied(res.occupiedIds);
@@ -739,6 +741,7 @@ function SelectionContent() {
             setLiveGameDismissed(true);
             liveGameEndTimeRef.current = null;
             setLiveGameEndTime(null);
+            announcedSelectRef.current.clear();
           }
           if (nowRunning && !wasRunning) {
             // Game just detected as running (page-refresh path) — anchor the 20s cycle
