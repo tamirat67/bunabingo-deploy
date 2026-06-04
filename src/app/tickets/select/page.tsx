@@ -954,92 +954,99 @@ const balance = Number(user?.wallet?.balance || 0);
             gap: '8px',
             minWidth: 0,
           }}>
-            {/* Left: Big Ball (Newest) */}
             {(() => {
-              const newestNum = drawnNumbers[drawnNumbers.length - 1];
-              const { letter, color } = getBallDetails(newestNum);
+              const headerDark = isDark || isVip || isSpin;
               return (
-                <div style={{
-                  width: '46px',
-                  height: '46px',
-                  borderRadius: '50%',
-                  background: '#f8f9fa',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: 'inset -2px -2px 4px rgba(0,0,0,0.1), 0 2px 5px rgba(0,0,0,0.3)',
-                  flexShrink: 0,
-                  position: 'relative'
-                }}>
-                  <span style={{ fontSize: '10px', fontWeight: '900', color: '#E74C3C', lineHeight: 1, position: 'absolute', top: '5px' }}>{letter}</span>
-                  <span style={{ fontSize: '24px', fontWeight: '900', color: '#1a1d2e', lineHeight: 1, marginTop: '8px', letterSpacing: '-1px' }}>{newestNum}</span>
-                </div>
-              );
-            })()}
-
-            {/* Middle: Previous balls box */}
-            <div style={{
-              flex: 1,
-              height: '40px',
-              borderRadius: '20px',
-              border: '1px solid rgba(255,255,255,0.15)',
-              background: 'rgba(255,255,255,0.05)',
-              display: 'flex',
-              alignItems: 'center',
-              padding: '0 8px',
-              gap: '6px',
-              overflow: 'hidden',
-              boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)'
-            }}>
-              <AnimatePresence initial={false} mode="popLayout">
-                {/* Previous balls: drawnNumbers reversed, omitting the newest (index 0 when reversed) */}
-                {[...drawnNumbers].reverse().slice(1, 4).map((num) => {
-                  const { letter, color } = getBallDetails(num);
-                  return (
-                    <motion.div
-                      key={num}
-                      initial={{ scale: 0, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      exit={{ scale: 0.3, opacity: 0 }}
-                      style={{
-                        width: '28px',
-                        height: '28px',
+                <>
+                  {/* Left: Big Ball (Newest) */}
+                  {(() => {
+                    const newestNum = drawnNumbers[drawnNumbers.length - 1];
+                    const { letter, color } = getBallDetails(newestNum);
+                    return (
+                      <div style={{
+                        width: '46px',
+                        height: '46px',
                         borderRadius: '50%',
-                        border: '1px solid rgba(255,255,255,0.25)',
+                        background: '#f8f9fa',
                         display: 'flex',
+                        flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        gap: '2px',
-                        flexShrink: 0
-                      }}
-                    >
-                      <span style={{ fontSize: '9px', fontWeight: '900', color }}>{letter}</span>
-                      <span style={{ fontSize: '12px', fontWeight: '900', color: '#FFF' }}>{num}</span>
-                    </motion.div>
-                  );
-                })}
-              </AnimatePresence>
-            </div>
+                        boxShadow: 'inset -2px -2px 4px rgba(0,0,0,0.1), 0 2px 5px rgba(0,0,0,0.3)',
+                        flexShrink: 0,
+                        position: 'relative'
+                      }}>
+                        <span style={{ fontSize: '10px', fontWeight: '900', color: '#E74C3C', lineHeight: 1, position: 'absolute', top: '5px' }}>{letter}</span>
+                        <span style={{ fontSize: '24px', fontWeight: '900', color: '#1a1d2e', lineHeight: 1, marginTop: '8px', letterSpacing: '-1px' }}>{newestNum}</span>
+                      </div>
+                    );
+                  })()}
 
-            {/* Right: Count pill */}
-            <div style={{
-              height: '32px',
-              borderRadius: '16px',
-              border: '1px solid rgba(255,255,255,0.15)',
-              padding: '0 10px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              background: 'rgba(255,255,255,0.05)',
-              color: '#FFF',
-              fontSize: '12px',
-              fontWeight: '900',
-              flexShrink: 0
-            }}>
-              <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#f1c40f' }} />
-              {drawnNumbers.length} / 75
-            </div>
+                  {/* Middle: Previous balls box */}
+                  <div style={{
+                    flex: 1,
+                    height: '40px',
+                    borderRadius: '20px',
+                    border: `1px solid ${headerDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.08)'}`,
+                    background: headerDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '0 8px',
+                    gap: '6px',
+                    overflow: 'hidden',
+                    boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)'
+                  }}>
+                    <AnimatePresence initial={false} mode="popLayout">
+                      {/* Previous balls: drawnNumbers reversed, omitting the newest (index 0 when reversed) */}
+                      {[...drawnNumbers].reverse().slice(1, 4).map((num) => {
+                        const { letter, color } = getBallDetails(num);
+                        return (
+                          <motion.div
+                            key={num}
+                            initial={{ scale: 0, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.3, opacity: 0 }}
+                            style={{
+                              width: '28px',
+                              height: '28px',
+                              borderRadius: '50%',
+                              border: `1px solid ${headerDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.1)'}`,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '2px',
+                              flexShrink: 0
+                            }}
+                          >
+                            <span style={{ fontSize: '9px', fontWeight: '900', color }}>{letter}</span>
+                            <span style={{ fontSize: '12px', fontWeight: '900', color: headerDark ? '#FFF' : '#1a1d2e' }}>{num}</span>
+                          </motion.div>
+                        );
+                      })}
+                    </AnimatePresence>
+                  </div>
+
+                  {/* Right: Count pill */}
+                  <div style={{
+                    height: '32px',
+                    borderRadius: '16px',
+                    border: `1px solid ${headerDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.08)'}`,
+                    padding: '0 10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: headerDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
+                    color: headerDark ? '#FFF' : '#1a1d2e',
+                    fontSize: '12px',
+                    fontWeight: '900',
+                    flexShrink: 0
+                  }}>
+                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#f1c40f' }} />
+                    {drawnNumbers.length} / 75
+                  </div>
+                </>
+              );
+            })()}
           </div>
         ) : (
           <div className="header-text">
