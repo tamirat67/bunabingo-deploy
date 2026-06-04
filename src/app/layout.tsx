@@ -36,7 +36,12 @@ export default function RootLayout({
         />
         <SocketProvider>
           <ThemeProvider>
-            <Suspense fallback={<div style={{ minHeight: '100vh', backgroundColor: '#FFF9E1' }}></div>}>
+            <Suspense fallback={
+              <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#2D1B14' }}>
+                <div className="animate-spin" style={{ width: '40px', height: '40px', border: '3px solid #D4AF37', borderTopColor: 'transparent', borderRadius: '50%', marginBottom: '16px' }}></div>
+                <div style={{ color: '#D4AF37', fontWeight: '900', fontSize: '12px', letterSpacing: '2px', textShadow: '0 0 10px rgba(212,175,55,0.5)' }}>LOADING...</div>
+              </div>
+            }>
               {children}
             </Suspense>
             <Navbar />

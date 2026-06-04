@@ -889,7 +889,14 @@ function GameContent() {
     }
   };
 
-  if (!mounted) return <div style={{ minHeight: '100vh', backgroundColor: '#FFF9E1' }}></div>;
+  const LoadingScreen = () => (
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: isVip ? '#1C0A35' : '#2D1B14' }}>
+      <div className="animate-spin" style={{ width: '40px', height: '40px', border: '3px solid #D4AF37', borderTopColor: 'transparent', borderRadius: '50%', marginBottom: '16px' }}></div>
+      <div style={{ color: '#D4AF37', fontWeight: '900', fontSize: '12px', letterSpacing: '2px', textShadow: '0 0 10px rgba(212,175,55,0.5)' }}>LOADING BUNA BINGO...</div>
+    </div>
+  );
+
+  if (!mounted) return <LoadingScreen />;
 
   // ─── Prize / Stake / Commission calculation ─────────────────────────────
   // Prize pool = Guaranteed Minimum OR 70% of REAL PLAYER stakes (whichever is higher).
@@ -950,16 +957,13 @@ function GameContent() {
 
   const hasBingo = checkAnyBingo();
 
-  if (!authChecked) {
-    return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0a0a0a' }}>
-        <div className="animate-spin" style={{ width: '40px', height: '40px', border: '3px solid #d4af37', borderTopColor: 'transparent', borderRadius: '50%' }}></div>
-      </div>
-    );
-  }
+  if (!authChecked) return <LoadingScreen />;
 
   return (
-    <div 
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.6, ease: 'easeOut' }}
       onClick={unlockAudio}
       onTouchStart={unlockAudio}
       style={{
@@ -1835,13 +1839,18 @@ function GameContent() {
         message={modal.message}
         type={modal.type}
       />
-    </div>
+    </motion.div>
   );
 }
 
 export default function GamePage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#2D1B14' }}>
+        <div className="animate-spin" style={{ width: '40px', height: '40px', border: '3px solid #D4AF37', borderTopColor: 'transparent', borderRadius: '50%', marginBottom: '16px' }}></div>
+        <div style={{ color: '#D4AF37', fontWeight: '900', fontSize: '12px', letterSpacing: '2px', textShadow: '0 0 10px rgba(212,175,55,0.5)' }}>LOADING BUNA BINGO...</div>
+      </div>
+    }>
       <GameContent />
     </Suspense>
   );
