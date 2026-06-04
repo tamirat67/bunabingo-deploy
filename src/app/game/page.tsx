@@ -1088,22 +1088,22 @@ function GameContent() {
 
       <div style={{ display: 'flex', gap: '10px', padding: '10px', alignItems: 'flex-start' }}>
         {/* Master Board (Left) */}
-        <div style={{ flex: '0 0 52%', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ flex: '0 0 52%', display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <div style={{ 
               flex: 1, 
               background: game?.status === 'RUNNING' ? '#27AE60' : (isVip ? 'rgba(255,255,255,0.05)' : T.header), 
-              borderRadius: '14px', 
-              padding: '10px', 
+              borderRadius: '12px', 
+              padding: '6px', 
               textAlign: 'center', 
               border: isVip ? '2px solid #FFD700' : `2px solid ${T.gold}`, 
               transition: 'background 0.3s',
               boxShadow: isVip ? '0 0 10px rgba(255, 215, 0, 0.2)' : 'none'
             }}>
-              <div style={{ color: isVip ? '#FFD700' : T.gold, fontSize: '9px', fontWeight: '900' }}>
+              <div style={{ color: isVip ? '#FFD700' : T.gold, fontSize: '8px', fontWeight: '900' }}>
                 STATUS
               </div>
-              <div style={{ color: 'white', fontSize: '24px', fontWeight: '900' }}>
+              <div style={{ color: 'white', fontSize: '20px', fontWeight: '900' }}>
                 🔴 LIVE
               </div>
             </div>
@@ -1112,8 +1112,8 @@ function GameContent() {
               initial={{ scale: 0.5 }} 
               animate={{ scale: 1 }} 
               style={{ 
-                width: '65px', 
-                height: '65px', 
+                width: '52px', 
+                height: '52px', 
                 backgroundColor: lastBall 
                   ? (isVip ? '#C471ED' : COL_COLOR[colLabel(lastBall)]) 
                   : (isVip ? 'rgba(255,255,255,0.05)' : T.statBg),
@@ -1129,14 +1129,14 @@ function GameContent() {
                 border: isVip ? '4px solid #FFD700' : '2px solid rgba(255,255,255,0.4)',
                 color: lastBall ? (isVip ? '#1C0A35' : 'white') : (isVip ? '#FFD700' : T.brown),
                 boxShadow: lastBall 
-                  ? (isVip ? '0 0 15px rgba(255, 215, 0, 0.6)' : 'inset -5px -5px 12px rgba(0,0,0,0.4), inset 3px 3px 8px rgba(255,255,255,0.6), 0 4px 10px rgba(0,0,0,0.3)')
+                  ? (isVip ? '0 0 15px rgba(255, 215, 0, 0.6)' : 'inset -4px -4px 10px rgba(0,0,0,0.4), inset 2px 2px 6px rgba(255,255,255,0.6), 0 3px 8px rgba(0,0,0,0.3)')
                   : 'none'
               }}
             >
               {lastBall ? (
                 <>
-                  <div style={{ fontSize: '14px', lineHeight: 1 }}>{colLabel(lastBall)}</div>
-                  <div style={{ fontSize: '24px', lineHeight: 1 }}>{lastBall}</div>
+                  <div style={{ fontSize: '11px', lineHeight: 1, opacity: 0.9 }}>{colLabel(lastBall)}</div>
+                  <div style={{ fontSize: '20px', lineHeight: 1, marginTop: '-2px', letterSpacing: '-0.5px' }}>{lastBall}</div>
                 </>
               ) : '•'}
             </motion.div>
