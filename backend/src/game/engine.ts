@@ -729,6 +729,12 @@ async function drawNumber(gameId: string): Promise<void> {
     sequence,
     totalDrawn: state.drawnNumbers.length,
   });
+  // Also broadcast to room-type channel so guests on selection page get live calls
+  await triggerGameEvent(state.roomType, 'number-drawn', {
+    number,
+    sequence,
+    totalDrawn: state.drawnNumbers.length,
+  });
 
   logger.debug(`[Game ${gameId}] Drew #${number} (${sequence}th)`);
 

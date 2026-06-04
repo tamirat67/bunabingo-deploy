@@ -5,7 +5,7 @@ import { getMe, joinGame, getOccupiedCards, getGame } from '../../../lib/api';
 import { PREDEFINED_CARDS } from '../../../lib/predefinedCards';
 import { useSocket } from '../../../context/SocketContext';
 import BunaModal from '../../../components/BunaModal';
-import { ChevronLeft, ShieldCheck, Eye, Users, Trophy, Zap, Crown, Clock } from 'lucide-react';
+import { ChevronLeft, ShieldCheck, Eye, Users, Trophy, Zap, Crown, Clock, Mic, MicOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../../context/ThemeContext';
 
@@ -60,6 +60,7 @@ function SelectionContent() {
   const isPlayingSelectRef    = useRef<boolean>(false);
   const announcedSelectRef    = useRef<Set<number>>(new Set());
   const soundOnSelectRef      = useRef<boolean>(true);
+  const [soundOn, setSoundOn] = useState(true); // UI state for mic button
   // Stored in ref so recursive calls never get a stale closure
   const playNextSelectBallRef = useRef<() => void>(() => {});
 
@@ -1053,6 +1054,41 @@ const balance = Number(user?.wallet?.balance || 0);
                     <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#f1c40f' }} />
                     {drawnNumbers.length} / 75
                   </div>
+
+                  {/* Mic toggle button */}
+                  <button
+                    onClick={() => {
+                      const next = !soundOn;
+                      setSoundOn(next);
+                      soundOnSelectRef.current = next;
+                      localStorage.setItem('game_sound', next ? 'true' : 'false');
+                      if (!next && ballAudioRefSelect.current) {
+                        ballAudioRefSelect.current.pause();
+                      }
+                    }}
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '50%',
+                      border: 'none',
+                      background: soundOn
+                        ? (headerDark ? 'rgba(46,204,113,0.2)' : 'rgba(46,204,113,0.15)')
+                        : (headerDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'),
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      flexShrink: 0,
+                      boxShadow: soundOn ? '0 0 8px rgba(46,204,113,0.3)' : 'none',
+                      transition: 'all 0.2s ease',
+                    }}
+                    title={soundOn ? 'Mute live calls' : 'Unmute live calls'}
+                  >
+                    {soundOn
+                      ? <Mic size={14} color="#2ECC71" />
+                      : <MicOff size={14} color={headerDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.3)'} />
+                    }
+                  </button>
                 </>
               );
             })()}
