@@ -152,12 +152,9 @@ function SelectionContent() {
               liveGameEndTimeRef.current = null;
               setLiveGameEndTime(null);
               if (liveGameSyncRef.current) clearInterval(liveGameSyncRef.current);
-              if (res.gameId) { setActiveGameId(res.gameId); loadGameData(res.gameId); }
+              if (res.gameId) { activeGameIdRef.current = res.gameId; setActiveGameId(res.gameId); loadGameData(res.gameId); }
               if (res.occupiedIds) setOccupied(res.occupiedIds);
               if (res.playerCount !== undefined) setPlayerCount(res.playerCount);
-              if (ownedRef.current.length > 0 && res.gameId) {
-                router.push(`/game?id=${res.gameId}&type=${roomType}&price=${stake}`);
-              }
             } else {
               // Still running — start the next 20s cycle, anchored to server's gameStartedAt if available
               let next: number;
@@ -949,9 +946,18 @@ const balance = Number(user?.wallet?.balance || 0);
         setJoining(false);
         return;
       }
+
+      // If they have tickets in the RUNNING game, send them to the live game room
+      if (isGameRunning && hasTicketsInRunningGame && runningGameId) {
+        if (roomType.startsWith('SPIN_')) router.push(`/play/spin?id=${runningGameId}&stake=${stake}`);
+        else router.push(`/game?id=${runningGameId}&type=${roomType}&price=${stake}`);
+        setJoining(false);
+        return;
+      }
+
       // If selection is identical to owned tickets, enter the game room directly
-      if (roomType.startsWith('SPIN_')) router.push(`/play/spin?id=${activeGameId}&stake=${stake}`);
-      else router.push(`/game?id=${activeGameId}&type=${roomType}&price=${stake}`);
+      if (roomType.startsWith('SPIN_')) router.push(`/play/spin?id=${activeGameIdRef.current}&stake=${stake}`);
+      else router.push(`/game?id=${activeGameIdRef.current}&type=${roomType}&price=${stake}`);
       setJoining(false);
       return;
     }
