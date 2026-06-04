@@ -108,6 +108,8 @@ function GameContent() {
   // Guards to prevent start.mp3 / stop.mp3 from firing more than once per game lifecycle
   const startAudioFiredRef = useRef<boolean>(false);
   const stopAudioFiredRef  = useRef<boolean>(false);
+  // Persistent ref for stop.mp3 element — prevents garbage collection before audio finishes
+  const stopAudioRef = useRef<HTMLAudioElement | null>(null);
 
 
   const ticketsRef = useRef<any[]>([]);
@@ -279,7 +281,14 @@ function GameContent() {
     if (!soundOnRef.current) return;
     if (stopAudioFiredRef.current) return;  // already played for this game
     stopAudioFiredRef.current = true;
-    try { new Audio('/audio/stop.mp3').play().catch(() => {}); } catch (e) {}
+    try {
+      // Store in ref so the element is NOT garbage collected before it finishes playing
+      const el = new Audio('/audio/stop.mp3');
+      stopAudioRef.current = el;
+      el.onended = () => { stopAudioRef.current = null; };
+      el.onerror = () => { stopAudioRef.current = null; };
+      el.play().catch(() => { stopAudioRef.current = null; });
+    } catch (e) {}
   }, []);
 
   // Modal State
@@ -524,8 +533,22 @@ function GameContent() {
     socket.on('game-started', onGameStarted);
 
     const onGameFinished = (d: any) => {
-      loadData();
+      // ── Immediately stop the ball audio queue so no more balls are called ──
+      isGameFinishedRef.current = true;
+      audioQueueRef.current = [];
+      isPlayingQueueRef.current = false;
+      clearTimeout(playNextTimeoutRef.current);
+      if (ballAudioRef.current) {
+        ballAudioRef.current.pause();
+        ballAudioRef.current.currentTime = 0;
+      }
+
+      // ── Play stop.mp3 NOW (before modal renders) so browser audio context is available ──
       playStopAudio();
+
+      loadData();
+
+      // ── Build winner data (same logic as before) ──
       const tgUserId = typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.initDataUnsafe?.user?.id
         ? String((window as any).Telegram.WebApp.initDataUnsafe.user.id)
         : '';
@@ -560,7 +583,6 @@ function GameContent() {
       if (cardRows && (!Array.isArray(cardRows[0]) || cardRows.length !== 5)) cardRows = null;
 
       // 🛡️ GUARANTEED FALLBACK: If no valid 5x5 grid exists, generate one from standard patterns
-      // Use a deterministic random card to avoid always showing the same card, but keep it consistent across clients.
       if (!cardRows) {
         let cardHash = 0;
         const cardSeed = String(gameId) + String(w?.ticketId || w?.id || '123');
@@ -574,7 +596,7 @@ function GameContent() {
         }
       }
 
-      setGameFinished({
+      const winnerData = {
         winnerName: name,
         prize: parseFloat(String(w?.prizeAmount ?? 0)) || parseFloat(String(d?.gamePrize ?? 0)) || (Number(stake) * 31 * 0.75),
         mode: w?.winMode || 'ROW',
@@ -585,21 +607,26 @@ function GameContent() {
         isCurrentUserWinner,
         isBot,
         drawnNumbers: d.drawnNumbers || drawn || [],
-      });
-      // Start 4-second countdown then redirect to cartela selection
-      setRedirectSecs(4);
-      redirectCountdownRef.current = setInterval(() => {
-        setRedirectSecs(s => {
-          if (s <= 1) {
-            clearInterval(redirectCountdownRef.current);
-            return 0;
-          }
-          return s - 1;
-        });
-      }, 1000);
-      redirectTimerRef.current = setTimeout(() => {
-        router.push(`/tickets/select?type=${game?.room?.type || spType}&price=${stake}`);
-      }, 4000);
+      };
+
+      // ── Delay modal by 400ms so stop.mp3 can start playing BEFORE the modal renders ──
+      setTimeout(() => {
+        setGameFinished(winnerData);
+        // Start redirect countdown
+        setRedirectSecs(4);
+        redirectCountdownRef.current = setInterval(() => {
+          setRedirectSecs(s => {
+            if (s <= 1) {
+              clearInterval(redirectCountdownRef.current);
+              return 0;
+            }
+            return s - 1;
+          });
+        }, 1000);
+        redirectTimerRef.current = setTimeout(() => {
+          router.push(`/tickets/select?type=${game?.room?.type || spType}&price=${stake}`);
+        }, 4000);
+      }, 400);
     };
 
     socket.on('game-update', (d: any) => {
