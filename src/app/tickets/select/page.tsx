@@ -1133,7 +1133,7 @@ const balance = Number(user?.wallet?.balance || 0);
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'flex-end',
-            gap: '6px',
+            gap: '4px',
             minWidth: 0,
           }}>
             {(() => {
@@ -1171,14 +1171,14 @@ const balance = Number(user?.wallet?.balance || 0);
                       {/* Middle: Previous balls box */}
                       <div style={{
                         flex: 1,
-                        height: '40px',
-                        borderRadius: '20px',
+                        height: '36px',
+                        borderRadius: '18px',
                         border: `1px solid ${headerDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.06)'}`,
                         background: headerDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)',
                         display: 'flex',
                         alignItems: 'center',
-                        padding: '0 8px',
-                        gap: '6px',
+                        padding: '0 6px',
+                        gap: '4px',
                         overflow: 'hidden',
                         boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.08)'
                       }}>
@@ -1192,23 +1192,23 @@ const balance = Number(user?.wallet?.balance || 0);
                                 animate={{ scale: 1, opacity: 1 }}
                                 exit={{ scale: 0.3, opacity: 0 }}
                                 style={{
-                                  width: '32px',
-                                  height: '32px',
+                                  width: '28px',
+                                  height: '28px',
                                   borderRadius: '50%',
                                   backgroundColor: bgColor,
                                   backgroundImage: 'radial-gradient(circle at 35% 35%, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 25%)',
-                                  boxShadow: `inset -3px -3px 6px rgba(0,0,0,0.4), inset 2px 2px 4px rgba(255,255,255,0.6), 0 2px 5px rgba(0,0,0,0.3)`,
+                                  boxShadow: `inset -2px -2px 5px rgba(0,0,0,0.4), inset 1px 1px 3px rgba(255,255,255,0.6), 0 2px 4px rgba(0,0,0,0.3)`,
                                   display: 'flex',
                                   flexDirection: 'column',
                                   alignItems: 'center',
                                   justifyContent: 'center',
                                   flexShrink: 0,
                                   position: 'relative',
-                                  border: '1.5px solid rgba(255,255,255,0.4)'
+                                  border: '1px solid rgba(255,255,255,0.4)'
                                 }}
                               >
-                                <span style={{ fontSize: '8px', fontWeight: '900', color: '#fff', lineHeight: 1, opacity: 0.9, textShadow: '0 1px 2px rgba(0,0,0,0.4)' }}>{letter}</span>
-                                <span style={{ fontSize: '14px', fontWeight: '900', color: '#fff', lineHeight: 1, marginTop: '-1px', letterSpacing: '-0.5px', textShadow: '0 1px 2px rgba(0,0,0,0.4)' }}>{num}</span>
+                                <span style={{ fontSize: '7px', fontWeight: '900', color: '#fff', lineHeight: 1, opacity: 0.9, textShadow: '0 1px 2px rgba(0,0,0,0.4)' }}>{letter}</span>
+                                <span style={{ fontSize: '13px', fontWeight: '900', color: '#fff', lineHeight: 1, marginTop: '-1px', letterSpacing: '-0.5px', textShadow: '0 1px 2px rgba(0,0,0,0.4)' }}>{num}</span>
                               </motion.div>
                             );
                           })}
@@ -1217,16 +1217,16 @@ const balance = Number(user?.wallet?.balance || 0);
 
                       {/* Right: Count pill */}
                       <div style={{
-                        height: '32px',
-                        borderRadius: '16px',
+                        height: '30px',
+                        borderRadius: '15px',
                         border: `1px solid ${headerDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.08)'}`,
-                        padding: '0 10px',
+                        padding: '0 8px',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '6px',
+                        gap: '4px',
                         background: headerDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
                         color: headerDark ? '#FFF' : '#1a1d2e',
-                        fontSize: '12px',
+                        fontSize: '11px',
                         fontWeight: '900',
                         flexShrink: 0
                       }}>
