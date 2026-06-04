@@ -15,6 +15,7 @@ import {
   rigDrawSequence,
   clearBotInjectionRecord,
   creditBunaWallet,
+  debitBunaWallet,
   recordCycleResult,
   BOT_COUNTS,
 } from '../services/houseBot.service';
@@ -385,6 +386,8 @@ async function runGame(gameId: string): Promise<void> {
   // Bot stakes are visual only: they inflate player count but do NOT add real cash to prize pool
   let displayPrizePool: Decimal;
   let displayHouseEdge: Decimal;
+  const GUARANTEED_PRIZES: Record<string, number> = { CASUAL: 50, STANDARD: 100, PRO: 250, JACKPOT: 500, VIP: 1000 };
+  
   if (isDemo) {
     displayPrizePool = new Decimal(100);
     displayHouseEdge = new Decimal(0);
@@ -392,11 +395,19 @@ async function runGame(gameId: string): Promise<void> {
     const totalRealStake = new Decimal(unitPrice).mul(realPlayerCount);
     
     // Commission is 30% of REAL player stakes only (from agent pre-deposit).
-    // Prize pool is 70% of REAL player stakes — this is actual cash on hand.
-    // Bot stakes are purely visual and do NOT contribute to the real prize pool.
     displayHouseEdge = totalRealStake.mul(houseEdgePercent).div(100);
-    displayPrizePool = totalRealStake.sub(displayHouseEdge); // = realStake × 70%
-    logger.info(`[Game ${gameId}] Real Player Stake (${realPlayerCount} cards × ${unitPrice} ETB) = ${totalRealStake} ETB | Commission (${houseEdgePercent}%) = ${displayHouseEdge} ETB | Prize Pool (70% of real) = ${displayPrizePool} ETB`);
+    
+    // Calculate the real player contribution (70% of their stake)
+    const realPlayerContribution = totalRealStake.sub(displayHouseEdge);
+    
+    // The prize pool is guaranteed to be at least the minimum for this room type.
+    // If there are many real players, it scales up naturally.
+    const roomTypeName = game.room.type;
+    const minPrize = GUARANTEED_PRIZES[roomTypeName] || 50;
+    
+    displayPrizePool = Decimal.max(new Decimal(minPrize), realPlayerContribution);
+    
+    logger.info(`[Game ${gameId}] Real Player Stake (${realPlayerCount} cards × ${unitPrice} ETB) = ${totalRealStake} ETB | Commission (${houseEdgePercent}%) = ${displayHouseEdge} ETB | Guaranteed Prize Pool = ${displayPrizePool} ETB`);
   }
 
   await prisma.game.update({
@@ -1009,13 +1020,28 @@ async function processWinner(
     }
   });
 
-  // ─── House Bot Win → Credit Buna Wallet ────────────────────────────────────
-  if (!isDemo && isHouseBot) {
-    await creditBunaWallet(prizeAmount, `House bot WIN [${winMode}] Game: ${gameId} (${game.room.type})`);
-    await recordCycleResult(game.room.type, true);
-    logger.info(`[BunaWallet] House bot won ${prizeAmount} ETB in game ${gameId}`);
-  } else if (!isDemo && !isHouseBot) {
-    await recordCycleResult(game.room.type, false);
+  // ─── Update System Reserve (Guaranteed Prize System) ─────────────────────
+  if (!isDemo) {
+    // 1. Calculate Real Player Contribution (70% of real stakes)
+    const realTicketsCount = await prisma.ticket.count({ where: { gameId, user: { isBot: false } } });
+    const realContribution = new Decimal(game.room.ticketPrice).mul(realTicketsCount).mul(0.70);
+    
+    // 2. Always credit real contributions to the Reserve Wallet first
+    if (realContribution.greaterThan(0)) {
+       await creditBunaWallet(realContribution, `Real stakes contribution from Game: ${gameId} (${game.room.type})`);
+    }
+    
+    // 3. Process the payout logic against the reserve
+    if (!isHouseBot) {
+       // Real player won: The Guaranteed Prize is paid OUT of the reserve
+       await debitBunaWallet(prizeAmount, `Guaranteed payout to real player [${winMode}] Game: ${gameId}`);
+       await recordCycleResult(game.room.type, false);
+       logger.info(`[SystemWallet] Deducted guaranteed prize of ${prizeAmount} ETB for Game ${gameId}`);
+    } else {
+       // House bot won: The prize stays in the reserve (already credited above), just record cycle
+       await recordCycleResult(game.room.type, true);
+       logger.info(`[SystemWallet] House bot won Game ${gameId} — Reserve grew by ${realContribution} ETB`);
+    }
   }
 
   // ─── Notifications (Outside Transaction - Async) ───

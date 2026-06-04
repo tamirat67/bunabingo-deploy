@@ -857,12 +857,15 @@ function GameContent() {
   if (!mounted) return null;
 
   // ─── Prize / Stake / Commission calculation ─────────────────────────────
-  // Prize pool = 70% of REAL PLAYER stakes only — set by backend in game.totalPrize.
+  // Prize pool = Guaranteed Minimum OR 70% of REAL PLAYER stakes (whichever is higher).
   // Bot stakes are visual only — they do NOT add to the real prize pool.
+  const GUARANTEED_PRIZES: Record<string, number> = { CASUAL: 50, STANDARD: 100, PRO: 250, JACKPOT: 500, VIP: 1000 };
   const roomTypeName = game?.room?.type || spType || 'STANDARD';
   
-  // Fallback: estimate based on real ticket count × 70% while game data is loading
-  const fallbackPrize = Math.round(tickets.length * stake * 0.70);
+  // Fallback: estimate based on guaranteed minimum OR real ticket count × 70%
+  const minPrize = GUARANTEED_PRIZES[roomTypeName] || 50;
+  const fallbackPrize = Math.max(minPrize, Math.round(tickets.length * stake * 0.70));
+  
   const prize = isDemo
     ? (game?.totalPrize ? Number(game.totalPrize) : 100)
     : Math.max(
