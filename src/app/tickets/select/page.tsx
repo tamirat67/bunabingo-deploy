@@ -87,12 +87,20 @@ function SelectionContent() {
   const selectedRef = useRef<number[]>([]);
   const ownedRef = useRef<number[]>([]);
   const occupiedRef = useRef<number[]>([]);
+  // Stable ref for user — lets socket callbacks always read the latest user
+  // without putting `user` in the socket effect's dependency array (which would
+  // cause a full effect re-mount every time getMe() resolves mid-game).
+  const userRef = useRef<any>(null);
   // Tracks whether the component is still mounted — used to stop audio after navigation
   const mountedRef = useRef(true);
 
   useEffect(() => {
     selectedRef.current = selected;
   }, [selected]);
+
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
 
   useEffect(() => {
     ownedRef.current = ownedCardIds;
@@ -523,8 +531,8 @@ function SelectionContent() {
       socket.on('occupied-sync', (data: any) => {
         if (data.tickets) {
           const ticketList = data.tickets;
-          const myCardIds = ticketList.filter((t: any) => t.userId === user?.id).map((t: any) => t.cardId);
-          const otherOccupiedIds = ticketList.filter((t: any) => t.userId !== user?.id).map((t: any) => t.cardId);
+          const myCardIds = ticketList.filter((t: any) => t.userId === userRef.current?.id).map((t: any) => t.cardId);
+          const otherOccupiedIds = ticketList.filter((t: any) => t.userId !== userRef.current?.id).map((t: any) => t.cardId);
           
           const freshlyTaken = otherOccupiedIds.filter((id: number) => !prevOccupied.current.includes(id));
           if (freshlyTaken.length > 0) {
@@ -689,7 +697,10 @@ function SelectionContent() {
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roomType, socket, loadGameData, user?.id, router, stake]);
+  // user?.id intentionally removed — we read userRef.current inside instead.
+  // Having user?.id here caused the effect to re-mount every time getMe() resolved
+  // (typically after 4-5 balls), killing all socket listeners and audio mid-game.
+  }, [roomType, socket, loadGameData, router, stake]);
   // NOTE: activeGameId intentionally omitted — we use activeGameIdRef.current inside
   // to prevent the entire socket effect from re-mounting on every game ID update.
 
