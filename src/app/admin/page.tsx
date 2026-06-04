@@ -80,16 +80,22 @@ function DashboardContent() {
   })();
 
   // Extract variables based on role — NO fake fallbacks, only real data
+  // globalSales = today's total gross (all cards including bots)
   const globalSales = isAdmin 
     ? Number(stats.today?.globalSales || 0)
     : Number(stats.totalSales || 0);
 
-  const companyRevenue = isAdmin
-    ? Number(stats.today?.totalCompanyRevenue || (globalSales * 0.125))
-    : (globalSales * 0.125);
+  // todayRealSales = today's gross from REAL players only
+  const todayRealSales = isAdmin ? Number(stats.today?.realSales || 0) : Number(stats.totalSales || 0);
 
+  // Company Revenue = 20% of REAL gross only
+  const companyRevenue = isAdmin
+    ? Number(stats.today?.totalCompanyRevenue || (todayRealSales * 0.20))
+    : (todayRealSales * 0.20);
+
+  // Agent Revenue = 10% of REAL gross only
   const agentRevenue = isAdmin
-    ? Number(stats.today?.totalAgentRevenue || (globalSales * 0.125))
+    ? Number(stats.today?.totalAgentRevenue || (todayRealSales * 0.10))
     : Number(stats.agentTakeHome || 0);
 
   const totalPlayers = isAdmin
@@ -118,10 +124,11 @@ function DashboardContent() {
     ? Number(stats.bunaWalletBalance || 0)
     : 0;
 
-  // Real vs Bot accounting breakdown
+  // Real vs Bot accounting breakdown (all-time)
   const realGrossSales      = isAdmin ? Number(stats.realGrossSales || 0) : 0;
   const botGrossSales       = isAdmin ? Number(stats.botGrossSales  || 0) : 0;
   const realCompanyRevenue  = isAdmin ? Number(stats.realCompanyRevenue || 0) : 0;
+  const realAgentRevenue    = isAdmin ? Number(stats.realAgentRevenue  || 0) : 0;
   const botCompanyRevenue   = isAdmin ? Number(stats.botCompanyRevenue  || 0) : 0;
   const totalGross          = realGrossSales + botGrossSales;
   const realPct             = totalGross > 0 ? (realGrossSales / totalGross) * 100 : 0;
@@ -234,16 +241,16 @@ function DashboardContent() {
         </div>
       </div>
 
-      {/* Buna Wallet Balance Card — Bot Profits (Fake/Synthetic) */}
+      {/* Prize Reserve Wallet Banner */}
       {isAdmin && (
         <div className="premium-card" style={{
-          background: 'linear-gradient(135deg, #1c1410 0%, #0f0b08 100%)',
+          background: 'linear-gradient(135deg, #0c1a2e 0%, #0a1220 100%)',
           color: '#ffffff',
           padding: '24px 32px',
           borderRadius: '24px',
           marginBottom: '32px',
           boxShadow: '0 10px 30px rgba(0,0,0,0.4)',
-          border: '1px solid rgba(251, 146, 60, 0.4)',
+          border: '1px solid rgba(59, 130, 246, 0.4)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -254,9 +261,9 @@ function DashboardContent() {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
               <span style={{
-                background: 'rgba(251,146,60,0.15)',
-                border: '1px solid rgba(251,146,60,0.4)',
-                color: '#fb923c',
+                background: 'rgba(59,130,246,0.15)',
+                border: '1px solid rgba(59,130,246,0.4)',
+                color: '#60a5fa',
                 fontSize: '10px',
                 fontWeight: '900',
                 letterSpacing: '2px',
@@ -264,48 +271,48 @@ function DashboardContent() {
                 borderRadius: '999px',
                 textTransform: 'uppercase'
               }}>
-                ⚠ FAKE MONEY — BOT GENERATED
+                🏦 PRIZE RESERVE WALLET
               </span>
             </div>
             <h2 style={{ fontSize: '28px', fontWeight: '900', margin: 0, color: '#ffffff', fontFamily: 'Inter, sans-serif' }}>
-              BUNA WALLET
+              AGENT PRE-DEPOSIT
             </h2>
-            <p style={{ color: '#78716c', margin: '6px 0 0 0', fontSize: '13px', fontWeight: '500', lineHeight: '1.5' }}>
-              Accumulated profits from house bots winning games.<br />
-              <span style={{ color: '#fb923c', fontWeight: '700' }}>This is synthetic — not real player money.</span>
+            <p style={{ color: '#94a3b8', margin: '6px 0 0 0', fontSize: '13px', fontWeight: '500', lineHeight: '1.5' }}>
+              Real cash deposited by agents to fund guaranteed prize payouts.<br />
+              <span style={{ color: '#4ade80', fontWeight: '700' }}>This is real money — deducted per game to pay winners.</span>
             </p>
           </div>
 
           {/* Right: Two parallel values */}
           <div style={{ display: 'flex', gap: '32px', alignItems: 'center', flexWrap: 'wrap' }}>
 
-            {/* Bot Profit: POSITIVE (bots did earn this profit) but labeled fake */}
+            {/* Total Recharged */}
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '11px', fontWeight: '800', color: '#fb923c', letterSpacing: '1px', marginBottom: '4px', textTransform: 'uppercase' }}>
-                Bot Profits (Fake +)
+              <div style={{ fontSize: '11px', fontWeight: '800', color: '#60a5fa', letterSpacing: '1px', marginBottom: '4px', textTransform: 'uppercase' }}>
+                Total Recharged
               </div>
-              <div style={{ fontSize: '32px', fontWeight: '900', color: '#fb923c', fontFamily: 'Inter, sans-serif' }}>
-                +{bunaWalletBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                <span style={{ fontSize: '18px', color: '#fb923c', marginLeft: '6px' }}>ETB</span>
+              <div style={{ fontSize: '32px', fontWeight: '900', color: '#60a5fa', fontFamily: 'Inter, sans-serif' }}>
+                +{preDepositAdded.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                <span style={{ fontSize: '18px', color: '#60a5fa', marginLeft: '6px' }}>ETB</span>
               </div>
-              <div style={{ fontSize: '11px', color: '#a8a29e', marginTop: '2px' }}>
-                Synthetic earnings — house bots winning
+              <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>
+                Lifetime deposits by all agents
               </div>
             </div>
 
-            <div style={{ width: '1px', height: '60px', background: 'rgba(251,146,60,0.25)', flexShrink: 0 }} />
+            <div style={{ width: '1px', height: '60px', background: 'rgba(59,130,246,0.25)', flexShrink: 0 }} />
 
-            {/* Real Pre-Deposit: shown alongside for comparison */}
+            {/* Remaining Balance */}
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontSize: '11px', fontWeight: '800', color: '#4ade80', letterSpacing: '1px', marginBottom: '4px', textTransform: 'uppercase' }}>
-                Real Pre-Deposit
+                Remaining Balance
               </div>
               <div style={{ fontSize: '32px', fontWeight: '900', color: '#4ade80', fontFamily: 'Inter, sans-serif' }}>
-                +{preDepositAdded.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {preDepositBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 <span style={{ fontSize: '18px', color: '#4ade80', marginLeft: '6px' }}>ETB</span>
               </div>
               <div style={{ fontSize: '11px', color: '#6ee7b7', marginTop: '2px' }}>
-                {preDepositBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB remaining
+                {preDepositPercent.toFixed(1)}% of total recharged remaining
               </div>
             </div>
           </div>
@@ -439,18 +446,18 @@ function DashboardContent() {
               </div>
             </div>
 
-            {/* Real Company Revenue */}
+            {/* Real Company Revenue (20%) */}
             <div style={{ background: '#f0fdf4', borderRadius: '14px', padding: '16px', border: '1px solid #86efac' }}>
-              <div style={{ fontSize: '10px', fontWeight: '900', color: '#16a34a', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>✅ Real Company Revenue</div>
+              <div style={{ fontSize: '10px', fontWeight: '900', color: '#16a34a', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>✅ Company Revenue (20%)</div>
               <div style={{ fontSize: '22px', fontWeight: '900', color: '#14532d' }}>{realCompanyRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-              <div style={{ fontSize: '11px', color: '#16a34a', marginTop: '4px' }}>ETB — 20% of real sales</div>
+              <div style={{ fontSize: '11px', color: '#16a34a', marginTop: '4px' }}>ETB — 20% of real gross (all-time)</div>
             </div>
 
-            {/* Bot Company Revenue (synthetic) */}
-            <div style={{ background: '#fff7ed', borderRadius: '14px', padding: '16px', border: '1px solid #fdba74' }}>
-              <div style={{ fontSize: '10px', fontWeight: '900', color: '#dc2626', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>⚠ Bot Revenue (Fake)</div>
-              <div style={{ fontSize: '22px', fontWeight: '900', color: '#7f1d1d' }}>{botCompanyRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-              <div style={{ fontSize: '11px', color: '#dc2626', marginTop: '4px' }}>ETB — NOT real profit</div>
+            {/* Real Agent Revenue (10%) */}
+            <div style={{ background: '#eff6ff', borderRadius: '14px', padding: '16px', border: '1px solid #93c5fd' }}>
+              <div style={{ fontSize: '10px', fontWeight: '900', color: '#2563eb', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>✅ Agent Revenue (10%)</div>
+              <div style={{ fontSize: '22px', fontWeight: '900', color: '#1e3a8a' }}>{realAgentRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+              <div style={{ fontSize: '11px', color: '#2563eb', marginTop: '4px' }}>ETB — 10% of real gross (all-time)</div>
             </div>
           </div>
         </div>

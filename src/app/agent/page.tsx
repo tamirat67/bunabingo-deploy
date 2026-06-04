@@ -135,7 +135,9 @@ function AgentDashboardContent() {
 
   // Scoped agent variables
   const globalSales = Number(stats.totalSales || 0);
-  const companyRevenue = Number(stats.netCommissionPaid || 0); // Real amount deducted from pre-deposit (real players only)
+  // Company Revenue = 20% of real stakes under this agent
+  const companyRevenue = globalSales * 0.20;
+  // Agent Revenue = 10% of real stakes (what agent earns)
   const agentRevenue = Number(stats.agentTakeHome || 0);
   const totalPlayers = stats.playerCount || 0;
   const activePlayers = stats.activePlayers || 0;

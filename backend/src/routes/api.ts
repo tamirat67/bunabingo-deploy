@@ -1550,10 +1550,29 @@ staffRouter.get('/analytics', restrictToAdmin, async (req, res) => {
 
   const realGrossSales = Number(realSalesAgg._sum.amount || 0);
   const botGrossSales  = Number(botSalesAgg._sum.amount || 0);
-  const { getCompanyCommissionRate } = await import('../services/settings.service');
-  const commRate = await getCompanyCommissionRate();
-  const realCompanyRevenue = realGrossSales * commRate;  // real ETB earned by company
-  const botCompanyRevenue  = botGrossSales  * commRate;  // synthetic — NOT real profit
+  // Revenue split: 30% total commission = 20% company + 10% agent
+  const COMPANY_RATE = 0.20;  // 20% of real gross → company profit
+  const AGENT_RATE   = 0.10;  // 10% of real gross → agent profit
+
+  const realCompanyRevenue = realGrossSales * COMPANY_RATE;
+  const realAgentRevenue   = realGrossSales * AGENT_RATE;
+  const botCompanyRevenue  = botGrossSales  * COMPANY_RATE;  // synthetic — NOT real profit
+
+  const todayGlobalSales = Number(globalSalesTodayAgg._sum.amount || 0);
+  // Today's real sales (non-bot tickets purchased today)
+  const todayRealSalesAgg = await prisma.transaction.aggregate({
+    where: {
+      type: 'TICKET_PURCHASE',
+      status: 'COMPLETED',
+      user: { isBot: false },
+      createdAt: { gte: todayStart, lte: todayEnd },
+      ...(agentId ? { user: { referredBy: agentId, isBot: false } } : {})
+    },
+    _sum: { amount: true }
+  });
+  const todayRealSales = Number(todayRealSalesAgg._sum.amount || 0);
+  const todayCompanyRevenue = todayRealSales * COMPANY_RATE;
+  const todayAgentRevenue   = todayRealSales * AGENT_RATE;
 
   res.json({
     totalUsers,
@@ -1568,16 +1587,18 @@ staffRouter.get('/analytics', restrictToAdmin, async (req, res) => {
     preDepositBalance: totalPreDepositBalance,
     preDepositAdded: totalPreDepositAdded,
     bunaWalletBalance,
-    // ── Real vs Bot breakdown (key for admin accounting) ──
-    realGrossSales,        // real player ticket sales (real ETB)
-    botGrossSales,         // house bot ticket sales (synthetic ETB)
-    realCompanyRevenue,    // 12.5% of real sales = actual company profit
-    botCompanyRevenue,     // 12.5% of bot sales = synthetic/fake (NOT real profit)
-    // Today's values
+    // ── Real vs Bot breakdown (all-time, key for admin accounting) ──
+    realGrossSales,           // real player ticket sales (real ETB)
+    botGrossSales,            // house bot ticket sales (synthetic ETB)
+    realCompanyRevenue,       // 20% of real gross → actual company profit
+    realAgentRevenue,         // 10% of real gross → actual agent profit
+    botCompanyRevenue,        // 20% of bot sales → synthetic/fake (NOT real profit)
+    // Today's values (computed from real sales only)
     today: {
-      globalSales: globalSalesTodayAgg._sum.amount || 0,
-      totalCompanyRevenue: totalCompanyRevenueTodayAgg._sum.amount || 0,
-      totalAgentRevenue: Number(totalCompanyRevenueTodayAgg._sum.amount || 0),
+      globalSales: todayGlobalSales,
+      realSales: todayRealSales,
+      totalCompanyRevenue: todayCompanyRevenue,   // 20% of today's real sales
+      totalAgentRevenue: todayAgentRevenue,        // 10% of today's real sales
       activePlayers: activePlayersTodayCount.length,
       activeGames: activeGamesTodayCount,
       breakdown
