@@ -818,19 +818,21 @@ function SelectionContent() {
         if ((res as any).drawnNumbers) {
           const incoming: number[] = (res as any).drawnNumbers;
           setDrawnNumbers(prev => {
-            // Queue audio only for genuinely new numbers not yet announced
-            const newBalls = incoming.filter(n => !announcedSelectRef.current.has(n));
-            
+            // Mark existing as announced on initial load
             if (prev.length === 0 && incoming.length > 0) {
-              // Initial load: don't play a bombardment of 15 sounds! Just mark as announced.
               incoming.forEach(n => announcedSelectRef.current.add(n));
-            } else {
-              newBalls.forEach(n => queueSelectBall(n));
             }
             
             // Fix: Only overwrite if the API array is newer/longer than our current state.
             // This prevents stale API cache responses from deleting newly drawn socket balls.
             if (incoming.length > prev.length) {
+              // Queue audio for any new balls that we didn't have yet
+              const newBalls = incoming.filter(n => !prev.includes(n));
+              if (newBalls.length <= 3) {
+                newBalls.forEach(n => queueSelectBall(n));
+              }
+              // Also mark these new balls as announced so we don't double play
+              newBalls.forEach(n => announcedSelectRef.current.add(n));
               return incoming;
             }
             return prev;
@@ -1170,7 +1172,7 @@ const balance = Number(user?.wallet?.balance || 0);
                         boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.08)'
                       }}>
                         <AnimatePresence initial={false} mode="popLayout">
-                          {[...effectiveDrawnNumbers].reverse().slice(1, 7).map((num) => {
+                          {[...effectiveDrawnNumbers].reverse().slice(1, 6).map((num) => {
                             const { letter, bgColor } = getBallDetails(num);
                             return (
                               <motion.div
