@@ -966,9 +966,9 @@ function GameContent() {
   const allCards = Math.max(game?.currentPlayers || 0, fallbackCards) || 1;
   const totalStake = isDemo ? 0 : allCards * stake;
 
-  // Fallback: estimate based on guaranteed minimum OR visual ticket count × 75%
+  // Fallback: estimate based on guaranteed minimum OR visual ticket count × 70%
   const minPrize = GUARANTEED_PRIZES[roomTypeName] || 50;
-  const fallbackPrize = Math.max(minPrize, Math.round(allCards * stake * 0.75));
+  const fallbackPrize = Math.max(minPrize, Math.round(allCards * stake * 0.70));
   
   const prize = isDemo
     ? (game?.totalPrize ? Number(game.totalPrize) : 100)
@@ -977,7 +977,7 @@ function GameContent() {
         fallbackPrize
       );
 
-  const fallbackHouseComm = Math.round(allCards * stake * 0.25);
+  const fallbackHouseComm = Math.round(allCards * stake * 0.30);
   const houseComm = isDemo
     ? 0
     : Math.max(
@@ -1084,9 +1084,9 @@ function GameContent() {
           ['GAME ID',   gameId?.slice(-6).toUpperCase() || '--'],
           ['CARDS',     `${allCards}`],
           ['STAKE/CARD',`${stake} ETB`],
-          ['PRIZE 75%', `${prize.toFixed ? prize.toFixed(0) : prize} ETB`]
+          ['PRIZE 70%', `${prize.toFixed ? prize.toFixed(0) : prize} ETB`]
         ].map(([l, v]) => {
-          const isPrize = l === 'PRIZE 75%';
+          const isPrize = l === 'PRIZE 70%';
           return (
             <div key={l as string} style={{ 
               background: isVip 

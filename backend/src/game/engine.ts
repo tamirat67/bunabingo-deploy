@@ -392,7 +392,7 @@ async function runGame(gameId: string): Promise<void> {
     displayPrizePool = new Decimal(100);
     displayHouseEdge = new Decimal(0);
   } else {
-    // For visual calculations (PRIZE 75%), we use the TOTAL tickets (real + bot)
+    // For visual calculations (PRIZE 70%), we use the TOTAL tickets (real + bot)
     // so the prize matches the visual card count on the frontend.
     const totalTicketsCount = game.tickets.length;
     const totalStakeSimulated = new Decimal(unitPrice).mul(totalTicketsCount);
@@ -401,8 +401,8 @@ async function runGame(gameId: string): Promise<void> {
     const totalRealStake = new Decimal(unitPrice).mul(realPlayerCount);
     displayHouseEdge = totalRealStake.mul(houseEdgePercent).div(100);
     
-    // Calculate the inflated prize pool (75% of ALL simulated stakes)
-    const simulatedPrizePool = totalStakeSimulated.mul(75).div(100);
+    // Calculate the inflated prize pool (70% of ALL simulated stakes)
+    const simulatedPrizePool = totalStakeSimulated.mul(70).div(100);
     
     const roomTypeName = game.room.type;
     const minPrize = GUARANTEED_PRIZES[roomTypeName] || 50;
