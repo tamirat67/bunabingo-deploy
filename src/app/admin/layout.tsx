@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { 
   FiPieChart, FiUsers, FiUserCheck, FiDollarSign, 
   FiSettings, FiLogOut, FiMenu, FiX, FiAward,
-  FiActivity, FiShield, FiCreditCard, FiCalendar, FiChevronDown
+  FiActivity, FiShield, FiCreditCard, FiCalendar, FiChevronDown, FiTrendingUp
 } from 'react-icons/fi';
 import api from '@/lib/api';
 import '@/app/admin.css';
