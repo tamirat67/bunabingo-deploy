@@ -169,7 +169,7 @@ export default function RevenuePage() {
     totalBotSales, totalRealSales, totalAllSales,
     botParticipationRate, realCompanyRevenue, realAgentRevenue, botCompanyRevenue,
     botPlayerCount, realPlayerCount, totalGamesFinished,
-    botWinPayouts, botWinPayoutAmount,
+    botWinPayouts, botWinPayoutAmount, botWinCount,
     trend, roomBreakdown,
   } = data;
 
@@ -227,10 +227,10 @@ export default function RevenuePage() {
         />
         <KpiCard
           icon={<FiShield size={18} />}
-          label="Bot Company Revenue"
-          value={`${fmt(botCompanyRevenue)} ETB`}
-          sub="⚠ Synthetic — 20% of bot sales, NOT real profit"
-          accent="#ea580c"
+          label="House Advantage (Bot Wins Kept)"
+          value={`${fmt(botWinPayoutAmount)} ETB`}
+          sub={`Prize stayed in system reserve across ${botWinCount} bot wins`}
+          accent="#d97706"
           synthetic
         />
         <KpiCard
@@ -322,10 +322,10 @@ export default function RevenuePage() {
             <div>🤖 Bot Players: <strong>{botPlayerCount.toLocaleString()}</strong></div>
             <div>🎟 Bot Ticket Value: <strong>{fmt(totalBotSales)} ETB</strong> (synthetic)</div>
             <div style={{ marginTop: '8px', padding: '8px 12px', background: 'rgba(255,255,255,0.5)', borderRadius: '10px' }}>
-              <div>🏠 House Wins (count): <strong style={{ color: '#ea580c' }}>{botWinPayouts.toLocaleString()}</strong></div>
-              <div>💰 Bot Win Credits: <strong style={{ color: '#ea580c' }}>{fmt(botWinPayoutAmount)} ETB</strong></div>
+              <div>🏠 Bot Wins (count): <strong style={{ color: '#ea580c' }}>{botWinCount?.toLocaleString() ?? botWinPayouts.toLocaleString()}</strong></div>
+              <div>💰 House Advantage: <strong style={{ color: '#d97706' }}>{fmt(botWinPayoutAmount)} ETB</strong></div>
               <div style={{ fontSize: '10px', color: '#c2410c', marginTop: '4px', fontStyle: 'italic' }}>
-                ↳ Bots cannot withdraw — credits stay in system
+                ↳ When bot wins, prize stays in system reserve (engine skips bot wallet credit)
               </div>
             </div>
           </div>

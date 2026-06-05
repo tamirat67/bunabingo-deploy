@@ -1699,8 +1699,8 @@ staffRouter.get('/bot-analytics', restrictToAdmin, async (req, res) => {
       botPlayerCount,
       realPlayerCount,
       totalGamesFinished,
-      botWinGamesAgg,
       houseBotWinsAgg,
+      botWinnerRecords,
     ] = await Promise.all([
       // Count of tickets purchased by bots
       prisma.ticket.count({ where: { user: { isBot: true } } }),
@@ -1725,21 +1725,28 @@ staffRouter.get('/bot-analytics', restrictToAdmin, async (req, res) => {
       prisma.user.count({ where: { isBot: false } }),
       // Total finished games
       prisma.game.count({ where: { status: 'FINISHED' } }),
-      // Games where a bot won (via gameCycle houseWins > 0)
+      // Count of house bot wins from gameCycle tracker
       prisma.gameCycle.aggregate({ _sum: { houseWins: true } }),
-      // Total prize payout received by bots (WIN transactions)
-      prisma.transaction.aggregate({
-        where: { type: 'WIN', status: 'COMPLETED', user: { isBot: true } },
-        _sum: { amount: true }
+      // Bot winner records: the engine NEVER credits bots a WIN transaction.
+      // Instead we query the Winner table for rows where winner user isBot=true
+      // and sum prizeAmount — this is the prize that STAYED in the system reserve.
+      prisma.winner.aggregate({
+        where: { user: { isBot: true } },
+        _sum: { prizeAmount: true },
+        _count: { id: true },
       }),
     ]);
 
     const totalBotSales = Number(totalBotSalesAgg._sum.amount || 0);
     const totalRealSales = Number(totalRealSalesAgg._sum.amount || 0);
     const totalAllSales = Number(totalAllSalesAgg._sum.amount || 0);
-    const botWinPayouts = Number(houseBotWinsAgg._sum.houseWins || 0); // count of house wins
-    // Bot payout amount (WIN credits to bots — these are synthetic, they don't withdraw)
-    const botWinPayoutAmount = Number(botWinGamesAgg._sum.amount || 0);
+    // House bot win COUNT from gameCycle tracker
+    const botWinPayouts = Number(houseBotWinsAgg._sum.houseWins || 0);
+    // House bot win PRIZE AMOUNT: from Winner table where user.isBot=true.
+    // NOTE: The game engine deliberately skips crediting the bot wallet (see engine.ts line 988).
+    // So this prizeAmount is the money that STAYED in the system reserve — it is the house advantage.
+    const botWinPayoutAmount = Number(botWinnerRecords._sum?.prizeAmount || 0);
+    const botWinCount = Number(botWinnerRecords._count?.id || 0);
 
     const COMPANY_RATE = 0.20;
     const AGENT_RATE   = 0.10;
@@ -1809,8 +1816,12 @@ staffRouter.get('/bot-analytics', restrictToAdmin, async (req, res) => {
         botPlayerCount,
         realPlayerCount,
         totalGamesFinished,
-        botWinPayouts,           // count of house/bot wins
-        botWinPayoutAmount,      // ETB credited to bots (synthetic — never withdrawn)
+        botWinPayouts,           // count of house bot wins (from gameCycle tracker)
+        botWinCount,             // count of Winner records where winner.user.isBot=true
+        // Prize money the house BOT "won" — this amount STAYED in the system reserve.
+        // The engine NEVER credits a bot wallet (engine.ts skips wallet update for isHouseBot=true).
+        // So this is the house advantage: prize pool that real players contributed but the house kept.
+        botWinPayoutAmount,
         realCompanyRevenue,      // ✅ REAL: 20% of real gross
         realAgentRevenue,        // ✅ REAL: 10% of real gross
         botCompanyRevenue,       // ⚠ SYNTHETIC: 20% of bot gross (NOT real profit)
