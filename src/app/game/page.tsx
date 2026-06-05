@@ -1084,9 +1084,9 @@ function GameContent() {
           ['GAME ID',   gameId?.slice(-6).toUpperCase() || '--'],
           ['CARDS',     `${allCards}`],
           ['STAKE/CARD',`${stake} ETB`],
-          ['PRIZE 70%', `${prize.toFixed ? prize.toFixed(0) : prize} ETB`]
+          ['PRIZE', `${prize.toFixed ? prize.toFixed(0) : prize} ETB`]
         ].map(([l, v]) => {
-          const isPrize = l === 'PRIZE 70%';
+          const isPrize = l === 'PRIZE';
           return (
             <div key={l as string} style={{ 
               background: isVip 
