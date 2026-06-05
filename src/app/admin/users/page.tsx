@@ -135,6 +135,11 @@ export default function UsersPage() {
           <div style={{ background: '#fff', padding: '8px 16px', borderRadius: '12px', border: '1px solid #f5f5f4', fontSize: '12px', fontWeight: '800' }}>
             <span style={{ color: '#22c55e' }}>●</span> {stats.active} ACTIVE
           </div>
+          {stats.banned > 0 && (
+            <div style={{ background: '#fff', padding: '8px 16px', borderRadius: '12px', border: '1px solid #f5f5f4', fontSize: '12px', fontWeight: '800' }}>
+              <span style={{ color: '#ef4444' }}>●</span> {stats.banned} BANNED
+            </div>
+          )}
         </div>
       </div>
 
@@ -180,7 +185,7 @@ export default function UsersPage() {
             </thead>
             <tbody>
               {users.map((user) => (
-                <tr key={user.id}>
+                <tr key={user.id} style={{ transition: 'background 0.15s' }} onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.02)'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                       <div className="user-avatar" style={{ width: '40px', height: '40px', fontSize: '16px' }}>
@@ -283,7 +288,9 @@ export default function UsersPage() {
               {users.length === 0 && (
                 <tr>
                   <td colSpan={8} style={{ textAlign: 'center', padding: '60px', color: '#78716c', fontWeight: '600' }}>
-                    No players found matching your search.
+                    <div style={{ fontSize: '32px', marginBottom: '8px' }}>👥</div>
+                    <div>No players found matching your search.</div>
+                    {debouncedSearch && <div style={{ fontSize: '12px', marginTop: '4px', color: '#a8a29e' }}>Try a different search term</div>}
                   </td>
                 </tr>
               )}

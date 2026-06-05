@@ -64,7 +64,7 @@ export default function TransactionsPage() {
   };
 
   const handleApprove = async (id: string, type: 'deposit' | 'withdrawal') => {
-    if (!confirm(`Are you sure you want to approve this ${type}?`)) return;
+    if (!window.confirm(`Are you sure you want to approve this ${type}?`)) return;
     try {
       const endpoint = type === 'deposit' ? `/admin/deposits/${id}/approve` : `/admin/withdrawals/${id}/approve`;
       await api.post(endpoint);
@@ -75,7 +75,7 @@ export default function TransactionsPage() {
   };
 
   const handleReject = async (id: string, type: 'deposit' | 'withdrawal') => {
-    const reason = prompt(`Reason for rejecting this ${type}:`);
+    const reason = window.prompt(`Reason for rejecting this ${type}:`);
     if (reason === null) return;
     try {
       const endpoint = type === 'deposit' ? `/admin/deposits/${id}/reject` : `/admin/withdrawals/${id}/reject`;
@@ -130,7 +130,7 @@ export default function TransactionsPage() {
       </div>
 
       {/* Top summary about transactions history (beautifully implemented!) */}
-      <div className="stat-grid-4">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
         <div className="premium-stat-card" style={{ borderLeft: '4px solid #eab308' }}>
           <div className="card-top-row">
             <div className="card-icon-container" style={{ background: '#fef9c3', color: '#ca8a04' }}>
@@ -191,7 +191,7 @@ export default function TransactionsPage() {
       {loading ? (
         <div style={{ padding: '100px', textAlign: 'center' }}>
           <div className="animate-spin" style={{ width: '40px', height: '40px', border: '4px solid #d4af37', borderTopColor: 'transparent', borderRadius: '50%', margin: '0 auto' }}></div>
-          <p style={{ marginTop: '16px', fontWeight: '700', color: '#3d2b1f' }}>Reviewing ledger...</p>
+          <p style={{ marginTop: '16px', fontWeight: '700', color: '#3d2b1f' }}>Loading transactions...</p>
         </div>
       ) : activeTab === 'pending' ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
@@ -250,7 +250,7 @@ export default function TransactionsPage() {
                     </tr>
                     );
                   })}
-                  {pendingDeposits.length === 0 && <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: '#78716c' }}>No pending deposits.</td></tr>}
+                  {pendingDeposits.length === 0 && <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: '#78716c', fontWeight: '600' }}>✅ No pending deposits — all clear!</td></tr>}
                 </tbody>
               </table>
             </div>
@@ -313,7 +313,7 @@ export default function TransactionsPage() {
                       </td>
                     </tr>
                   ))}
-                  {pendingWithdrawals.length === 0 && <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: '#78716c' }}>No pending withdrawals.</td></tr>}
+                  {pendingWithdrawals.length === 0 && <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: '#78716c', fontWeight: '600' }}>✅ No pending withdrawals — all clear!</td></tr>}
                 </tbody>
               </table>
             </div>
@@ -321,10 +321,10 @@ export default function TransactionsPage() {
         </div>
       ) : (
         /* Transaction Ledger History */
-        <div>
+        <div style={{ marginTop: '24px' }}>
           <div className="data-table-container" style={{ marginBottom: '24px' }}>
             <table className="data-table">
-              <thead>
+              <thead style={{ position: 'sticky', top: 0, zIndex: 10, background: '#fafaf9' }}>
                 <tr>
                   <th>Player</th>
                   <th>Reference</th>

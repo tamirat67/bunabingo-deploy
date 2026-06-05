@@ -134,16 +134,7 @@ function DashboardContent() {
   const realPct             = totalGross > 0 ? (realGrossSales / totalGross) * 100 : 0;
   const botPct              = totalGross > 0 ? (botGrossSales  / totalGross) * 100 : 0;
 
-  // Room/Game Type Breakdown Data (Only for Admin)
-  const defaultBreakdown = [
-    { gameType: 'Casual', entryFee: 10, totalStake: 1250, serviceFee: 312.50 },
-    { gameType: 'Standard', entryFee: 20, totalStake: 2400, serviceFee: 600.00 },
-    { gameType: 'Pro', entryFee: 50, totalStake: 3500, serviceFee: 875.00 },
-    { gameType: 'Jackpot', entryFee: 100, totalStake: 2100, serviceFee: 525.00 },
-    { gameType: 'VIP', entryFee: 200, totalStake: 3200, serviceFee: 800.00 },
-  ];
-
-  const breakdownData = isAdmin && stats.today?.breakdown && stats.today.breakdown.length > 0
+  const breakdownData = isAdmin && stats.today?.breakdown && stats.today.breakdown.some((b: any) => b.totalStake > 0)
     ? stats.today.breakdown.map((b: any) => ({
         gameType: b.gameType.charAt(0) + b.gameType.slice(1).toLowerCase(),
         entryFee: b.entryFee,
@@ -160,11 +151,11 @@ function DashboardContent() {
       {/* Premium Sub-Header Row */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h1 style={{ fontSize: '36px', fontWeight: '900', margin: 0, color: '#3d2b1f', fontFamily: 'Inter, sans-serif' }}>
-            WELCOME, {(user.firstName || 'ADMIN').toUpperCase()} 👋
+          <h1 style={{ fontSize: '32px', fontWeight: '900', margin: 0, color: '#3d2b1f', fontFamily: 'Inter, sans-serif' }}>
+            👋 Welcome back, {user.firstName || 'Admin'}
           </h1>
-          <p style={{ color: '#8c857b', marginTop: '4px', fontSize: '15px', fontWeight: '500' }}>
-            Here is your {isAdmin && !selectedAgent ? 'platform' : 'branch'} performance overview for today.
+          <p style={{ color: '#8c857b', marginTop: '4px', fontSize: '14px', fontWeight: '500' }}>
+            {isAdmin && !selectedAgent ? 'Platform-wide overview' : 'Branch performance overview'} • {formattedDateLabel}
           </p>
         </div>
 
@@ -553,14 +544,14 @@ function DashboardContent() {
           {/* Service Fee Breakdown Table (Only for Global Admin view) */}
           {isAdmin && (
             <div className="premium-card">
-              <h3 className="premium-card-title">SERVICE FEE BREAKDOWN (25% OF TOTAL STAKE)</h3>
+              <h3 className="premium-card-title">DAILY GAME ROOM BREAKDOWN</h3>
               <table className="premium-table">
                 <thead>
                   <tr>
                     <th>GAME TYPE</th>
                     <th>ENTRY FEE</th>
                     <th>TOTAL STAKE</th>
-                    <th className="text-right">SERVICE FEE (30% of Real)</th>
+                    <th className="text-right">REVENUE (20% Company + 10% Agent)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -570,10 +561,17 @@ function DashboardContent() {
                       <td>{item.entryFee} ETB</td>
                       <td>{item.totalStake.toLocaleString()} ETB</td>
                       <td className="text-right" style={{ fontWeight: '700' }}>
-                        {item.serviceFee.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
+                        {(item.totalStake * 0.30).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
                       </td>
                     </tr>
                   ))}
+                  {breakdownData.length === 0 && (
+                    <tr>
+                      <td colSpan={4} style={{ textAlign: 'center', padding: '40px', color: '#8c857b', fontSize: '13px' }}>
+                        No games played today yet.
+                      </td>
+                    </tr>
+                  )}
                   <tr className="total-row">
                     <td>TOTAL</td>
                     <td>—</td>

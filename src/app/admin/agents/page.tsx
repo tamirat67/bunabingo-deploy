@@ -199,7 +199,7 @@ export default function AgentsPage() {
     <div className="admin-page">
       <div style={{ marginBottom: '40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h1 style={{ fontSize: '36px', fontWeight: '900', margin: 0 }}>Agents Network</h1>
+          <h1 style={{ fontSize: '36px', fontWeight: '900', margin: 0, color: '#3d2b1f' }}>Agent Network</h1>
           <p style={{ color: 'var(--admin-text-muted)', marginTop: '4px' }}>Manage your branch managers and refill their pre-deposit liquidity.</p>
         </div>
         <button 
@@ -211,20 +211,23 @@ export default function AgentsPage() {
         </button>
       </div>
 
-      <div className="stat-grid">
-        <div className="stat-card-m">
-          <p className="stat-label">Total Agents</p>
-          <h2 className="stat-value">{totalCount || agents.length}</h2>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '32px' }}>
+        <div className="premium-stat-card">
+          <div className="card-label">Total Agents</div>
+          <div className="card-value">{totalCount || agents.length}</div>
+          <div style={{ fontSize: '12px', color: '#8c857b', marginTop: '4px' }}>Active branch managers</div>
         </div>
-        <div className="stat-card-m">
-          <p className="stat-label">Total Pre-Deposit Liquidity</p>
-          <h2 className="stat-value" style={{ color: '#d4af37' }}>
-            {agents.reduce((acc, a) => acc + Number((a.preDepositStatus?.balance ?? a.agentPreDepositWallet?.balance) || 0), 0).toLocaleString()} <span style={{ fontSize: '14px', opacity: 0.5 }}>ETB</span>
-          </h2>
+        <div className="premium-stat-card">
+          <div className="card-label">Pre-Deposit Liquidity</div>
+          <div className="card-value" style={{ color: '#d4af37', fontSize: '20px' }}>
+            {agents.reduce((acc, a) => acc + Number((a.preDepositStatus?.balance ?? a.agentPreDepositWallet?.balance) || 0), 0).toLocaleString()} ETB
+          </div>
+          <div style={{ fontSize: '12px', color: '#8c857b', marginTop: '4px' }}>Combined agent reserve</div>
         </div>
-        <div className="stat-card-m">
-          <p className="stat-label">Branch Players</p>
-          <h2 className="stat-value">{agents.reduce((acc, a) => acc + (a.referrals?.length ?? a._count?.referrals ?? 0), 0)}</h2>
+        <div className="premium-stat-card">
+          <div className="card-label">Branch Players</div>
+          <div className="card-value">{agents.reduce((acc, a) => acc + (a.referrals?.length ?? a._count?.referrals ?? 0), 0)}</div>
+          <div style={{ fontSize: '12px', color: '#8c857b', marginTop: '4px' }}>Across all branches</div>
         </div>
       </div>
 
@@ -340,7 +343,7 @@ export default function AgentsPage() {
                     )}
                  </td>
                 <td style={{ textAlign: 'right' }}>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '4px', flexWrap: 'wrap' }}>
                     <Link href={`/admin/agents/${agent.id}`}>
                       <button
                         style={{ background: '#eff6ff', color: '#3b82f6', padding: '6px 12px', borderRadius: '8px', border: 'none', fontSize: '11px', fontWeight: '900', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}

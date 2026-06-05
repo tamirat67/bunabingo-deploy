@@ -152,11 +152,11 @@ function AgentDashboardContent() {
       {/* Premium Sub-Header Row */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h1 style={{ fontSize: '36px', fontWeight: '900', margin: 0, color: '#3d2b1f', fontFamily: 'Inter, sans-serif' }}>
-            WELCOME, {(user.firstName || 'AGENT').toUpperCase()} 👋
+          <h1 style={{ fontSize: '32px', fontWeight: '900', margin: 0, color: '#3d2b1f', fontFamily: 'Inter, sans-serif' }}>
+            👋 Welcome back, {user.firstName || 'Agent'}
           </h1>
-          <p style={{ color: '#8c857b', marginTop: '4px', fontSize: '15px', fontWeight: '500' }}>
-            Here is your branch performance overview for today.
+          <p style={{ color: '#8c857b', marginTop: '4px', fontSize: '14px', fontWeight: '500' }}>
+            Branch performance overview • {formattedDateLabel}
           </p>
         </div>
 
@@ -587,20 +587,20 @@ function AgentDashboardContent() {
                    <td style={{ padding: '14px 8px', textAlign: 'right' }}>
                       <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                          <button 
-                           onClick={() => handleWithdrawalAction(wd.id, 'reject')}
-                           disabled={!!actionLoading}
-                           className="agent-btn-copy" 
-                           style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid #ef4444', fontSize: '11px', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontWeight: '700' }}
-                         >
-                           REJECT
-                         </button>
-                         <button 
                            onClick={() => handleWithdrawalAction(wd.id, 'approve')}
                            disabled={!!actionLoading}
                            className="agent-btn-copy" 
                            style={{ background: 'rgba(34, 197, 94, 0.1)', color: '#22c55e', border: '1px solid #22c55e', fontSize: '11px', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontWeight: '700' }}
                          >
                            {actionLoading === wd.id ? '...' : 'APPROVE'}
+                         </button>
+                         <button 
+                           onClick={() => handleWithdrawalAction(wd.id, 'reject')}
+                           disabled={!!actionLoading}
+                           className="agent-btn-copy" 
+                           style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid #ef4444', fontSize: '11px', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontWeight: '700' }}
+                         >
+                           REJECT
                          </button>
                       </div>
                    </td>
@@ -663,9 +663,12 @@ function AgentDashboardContent() {
                    <td style={{ padding: '14px 8px', color: '#1c1917', fontWeight: 800 }}>
                       {Number(player.wallet?.balance || 0).toLocaleString()} <span style={{ color: '#8c857b', fontSize: '0.75rem' }}>ETB</span>
                    </td>
-                   <td style={{ padding: '14px 8px', textAlign: 'right' }}>
-                      <span style={{ fontSize: '11px', color: '#22c55e', background: 'rgba(34, 197, 94, 0.1)', padding: '4px 10px', borderRadius: '999px', fontWeight: '800' }}>ACTIVE</span>
-                   </td>
+                    <td style={{ padding: '14px 8px', textAlign: 'right' }}>
+                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                         <span style={{ fontSize: '11px', color: '#22c55e', background: 'rgba(34, 197, 94, 0.1)', padding: '4px 10px', borderRadius: '999px', fontWeight: '800' }}>ACTIVE</span>
+                         {player.totalWagered > 0 && <span style={{ fontSize: '10px', color: '#8c857b' }}>{Number(player.totalWagered).toLocaleString()} ETB wagered</span>}
+                       </div>
+                    </td>
                  </tr>
                ))}
              </tbody>

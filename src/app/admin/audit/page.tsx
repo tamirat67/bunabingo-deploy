@@ -46,11 +46,10 @@ export default function AdminAuditPage() {
       {/* Header */}
       <div style={{ marginBottom: '32px' }}>
         <h1 style={{ fontSize: '28px', fontWeight: '900', color: '#3d2b1f', margin: 0, display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <FiShield style={{ color: '#d4af37' }} />
-          SYSTEM AUDIT &amp; DATA REALITY SYNC
+          <span style={{ fontSize: '28px' }}>🔍</span> System Audit
         </h1>
-        <p style={{ color: '#8c857b', marginTop: '8px', fontSize: '14px' }}>
-          Real-time financial verification. Commission is charged only on <strong>real player</strong> sales — house bot purchases are synthetic and not charged.
+        <p style={{ color: '#8c857b', marginTop: '8px', fontSize: '14px', lineHeight: '1.6' }}>
+          Real-time financial verification. Commission is charged <strong>only on real player sales</strong> — house bot purchases are synthetic and excluded.
         </p>
       </div>
 
@@ -96,7 +95,7 @@ export default function AdminAuditPage() {
         </div>
       </div>
 
-      <div className="dashboard-grid">
+      <div className="dashboard-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '24px' }}>
         {/* Commission Audit Card */}
         <div className="premium-card">
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
@@ -200,7 +199,7 @@ export default function AdminAuditPage() {
         </div>
 
         {/* Global Economy Flow */}
-        <div className="premium-card" style={{ gridColumn: '1 / -1' }}>
+        <div className="premium-card">
           <h3 className="premium-card-title">GLOBAL CASH FLOW (Real Player Deposits &amp; Withdrawals)</h3>
           <div className="stat-grid-6" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
             <div className="premium-stat-card" style={{ background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
