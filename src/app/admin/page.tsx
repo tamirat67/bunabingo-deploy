@@ -317,7 +317,7 @@ function DashboardContent() {
             <div className="card-icon-container">
               <FiPieChart size={20} />
             </div>
-            <span className="card-pill">Gross Volume</span>
+            <span className="card-pill" style={{ color: '#0ea5e9', background: 'rgba(14, 165, 233, 0.1)' }}>Today</span>
           </div>
           <div className="card-body">
             <div className="card-label">TOTAL STAKE</div>
@@ -331,7 +331,7 @@ function DashboardContent() {
             <div className="card-icon-container">
               <FiDollarSign size={20} />
             </div>
-            <span className="card-pill" style={{ color: '#22c55e', background: 'rgba(34, 197, 94, 0.1)' }}>20% Share</span>
+            <span className="card-pill" style={{ color: '#22c55e', background: 'rgba(34, 197, 94, 0.1)' }}>Today's 20%</span>
           </div>
           <div className="card-body">
             <div className="card-label">COMPANY REVENUE</div>
@@ -345,7 +345,7 @@ function DashboardContent() {
             <div className="card-icon-container">
               <FiUsers size={20} />
             </div>
-            <span className="card-pill" style={{ color: '#22c55e', background: 'rgba(34, 197, 94, 0.1)' }}>10% Share</span>
+            <span className="card-pill" style={{ color: '#22c55e', background: 'rgba(34, 197, 94, 0.1)' }}>Today's 10%</span>
           </div>
           <div className="card-body">
             <div className="card-label">AGENT REVENUE</div>
