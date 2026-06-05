@@ -53,17 +53,6 @@ export async function shouldHouseWinThisGame(roomType: string): Promise<boolean>
     update: {},
   });
 
-  // ─── LIQUIDITY GUARD ───
-  // If the company's reserve wallet drops below 500 ETB, we enter Recovery Mode.
-  // Bots are forced to win to rebuild the reserve from real player stakes.
-  const systemWallet = await prisma.systemWallet.findUnique({ where: { id: 1 } });
-  const reserveBalance = systemWallet ? Number(systemWallet.balance) : 0;
-  
-  if (reserveBalance < 500) {
-    logger.warn(`[LiquidityGuard] Reserve is critically low (${reserveBalance} ETB) < 500 ETB. Forcing House Bot WIN for ${roomType} to rebuild reserve!`);
-    return true; // Force house win
-  }
-
   // If cycle is full (10 games), reset it
   if (cycle.totalGames >= CYCLE_LENGTH) {
     cycle = await prisma.gameCycle.update({
