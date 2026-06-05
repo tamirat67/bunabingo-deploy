@@ -6,8 +6,9 @@ import { logger } from '../../lib/logger';
 import { getJackpot } from '../../services/jackpot.service';
 
 export async function handleStart(ctx: Context) {
-  const tgUser     = ctx.from!;
-  const startPayload = (ctx as any).startPayload as string | undefined; // referrer user.id from deep link
+  const tgUser = ctx.from!;
+  const messageText = (ctx.message as any)?.text || '';
+  const startPayload = (ctx as any).payload || messageText.split(' ')[1] || (ctx as any).startPayload as string | undefined;
 
   try {
     // ── 1. Resolve referrer (if any) before creating the user record ───────────
