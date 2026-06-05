@@ -73,19 +73,18 @@ export async function shouldHouseWinThisGame(roomType: string): Promise<boolean>
     logger.info(`[HouseBot] Cycle reset for ${roomType}`);
   }
 
-  const gamesLeft = CYCLE_LENGTH - cycle.totalGames;
-  const houseWinsLeft = HOUSE_WIN_QUOTA - cycle.houseWins;
+  // ─── STRICT WIN QUOTA ENFORCEMENT ───
+  // User requested: "not allow to win early real players FORCE_HOUSE_BOT_WIN rate = 9 from 10 game always"
+  // This forces the house bot to win the first 9 games of the cycle.
+  // Real players are ONLY allowed to potentially win on the 10th game (totalGames === 9).
+  if (cycle.totalGames < HOUSE_WIN_QUOTA) {
+    logger.info(`[HouseBot] ${roomType} — Strict Quota Active: Game ${cycle.totalGames + 1}/10. Forcing House Win.`);
+    return true;
+  }
 
-  // Must win if remaining quota requires it
-  if (houseWinsLeft >= gamesLeft) return true;
-  // Must let player win if quota already reached
-  if (houseWinsLeft <= 0) return false;
-
-  // Otherwise, probabilistic decision
-  const probability = houseWinsLeft / gamesLeft;
-  const roll = Math.random();
-  logger.info(`[HouseBot] ${roomType} — HouseWinProb: ${(probability * 100).toFixed(1)}%, Roll: ${(roll * 100).toFixed(1)}% → House Wins: ${roll < probability}`);
-  return roll < probability;
+  // 10th game: we allow a real player to potentially win
+  logger.info(`[HouseBot] ${roomType} — Cycle 10th Game Reached. Real players are allowed to win.`);
+  return false;
 }
 
 /**
