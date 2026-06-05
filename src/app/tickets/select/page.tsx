@@ -1166,28 +1166,27 @@ const balance = Number(user?.wallet?.balance || 0);
 
   const isDark = activeThemeKey === 'DARK' || activeThemeKey === 'GRAY';
 
-  // ─── Real Prize / Player / Commission calculation ─────────────────────
+  // ─── Real Prize / Player / Commission calculation ─────────────────────────
   // PLAYERS = bot count for room type + real players from server
   // PRIZE   = total visual cards × stake × 70%
   const totalOccupiedList = Array.from(new Set([...occupied, ...fakeOccupied]));
   const occupiedCount = totalOccupiedList.filter(id => !ownedCardIds.includes(id)).length;
 
-  // Real player card count: use server playerCount, fallback to selected cards
-  const realCardCount = playerCount > 0 ? playerCount : selected.length;
-
-  // Total visual cards = house bots + real player cards (always at least bot count + 1)
+  // After bot injection, server's currentPlayers / playerCount already includes bots.
+  // Before injection: fallback = botCount + user's own selected cards (1–5).
   const allCards = Math.max(
-    game?.currentPlayers || 0,           // server value once bots are injected
-    botCountForRoom + Math.max(realCardCount, 1)  // local fallback: bots + real
+    game?.currentPlayers || 0,             // server total (bots + real) once injected
+    playerCount > 0 ? playerCount : 0,    // server ticket count (also includes bots)
+    botCountForRoom + selected.length      // pre-injection estimate: bots + user's own cards
   );
   const displayPlayerCount = allCards;
   const totalStake = allCards * stake;
 
   // House edge: 30% of total stake
   const houseEdge = Math.round(totalStake * 0.30);
-  // Company gets 20% of stake (66.67% of house edge)
+  // Company gets 20% of stake
   const companyComm = Math.round(totalStake * 0.20);
-  // Agent gets 10% of stake (33.33% of house edge)
+  // Agent gets 10% of stake
   const agentComm = Math.round(totalStake * 0.10);
   // Prize pool: 70% of total visual stake
   const prize = Math.max(
