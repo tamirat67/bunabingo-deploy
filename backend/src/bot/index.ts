@@ -227,7 +227,7 @@ export function createBot(): Telegraf {
   // ═══════════════════════════════════════════════════════════════════════════
   bot.on('message', async (ctx) => {
     // Intercept persistent Amharic reply keyboard buttons
-    const text = (ctx.message as any)?.text;
+    const text = (ctx.message as any)?.text?.trim();
     if (text) {
       if (text === '🎮 ይጫወቱ') { await handlePlayBingoMenu(ctx); return; }
       if (text === '💰 ሂሳብ') { await handleBalance(ctx); return; }
