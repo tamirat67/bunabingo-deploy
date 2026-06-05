@@ -117,8 +117,9 @@ export default function ProfilePage() {
   };
 
   const handleCopyLink = () => {
-    if (!profile?.id) return;
-    const link = `https://t.me/buna_bingobot?start=${profile.id}`;
+    if (!profile) return;
+    const token = profile.referralCode || profile.id;
+    const link = `https://t.me/buna_bingobot?start=${token}`;
     const text = `🎰 Join me on Buna Bingo! ☕️ Get 5 ETB bonus when you join! Play here: ${link}`;
     
     // Attempt to copy using the standard API
@@ -298,21 +299,35 @@ export default function ProfilePage() {
 
         {/* ── Admin Platform Performance (if Admin) ── */}
         {adminStats && (
-           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} style={{ background: 'linear-gradient(135deg, #1a1a1a, #2a2a2a)', padding: '20px', borderRadius: '24px', border: `2px solid ${T.gold}`, marginBottom: '30px', boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }}>
-              <div style={{ fontSize: '11px', fontWeight: '900', color: T.gold, textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '15px', textAlign: 'center' }}>Platform Performance</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-                 <div style={{ textAlign: 'center', borderRight: '1px solid rgba(255,255,255,0.1)' }}>
-                    <div style={{ fontSize: '10px', opacity: 0.5, textTransform: 'uppercase', color: 'white' }}>Total Users</div>
-                    <div style={{ fontSize: '18px', fontWeight: '900', color: 'white' }}>{Number(adminStats.totalUsers || 0).toLocaleString()} <span style={{ fontSize: '10px', opacity: 0.3 }}>PLAYERS</span></div>
+           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} style={{ background: 'linear-gradient(135deg, #0c1a2e, #0a1220)', padding: '20px', borderRadius: '24px', border: `2px solid ${T.gold}`, marginBottom: '24px', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
+              <div style={{ fontSize: '11px', fontWeight: '900', color: T.gold, textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '16px', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                 <ShieldCheck size={14} /> Platform Overview
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                 <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '12px', padding: '12px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '9px', opacity: 0.5, textTransform: 'uppercase', color: 'white', marginBottom: '4px' }}>Total Players</div>
+                    <div style={{ fontSize: '20px', fontWeight: '900', color: 'white' }}>{Number(adminStats.totalUsers || 0).toLocaleString()}</div>
                  </div>
-                 <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '10px', opacity: 0.5, textTransform: 'uppercase', color: 'white' }}>Network Size</div>
-                    <div style={{ fontSize: '18px', fontWeight: '900', color: T.gold }}>{Number(adminStats.activeGames || 0).toLocaleString()} <span style={{ fontSize: '10px', opacity: 0.3 }}>LIVE</span></div>
+                 <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '12px', padding: '12px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '9px', opacity: 0.5, textTransform: 'uppercase', color: 'white', marginBottom: '4px' }}>Live Games</div>
+                    <div style={{ fontSize: '20px', fontWeight: '900', color: '#4ade80' }}>{Number(adminStats.activeGames || 0).toLocaleString()}</div>
+                 </div>
+                 <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '12px', padding: '12px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '9px', opacity: 0.5, textTransform: 'uppercase', color: 'white', marginBottom: '4px' }}>Today Stake</div>
+                    <div style={{ fontSize: '16px', fontWeight: '900', color: '#60a5fa' }}>{Number(adminStats.today?.globalSales || 0).toLocaleString()} <span style={{ fontSize: '9px', opacity: 0.4 }}>ETB</span></div>
+                 </div>
+                 <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '12px', padding: '12px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '9px', opacity: 0.5, textTransform: 'uppercase', color: 'white', marginBottom: '4px' }}>Company Rev.</div>
+                    <div style={{ fontSize: '16px', fontWeight: '900', color: T.gold }}>{Number(adminStats.today?.totalCompanyRevenue || adminStats.today?.realSales * 0.20 || 0).toLocaleString()} <span style={{ fontSize: '9px', opacity: 0.4 }}>ETB</span></div>
                  </div>
               </div>
-              <div style={{ marginTop: '15px', paddingTop: '15px', borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'center' }}>
-                 <div style={{ fontSize: '10px', color: '#4ade80', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <ShieldCheck size={12} /> Global Administrator View
+              <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '10px', padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                 <div style={{ fontSize: '9px', color: '#94a3b8', fontWeight: '700', textTransform: 'uppercase' }}>Real vs Bot Sales (All Time)</div>
+                 <div style={{ fontSize: '11px', fontWeight: '900' }}>
+                    <span style={{ color: '#4ade80' }}>{Number(adminStats.realGrossSales || 0).toLocaleString()}</span>
+                    <span style={{ color: '#475569', margin: '0 4px' }}>/</span>
+                    <span style={{ color: '#f97316' }}>{Number(adminStats.botGrossSales || 0).toLocaleString()}</span>
+                    <span style={{ color: '#475569', fontSize: '9px', marginLeft: '3px' }}>ETB</span>
                  </div>
               </div>
            </motion.div>
@@ -320,23 +335,56 @@ export default function ProfilePage() {
 
         {/* ── Agent Branch Performance (if Agent) ── */}
         {agentStats && (
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} style={{ background: 'linear-gradient(135deg, #1a1a1a, #2a2a2a)', padding: '20px', borderRadius: '24px', border: `1px solid ${T.gold}`, marginBottom: '30px', boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }}>
-               <div style={{ fontSize: '11px', fontWeight: '900', color: T.gold, textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '15px', textAlign: 'center' }}>Branch Performance</div>
-               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-                  <div style={{ textAlign: 'center', borderRight: '1px solid rgba(255,255,255,0.1)' }}>
-                     <div style={{ fontSize: '10px', opacity: 0.5, textTransform: 'uppercase', color: 'white' }}>Total Sales</div>
-                     <div style={{ fontSize: '18px', fontWeight: '900', color: 'white' }}>{Number(agentStats.totalSales || 0).toLocaleString()} <span style={{ fontSize: '10px', opacity: 0.3 }}>ETB</span></div>
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} style={{ background: 'linear-gradient(135deg, #1a1a1a, #2a2a2a)', padding: '20px', borderRadius: '24px', border: `1px solid ${T.gold}`, marginBottom: '24px', boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }}>
+               <div style={{ fontSize: '11px', fontWeight: '900', color: T.gold, textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '16px', textAlign: 'center' }}>Branch Performance (Today)</div>
+
+               {/* Referral code badge */}
+               {profile?.referralCode && (
+                 <div style={{ background: 'rgba(212,175,55,0.12)', border: '1px solid rgba(212,175,55,0.35)', borderRadius: '10px', padding: '8px 14px', marginBottom: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                   <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', fontWeight: '800' }}>Your Referral Code</span>
+                   <code style={{ fontSize: '14px', fontWeight: '900', color: T.gold, letterSpacing: '0.12em' }}>{profile.referralCode}</code>
+                 </div>
+               )}
+
+               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                  <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '12px', padding: '12px', textAlign: 'center' }}>
+                     <div style={{ fontSize: '9px', opacity: 0.5, textTransform: 'uppercase', color: 'white', marginBottom: '4px' }}>Today Stake</div>
+                     <div style={{ fontSize: '18px', fontWeight: '900', color: 'white' }}>{Number(agentStats.totalSales || 0).toLocaleString()} <span style={{ fontSize: '9px', opacity: 0.3 }}>ETB</span></div>
                   </div>
-                  <div style={{ textAlign: 'center' }}>
-                     <div style={{ fontSize: '10px', opacity: 0.5, textTransform: 'uppercase', color: 'white' }}>Net Profit</div>
-                     <div style={{ fontSize: '18px', fontWeight: '900', color: T.gold }}>{Number(agentStats.agentTakeHome || 0).toLocaleString()} <span style={{ fontSize: '10px', opacity: 0.3 }}>ETB</span></div>
+                  <div style={{ background: 'rgba(212,175,55,0.08)', borderRadius: '12px', padding: '12px', textAlign: 'center' }}>
+                     <div style={{ fontSize: '9px', opacity: 0.5, textTransform: 'uppercase', color: 'white', marginBottom: '4px' }}>Your Earnings</div>
+                     <div style={{ fontSize: '18px', fontWeight: '900', color: T.gold }}>{Number(agentStats.agentTakeHome || 0).toLocaleString()} <span style={{ fontSize: '9px', opacity: 0.3 }}>ETB</span></div>
+                  </div>
+                  <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '12px', padding: '12px', textAlign: 'center' }}>
+                     <div style={{ fontSize: '9px', opacity: 0.5, textTransform: 'uppercase', color: 'white', marginBottom: '4px' }}>Branch Players</div>
+                     <div style={{ fontSize: '18px', fontWeight: '900', color: '#60a5fa' }}>{agentStats.playerCount || 0}</div>
+                  </div>
+                  <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '12px', padding: '12px', textAlign: 'center' }}>
+                     <div style={{ fontSize: '9px', opacity: 0.5, textTransform: 'uppercase', color: 'white', marginBottom: '4px' }}>Active Today</div>
+                     <div style={{ fontSize: '18px', fontWeight: '900', color: '#4ade80' }}>{agentStats.activePlayers || 0}</div>
                   </div>
                </div>
-               <div style={{ marginTop: '15px', paddingTop: '15px', borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'center' }}>
-                  <div style={{ fontSize: '10px', color: '#4ade80', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                     <Users size={12} /> {agentStats.playerCount} Active Players
-                  </div>
-               </div>
+
+               {/* Pre-deposit status */}
+               {agentStats.preDeposit && (
+                 <div style={{
+                   background: agentStats.preDeposit.state === 'GREEN' ? 'rgba(34,197,94,0.1)' : agentStats.preDeposit.state === 'YELLOW' ? 'rgba(234,179,8,0.1)' : 'rgba(239,68,68,0.1)',
+                   border: `1px solid ${agentStats.preDeposit.state === 'GREEN' ? '#22c55e' : agentStats.preDeposit.state === 'YELLOW' ? '#eab308' : '#ef4444'}`,
+                   borderRadius: '10px', padding: '8px 14px',
+                   display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                 }}>
+                   <div>
+                     <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', fontWeight: '800' }}>Pre-Deposit Wallet</div>
+                     <div style={{ fontSize: '11px', color: agentStats.preDeposit.state === 'GREEN' ? '#4ade80' : agentStats.preDeposit.state === 'YELLOW' ? '#fbbf24' : '#f87171', fontWeight: '800', marginTop: '2px' }}>
+                       {agentStats.preDeposit.state}
+                     </div>
+                   </div>
+                   <div style={{ textAlign: 'right' }}>
+                     <div style={{ fontSize: '16px', fontWeight: '900', color: 'white' }}>{Number(agentStats.preDeposit.balance || 0).toLocaleString()} ETB</div>
+                     <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.3)' }}>remaining</div>
+                   </div>
+                 </div>
+               )}
             </motion.div>
          )}
 
@@ -405,12 +453,20 @@ export default function ProfilePage() {
               <div style={{ fontSize: '12px', fontWeight: '900', opacity: 0.5, textTransform: 'uppercase', letterSpacing: '1px' }}>Your Referral Link</div>
               <div style={{ fontSize: '10px', color: '#16a34a', fontWeight: '900' }}>{profile?.referralsCount || 0} REFERRED</div>
            </div>
+
+           {/* Show referral code prominently for agents */}
+           {profile?.referralCode && (
+             <div style={{ background: `rgba(212,175,55,0.1)`, border: `1px solid ${T.gold}`, borderRadius: '12px', padding: '8px 14px', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+               <span style={{ fontSize: '10px', fontWeight: '700', opacity: 0.6, textTransform: 'uppercase' }}>Referral Code</span>
+               <code style={{ fontSize: '16px', fontWeight: '900', color: T.gold, letterSpacing: '0.12em' }}>{profile.referralCode}</code>
+             </div>
+           )}
            
            <div style={{ background: '#f0f7ff', border: '2px solid #bfdbfe', borderRadius: '20px', padding: '8px', display: 'flex', alignItems: 'center' }}>
               <div style={{ flex: 1, paddingLeft: '12px', overflow: 'hidden' }}>
                  <div style={{ fontSize: '10px', opacity: 0.4, fontWeight: '900', marginBottom: '2px' }}>SHARE & EARN 5 ETB</div>
                  <code style={{ display: 'block', fontSize: '10px', color: '#1d4ed8', fontWeight: '800', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    t.me/buna_bingobot?start={profile?.id}
+                    t.me/buna_bingobot?start={profile?.referralCode || profile?.id}
                  </code>
               </div>
               <button onClick={handleCopyLink} style={{ background: copied ? '#10b981' : '#1d4ed8', color: 'white', border: 'none', height: '44px', padding: '0 20px', borderRadius: '16px', fontSize: '12px', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '8px' }}>
