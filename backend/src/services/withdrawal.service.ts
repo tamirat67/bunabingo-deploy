@@ -55,18 +55,8 @@ export async function createWithdrawalRequest(
     throw new Error('Insufficient balance for this withdrawal amount.');
   }
 
-  // 4. Anti-abuse guard: must play 5+ games AND win at least 1 game
-  const [gamesPlayed, winsCount] = await Promise.all([
-    prisma.ticket.groupBy({ where: { userId }, by: ['gameId'] }),
-    prisma.winner.count({ where: { userId } })
-  ]);
-
-  if (gamesPlayed.length < 5) {
-    throw new Error(
-      `Anti-Abuse: You must play at least 5 games before requesting a withdrawal. ` +
-      `You have played ${gamesPlayed.length} game(s).`
-    );
-  }
+  // 4. Anti-abuse guard: must win at least 1 game
+  const winsCount = await prisma.winner.count({ where: { userId } });
 
   if (winsCount < 1) {
     throw new Error(
