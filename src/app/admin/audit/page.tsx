@@ -141,7 +141,9 @@ export default function AdminAuditPage() {
             {commissionMismatch ? <FiAlertTriangle color="#ef4444" size={20} /> : <FiCheckCircle color="#22c55e" size={20} />}
             <span style={{ fontSize: '13px', fontWeight: '600', color: commissionMismatch ? '#991b1b' : '#166534' }}>
               {commissionMismatch
-                ? 'Variance detected — some historical commission logs may have included bot tickets before the fix was applied.'
+                ? (actualCommissions > expectedCommissions
+                    ? 'Overcharge variance: Some historical commission logs may have included bot tickets before the bot-exclusion fix was applied.'
+                    : 'Undercharge variance: Some historical games were played before the commission system was enabled, or by players without an assigned agent.')
                 : 'Commission deductions are within acceptable tolerance of real player sales.'}
             </span>
           </div>
