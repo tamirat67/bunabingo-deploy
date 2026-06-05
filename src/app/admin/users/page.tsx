@@ -16,6 +16,7 @@ export default function UsersPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [stats, setStats] = useState({ total: 0, active: 0, banned: 0 });
+  const [agentFilter, setAgentFilter] = useState('');
   const [modalState, setModalState] = useState<{isOpen: boolean, action: string, userId: string}>({ isOpen: false, action: '', userId: '' });
 
   // Edit modal state
@@ -37,8 +38,13 @@ export default function UsersPage() {
   }, [search]);
 
   useEffect(() => {
-    fetchUsers(page, debouncedSearch);
-  }, [page, debouncedSearch]);
+    setPage(1);
+    fetchUsers(1, debouncedSearch, agentFilter);
+  }, [debouncedSearch, agentFilter]);
+
+  useEffect(() => {
+    fetchUsers(page, debouncedSearch, agentFilter);
+  }, [page]);
 
   useEffect(() => {
     fetchAgents();
@@ -56,11 +62,13 @@ export default function UsersPage() {
     }
   };
 
-  const fetchUsers = async (pageNumber: number, searchQuery: string) => {
+  const fetchUsers = async (pageNumber: number, searchQuery: string, agentId = '') => {
     try {
       setLoading(true);
       setError(null);
-      const response = await api.get(`/admin/users?page=${pageNumber}&search=${encodeURIComponent(searchQuery)}`);
+      let url = `/admin/users?page=${pageNumber}&search=${encodeURIComponent(searchQuery)}`;
+      if (agentId) url += `&referredBy=${agentId}`;
+      const response = await api.get(url);
       const data = response.data;
       setUsers(data.users || []);
       setTotalPages(data.pages || 1);
@@ -149,8 +157,8 @@ export default function UsersPage() {
         </div>
       )}
 
-      <div className="stat-card-m" style={{ padding: '20px', marginBottom: '32px', display: 'flex', gap: '16px' }}>
-        <div style={{ position: 'relative', flex: 1 }}>
+      <div className="stat-card-m" style={{ padding: '20px', marginBottom: '32px', display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
           <FiSearch style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#a8a29e' }} />
           <input
             type="text"
@@ -161,6 +169,31 @@ export default function UsersPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+        {/* Agent Filter Dropdown */}
+        <div style={{ position: 'relative', minWidth: '200px' }}>
+          <select
+            value={agentFilter}
+            onChange={(e) => setAgentFilter(e.target.value)}
+            className="login-input"
+            style={{ paddingLeft: '16px', appearance: 'none', cursor: 'pointer', fontWeight: '700', color: agentFilter ? '#3d2b1f' : '#a8a29e' }}
+          >
+            <option value="">🔍 All Agents</option>
+            <option value="unassigned">⚠ Unassigned (No Agent)</option>
+            {agentsList.map((agent: any) => (
+              <option key={agent.id} value={agent.id}>
+                {agent.firstName} {agent.referralCode ? `(${agent.referralCode})` : ''} — {agent.referrals?.length ?? 0} players
+              </option>
+            ))}
+          </select>
+        </div>
+        {agentFilter && (
+          <button
+            onClick={() => setAgentFilter('')}
+            style={{ background: '#fef2f2', color: '#ef4444', border: '1px solid #fecaca', borderRadius: '10px', padding: '10px 14px', fontWeight: '800', fontSize: '12px', cursor: 'pointer' }}
+          >
+            ✕ Clear Filter
+          </button>
+        )}
       </div>
 
       <div className="data-table-container">

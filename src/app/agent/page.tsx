@@ -641,21 +641,23 @@ function AgentDashboardContent() {
              <thead>
                <tr style={{ color: '#8c857b', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.1em', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
                  <th style={{ textAlign: 'left', padding: '12px 8px' }}>Player</th>
+                 <th style={{ textAlign: 'left', padding: '12px 8px' }}>Phone</th>
                  <th style={{ textAlign: 'left', padding: '12px 8px' }}>Joined</th>
                  <th style={{ textAlign: 'left', padding: '12px 8px' }}>Balance</th>
+                 <th style={{ textAlign: 'left', padding: '12px 8px' }}>Total Dep.</th>
                  <th style={{ textAlign: 'right', padding: '12px 8px' }}>Status</th>
                </tr>
              </thead>
              <tbody>
                {playersLoading ? (
                  <tr>
-                    <td colSpan={4} style={{ padding: '3rem', textAlign: 'center' }}>
+                    <td colSpan={6} style={{ padding: '3rem', textAlign: 'center' }}>
                        <div className="animate-spin" style={{ width: '24px', height: '24px', border: '2px solid #3d2b1f', borderTopColor: 'transparent', borderRadius: '50%', margin: '0 auto' }}></div>
                     </td>
                  </tr>
                ) : players.length === 0 ? (
                  <tr>
-                    <td colSpan={4} style={{ padding: '3rem', textAlign: 'center', color: '#8c857b', fontSize: '13px' }}>
+                    <td colSpan={6} style={{ padding: '3rem', textAlign: 'center', color: '#8c857b', fontSize: '13px' }}>
                        No players in your branch yet. Share your link!
                     </td>
                  </tr>
@@ -671,10 +673,16 @@ function AgentDashboardContent() {
                       </div>
                    </td>
                    <td style={{ padding: '14px 8px', color: '#5c554b', fontSize: '13px' }}>
+                     {player.phone || player.phoneNumber || <span style={{ color: '#9ca3af' }}>N/A</span>}
+                   </td>
+                   <td style={{ padding: '14px 8px', color: '#5c554b', fontSize: '13px' }}>
                       {new Date(player.createdAt).toLocaleDateString()}
                    </td>
                    <td style={{ padding: '14px 8px', color: '#1c1917', fontWeight: 800 }}>
                       {Number(player.wallet?.balance || 0).toLocaleString()} <span style={{ color: '#8c857b', fontSize: '0.75rem' }}>ETB</span>
+                   </td>
+                   <td style={{ padding: '14px 8px', color: '#1c1917', fontWeight: 800 }}>
+                      {Number(player.totalDeposited || 0).toLocaleString()} <span style={{ color: '#8c857b', fontSize: '0.75rem' }}>ETB</span>
                    </td>
                     <td style={{ padding: '14px 8px', textAlign: 'right' }}>
                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>

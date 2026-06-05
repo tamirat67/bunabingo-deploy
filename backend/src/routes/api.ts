@@ -1179,12 +1179,36 @@ staffRouter.get('/users', async (req, res) => {
   const user = (req as any).user;
   const page = parseInt(req.query.page as string) || 1;
   const search = (req.query.search as string) || '';
+  const referredByFilter = (req.query.referredBy as string) || '';
   const limit = 20;
 
   try {
     if (user.isAdmin || user.role === 'ADMIN') {
-      // Admins see everyone, with optional search
-      res.json(await getAllUsers(page, limit, search));
+      if (referredByFilter === 'unassigned') {
+        // Show players with no agent assigned
+        const { getPlayersUnderAgent } = await import('../services/user.service');
+        const skip = (page - 1) * limit;
+        const where: any = { referredBy: null, isBot: false };
+        if (search) {
+          where.OR = [
+            { firstName: { contains: search, mode: 'insensitive' } },
+            { telegramUsername: { contains: search, mode: 'insensitive' } },
+            { phone: { contains: search } },
+          ];
+        }
+        const [users, total] = await Promise.all([
+          prisma.user.findMany({ where, skip, take: limit, include: { wallet: true, referrer: { select: { id: true, firstName: true, telegramUsername: true, referralCode: true } } }, orderBy: { createdAt: 'desc' } }),
+          prisma.user.count({ where }),
+        ]);
+        res.json({ users, total, pages: Math.ceil(total / limit) });
+      } else if (referredByFilter) {
+        // Show players under a specific agent
+        const { getPlayersUnderAgent } = await import('../services/user.service');
+        res.json(await getPlayersUnderAgent(referredByFilter, page, limit, search));
+      } else {
+        // No filter — show everyone
+        res.json(await getAllUsers(page, limit, search));
+      }
     } else {
       // Agents only see their own referred players
       const { getPlayersUnderAgent } = await import('../services/user.service');
