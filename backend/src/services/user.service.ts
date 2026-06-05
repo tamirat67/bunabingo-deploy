@@ -1,4 +1,4 @@
-import prisma from '../lib/prisma';
+﻿import prisma from '../lib/prisma';
 import { logger } from '../lib/logger';
 import { config } from '../config';
 import { Decimal } from '@prisma/client/runtime/library';
@@ -452,6 +452,29 @@ export async function getAgents(page = 1, limit = 20) {
     }),
     prisma.user.count({ where: { role: 'AGENT' } }),
   ]);
+
+  // Backfill: generate and save a referralCode for any agent that was promoted before this feature existed.
+  await Promise.all(
+    agents
+      .filter(a => !a.referralCode)
+      .map(async (agent) => {
+        let newCode: string | undefined;
+        let attempts = 0;
+        while (!newCode && attempts < 10) {
+          const candidate = generateReferralCode();
+          const clash = await prisma.user.findUnique({ where: { referralCode: candidate } });
+          if (!clash) newCode = candidate;
+          attempts++;
+        }
+        if (newCode) {
+          try {
+            await prisma.user.update({ where: { id: agent.id }, data: { referralCode: newCode } });
+            agent.referralCode = newCode; // update in-memory so the response includes the new code
+            logger.info(`[Agent] Backfilled referralCode ${newCode} for agent ${agent.id}`);
+          } catch { /* ignore unique-constraint race */ }
+        }
+      })
+  );
 
   const enrichedAgents = await Promise.all(
     agents.map(async (agent) => {
