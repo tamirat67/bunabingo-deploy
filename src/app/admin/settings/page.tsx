@@ -135,8 +135,8 @@ export default function SettingsPage() {
       setSettingsError('Agent profit rate must be between 0% and 50%.');
       return;
     }
-    if (compRate + agentRate > 25) {
-      setSettingsError(`Total house margin (${(compRate + agentRate).toFixed(2)}%) cannot exceed 25%. Lower one of the rates.`);
+    if (compRate + agentRate > 30) {
+      setSettingsError(`Total house margin (${(compRate + agentRate).toFixed(2)}%) cannot exceed 30%. Lower one of the rates.`);
       return;
     }
 
