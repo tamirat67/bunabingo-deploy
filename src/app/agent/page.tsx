@@ -101,9 +101,12 @@ function AgentDashboardContent() {
     }
   }
 
+  const referralToken = user?.referralCode || user?.id || '';
+  const referralLink = `https://t.me/buna_bingobot?start=${referralToken}`;
+
   const handleCopy = () => {
     if (!user) return;
-    navigator.clipboard.writeText(`https://t.me/buna_bingobot?start=${user.id}`);
+    navigator.clipboard.writeText(referralLink);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -485,13 +488,23 @@ function AgentDashboardContent() {
         {/* Referral Link */}
         <div className="agent-card-gold" style={{ background: 'linear-gradient(135deg, #faf8f5, #f5f2eb)', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '24px', padding: '24px', position: 'relative', overflow: 'hidden' }}>
           <h3 className="agent-h3" style={{ fontSize: '18px', fontWeight: '900', color: '#3d2b1f', margin: 0 }}>Your Referral Link</h3>
-          <p className="agent-subtitle agent-mt-1" style={{ fontSize: '13px', color: '#8c857b', marginTop: '6px' }}>New users who join using this link will be added to your branch.</p>
-          <div className="agent-referral-box agent-mt-6" style={{ display: 'flex', background: '#ffffff', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.06)', padding: '10px 14px', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginTop: '20px' }}>
-            <code style={{ fontSize: '13px', color: '#3d2b1f', fontWeight: '700', wordBreak: 'break-all' }}>t.me/buna_bingobot?start={user.id}</code>
+          <p className="agent-subtitle agent-mt-1" style={{ fontSize: '13px', color: '#8c857b', marginTop: '6px' }}>Share this unique link — every user who registers through it will be directly linked to your branch.</p>
+
+          {/* Referral Code Badge */}
+          {user.referralCode && (
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(212,175,55,0.12)', border: '1px solid rgba(212,175,55,0.4)', borderRadius: '8px', padding: '6px 12px', marginTop: '12px' }}>
+              <span style={{ fontSize: '11px', fontWeight: '700', color: '#8c6a00', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Your Code</span>
+              <code style={{ fontSize: '15px', fontWeight: '900', color: '#3d2b1f', letterSpacing: '0.1em' }}>{user.referralCode}</code>
+            </div>
+          )}
+
+          <div className="agent-referral-box agent-mt-6" style={{ display: 'flex', background: '#ffffff', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.06)', padding: '10px 14px', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginTop: '12px' }}>
+            <code style={{ fontSize: '12px', color: '#3d2b1f', fontWeight: '700', wordBreak: 'break-all' }}>t.me/buna_bingobot?start={referralToken}</code>
             <button className="agent-btn-copy" style={{ background: '#3d2b1f', color: '#ffffff', border: 'none', borderRadius: '8px', padding: '8px 16px', fontWeight: '800', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }} onClick={handleCopy}>
-              {copied ? 'COPIED!' : 'COPY'}
+              {copied ? '✅ COPIED!' : 'COPY'}
             </button>
           </div>
+          <p style={{ fontSize: '11px', color: '#8c857b', marginTop: '8px' }}>⚠ Only share YOUR link — using another agent's link will credit them instead of you.</p>
         </div>
 
         {/* Commission Rate */}

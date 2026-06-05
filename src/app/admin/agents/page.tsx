@@ -271,7 +271,7 @@ export default function AgentsPage() {
           <thead>
             <tr>
               <th>Agent Name</th>
-              <th>Username</th>
+              <th>Referral Code / Link</th>
               <th>Branch Players</th>
               <th>Pre-Deposit Balance</th>
               <th>Real Profit</th>
@@ -298,8 +298,15 @@ export default function AgentsPage() {
                     <span style={{ fontWeight: '700' }}>{agent.firstName}</span>
                   </div>
                 </td>
-                <td style={{ color: 'var(--admin-text-muted)', fontSize: '13px' }}>
-                   {agent.telegramUsername ? `@${agent.telegramUsername}` : '—'}
+                <td>
+                  {agent.referralCode ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <code style={{ fontSize: '12px', fontWeight: '900', color: '#3d2b1f', background: 'rgba(212,175,55,0.1)', padding: '3px 8px', borderRadius: '6px', border: '1px solid rgba(212,175,55,0.3)' }}>{agent.referralCode}</code>
+                      <span style={{ fontSize: '10px', color: '#8c857b', wordBreak: 'break-all' }}>?start={agent.referralCode}</span>
+                    </div>
+                  ) : (
+                    <span style={{ fontSize: '12px', color: '#ef4444', fontWeight: '700' }}>⚠ No code</span>
+                  )}
                 </td>
                 <td>
                    <span className="badge badge-blue">{agent.referrals?.length ?? agent._count?.referrals ?? 0} Players</span>
