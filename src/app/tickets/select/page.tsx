@@ -981,7 +981,7 @@ function SelectionContent() {
     if (isGameRunningRef.current || isInitializing) return;
     
     if (!user && roomType !== 'DEMO') {
-      showAlert('Loading...', 'Please wait while we fetch your wallet balance.', 'info');
+      showAlert('እባክዎ ይጠብቁ...', 'የኪስዎን ቀሪ ሂሳብ እያጣራን ነው...', 'info');
       getMe().then(setUser).catch(() => {});
       return;
     }
@@ -1002,8 +1002,8 @@ function SelectionContent() {
       if (roomType !== 'DEMO' && totalAvailable === 0 && !ownedCardIds.includes(num)) {
         setModal({
           isOpen: true,
-          title: 'DEPOSIT WALLET / ተቀማጭ ያድርጉ ⚠️',
-          message: 'WARNING: Your wallet is empty (Main + Bonus = 0 ETB). Please deposit money to play. / ማስጠንቀቂያ፡ ዋና ሂሳብዎ እና ቦነስዎ ባዶ ነው። ለመጫወት እባክዎ ተቀማጭ ያድርጉ።',
+          title: 'ተቀማጭ ያድርጉ ⚠️',
+          message: 'ማሳሰቢያ: ዋና ሂሳብዎ እና የቦነስ ሂሳብዎ ባዶ ነው። ለመጫወት እባክዎ ተቀማጭ ያድርጉ።',
           type: 'balance',
           onConfirm: () => router.push('/wallet')
         });
@@ -1012,7 +1012,7 @@ function SelectionContent() {
 
       // Check maximum limit
       if (selected.length >= 5) {
-        showAlert('Limit Reached', 'Maximum of 5 cards allowed per player', 'info');
+        showAlert('ገደብ ላይ ደርሰዋል', 'ለአንድ ተጫዋች የተፈቀደው ከፍተኛው የካርቴላ ብዛት 5 ነው', 'info');
         return;
       }
 
@@ -1024,8 +1024,8 @@ function SelectionContent() {
       if (roomType !== 'DEMO' && proposedCost > totalAvailable) {
         setModal({
           isOpen: true,
-          title: 'Insufficient Balance / የኪስዎ ቀሪ በቂ አይደለም ⚠️',
-          message: `You need ${proposedCost} ETB to select these cards. You have ${currentBalance.toFixed(2)} ETB (Main) + ${currentBonus.toFixed(2)} ETB (Bonus) = ${totalAvailable.toFixed(2)} ETB total. Please deposit to continue. / ${proposedCost} ETB ያስፈልግዎታል። ዋና: ${currentBalance.toFixed(2)} + ቦነስ: ${currentBonus.toFixed(2)} = ${totalAvailable.toFixed(2)} ETB ብቻ አለ።`,
+          title: 'የኪስዎ ቀሪ በቂ አይደለም ⚠️',
+          message: `እነዚህን ካርቴላዎች ለመግዛት ${proposedCost} ETB ያስፈልግዎታል። ያሎት ቀሪ ሂሳብ (ዋና: ${currentBalance.toFixed(2)} + ቦነስ: ${currentBonus.toFixed(2)}) = ${totalAvailable.toFixed(2)} ETB ብቻ ነው። ለመቀጠል ተቀማጭ ያድርጉ።`,
           type: 'balance',
           onConfirm: () => router.push('/wallet')
         });
@@ -1037,7 +1037,7 @@ function SelectionContent() {
     setSelected(prev => {
       if (prev.includes(num)) return prev.filter(n => n !== num);
       if (prev.length >= 5) {
-        showAlert('Limit Reached', 'Maximum of 5 cards allowed per player', 'info');
+        showAlert('ገደብ ላይ ደርሰዋል', 'ለአንድ ተጫዋች የተፈቀደው ከፍተኛው የካርቴላ ብዛት 5 ነው', 'info');
         return prev;
       }
       return [...prev, num];
@@ -1052,7 +1052,7 @@ const balance = Number(user?.wallet?.balance || 0);
     if (isInitializing || selected.length === 0 || joining) return;
     
     if (!user && roomType !== 'DEMO') {
-      showAlert('Loading...', 'Please wait while we fetch your wallet balance.', 'info');
+      showAlert('እባክዎ ይጠብቁ...', 'የኪስዎን ቀሪ ሂሳብ እያጣራን ነው...', 'info');
       getMe().then(setUser).catch(() => {});
       return;
     }
@@ -1069,7 +1069,7 @@ const balance = Number(user?.wallet?.balance || 0);
       if (isGameRunning && !hasTicketsInRunningGame) {
         setModal({
           isOpen: true,
-          title: '🔴 Game In Progress!',
+          title: '🔴 ጨዋታ በሂደት ላይ ነው!',
           message: 'ጨዋታ በሂደት ላይ ነው! ለሚቀጥለው ጨዋታ ካርቴላ ይግዙ።',
           type: 'info',
         });
@@ -1097,7 +1097,7 @@ const balance = Number(user?.wallet?.balance || 0);
       setModal({
         isOpen: true,
         title: 'የኪስዎ ቀሪ በቂ አይደለም ⚠️',
-        message: `You need ${totalCost} ETB to purchase ${newCardsToBuy.length} card(s). You have ${balance.toFixed(2)} ETB (Main) + ${bonusBalance.toFixed(2)} ETB (Bonus) = ${totalAvailable.toFixed(2)} ETB total. Please deposit to continue. / ${totalCost} ETB ያስፈልግዎታልᢾ ${balance.toFixed(2)} + ቦነስ: ${bonusBalance.toFixed(2)} = ${totalAvailable.toFixed(2)} ETB ብቻ አለ།`,
+        message: `${newCardsToBuy.length} ካርቴላ ለመግዛት ${totalCost} ETB ያስፈልግዎታል። ያሎት ቀሪ ሂሳብ (ዋና: ${balance.toFixed(2)} + ቦነስ: ${bonusBalance.toFixed(2)}) = ${totalAvailable.toFixed(2)} ETB ብቻ ነው። ለመቀጠል ተቀማጭ ያድርጉ።`,
         type: 'balance',
         onConfirm: () => router.push('/wallet')
       });
@@ -1117,7 +1117,7 @@ const balance = Number(user?.wallet?.balance || 0);
       if (isGameRunning) {
         setModal({
           isOpen: true,
-          title: '🔴 Game In Progress!',
+          title: '🔴 ጨዋታ በሂደት ላይ ነው!',
           message: 'ጨዋታ በሂደት ላይ ነው! ለሚቀጥለው ጨዋታ ካርቴላ ይግዙ።',
           type: 'info',
         });
@@ -1136,14 +1136,14 @@ const balance = Number(user?.wallet?.balance || 0);
         setLiveGameDismissed(false);
         setModal({
           isOpen: true,
-          title: '🔴 Game In Progress!',
-          message: 'A bingo game is currently live. Cartela selling is stopped. Wait for the game to finish — the page will unlock automatically!',
+          title: '🔴 ጨዋታ በሂደት ላይ ነው!',
+          message: 'አሁን ጨዋታ እየተካሄደ ነው። ካርቴላ መሸጥ ቆሟል። ጨዋታው እስኪጠናቀቅ ይጠብቁ — ገጹ በራሱ ይከፈታል!',
           type: 'info',
         });
       } else if (errCode === 'DEMO_LIMIT_REACHED') {
         setModal({
           isOpen: true,
-          title: '🎮 Demo Limit Reached / ዲሞ ጊዜ አልቋል',
+          title: '🎮 ዲሞ ጊዜ አልቋል',
           message: msg,
           type: 'balance',
           onConfirm: () => router.push('/wallet')
@@ -1156,7 +1156,7 @@ const balance = Number(user?.wallet?.balance || 0);
           setSelected(prev => prev.filter(id => !takenNumbers.includes(id)));
         }
       } else {
-        showAlert('Join Failed', msg, 'error');
+        showAlert('መግባት አልተሳካም', msg, 'error');
       }
     } finally {
       setJoining(false);

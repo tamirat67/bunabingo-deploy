@@ -673,7 +673,7 @@ function GameContent() {
       setClaiming(false);
       const isTooEarlyMsg = err.message?.toLowerCase().includes('wait') || err.message?.toLowerCase().includes('minimum');
       if (!isTooEarlyMsg) {
-        showAlert('Bingo Claim', err.message || 'No Bingo detected yet! Check your patterns.', 'info');
+        showAlert('ቢንጎ ጥያቄ', err.message || 'ገና ቢንጎ አልተገኘም! እባክዎ ካርቴላዎን ያረጋግጡ።', 'info');
       }
     });
 
@@ -933,12 +933,12 @@ function GameContent() {
         // Suppress the "wait for more balls" backend message silently
         const isTooEarlyMsg = res.error?.toLowerCase().includes('wait') || res.error?.toLowerCase().includes('minimum');
         if (!isTooEarlyMsg) {
-          showAlert('Bingo Claim', res.error || 'No Bingo detected yet! Check your patterns.', 'info');
+          showAlert('ቢንጎ ጥያቄ', res.error || 'ገና ቢንጎ አልተገኘም! እባክዎ ካርቴላዎን ያረጋግጡ።', 'info');
         }
       }
     }
     catch (e: any) { 
-      showAlert('Error', e.response?.data?.error || 'No Bingo yet! Keep playing.', 'error'); 
+      showAlert('ስህተት', e.response?.data?.error || 'ገና ቢንጎ አልተገኘም! መጫወትዎን ይቀጥሉ።', 'error'); 
     } finally {
       setClaiming(false);
     }

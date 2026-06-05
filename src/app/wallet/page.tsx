@@ -73,7 +73,7 @@ export default function WalletPage() {
 
   const handleWithdrawSubmit = async () => {
     if (!wdAmount || !wdAccName || !wdAccNum) {
-      showAlert('Error', 'Please fill all withdrawal details.', 'error');
+      showAlert('ስህተት', 'እባክዎ ሙሉ የወጪ መጠየቂያ መረጃዎችን ያስገቡ።', 'error');
       return;
     }
     setIsSubmittingWd(true);
@@ -86,10 +86,10 @@ export default function WalletPage() {
       });
       setShowWithdrawModal(false);
       setWdAmount(''); setWdAccName(''); setWdAccNum('');
-      showAlert('Success', 'Withdrawal request submitted successfully. Waiting for agent approval.', 'success');
+      showAlert('ተሳክቷል', 'የወጪ ጥያቄዎ በተሳካ ሁኔታ ቀርቧል። የኤጀንት ማረጋገጫ ይጠብቁ።', 'success');
       loadTxHistory();
     } catch (err: any) {
-      showAlert('Withdrawal Failed', err.response?.data?.error || err.message, 'error');
+      showAlert('የወጪ ጥያቄ አልተሳካም', err.response?.data?.error || err.message, 'error');
     } finally {
       setIsSubmittingWd(false);
     }
@@ -155,8 +155,8 @@ export default function WalletPage() {
     socket.on('deposit-approved', (data: { amount: string, bonus: string }) => {
       setModal({
         isOpen: true,
-        title: 'Deposit Confirmed!',
-        message: `Your deposit of ${data.amount} ETB has been approved. We've also added a ${data.bonus} ETB bonus to your wallet!`,
+        title: 'ተቀማጭ ተረጋግጧል!',
+        message: `የ ${data.amount} ETB ተቀማጭዎ ተረጋግጧል። በኪስዎ ላይ ${data.bonus} ETB የቦነስ ስጦታ ተጨምሯል!`,
         type: 'success'
       });
     });
@@ -244,7 +244,7 @@ export default function WalletPage() {
                       try {
                         (window as any).Telegram.WebApp.close();
                       } catch (e) {
-                        showAlert('Deposit', 'Please use the /deposit command in the Telegram bot to deposit funds.', 'info');
+                        showAlert('ተቀማጭ', 'እባክዎ በቴሌግራም ቦት ላይ የ /deposit ትዕዛዝን ይጠቀሙ።', 'info');
                       }
                     }}
                     style={{ padding: '12px', borderRadius: '12px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: 'white', fontWeight: '900', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
@@ -265,11 +265,11 @@ export default function WalletPage() {
                       const { convertCoins } = await import('../../lib/api');
                       const res = await convertCoins();
                       if (res.success) {
-                        showAlert('Conversion Success', `Successfully converted ${res.coinsSpent} XP into ${res.bonusEarned} ETB Bonus!`, 'success');
+                        showAlert('በተሳካ ሁኔታ ተቀይሯል', `በተሳካ ሁኔታ ${res.coinsSpent} XP ወደ ${res.bonusEarned} ETB ቦነስ ተቀይሯል!`, 'success');
                         setTimeout(() => window.location.reload(), 2000);
                       }
                     } catch (e: any) {
-                      showAlert('Conversion Failed', e.response?.data?.error || 'Minimum 100 XP required to convert.', 'error');
+                      showAlert('ቅየራ አልተሳካም', e.response?.data?.error || 'ለመቀየር ቢያንስ 100 XP ያስፈልጋል።', 'error');
                     }
                   }}
                   style={{ width: '100%', marginTop: '15px', padding: '12px', borderRadius: '12px', background: 'transparent', border: `1px solid ${T.gold}`, color: T.gold, fontWeight: '900', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}

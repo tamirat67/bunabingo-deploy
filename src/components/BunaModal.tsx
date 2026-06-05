@@ -21,8 +21,8 @@ export default function BunaModal({
   title, 
   message, 
   type = 'info',
-  confirmText = 'OK',
-  cancelText = 'CANCEL'
+  confirmText = 'እሺ',
+  cancelText = 'ሰርዝ'
 }: BunaModalProps) {
   
   // Hardcoded Premium Brand Colors for Popups (Espresso & Gold)
@@ -201,7 +201,7 @@ export default function BunaModal({
                     boxShadow: `0 8px 25px ${colors.classicGold}44`,
                   }}
                 >
-                  {(onConfirm ? confirmText : (type === 'balance' ? 'DEPOSIT NOW' : 'GOT IT')).toUpperCase()}
+                  {(onConfirm ? confirmText : (type === 'balance' ? 'ተቀማጭ ያድርጉ' : 'እሺ')).toUpperCase()}
                 </button>
               </div>
 

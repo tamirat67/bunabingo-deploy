@@ -82,8 +82,8 @@ export default function ProfilePage() {
     socket.on('deposit-approved', (data: { amount: string, bonus: string }) => {
       setModal({
         isOpen: true,
-        title: 'Deposit Confirmed!',
-        message: `Your deposit of ${data.amount} ETB has been approved. We've also added a ${data.bonus} ETB bonus to your wallet!`,
+        title: 'ተቀማጭ ተረጋግጧል!',
+        message: `የ ${data.amount} ETB ተቀማጭዎ ተረጋግጧል። በኪስዎ ላይ ${data.bonus} ETB የቦነስ ስጦታ ተጨምሯል!`,
         type: 'success'
       });
     });

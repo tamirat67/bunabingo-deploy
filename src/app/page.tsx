@@ -73,8 +73,8 @@ export default function LobbyPage() {
     socket.on('deposit-approved', (data: { amount: string, bonus: string }) => {
       setModalConfig({
         isOpen: true,
-        title: 'Deposit Confirmed!',
-        message: `Your deposit of ${data.amount} ETB has been approved. We've also added a ${data.bonus} ETB bonus to your wallet!`,
+        title: 'ተቀማጭ ተረጋግጧል!',
+        message: `የ ${data.amount} ETB ተቀማጭዎ ተረጋግጧል። በኪስዎ ላይ ${data.bonus} ETB የቦነስ ስጦታ ተጨምሯል!`,
         type: 'success' as any
       });
     });
@@ -142,8 +142,8 @@ export default function LobbyPage() {
     if (room.type.startsWith('SPIN_')) {
       setModalConfig({
         isOpen: true,
-        title: 'COMING SOON!',
-        message: '☕ Buna Spin Games are currently under maintenance for upgrades. Get ready for something big!',
+        title: 'በቅርቡ ይጠብቁ!',
+        message: '☕ ቡና ስፒን ጨዋታዎች ለጊዜው በእድሳት ላይ ናቸው። ዝግጁ ይሁኑ!',
         type: 'info'
       });
       return;
