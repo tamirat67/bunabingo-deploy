@@ -954,14 +954,21 @@ function GameContent() {
   if (!mounted) return <LoadingScreen />;
 
   // ─── Prize / Stake / Commission calculation ─────────────────────────────
-  // Prize pool = Guaranteed Minimum OR 70% of REAL PLAYER stakes (whichever is higher).
-  // Bot stakes are visual only — they do NOT add to the real prize pool.
+  // Prize pool = 75% of ALL visual stakes (including bots)
   const GUARANTEED_PRIZES: Record<string, number> = { CASUAL: 50, STANDARD: 100, PRO: 250, JACKPOT: 500, VIP: 1000 };
   const roomTypeName = game?.room?.type || spType || 'STANDARD';
   
-  // Fallback: estimate based on guaranteed minimum OR real ticket count × 70%
+  const BOT_COUNTS_FRONTEND: Record<string, number> = { CASUAL: 30, STANDARD: 30, PRO: 30, JACKPOT: 10, VIP: 20 };
+  const botCount = BOT_COUNTS_FRONTEND[roomTypeName] ?? 30;
+  
+  // allCards represents the fully inflated total cards (Real + Bots)
+  const fallbackCards = botCount + tickets.length;
+  const allCards = Math.max(game?.currentPlayers || 0, fallbackCards) || 1;
+  const totalStake = isDemo ? 0 : allCards * stake;
+
+  // Fallback: estimate based on guaranteed minimum OR visual ticket count × 75%
   const minPrize = GUARANTEED_PRIZES[roomTypeName] || 50;
-  const fallbackPrize = Math.max(minPrize, Math.round(tickets.length * stake * 0.70));
+  const fallbackPrize = Math.max(minPrize, Math.round(allCards * stake * 0.75));
   
   const prize = isDemo
     ? (game?.totalPrize ? Number(game.totalPrize) : 100)
@@ -970,7 +977,7 @@ function GameContent() {
         fallbackPrize
       );
 
-  const fallbackHouseComm = Math.round(tickets.length * stake * 0.30);
+  const fallbackHouseComm = Math.round(allCards * stake * 0.25);
   const houseComm = isDemo
     ? 0
     : Math.max(
@@ -978,11 +985,6 @@ function GameContent() {
         fallbackHouseComm
       );
 
-  const BOT_COUNTS_FRONTEND: Record<string, number> = { CASUAL: 30, STANDARD: 30, PRO: 30, JACKPOT: 10, VIP: 10 };
-  const botCount = BOT_COUNTS_FRONTEND[roomTypeName] ?? 30;
-  const fallbackCards = botCount + tickets.length;
-  const allCards = Math.max(game?.currentPlayers || 0, fallbackCards) || 1;
-  const totalStake = isDemo ? 0 : allCards * stake;
   const cdText  = countdown !== null ? `${countdown}s` : (game?.status === 'RUNNING' ? 'LIVE' : '—');
   const visible = tickets.filter(t => !hidden.has(t.id));
 
