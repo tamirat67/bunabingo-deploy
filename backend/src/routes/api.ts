@@ -281,6 +281,7 @@ router.get('/me/profile', async (req: Request, res: Response) => {
       totalCoins: totalEarnings._sum.amount || 0,
       role: fullUser.role,
       isAdmin: fullUser.isAdmin,
+      referralCode: fullUser.referralCode,
       referralsCount,
       wallet: {
         id: fullUser.wallet?.id,
