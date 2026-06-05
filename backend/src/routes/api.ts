@@ -1674,6 +1674,157 @@ staffRouter.get('/analytics', restrictToAdmin, async (req, res) => {
   });
 });
 
+// ── House Bot Revenue Analytics (dedicated endpoint) ─────────────────────────
+staffRouter.get('/bot-analytics', restrictToAdmin, async (req, res) => {
+  try {
+    const now = new Date();
+
+    // Build last-7-days date range array
+    const days: { start: Date; end: Date; label: string }[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      const start = new Date(d); start.setHours(0, 0, 0, 0);
+      const end   = new Date(d); end.setHours(23, 59, 59, 999);
+      const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      days.push({ start, end, label });
+    }
+
+    // All-time aggregates in parallel
+    const [
+      totalBotTicketsAgg,
+      totalBotSalesAgg,
+      totalRealSalesAgg,
+      totalAllSalesAgg,
+      botPlayerCount,
+      realPlayerCount,
+      totalGamesFinished,
+      botWinGamesAgg,
+      houseBotWinsAgg,
+    ] = await Promise.all([
+      // Count of tickets purchased by bots
+      prisma.ticket.count({ where: { user: { isBot: true } } }),
+      // Sum of ETB bot tickets represent
+      prisma.transaction.aggregate({
+        where: { type: 'TICKET_PURCHASE', status: 'COMPLETED', user: { isBot: true } },
+        _sum: { amount: true }
+      }),
+      // Sum of ETB real player tickets represent
+      prisma.transaction.aggregate({
+        where: { type: 'TICKET_PURCHASE', status: 'COMPLETED', user: { isBot: false } },
+        _sum: { amount: true }
+      }),
+      // Total all sales
+      prisma.transaction.aggregate({
+        where: { type: 'TICKET_PURCHASE', status: 'COMPLETED' },
+        _sum: { amount: true }
+      }),
+      // Bot player count
+      prisma.user.count({ where: { isBot: true } }),
+      // Real player count
+      prisma.user.count({ where: { isBot: false } }),
+      // Total finished games
+      prisma.game.count({ where: { status: 'FINISHED' } }),
+      // Games where a bot won (via gameCycle houseWins > 0)
+      prisma.gameCycle.aggregate({ _sum: { houseWins: true } }),
+      // Total prize payout received by bots (WIN transactions)
+      prisma.transaction.aggregate({
+        where: { type: 'WIN', status: 'COMPLETED', user: { isBot: true } },
+        _sum: { amount: true }
+      }),
+    ]);
+
+    const totalBotSales = Number(totalBotSalesAgg._sum.amount || 0);
+    const totalRealSales = Number(totalRealSalesAgg._sum.amount || 0);
+    const totalAllSales = Number(totalAllSalesAgg._sum.amount || 0);
+    const botWinPayouts = Number(houseBotWinsAgg._sum.houseWins || 0); // count of house wins
+    // Bot payout amount (WIN credits to bots — these are synthetic, they don't withdraw)
+    const botWinPayoutAmount = Number(botWinGamesAgg._sum.amount || 0);
+
+    const COMPANY_RATE = 0.20;
+    const AGENT_RATE   = 0.10;
+
+    const realCompanyRevenue = totalRealSales * COMPANY_RATE;
+    const realAgentRevenue   = totalRealSales * AGENT_RATE;
+    const botCompanyRevenue  = totalBotSales  * COMPANY_RATE; // synthetic — NOT real
+    const botParticipationRate = totalAllSales > 0 ? (totalBotSales / totalAllSales) * 100 : 0;
+
+    // 7-day daily trend (parallel queries per day)
+    const trend = await Promise.all(
+      days.map(async ({ start, end, label }) => {
+        const [dayBotSalesAgg, dayRealSalesAgg] = await Promise.all([
+          prisma.transaction.aggregate({
+            where: { type: 'TICKET_PURCHASE', status: 'COMPLETED', user: { isBot: true }, createdAt: { gte: start, lte: end } },
+            _sum: { amount: true }
+          }),
+          prisma.transaction.aggregate({
+            where: { type: 'TICKET_PURCHASE', status: 'COMPLETED', user: { isBot: false }, createdAt: { gte: start, lte: end } },
+            _sum: { amount: true }
+          }),
+        ]);
+        const dayBotSales  = Number(dayBotSalesAgg._sum.amount || 0);
+        const dayRealSales = Number(dayRealSalesAgg._sum.amount || 0);
+        return {
+          label,
+          botSales: dayBotSales,
+          realSales: dayRealSales,
+          companyRevenue: dayRealSales * COMPANY_RATE,
+          agentRevenue:   dayRealSales * AGENT_RATE,
+        };
+      })
+    );
+
+    // Per-room breakdown: real vs bot ticket sales
+    const roomTypes = ['CASUAL', 'STANDARD', 'PRO', 'JACKPOT', 'VIP'];
+    const roomPrices: Record<string, number> = { CASUAL: 10, STANDARD: 20, PRO: 50, JACKPOT: 100, VIP: 200 };
+
+    const roomBreakdown = await Promise.all(
+      roomTypes.map(async (roomType) => {
+        const [realTickets, botTickets] = await Promise.all([
+          prisma.ticket.count({ where: { user: { isBot: false }, game: { room: { type: roomType as any } } } }),
+          prisma.ticket.count({ where: { user: { isBot: true  }, game: { room: { type: roomType as any } } } }),
+        ]);
+        const price = roomPrices[roomType] || 0;
+        return {
+          roomType,
+          ticketPrice: price,
+          realTickets,
+          botTickets,
+          realSales: realTickets * price,
+          botSales:  botTickets  * price,
+          realRevenue: realTickets * price * COMPANY_RATE,
+        };
+      })
+    );
+
+    res.json({
+      success: true,
+      data: {
+        // All-time totals
+        totalBotTickets: totalBotTicketsAgg,
+        totalBotSales,           // synthetic ETB — NOT real cash
+        totalRealSales,          // real ETB from real players
+        totalAllSales,
+        botParticipationRate,    // % of total sales that are bot sales
+        botPlayerCount,
+        realPlayerCount,
+        totalGamesFinished,
+        botWinPayouts,           // count of house/bot wins
+        botWinPayoutAmount,      // ETB credited to bots (synthetic — never withdrawn)
+        realCompanyRevenue,      // ✅ REAL: 20% of real gross
+        realAgentRevenue,        // ✅ REAL: 10% of real gross
+        botCompanyRevenue,       // ⚠ SYNTHETIC: 20% of bot gross (NOT real profit)
+        // 7-day trend
+        trend,
+        // Per-room breakdown
+        roomBreakdown,
+      }
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to fetch bot analytics' });
+  }
+});
+
 staffRouter.get('/audit', restrictToAdmin, async (req, res) => {
   try {
     const { getCompanyCommissionRate } = await import('../services/settings.service');
