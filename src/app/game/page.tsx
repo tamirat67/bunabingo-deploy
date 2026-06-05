@@ -1500,53 +1500,7 @@ function GameContent() {
 
 
 
-      {/* ── FAB 'Add Board' button with plus icon (+) ── */}
-      <motion.div 
-        whileTap={{ scale: 0.85 }} 
-        whileHover={{ scale: 1.05 }}
-        className="premium-fab"
-        onClick={() => router.push(`/tickets/select?type=${game?.room?.type || spType || 'STANDARD'}&price=${stake}&gameId=${gameId || ''}`)} 
-        style={{ 
-          position: 'fixed', 
-          bottom: '100px', 
-          right: '20px', 
-          width: '64px',
-          height: '64px',
-          background: fabBg, 
-          borderRadius: '50%', 
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9999, 
-          cursor: 'pointer', 
-          border: `2px solid ${fabBorder}`,
-          boxShadow: `0 10px 28px rgba(0, 0, 0, 0.4), inset 0 3px 6px rgba(255, 255, 255, 0.5), inset 0 -3px 8px rgba(0, 0, 0, 0.5)`,
-          userSelect: 'none'
-        }}
-      >
-        {/* Inner concentric ring matching the image */}
-        <div style={{
-          width: '82%',
-          height: '82%',
-          borderRadius: '50%',
-          border: `1.5px solid ${fabInnerRing}`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: `inset 0 3px 4px rgba(255, 255, 255, 0.35), inset 0 -3px 4px rgba(0, 0, 0, 0.3)`,
-          position: 'relative'
-        }}>
-          {/* Central Plus Icon (using Lucide Plus) */}
-          <Plus 
-            size={28} 
-            strokeWidth={4.2} 
-            style={{ 
-              color: fabPlusColor, 
-              filter: 'drop-shadow(0px 2.5px 2px rgba(0,0,0,0.35))' 
-            }} 
-          />
-        </div>
-      </motion.div>
+
 
       {/* ── WINNER MODAL — full-screen overlay shown when game-finished fires ── */}
       <AnimatePresence>
