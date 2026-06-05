@@ -496,8 +496,16 @@ export default function ProfilePage() {
                </button>
             )}
 
-            <button onClick={() => window.open('https://t.me/buna_bingobot1', '_blank')} style={{ width: '100%', padding: '16px', borderRadius: '16px', background: T.card, border: `1px solid ${T.border}`, color: T.text, fontWeight: '900', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-               <Coffee size={20} /> Support Channel
+            <button 
+              onClick={() => {
+                const supportLink = profile?.referrerUsername 
+                  ? `https://t.me/${profile.referrerUsername.replace('@', '')}` 
+                  : 'https://t.me/buna_bingobot1';
+                window.open(supportLink, '_blank');
+              }} 
+              style={{ width: '100%', padding: '16px', borderRadius: '16px', background: T.card, border: `1px solid ${T.border}`, color: T.text, fontWeight: '900', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}
+            >
+               <Coffee size={20} /> Support {profile?.referrerUsername ? 'Agent' : 'Channel'}
             </button>
          </div>
       </div>
