@@ -53,12 +53,6 @@ export default function SettingsPage() {
   const [settingsSaved, setSettingsSaved] = useState(false);
   const [settingsError, setSettingsError] = useState('');
 
-  // House-edge UI state (derived from COMPANY_COMMISSION_RATE + AGENT_PROFIT_RATE)
-  // houseEdgeRate = total % of ticket sales taken as house edge (company + agent combined)
-  // agentSharePct = % of that house edge that goes to agent (remainder → company)
-  const [houseEdgeRate, setHouseEdgeRate] = useState('40');
-  const [agentSharePct, setAgentSharePct] = useState('20');
-
   // Promotions state
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [loadingPromos, setLoadingPromos] = useState(true);
@@ -98,13 +92,6 @@ export default function SettingsPage() {
         BONUS_EXPIRY: res.data.BONUS_EXPIRY || '',
         HOUSE_BOT_ENABLED: res.data.HOUSE_BOT_ENABLED !== false,
       });
-      // Derive house-edge UI values from stored rates
-      const compRate  = parseFloat(res.data.COMPANY_COMMISSION_RATE) || 0;
-      const agentRate = parseFloat(res.data.AGENT_PROFIT_RATE) || 0;
-      const totalEdge = compRate + agentRate;
-      const agentShare = totalEdge > 0 ? (agentRate / totalEdge) * 100 : 20;
-      setHouseEdgeRate(totalEdge.toFixed(2).replace(/\.00$/, ''));
-      setAgentSharePct(agentShare.toFixed(1).replace(/\.0$/, ''));
     } catch (err) {
       console.error('Failed to fetch settings:', err);
     } finally {
@@ -137,33 +124,25 @@ export default function SettingsPage() {
 
   const handleSaveSettings = async () => {
     setSettingsError('');
-    const edge      = parseFloat(houseEdgeRate);
-    const agentShr  = parseFloat(agentSharePct);
+    const compRate = parseFloat(settings.COMPANY_COMMISSION_RATE);
+    const agentRate = parseFloat(settings.AGENT_PROFIT_RATE);
 
-    if (isNaN(edge) || edge < 0 || edge > 50) {
-      setSettingsError('Total house edge must be between 0% and 50%.');
+    if (isNaN(compRate) || compRate < 0 || compRate > 50) {
+      setSettingsError('Company commission must be between 0% and 50%.');
       return;
     }
-    if (isNaN(agentShr) || agentShr < 0 || agentShr > 100) {
-      setSettingsError('Agent share of house edge must be between 0% and 100%.');
+    if (isNaN(agentRate) || agentRate < 0 || agentRate > 50) {
+      setSettingsError('Agent profit rate must be between 0% and 50%.');
       return;
     }
-
-    // Compute stored rates from house-edge model
-    const computedAgentRate   = parseFloat((edge * agentShr / 100).toFixed(4));
-    const computedCompanyRate = parseFloat((edge * (100 - agentShr) / 100).toFixed(4));
-
-    const payload = {
-      ...settings,
-      COMPANY_COMMISSION_RATE: String(computedCompanyRate),
-      AGENT_PROFIT_RATE: String(computedAgentRate),
-    };
+    if (compRate + agentRate > 30) {
+      setSettingsError(`Total house margin (${(compRate + agentRate).toFixed(2)}%) cannot exceed 30%. Lower one of the rates.`);
+      return;
+    }
 
     setSavingSettings(true);
     try {
-      await api.put('/admin/settings', payload);
-      // Also update local settings state so right panel reflects saved values
-      setSettings(s => ({ ...s, COMPANY_COMMISSION_RATE: String(computedCompanyRate), AGENT_PROFIT_RATE: String(computedAgentRate) }));
+      await api.put('/admin/settings', settings);
       setSettingsSaved(true);
       setTimeout(() => setSettingsSaved(false), 3000);
     } catch (err: any) {
@@ -247,15 +226,14 @@ export default function SettingsPage() {
     }
   };
 
-  // House-edge derived display values (all based on the UI state, not stored settings)
-  const edgeNum       = parseFloat(houseEdgeRate) || 0;
-  const agentShrNum   = parseFloat(agentSharePct) || 0;
-  const companyShrNum = 100 - agentShrNum;
-  const agentETB      = parseFloat((edgeNum * agentShrNum / 100).toFixed(2));
-  const companyETB    = parseFloat((edgeNum * companyShrNum / 100).toFixed(2));
-  const playerPrizeNum = parseFloat((100 - edgeNum).toFixed(2));
-  const playerPrize   = playerPrizeNum.toFixed(2);
-  const totalHouseMargin = edgeNum.toFixed(2);
+  const totalHouseMargin = (
+    parseFloat(settings.COMPANY_COMMISSION_RATE || '0') +
+    parseFloat(settings.AGENT_PROFIT_RATE || '0')
+  ).toFixed(2);
+
+  const playerPrize = (
+    100 - parseFloat(totalHouseMargin)
+  ).toFixed(2);
 
   // Bonus expiry helpers
   const bonusExpiry = settings.BONUS_EXPIRY ? new Date(settings.BONUS_EXPIRY) : null;
@@ -324,69 +302,51 @@ export default function SettingsPage() {
                 </div>
               ) : (
                 <>
-                  {/* ── Row 1: House Edge + Agent Share inputs ── */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '16px' }}>
-                    {/* House Edge % */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px' }}>
                     <div>
                       <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', color: '#78716c', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                        🏦 Total House Edge (%)
+                        🏢 Company Commission (%)
                       </label>
                       <div style={{ position: 'relative' }}>
                         <input
                           type="number"
                           min="0" max="50" step="0.5"
                           className="login-input"
-                          style={{ width: '100%', paddingRight: '40px', fontWeight: '800', fontSize: '18px' }}
-                          value={houseEdgeRate}
-                          onChange={(e) => setHouseEdgeRate(e.target.value)}
+                          style={{ width: '100%', paddingRight: '40px' }}
+                          value={settings.COMPANY_COMMISSION_RATE}
+                          onChange={(e) => setSettings(s => ({ ...s, COMPANY_COMMISSION_RATE: e.target.value }))}
                         />
-                        <span style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', fontWeight: '800', color: '#d4af37', fontSize: '15px' }}>%</span>
+                        <span style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', fontWeight: '800', color: '#d4af37' }}>%</span>
                       </div>
-                      <p style={{ fontSize: '11px', color: '#78716c', marginTop: '6px' }}>Total % of ticket sales taken as house (company + agent)</p>
+                      <p style={{ fontSize: '11px', color: '#78716c', marginTop: '6px' }}>Deducted from agent pre-deposit per game</p>
                     </div>
 
-                    {/* Agent Share of House Edge % */}
                     <div>
                       <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', color: '#78716c', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                        👤 Agent Share of House Edge (%)
+                        👤 Agent Profit Rate (%)
                       </label>
                       <div style={{ position: 'relative' }}>
                         <input
                           type="number"
-                          min="0" max="100" step="1"
+                          min="0" max="50" step="0.5"
                           className="login-input"
-                          style={{ width: '100%', paddingRight: '40px', fontWeight: '800', fontSize: '18px' }}
-                          value={agentSharePct}
-                          onChange={(e) => setAgentSharePct(e.target.value)}
+                          style={{ width: '100%', paddingRight: '40px' }}
+                          value={settings.AGENT_PROFIT_RATE}
+                          onChange={(e) => setSettings(s => ({ ...s, AGENT_PROFIT_RATE: e.target.value }))}
                         />
-                        <span style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', fontWeight: '800', color: '#d4af37', fontSize: '15px' }}>%</span>
+                        <span style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', fontWeight: '800', color: '#d4af37' }}>%</span>
                       </div>
-                      <p style={{ fontSize: '11px', color: '#78716c', marginTop: '6px' }}>Company automatically gets {companyShrNum.toFixed(1)}% of house edge</p>
+                      <p style={{ fontSize: '11px', color: '#78716c', marginTop: '6px' }}>Retained by agent as net take-home</p>
                     </div>
                   </div>
 
-                  {/* ── Computed breakdown chips ── */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '24px' }}>
-                    {[
-                      { label: 'Company gets', value: `${companyETB.toFixed(2)} ETB`, sub: `${companyShrNum.toFixed(1)}% of house edge`, color: '#3d2b1f', bg: 'rgba(61,43,31,0.06)', border: '#d4af37' },
-                      { label: 'Agent gets', value: `${agentETB.toFixed(2)} ETB`, sub: `${agentShrNum.toFixed(1)}% of house edge`, color: '#d4af37', bg: 'rgba(212,175,55,0.08)', border: '#d4af37' },
-                      { label: 'Player wins', value: `${playerPrize} ETB`, sub: `${playerPrize}% of ticket sales`, color: '#22c55e', bg: 'rgba(34,197,94,0.08)', border: '#22c55e' },
-                    ].map(({ label, value, sub, color, bg, border }) => (
-                      <div key={label} style={{ background: bg, border: `1px solid ${border}22`, borderRadius: '14px', padding: '14px 16px' }}>
-                        <div style={{ fontSize: '10px', fontWeight: '800', color: '#78716c', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>{label}</div>
-                        <div style={{ fontSize: '20px', fontWeight: '900', color }}>{value}</div>
-                        <div style={{ fontSize: '10px', color: '#a8a29e', marginTop: '2px' }}>per 100 ETB sold · {sub}</div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* ── Live preview bar ── */}
+                  {/* Live preview bar */}
                   <div style={{ background: '#faf9f7', borderRadius: '16px', padding: '20px', marginBottom: '24px', border: '1px solid #e7e5e4' }}>
                     <p style={{ fontSize: '11px', fontWeight: '800', color: '#78716c', textTransform: 'uppercase', marginBottom: '12px' }}>Revenue Split Preview (per 100 ETB ticket sales)</p>
-                    <div style={{ display: 'flex', height: '14px', borderRadius: '7px', overflow: 'hidden', marginBottom: '14px', gap: '2px' }}>
-                      <div style={{ width: `${playerPrizeNum}%`, background: 'linear-gradient(90deg,#22c55e,#16a34a)', borderRadius: '7px 0 0 7px', transition: 'width 0.4s ease' }} title={`Player Prize: ${playerPrize} ETB`} />
-                      <div style={{ width: `${agentETB}%`, background: 'linear-gradient(90deg,#f59e0b,#d4af37)', transition: 'width 0.4s ease' }} title={`Agent: ${agentETB} ETB`} />
-                      <div style={{ width: `${companyETB}%`, background: 'linear-gradient(90deg,#5c3d2b,#3d2b1f)', borderRadius: '0 7px 7px 0', transition: 'width 0.4s ease' }} title={`Company: ${companyETB} ETB`} />
+                    <div style={{ display: 'flex', height: '12px', borderRadius: '6px', overflow: 'hidden', marginBottom: '12px' }}>
+                      <div style={{ width: `${playerPrize}%`, background: '#22c55e' }} title={`Player Prize: ${playerPrize}%`} />
+                      <div style={{ width: `${settings.AGENT_PROFIT_RATE}%`, background: '#d4af37' }} title={`Agent: ${settings.AGENT_PROFIT_RATE}%`} />
+                      <div style={{ width: `${settings.COMPANY_COMMISSION_RATE}%`, background: '#3d2b1f' }} title={`Company: ${settings.COMPANY_COMMISSION_RATE}%`} />
                     </div>
                     <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
                       <span style={{ fontSize: '12px', fontWeight: '700', color: '#22c55e', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -395,11 +355,11 @@ export default function SettingsPage() {
                       </span>
                       <span style={{ fontSize: '12px', fontWeight: '700', color: '#d4af37', display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: '#d4af37', display: 'inline-block' }} />
-                        Agent: {agentETB.toFixed(2)} ETB ({agentShrNum.toFixed(1)}% of edge)
+                        Agent: {settings.AGENT_PROFIT_RATE} ETB
                       </span>
                       <span style={{ fontSize: '12px', fontWeight: '700', color: '#3d2b1f', display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: '#3d2b1f', display: 'inline-block' }} />
-                        Company: {companyETB.toFixed(2)} ETB ({companyShrNum.toFixed(1)}% of edge)
+                        Company: {settings.COMPANY_COMMISSION_RATE} ETB
                       </span>
                     </div>
                   </div>
@@ -559,25 +519,18 @@ export default function SettingsPage() {
               <h3 style={{ fontSize: '13px', fontWeight: '800', margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <FiTrendingUp color="#d4af37" /> LIVE MARGIN SUMMARY
               </h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {[
-                  { label: 'Player Prize Pool', value: `${playerPrize} ETB`, sub: `${playerPrize}% of sales`, color: '#22c55e' },
-                  { label: 'Total House Edge', value: `${totalHouseMargin} ETB`, sub: `${totalHouseMargin}% of sales`, color: '#a78bfa' },
-                  { label: 'Company (80% of edge)', value: `${companyETB.toFixed(2)} ETB`, sub: `${companyShrNum.toFixed(1)}% of edge`, color: '#f87171' },
-                  { label: 'Agent (20% of edge)', value: `${agentETB.toFixed(2)} ETB`, sub: `${agentShrNum.toFixed(1)}% of edge`, color: '#d4af37' },
-                ].map(({ label, value, sub, color }) => (
-                  <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div>
-                      <div style={{ color: '#a8a29e', fontSize: '12px' }}>{label}</div>
-                      <div style={{ color: '#6b6360', fontSize: '10px', marginTop: '1px' }}>{sub}</div>
-                    </div>
-                    <span style={{ fontWeight: '900', color, fontSize: '15px', flexShrink: 0, marginLeft: '8px' }}>{value}</span>
+                  { label: 'Player Prize Pool', value: `${playerPrize}%`, color: '#22c55e' },
+                  { label: 'Agent Take-Home', value: `${settings.AGENT_PROFIT_RATE}%`, color: '#d4af37' },
+                  { label: 'Company Commission', value: `${settings.COMPANY_COMMISSION_RATE}%`, color: '#f87171' },
+                  { label: 'Total House Margin', value: `${totalHouseMargin}%`, color: '#a78bfa' },
+                ].map(({ label, value, color }) => (
+                  <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: '#a8a29e', fontSize: '13px' }}>{label}</span>
+                    <span style={{ fontWeight: '800', color, fontSize: '14px' }}>{value}</span>
                   </div>
                 ))}
-                <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '10px', marginTop: '2px', display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#a8a29e', fontSize: '11px', fontWeight: '700' }}>Per 100 ETB ticket sales</span>
-                  <span style={{ color: '#d4af37', fontSize: '11px', fontWeight: '800' }}>Live preview</span>
-                </div>
               </div>
             </div>
 
