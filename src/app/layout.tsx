@@ -30,10 +30,34 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
       </head>
       <body>
-        <Script 
-          src="https://telegram.org/js/telegram-web-app.js" 
-          strategy="beforeInteractive" 
+        <Script
+          src="https://telegram.org/js/telegram-web-app.js"
+          strategy="beforeInteractive"
         />
+
+        {/* ── Eruda mobile debugger ── REMOVE after debugging is done ────────── */}
+        <Script
+          src="https://cdn.jsdelivr.net/npm/eruda"
+          strategy="afterInteractive"
+          id="eruda-src"
+        />
+        <Script id="eruda-init" strategy="afterInteractive">{`
+          (function initEruda() {
+            if (typeof eruda !== 'undefined') {
+              eruda.init();
+            } else {
+              var t = setInterval(function() {
+                if (typeof eruda !== 'undefined') {
+                  clearInterval(t);
+                  eruda.init();
+                }
+              }, 150);
+              setTimeout(function() { clearInterval(t); }, 10000);
+            }
+          })();
+        `}</Script>
+        {/* ─────────────────────────────────────────────────────────────────── */}
+
         <SocketProvider>
           <ThemeProvider>
             <Suspense fallback={
@@ -45,7 +69,6 @@ export default function RootLayout({
               {children}
             </Suspense>
             <Navbar />
-
           </ThemeProvider>
         </SocketProvider>
       </body>

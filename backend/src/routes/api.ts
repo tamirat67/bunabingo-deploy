@@ -250,6 +250,9 @@ router.get('/me/profile', async (req: Request, res: Response) => {
       where: { id: user.id },
       include: { 
         wallet: true,
+        referrer: {
+          select: { telegramUsername: true }
+        },
         _count: {
           select: { winners: true }
         }
@@ -283,6 +286,7 @@ router.get('/me/profile', async (req: Request, res: Response) => {
       isAdmin: fullUser.isAdmin,
       referralCode: fullUser.referralCode,
       referralsCount,
+      referrerUsername: fullUser.referrer?.telegramUsername || null,
       wallet: {
         id: fullUser.wallet?.id,
         userId: fullUser.wallet?.userId,

@@ -168,27 +168,18 @@ function GameContent() {
         el.load();
         el.onended = safeComplete;
         el.onerror = safeComplete;
-        el.play().catch(() => {
-          // Fallback: fresh Audio element in case ref is locked
-          try { 
-            const fallbackEl = new Audio(`/audio/${col}${num}.mp3`);
-            fallbackEl.onended = safeComplete;
-            fallbackEl.onerror = safeComplete;
-            fallbackEl.play().catch(safeComplete); 
-          } catch (_) { safeComplete(); }
-        });
+        // Android WebView: play() may reject silently — always attach a catch
+        el.play().catch(safeComplete);
       } else {
-        const fallbackEl = new Audio(`/audio/${col}${num}.mp3`);
-        fallbackEl.onended = safeComplete;
-        fallbackEl.onerror = safeComplete;
-        fallbackEl.play().catch(safeComplete);
+        // No persistent element available — skip audio on Android to avoid crash
+        safeComplete();
       }
     } catch (e) {
       safeComplete();
     }
 
-    // Safety timeout in case audio hangs indefinitely
-    setTimeout(safeComplete, 5000);
+    // Safety timeout in case audio hangs indefinitely (reduced to 4s for faster queue)
+    setTimeout(safeComplete, 4000);
   }, []);
 
   const processAudioQueue = useCallback((setLastBallFn: (n: number) => void) => {
@@ -366,21 +357,38 @@ function GameContent() {
       const latestBall = hist.at(-1);
 
       // ── Audio queue management ──────────────────────────────────────────────────
-      // On first load: mark OLD balls as announced (no audio replay) but queue
-      // the LATEST ball so the user always hears what is currently being called.
+      // On first load: detect if this is a MID-GAME REFRESH or a genuine new game start.
+      // Mid-game refresh  → skip start.mp3, mark all old balls as seen, only call the latest.
+      // Genuine new start → play start.mp3 then call balls in order as usual.
       // On subsequent polls: catch any socket-missed balls via the announced filter.
       const isFirstLoad = isFirstLoadRef.current;
       if (isFirstLoad) {
         isFirstLoadRef.current = false;
 
         if (g.status === 'RUNNING') {
-          // ✅ SEQUENCE: start.mp3 plays fully first, THEN balls are called one by one.
-          // No ball is ever shown or heard without being announced through the queue.
-          playStartAudio(() => {
-            if (hist.length > 0) {
-              queueBallSounds(hist, setLastBall);
-            }
-          });
+          if (hist.length > 1) {
+            // ── MID-GAME REFRESH ─────────────────────────────────────────────────
+            // Game was already running before the refresh — do NOT re-play start.mp3
+            // and do NOT re-announce every ball from the beginning.
+            // Strategy: mark all drawn balls as announced except the latest one,
+            // then queue only the latest ball so the user hears what's being called now.
+            startAudioFiredRef.current = true; // block start.mp3 from firing later
+            hist.slice(0, hist.length - 1).forEach((n: number) => {
+              announcedBallsRef.current.add(n);
+            });
+            // Also pre-populate calledHistory visually (no audio for old balls)
+            setCalledHistory(hist.slice(0, hist.length - 1));
+            // Queue only the most recent ball for audio announcement
+            queueBallSounds([hist[hist.length - 1]], setLastBall);
+          } else {
+            // ── GENUINE GAME START (0 or 1 ball drawn) ───────────────────────────
+            // play start.mp3, then call all balls in order
+            playStartAudio(() => {
+              if (hist.length > 0) {
+                queueBallSounds(hist, setLastBall);
+              }
+            });
+          }
         } else if (hist.length > 0) {
           // Game not yet running but has history (rare edge case)
           queueBallSounds(hist, setLastBall);
@@ -1336,12 +1344,9 @@ function GameContent() {
             const isSelected = selectedTicketId === t.id;
             
             return (
-              <motion.div 
-                layout 
+              <div
                 key={t.id} 
                 onClick={() => setSelectedTicketId(t.id)}
-                initial={{ opacity: 0 }} 
-                animate={{ opacity: 1, scale: isSelected ? 1.02 : 1 }} 
                 style={{ 
                   position: 'relative', 
                   background: isVip ? 'rgba(255,255,255,0.04)' : T.card, 
@@ -1354,8 +1359,7 @@ function GameContent() {
                     ? (isVip ? '0 8px 25px rgba(255, 215, 0, 0.3)' : `0 8px 20px ${T.gold}44`) 
                     : '0 4px 10px rgba(0,0,0,0.05)',
                   cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  backdropFilter: isVip ? 'blur(10px)' : 'none'
+                  transition: 'border 0.2s, box-shadow 0.2s',
                 }}
               >
                 <button onClick={(e) => { e.stopPropagation(); hideCard(t.id); }} style={{ position: 'absolute', top: '4px', right: '5px', width: '20px', height: '20px', background: '#C0392B', color: 'white', border: 'none', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}><X size={10} /></button>
@@ -1412,23 +1416,9 @@ function GameContent() {
                     }
 
                     return (
-                      <motion.div
+                      <div
                         key={`${ri}-${ci}`}
                         onClick={(e) => { e.stopPropagation(); if (!isFree) toggleMark(numVal); }}
-                        animate={
-                          isBallCalled && !userDaubed && !isFree
-                            ? { scale: [1, 1.07, 1], boxShadow: ['0 0 4px #2ECC7155', '0 0 12px #2ECC71cc', '0 0 4px #2ECC7155'] }
-                            : userDaubed
-                              ? { scale: [1, 1.08, 1] }
-                              : { scale: 1 }
-                        }
-                        transition={
-                          isBallCalled && !userDaubed && !isFree
-                            ? { duration: 0.8, repeat: Infinity }
-                            : userDaubed
-                              ? { duration: 1.0, repeat: Infinity, repeatDelay: 1.5 }
-                              : {}
-                        }
                         style={{
                           height: '26px',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1441,17 +1431,7 @@ function GameContent() {
                         }}
                       >
                         {isFree ? '★' : cell}
-
-                        {/* Ripple on manually daubed number */}
-                        {userDaubed && (
-                          <motion.div
-                            initial={{ scale: 0, opacity: 0.7 }}
-                            animate={{ scale: 2.4, opacity: 0 }}
-                            transition={{ duration: 0.9, repeat: Infinity, repeatDelay: 1.5 }}
-                            style={{ position: 'absolute', width: '50%', height: '50%', border: `2px solid ${isVip ? '#FFD700' : T.gold}`, borderRadius: '50%', pointerEvents: 'none' }}
-                          />
-                        )}
-                      </motion.div>
+                      </div>
                     );
                   }))}
                 </div>
@@ -1491,7 +1471,7 @@ function GameContent() {
                     {claiming ? '⏳ CLAIMING...' : `☕ BINGO! (${cardId})`}
                   </motion.button>
                 </div>
-              </motion.div>
+              </div>
             );
           })}
           {tickets.length === 0 && <div style={{ textAlign: 'center', color: isVip ? 'white' : T.brown, padding: '40px' }}>Fetching cards...</div>}
@@ -1514,14 +1494,14 @@ function GameContent() {
               background: 'rgba(0,0,0,0.88)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               padding: '16px',
-              backdropFilter: 'blur(6px)',
+              // NOTE: backdropFilter removed — causes Android WebView crash
             }}
           >
             <motion.div
-              initial={{ scale: 0.7, opacity: 0, y: 40 }}
+              initial={{ scale: 0.85, opacity: 0, y: 30 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.8, opacity: 0 }}
-              transition={{ type: 'spring', damping: 18, stiffness: 280 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: 'spring', damping: 22, stiffness: 300 }}
               style={{
                 width: '100%', maxWidth: '380px',
                 background: isVip
@@ -1529,33 +1509,26 @@ function GameContent() {
                   : 'linear-gradient(160deg, #2b1d14 0%, #1a120c 60%, #3d2b1f 100%)',
                 borderRadius: '24px',
                 border: `2px solid ${isVip ? '#FFD700' : '#D4AF37'}`,
-                boxShadow: `0 0 60px ${isVip ? 'rgba(255,215,0,0.4)' : 'rgba(212,175,55,0.35)'}, 0 30px 80px rgba(0,0,0,0.7)`,
+                boxShadow: `0 0 40px ${isVip ? 'rgba(255,215,0,0.4)' : 'rgba(212,175,55,0.35)'}, 0 20px 60px rgba(0,0,0,0.7)`,
                 overflow: 'hidden',
                 maxHeight: '92vh',
                 overflowY: 'auto',
               }}
             >
               {/* Header */}
-              <motion.div
-                animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
-                transition={{ duration: 3, repeat: Infinity }}
+              <div
                 style={{
                   background: gameFinished.isCurrentUserWinner
                     ? 'linear-gradient(135deg, #FFD700 0%, #FF6B35 50%, #FFD700 100%)'
                     : 'linear-gradient(135deg, #d4af37 0%, #a67c00 50%, #d4af37 100%)',
-                  backgroundSize: '200% 200%',
                   padding: '20px 16px 16px',
                   textAlign: 'center',
                 }}
               >
                 {/* Trophy / emoji */}
-                <motion.div
-                  animate={{ scale: [1, 1.15, 1], rotate: [-5, 5, -5, 5, 0] }}
-                  transition={{ duration: 1.2, repeat: Infinity, repeatDelay: 2 }}
-                  style={{ fontSize: '48px', lineHeight: 1, marginBottom: '6px' }}
-                >
+                <div style={{ fontSize: '48px', lineHeight: 1, marginBottom: '6px' }}>
                   {gameFinished.isCurrentUserWinner ? '🏆' : '🎉'}
-                </motion.div>
+                </div>
 
                 <div style={{
                   color: '#1a0a00', fontWeight: '900', fontSize: '22px',
@@ -1571,7 +1544,7 @@ function GameContent() {
                     ? 'Congratulations! Prize credited to your wallet!'
                     : `Winner: ${gameFinished.winnerName}`}
                 </div>
-              </motion.div>
+              </div>
 
               {/* Body */}
               <div style={{ padding: '16px' }}>
