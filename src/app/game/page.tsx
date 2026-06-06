@@ -1162,7 +1162,7 @@ function GameContent() {
                   ? (isVip ? '#C471ED' : COL_COLOR[colLabel(lastBall)]) 
                   : (isVip ? 'rgba(255,255,255,0.05)' : T.statBg),
                 backgroundImage: lastBall
-                  ? (isVip ? 'linear-gradient(135deg, #FFD700 0%, #C471ED 100%)' : 'radial-gradient(circle at 35% 35%, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 25%)')
+                  ? (isVip ? 'radial-gradient(circle at 30% 30%, #FFE259 0%, #FFD700 25%, #C471ED 75%, #4A00E0 100%)' : 'radial-gradient(circle at 35% 35%, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 25%)')
                   : 'none',
                 borderRadius: '50%', 
                 display: 'flex', 
@@ -1170,10 +1170,11 @@ function GameContent() {
                 alignItems: 'center', 
                 justifyContent: 'center', 
                 fontWeight: '900', 
-                border: isVip ? '4px solid #FFD700' : '2px solid rgba(255,255,255,0.4)',
+                border: isVip && lastBall ? '1px solid rgba(255, 215, 0, 0.8)' : (isVip ? '4px solid #FFD700' : '2px solid rgba(255,255,255,0.4)'),
                 color: lastBall ? (isVip ? '#1C0A35' : 'white') : (isVip ? '#FFD700' : T.brown),
+                textShadow: isVip && lastBall ? '0 1px 1px rgba(255, 255, 255, 0.4)' : 'none',
                 boxShadow: lastBall 
-                  ? (isVip ? '0 0 15px rgba(255, 215, 0, 0.6)' : 'inset -4px -4px 10px rgba(0,0,0,0.4), inset 2px 2px 6px rgba(255,255,255,0.6), 0 3px 8px rgba(0,0,0,0.3)')
+                  ? (isVip ? 'inset -4px -4px 12px rgba(0,0,0,0.5), inset 3px 3px 10px rgba(255,255,255,0.8), 0 0 15px rgba(255, 215, 0, 0.6)' : 'inset -4px -4px 10px rgba(0,0,0,0.4), inset 2px 2px 6px rgba(255,255,255,0.6), 0 3px 8px rgba(0,0,0,0.3)')
                   : 'none'
               }}
             >
@@ -1200,8 +1201,9 @@ function GameContent() {
                     animate={{ scale: 1, opacity: 1 }}
                     style={{
                       backgroundColor: isVip ? '#C471ED' : COL_COLOR[label],
-                      backgroundImage: isVip ? 'linear-gradient(135deg, #FFD700 0%, #C471ED 100%)' : 'radial-gradient(circle at 35% 35%, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 25%)',
+                      backgroundImage: isVip ? 'radial-gradient(circle at 30% 30%, #FFE259 0%, #FFD700 25%, #C471ED 75%, #4A00E0 100%)' : 'radial-gradient(circle at 35% 35%, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 25%)',
                       color: isVip ? '#1C0A35' : 'white',
+                      textShadow: isVip ? '0 1px 1px rgba(255, 255, 255, 0.4)' : 'none',
                       fontWeight: '900',
                       width: '32px',
                       height: '32px',
@@ -1210,8 +1212,8 @@ function GameContent() {
                       flexDirection: 'column',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      border: isVip ? '1.5px solid #FFD700' : '1.5px solid rgba(255,255,255,0.4)',
-                      boxShadow: isVip ? '0 2px 4px rgba(0,0,0,0.15)' : 'inset -3px -3px 6px rgba(0,0,0,0.4), inset 2px 2px 4px rgba(255,255,255,0.6), 0 2px 5px rgba(0,0,0,0.3)'
+                      border: isVip ? '1px solid rgba(255, 215, 0, 0.8)' : '1.5px solid rgba(255,255,255,0.4)',
+                      boxShadow: isVip ? 'inset -3px -3px 8px rgba(0,0,0,0.5), inset 2px 2px 6px rgba(255,255,255,0.8), 0 3px 6px rgba(0,0,0,0.4)' : 'inset -3px -3px 6px rgba(0,0,0,0.4), inset 2px 2px 4px rgba(255,255,255,0.6), 0 2px 5px rgba(0,0,0,0.3)'
                     }}
                   >
                     <span style={{ fontSize: '8px', lineHeight: 1, opacity: 0.8 }}>{label}</span>
@@ -1224,17 +1226,24 @@ function GameContent() {
           </div>
 
           <div style={{ background: isVip ? 'rgba(255,255,255,0.05)' : T.card, borderRadius: '14px', padding: '10px', border: isVip ? '1px solid rgba(255, 215, 0, 0.25)' : `1px solid ${T.gold}44`, backdropFilter: isVip ? 'blur(10px)' : 'none' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '3px', marginBottom: '6px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '3px', marginBottom: '6px', justifyItems: 'center' }}>
               {['B','I','N','G','O'].map(l => (
                 <div key={l} style={{ 
-                  background: isVip ? 'linear-gradient(135deg, #FFD700, #C471ED)' : COL_COLOR[l], 
+                  background: isVip ? 'radial-gradient(circle at 30% 30%, #FFE259 0%, #FFD700 25%, #C471ED 75%, #4A00E0 100%)' : COL_COLOR[l], 
                   color: isVip ? '#1C0A35' : 'white', 
                   textAlign: 'center', 
                   fontSize: '13px', 
                   fontWeight: '900', 
-                  borderRadius: '6px', 
-                  padding: '4px 0',
-                  boxShadow: isVip ? '0 2px 5px rgba(0,0,0,0.15)' : 'none'
+                  borderRadius: isVip ? '50%' : '6px',
+                  width: isVip ? '26px' : 'auto',
+                  height: isVip ? '26px' : 'auto',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  textShadow: isVip ? '0 1px 1px rgba(255, 255, 255, 0.4)' : 'none',
+                  border: isVip ? '1px solid rgba(255, 215, 0, 0.8)' : 'none',
+                  padding: isVip ? '0' : '4px 0',
+                  boxShadow: isVip ? 'inset -3px -3px 6px rgba(0,0,0,0.5), inset 2px 2px 5px rgba(255,255,255,0.7), 0 3px 6px rgba(0,0,0,0.3)' : 'none'
                 }}>{l}</div>
               ))}
             </div>
@@ -1317,19 +1326,21 @@ function GameContent() {
               <div 
                 key={l} 
                 style={{ 
-                  background: isVip ? 'linear-gradient(135deg, #FFD700, #C471ED)' : COL_COLOR[l], 
+                  background: isVip ? 'radial-gradient(circle at 30% 30%, #FFE259 0%, #FFD700 25%, #C471ED 75%, #4A00E0 100%)' : COL_COLOR[l], 
                   color: isVip ? '#1C0A35' : 'white', 
                   textAlign: 'center', 
-                  fontSize: '12px', 
+                  fontSize: '13px', 
                   fontWeight: '900', 
                   borderRadius: '50%', 
-                  width: '24px',
-                  height: '24px',
+                  width: '26px',
+                  height: '26px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   margin: '0 auto',
-                  boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+                  textShadow: isVip ? '0 1px 1px rgba(255, 255, 255, 0.4)' : 'none',
+                  border: isVip ? '1px solid rgba(255, 215, 0, 0.8)' : 'none',
+                  boxShadow: isVip ? 'inset -3px -3px 6px rgba(0,0,0,0.5), inset 2px 2px 5px rgba(255,255,255,0.7), 0 3px 6px rgba(0,0,0,0.3)' : '0 2px 5px rgba(0,0,0,0.1)'
                 }}
               >
                 {l}
