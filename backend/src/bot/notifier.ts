@@ -58,7 +58,12 @@ export async function notifyUser(userId: string, message: string, buttons?: any)
   }
 }
 
-export async function broadcastMessage(message: string, imageUrl?: string | null, buttons?: any): Promise<{ successCount: number; failureCount: number }> {
+export async function broadcastMessage(
+  message: string,
+  imageUrl?: string | null,
+  buttons?: any,
+  readMoreUrl?: string
+): Promise<{ successCount: number; failureCount: number }> {
   try {
     const users = await prisma.user.findMany({
       select: { id: true, telegramId: true }
@@ -72,14 +77,25 @@ export async function broadcastMessage(message: string, imageUrl?: string | null
     const path = require('path');
     const fs = require('fs');
 
+    // Truncate very long messages and add a Read More button
+    const MAX_CHARS = 500;
+    let displayMessage = message;
+    let hasMore = false;
+    if (message.length > MAX_CHARS) {
+      displayMessage = message.substring(0, MAX_CHARS).trimEnd() + '...';
+      hasMore = true;
+    }
+
+    // Build buttons: always show Play button; add Read More if truncated
+    const buttonRows: any[] = [];
+    if (hasMore && readMoreUrl) {
+      buttonRows.push(Markup.button.url('📖 Read Full Announcement', readMoreUrl));
+    }
+    buttonRows.push(Markup.button.url('Play Buna Bingo 🎮', 'https://t.me/buna_bingobot'));
+    const finalButtons = buttons ? buttons : Markup.inlineKeyboard(buttonRows);
+
     // Post to the Telegram Channel @buna_bingobot1 (the public announcement channel)
     const targetChannels = ['@buna_bingobot1'];
-    
-    // Add default button linking to the bot if none provided
-    const defaultButtons = Markup.inlineKeyboard([
-      Markup.button.url('Play Buna Bingo 🎮', 'https://t.me/buna_bingobot')
-    ]);
-    const finalButtons = buttons ? buttons : defaultButtons;
     
     for (const channelUsername of targetChannels) {
       try {
@@ -99,23 +115,23 @@ export async function broadcastMessage(message: string, imageUrl?: string | null
               photoInput = { source: compiledPath };
             }
           }
-          if (message.length > 900) {
+          if (displayMessage.length > 900) {
             // Send photo separately, then send text
             await bot.telegram.sendPhoto(channelUsername, photoInput);
-            await bot.telegram.sendMessage(channelUsername, message, {
+            await bot.telegram.sendMessage(channelUsername, displayMessage, {
               parse_mode: 'HTML',
               ...finalButtons
             });
           } else {
             // Send together
             await bot.telegram.sendPhoto(channelUsername, photoInput, {
-              caption: message,
+              caption: displayMessage,
               parse_mode: 'HTML',
               ...finalButtons
             });
           }
         } else {
-          await bot.telegram.sendMessage(channelUsername, message, {
+          await bot.telegram.sendMessage(channelUsername, displayMessage, {
             parse_mode: 'HTML',
             ...finalButtons
           });
@@ -144,23 +160,23 @@ export async function broadcastMessage(message: string, imageUrl?: string | null
               photoInput = { source: compiledPath };
             }
           }
-          if (message.length > 900) {
+          if (displayMessage.length > 900) {
             // Send photo separately, then send text
             await bot.telegram.sendPhoto(Number(user.telegramId), photoInput);
-            await bot.telegram.sendMessage(Number(user.telegramId), message, {
+            await bot.telegram.sendMessage(Number(user.telegramId), displayMessage, {
               parse_mode: 'HTML',
               ...finalButtons
             });
           } else {
             // Send together
             await bot.telegram.sendPhoto(Number(user.telegramId), photoInput, {
-              caption: message,
+              caption: displayMessage,
               parse_mode: 'HTML',
               ...finalButtons
             });
           }
         } else {
-          await bot.telegram.sendMessage(Number(user.telegramId), message, {
+          await bot.telegram.sendMessage(Number(user.telegramId), displayMessage, {
             parse_mode: 'HTML',
             ...finalButtons
           });

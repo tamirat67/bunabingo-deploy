@@ -68,6 +68,18 @@ router.get('/rooms', async (_req: Request, res: Response) => {
   }
 });
 
+// ─── Public: Single Promotion (no auth — for Read More page) ──
+router.get('/promotions/:id/public', async (req: Request, res: Response) => {
+  try {
+    const promo = await prisma.promotion.findUnique({ where: { id: req.params.id } });
+    if (!promo) return res.status(404).json({ error: 'Promotion not found' });
+    res.json(promo);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to load promotion' });
+  }
+});
+
+
 import axios from 'axios';
 
 // ─── Serve Telegram Files ──────────────────────────────────────
@@ -2194,8 +2206,9 @@ staffRouter.post('/promotions/:id/broadcast', restrictToAdmin, async (req, res) 
     // Actually trigger Telegram bot notification broadcast in background
     const { broadcastMessage } = await import('../bot/notifier');
     const formattedMessage = `📢 <b>${promotion.title}</b>\n\n${promotion.message}`;
+    const readMoreUrl = `${config.bot.miniAppUrl}/announcements/${id}`;
 
-    broadcastMessage(formattedMessage, promotion.imageUrl).catch((err) => {
+    broadcastMessage(formattedMessage, promotion.imageUrl, undefined, readMoreUrl).catch((err) => {
       console.error(`[Broadcast] Background broadcast failed for promotion ${id}:`, err);
     });
 
