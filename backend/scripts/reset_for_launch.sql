@@ -1,31 +1,31 @@
 -- ============================================================
--- BUNA BINGO — SAFE PRODUCTION RESET SCRIPT
--- Run this ONCE before going live.
+-- BUNA BINGO — LAUNCH RESET SCRIPT
 -- 
--- KEEPS:  admin users, bot users, rooms, system_settings
--- CLEARS: all player data, games, tickets, transactions,
---         deposits, withdrawals, winners, draw_history,
---         agent_commission_logs, agent_pre_deposit_wallets,
---         wallets (non-admin/non-bot), jackpot balance,
---         system_wallet balance, game_cycles, admin_logs,
---         promotions
+-- KEEPS:  ALL users (admins, agents, bots, players), rooms,
+--         system_settings, agent pre-deposit wallet records
+-- CLEARS: games, tickets, winners, draw_history,
+--         transactions, deposits, withdrawals,
+--         agent_commission_logs, admin_logs, promotions
+-- RESETS: all wallet balances → 0, agent pre-deposit
+--         balances → 0, jackpot → 0, system_wallet → 0,
+--         game_cycles → 0
 -- ============================================================
 
 BEGIN;
 
--- 1. Draw history (depends on games)
+-- 1. Draw history
 DELETE FROM draw_history;
 
--- 2. Winners (depends on games, tickets, users)
+-- 2. Winners
 DELETE FROM winners;
 
--- 3. Tickets (depends on games, users)
+-- 3. Tickets
 DELETE FROM tickets;
 
--- 4. Agent commission logs (depends on agent_pre_deposit_wallets, users)
+-- 4. Agent commission logs (history of debits/recharges)
 DELETE FROM agent_commission_logs;
 
--- 5. Games (depends on rooms)
+-- 5. Games
 DELETE FROM games;
 
 -- 6. Deposits
@@ -40,44 +40,50 @@ DELETE FROM transactions;
 -- 9. Admin logs
 DELETE FROM admin_logs;
 
--- 10. Agent pre-deposit wallets — only for real (non-bot, non-admin) agents
-DELETE FROM agent_pre_deposit_wallets
-WHERE agent_id IN (
-  SELECT id FROM users WHERE is_bot = false AND is_admin = false AND role != 'ADMIN'
-);
+-- 10. Promotions
+DELETE FROM promotions;
 
--- 11. Wallets — only for real players (keep admin + bot wallets)
-DELETE FROM wallets
-WHERE user_id IN (
-  SELECT id FROM users WHERE is_bot = false AND is_admin = false AND role != 'ADMIN'
-);
+-- 11. Reset ALL wallet balances to 0 (keep the wallet rows, just zero everything)
+UPDATE wallets SET
+  balance         = 0,
+  credit          = 0,
+  referral_balance = 0,
+  bonus_balance   = 0,
+  coins           = 0,
+  total_deposited = 0,
+  total_withdrawn = 0,
+  total_won       = 0,
+  total_spent     = 0,
+  updated_at      = NOW();
 
--- 12. Delete real users (players/agents) — keep bots and admins
-DELETE FROM users
-WHERE is_bot = false
-  AND is_admin = false
-  AND role NOT IN ('ADMIN', 'SUPERADMIN');
+-- 12. Reset agent pre-deposit wallet balances to 0 (keep the rows — agents stay intact)
+UPDATE agent_pre_deposit_wallets SET
+  balance        = 0,
+  total_debited  = 0,
+  total_recharged = 0,
+  updated_at     = NOW();
 
--- 13. Reset Jackpot balance to 0
-UPDATE jackpots SET current_amount = 0, last_won_at = NOW(), last_winner_id = NULL, updated_at = NOW();
+-- 13. Reset Jackpot to 0
+UPDATE jackpots SET
+  current_amount = 0,
+  last_won_at    = NOW(),
+  last_winner_id = NULL,
+  updated_at     = NOW();
 
 -- 14. Reset System Wallet (company balance) to 0
 UPDATE system_wallets SET balance = 0, updated_at = NOW();
 
--- 15. Reset Game Cycles counters
+-- 15. Reset Game Cycles counters to 0
 UPDATE game_cycles SET total_games = 0, house_wins = 0, player_wins = 0;
 
--- 16. Clear Promotions
-DELETE FROM promotions;
-
--- Verify what's left
-SELECT 'Users remaining (admins + bots):' AS check_label, COUNT(*) AS count FROM users;
-SELECT 'Bot users:' AS check_label, COUNT(*) AS count FROM users WHERE is_bot = true;
-SELECT 'Admin users:' AS check_label, COUNT(*) AS count FROM users WHERE is_admin = true;
-SELECT 'Rooms:' AS check_label, COUNT(*) AS count FROM rooms;
-SELECT 'System settings:' AS check_label, COUNT(*) AS count FROM system_settings;
-SELECT 'Games remaining (should be 0):' AS check_label, COUNT(*) AS count FROM games;
-SELECT 'Tickets remaining (should be 0):' AS check_label, COUNT(*) AS count FROM tickets;
-SELECT 'Transactions remaining (should be 0):' AS check_label, COUNT(*) AS count FROM transactions;
+-- ── Verification ──────────────────────────────────────────────
+SELECT 'Total users (all kept):' AS label, COUNT(*) AS count FROM users;
+SELECT 'Agents:' AS label, COUNT(*) AS count FROM users WHERE role = 'AGENT';
+SELECT 'Admins:' AS label, COUNT(*) AS count FROM users WHERE is_admin = true;
+SELECT 'Bots:' AS label, COUNT(*) AS count FROM users WHERE is_bot = true;
+SELECT 'Games (must be 0):' AS label, COUNT(*) AS count FROM games;
+SELECT 'Tickets (must be 0):' AS label, COUNT(*) AS count FROM tickets;
+SELECT 'Transactions (must be 0):' AS label, COUNT(*) AS count FROM transactions;
+SELECT 'Agent wallets (rows kept):' AS label, COUNT(*) AS count FROM agent_pre_deposit_wallets;
 
 COMMIT;
