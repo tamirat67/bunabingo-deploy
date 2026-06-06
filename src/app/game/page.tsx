@@ -14,11 +14,11 @@ const COL_COLOR: Record<string, string> = {
   B: '#E74C3C', I: '#E67E22', N: '#D4AF37', G: '#27AE60', O: '#8E44AD',
 };
 const BINGO_3D_COLORS: Record<string, string> = {
-  B: 'radial-gradient(circle at 30% 30%, #FF9999 0%, #E74C3C 40%, #900000 100%)',
-  I: 'radial-gradient(circle at 30% 30%, #FFD0A0 0%, #E67E22 40%, #A04000 100%)',
-  N: 'radial-gradient(circle at 30% 30%, #FFFFCC 0%, #F1C40F 40%, #B7950B 100%)',
-  G: 'radial-gradient(circle at 30% 30%, #A0FFC0 0%, #27AE60 40%, #145A32 100%)',
-  O: 'radial-gradient(circle at 30% 30%, #E0B0FF 0%, #8E44AD 40%, #4A235A 100%)'
+  B: 'radial-gradient(circle at 35% 35%, #FF4D4D 0%, #D32F2F 50%, #7F0000 100%)',
+  I: 'radial-gradient(circle at 35% 35%, #FF9800 0%, #F57C00 50%, #E65100 100%)',
+  N: 'radial-gradient(circle at 35% 35%, #FFD54F 0%, #FBC02D 50%, #F57F17 100%)',
+  G: 'radial-gradient(circle at 35% 35%, #4CAF50 0%, #388E3C 50%, #1B5E20 100%)',
+  O: 'radial-gradient(circle at 35% 35%, #BA68C8 0%, #8E24AA 50%, #4A148C 100%)'
 };
 const COL_RANGES = [
   { l: 'B', s: 1,  e: 15 },
@@ -1177,11 +1177,11 @@ function GameContent() {
                 alignItems: 'center', 
                 justifyContent: 'center', 
                 fontWeight: '900', 
-                border: isVip && lastBall ? '1px solid rgba(255, 215, 0, 0.8)' : (isVip ? '4px solid #FFD700' : '2px solid rgba(255,255,255,0.4)'),
-                color: lastBall ? 'white' : (isVip ? '#FFD700' : T.brown),
-                textShadow: isVip && lastBall ? '0 1px 1px rgba(255, 255, 255, 0.4)' : 'none',
+                border: isVip && lastBall ? '2px solid rgba(255, 215, 0, 0.9)' : (isVip ? '4px solid #FFD700' : '2px solid rgba(255,255,255,0.4)'),
+                color: lastBall ? '#ffffff' : (isVip ? '#FFD700' : T.brown),
+                textShadow: isVip && lastBall ? '0 2px 4px rgba(0,0,0,0.8)' : 'none',
                 boxShadow: lastBall 
-                  ? (isVip ? 'inset -4px -4px 12px rgba(0,0,0,0.5), inset 3px 3px 10px rgba(255,255,255,0.8), 0 0 15px rgba(255, 215, 0, 0.6)' : 'inset -4px -4px 10px rgba(0,0,0,0.4), inset 2px 2px 6px rgba(255,255,255,0.6), 0 3px 8px rgba(0,0,0,0.3)')
+                  ? (isVip ? 'inset -4px -4px 12px rgba(0,0,0,0.6), inset 3px 3px 8px rgba(255,255,255,0.5), 0 0 15px rgba(255, 215, 0, 0.5)' : 'inset -4px -4px 10px rgba(0,0,0,0.4), inset 2px 2px 6px rgba(255,255,255,0.6), 0 3px 8px rgba(0,0,0,0.3)')
                   : 'none'
               }}
             >
@@ -1209,8 +1209,8 @@ function GameContent() {
                     style={{
                       backgroundColor: COL_COLOR[label],
                       backgroundImage: isVip ? BINGO_3D_COLORS[label] : 'radial-gradient(circle at 35% 35%, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 25%)',
-                      color: 'white',
-                      textShadow: isVip ? '0 1px 1px rgba(255, 255, 255, 0.4)' : 'none',
+                      color: '#ffffff',
+                      textShadow: isVip ? '0 1px 3px rgba(0,0,0,0.8)' : 'none',
                       fontWeight: '900',
                       width: '32px',
                       height: '32px',
@@ -1219,8 +1219,8 @@ function GameContent() {
                       flexDirection: 'column',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      border: isVip ? '1px solid rgba(255, 215, 0, 0.8)' : '1.5px solid rgba(255,255,255,0.4)',
-                      boxShadow: isVip ? 'inset -3px -3px 8px rgba(0,0,0,0.5), inset 2px 2px 6px rgba(255,255,255,0.8), 0 3px 6px rgba(0,0,0,0.4)' : 'inset -3px -3px 6px rgba(0,0,0,0.4), inset 2px 2px 4px rgba(255,255,255,0.6), 0 2px 5px rgba(0,0,0,0.3)'
+                      border: isVip ? '1px solid rgba(255, 215, 0, 0.9)' : '1.5px solid rgba(255,255,255,0.4)',
+                      boxShadow: isVip ? 'inset -3px -3px 8px rgba(0,0,0,0.6), inset 2px 2px 5px rgba(255,255,255,0.5), 0 3px 6px rgba(0,0,0,0.4)' : 'inset -3px -3px 6px rgba(0,0,0,0.4), inset 2px 2px 4px rgba(255,255,255,0.6), 0 2px 5px rgba(0,0,0,0.3)'
                     }}
                   >
                     <span style={{ fontSize: '8px', lineHeight: 1, opacity: 0.8 }}>{label}</span>
@@ -1233,24 +1233,17 @@ function GameContent() {
           </div>
 
           <div style={{ background: isVip ? 'rgba(255,255,255,0.05)' : T.card, borderRadius: '14px', padding: '10px', border: isVip ? '1px solid rgba(255, 215, 0, 0.25)' : `1px solid ${T.gold}44`, backdropFilter: isVip ? 'blur(10px)' : 'none' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '3px', marginBottom: '6px', justifyItems: isVip ? 'center' : 'stretch' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '3px', marginBottom: '6px' }}>
               {['B','I','N','G','O'].map(l => (
                 <div key={l} style={{ 
-                  background: isVip ? BINGO_3D_COLORS[l] : COL_COLOR[l], 
-                  color: 'white', 
+                  background: isVip ? 'linear-gradient(135deg, #FFD700, #C471ED)' : COL_COLOR[l], 
+                  color: isVip ? '#1C0A35' : 'white', 
                   textAlign: 'center', 
                   fontSize: '13px', 
                   fontWeight: '900', 
-                  borderRadius: isVip ? '50%' : '6px',
-                  width: isVip ? '26px' : 'auto',
-                  height: isVip ? '26px' : 'auto',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  textShadow: isVip ? '0 1px 1px rgba(255, 255, 255, 0.4)' : 'none',
-                  border: isVip ? '1px solid rgba(255, 215, 0, 0.8)' : 'none',
-                  padding: isVip ? '0' : '4px 0',
-                  boxShadow: isVip ? 'inset -3px -3px 6px rgba(0,0,0,0.5), inset 2px 2px 5px rgba(255,255,255,0.7), 0 3px 6px rgba(0,0,0,0.3)' : 'none'
+                  borderRadius: '6px',
+                  padding: '4px 0',
+                  boxShadow: isVip ? '0 2px 5px rgba(0,0,0,0.15)' : 'none'
                 }}>{l}</div>
               ))}
             </div>
@@ -1334,7 +1327,7 @@ function GameContent() {
                 key={l} 
                 style={{ 
                   background: isVip ? BINGO_3D_COLORS[l] : COL_COLOR[l], 
-                  color: 'white', 
+                  color: '#ffffff', 
                   textAlign: 'center', 
                   fontSize: '13px', 
                   fontWeight: '900', 
@@ -1345,9 +1338,9 @@ function GameContent() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   margin: '0 auto',
-                  textShadow: isVip ? '0 1px 1px rgba(255, 255, 255, 0.4)' : 'none',
-                  border: isVip ? '1px solid rgba(255, 215, 0, 0.8)' : 'none',
-                  boxShadow: isVip ? 'inset -3px -3px 6px rgba(0,0,0,0.5), inset 2px 2px 5px rgba(255,255,255,0.7), 0 3px 6px rgba(0,0,0,0.3)' : '0 2px 5px rgba(0,0,0,0.1)'
+                  textShadow: isVip ? '0 1px 3px rgba(0,0,0,0.8)' : 'none',
+                  border: isVip ? '1px solid rgba(255, 215, 0, 0.9)' : 'none',
+                  boxShadow: isVip ? 'inset -3px -3px 8px rgba(0,0,0,0.6), inset 2px 2px 4px rgba(255,255,255,0.4), 0 3px 6px rgba(0,0,0,0.3)' : '0 2px 5px rgba(0,0,0,0.1)'
                 }}
               >
                 {l}
