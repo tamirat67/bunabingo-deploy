@@ -1226,24 +1226,17 @@ function GameContent() {
           </div>
 
           <div style={{ background: isVip ? 'rgba(255,255,255,0.05)' : T.card, borderRadius: '14px', padding: '10px', border: isVip ? '1px solid rgba(255, 215, 0, 0.25)' : `1px solid ${T.gold}44`, backdropFilter: isVip ? 'blur(10px)' : 'none' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '3px', marginBottom: '6px', justifyItems: 'center' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '3px', marginBottom: '6px' }}>
               {['B','I','N','G','O'].map(l => (
                 <div key={l} style={{ 
-                  background: isVip ? 'radial-gradient(circle at 30% 30%, #FFE259 0%, #FFD700 25%, #C471ED 75%, #4A00E0 100%)' : COL_COLOR[l], 
+                  background: isVip ? 'linear-gradient(135deg, #FFD700, #C471ED)' : COL_COLOR[l], 
                   color: isVip ? '#1C0A35' : 'white', 
                   textAlign: 'center', 
                   fontSize: '13px', 
                   fontWeight: '900', 
-                  borderRadius: isVip ? '50%' : '6px',
-                  width: isVip ? '26px' : 'auto',
-                  height: isVip ? '26px' : 'auto',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  textShadow: isVip ? '0 1px 1px rgba(255, 255, 255, 0.4)' : 'none',
-                  border: isVip ? '1px solid rgba(255, 215, 0, 0.8)' : 'none',
-                  padding: isVip ? '0' : '4px 0',
-                  boxShadow: isVip ? 'inset -3px -3px 6px rgba(0,0,0,0.5), inset 2px 2px 5px rgba(255,255,255,0.7), 0 3px 6px rgba(0,0,0,0.3)' : 'none'
+                  borderRadius: '6px', 
+                  padding: '4px 0',
+                  boxShadow: isVip ? '0 2px 5px rgba(0,0,0,0.15)' : 'none'
                 }}>{l}</div>
               ))}
             </div>
