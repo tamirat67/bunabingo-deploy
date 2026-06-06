@@ -163,8 +163,9 @@ export default function ProfilePage() {
   const handleInvite = () => {
     const tg = (window as any).Telegram?.WebApp;
     if (tg) {
-      const inviteUrl = `https://t.me/buna_bingobot?start=${profile?.id || ''}`;
-      const text = `🎰 Join me on Buna Bingo! ☕️ Get 5 ETB bonus when you join!`;
+      const token = profile?.referralCode || profile?.id || '';
+      const inviteUrl = `https://t.me/buna_bingobot?start=${token}`;
+      const text = `🎰 Join me on Buna Bingo! ☕️ Get 5 ETB bonus when you join! Play here:`;
       tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(inviteUrl)}&text=${encodeURIComponent(text)}`);
     }
   };
