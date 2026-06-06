@@ -72,8 +72,8 @@ export async function broadcastMessage(message: string, imageUrl?: string | null
     const path = require('path');
     const fs = require('fs');
 
-    // Post to the Telegram Channels
-    const targetChannels = ['@buna_bingobot1', '@buna_bingobot'];
+    // Post to the Telegram Channel @buna_bingobot1 (the public announcement channel)
+    const targetChannels = ['@buna_bingobot1'];
     
     // Add default button linking to the bot if none provided
     const defaultButtons = Markup.inlineKeyboard([
