@@ -99,11 +99,21 @@ export async function broadcastMessage(message: string, imageUrl?: string | null
               photoInput = { source: compiledPath };
             }
           }
-          await bot.telegram.sendPhoto(channelUsername, photoInput, {
-            caption: message,
-            parse_mode: 'HTML',
-            ...finalButtons
-          });
+          if (message.length > 900) {
+            // Send photo separately, then send text
+            await bot.telegram.sendPhoto(channelUsername, photoInput);
+            await bot.telegram.sendMessage(channelUsername, message, {
+              parse_mode: 'HTML',
+              ...finalButtons
+            });
+          } else {
+            // Send together
+            await bot.telegram.sendPhoto(channelUsername, photoInput, {
+              caption: message,
+              parse_mode: 'HTML',
+              ...finalButtons
+            });
+          }
         } else {
           await bot.telegram.sendMessage(channelUsername, message, {
             parse_mode: 'HTML',
@@ -111,8 +121,8 @@ export async function broadcastMessage(message: string, imageUrl?: string | null
           });
         }
         logger.info(`[Notifier] Successfully posted announcement to Telegram channel ${channelUsername}`);
-      } catch (channelErr) {
-        logger.error(`[Notifier] Failed to post announcement to Telegram channel ${channelUsername}:`, channelErr);
+      } catch (channelErr: any) {
+        logger.error(`[Notifier] Failed to post announcement to Telegram channel ${channelUsername}: ${channelErr.message || channelErr}`);
       }
     }
 
@@ -134,11 +144,21 @@ export async function broadcastMessage(message: string, imageUrl?: string | null
               photoInput = { source: compiledPath };
             }
           }
-          await bot.telegram.sendPhoto(Number(user.telegramId), photoInput, {
-            caption: message,
-            parse_mode: 'HTML',
-            ...finalButtons
-          });
+          if (message.length > 900) {
+            // Send photo separately, then send text
+            await bot.telegram.sendPhoto(Number(user.telegramId), photoInput);
+            await bot.telegram.sendMessage(Number(user.telegramId), message, {
+              parse_mode: 'HTML',
+              ...finalButtons
+            });
+          } else {
+            // Send together
+            await bot.telegram.sendPhoto(Number(user.telegramId), photoInput, {
+              caption: message,
+              parse_mode: 'HTML',
+              ...finalButtons
+            });
+          }
         } else {
           await bot.telegram.sendMessage(Number(user.telegramId), message, {
             parse_mode: 'HTML',
@@ -148,8 +168,8 @@ export async function broadcastMessage(message: string, imageUrl?: string | null
         successCount++;
         // Small delay to prevent rate-limiting issues from Telegram
         await new Promise(resolve => setTimeout(resolve, 50));
-      } catch (err) {
-        logger.error(`[Notifier] Broadcast failed for user ${user.id}:`, err);
+      } catch (err: any) {
+        logger.error(`[Notifier] Broadcast failed for user ${user.id} (telegramId: ${user.telegramId}): ${err.message || err}`);
         failureCount++;
       }
     }
