@@ -13,6 +13,13 @@ import { PREDEFINED_CARDS } from '../../lib/predefinedCards';
 const COL_COLOR: Record<string, string> = {
   B: '#E74C3C', I: '#E67E22', N: '#D4AF37', G: '#27AE60', O: '#8E44AD',
 };
+const BINGO_3D_COLORS: Record<string, string> = {
+  B: 'radial-gradient(circle at 30% 30%, #FF9999 0%, #E74C3C 40%, #900000 100%)',
+  I: 'radial-gradient(circle at 30% 30%, #FFD0A0 0%, #E67E22 40%, #A04000 100%)',
+  N: 'radial-gradient(circle at 30% 30%, #FFFFCC 0%, #F1C40F 40%, #B7950B 100%)',
+  G: 'radial-gradient(circle at 30% 30%, #A0FFC0 0%, #27AE60 40%, #145A32 100%)',
+  O: 'radial-gradient(circle at 30% 30%, #E0B0FF 0%, #8E44AD 40%, #4A235A 100%)'
+};
 const COL_RANGES = [
   { l: 'B', s: 1,  e: 15 },
   { l: 'I', s: 16, e: 30 },
@@ -1229,8 +1236,8 @@ function GameContent() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '3px', marginBottom: '6px', justifyItems: isVip ? 'center' : 'stretch' }}>
               {['B','I','N','G','O'].map(l => (
                 <div key={l} style={{ 
-                  background: isVip ? 'radial-gradient(circle at 30% 30%, #FFE259 0%, #FFD700 25%, #C471ED 75%, #4A00E0 100%)' : COL_COLOR[l], 
-                  color: isVip ? '#1C0A35' : 'white', 
+                  background: isVip ? BINGO_3D_COLORS[l] : COL_COLOR[l], 
+                  color: 'white', 
                   textAlign: 'center', 
                   fontSize: '13px', 
                   fontWeight: '900', 
@@ -1326,8 +1333,8 @@ function GameContent() {
               <div 
                 key={l} 
                 style={{ 
-                  background: isVip ? 'radial-gradient(circle at 30% 30%, #FFE259 0%, #FFD700 25%, #C471ED 75%, #4A00E0 100%)' : COL_COLOR[l], 
-                  color: isVip ? '#1C0A35' : 'white', 
+                  background: isVip ? BINGO_3D_COLORS[l] : COL_COLOR[l], 
+                  color: 'white', 
                   textAlign: 'center', 
                   fontSize: '13px', 
                   fontWeight: '900', 
