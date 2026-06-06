@@ -1166,10 +1166,10 @@ function GameContent() {
                 width: '52px', 
                 height: '52px', 
                 backgroundColor: lastBall 
-                  ? (isVip ? '#C471ED' : COL_COLOR[colLabel(lastBall)]) 
+                  ? (isVip ? COL_COLOR[colLabel(lastBall)] : COL_COLOR[colLabel(lastBall)]) 
                   : (isVip ? 'rgba(255,255,255,0.05)' : T.statBg),
                 backgroundImage: lastBall
-                  ? (isVip ? 'radial-gradient(circle at 30% 30%, #FFE259 0%, #FFD700 25%, #C471ED 75%, #4A00E0 100%)' : 'radial-gradient(circle at 35% 35%, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 25%)')
+                  ? (isVip ? BINGO_3D_COLORS[colLabel(lastBall)] : 'radial-gradient(circle at 35% 35%, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 25%)')
                   : 'none',
                 borderRadius: '50%', 
                 display: 'flex', 
@@ -1178,7 +1178,7 @@ function GameContent() {
                 justifyContent: 'center', 
                 fontWeight: '900', 
                 border: isVip && lastBall ? '1px solid rgba(255, 215, 0, 0.8)' : (isVip ? '4px solid #FFD700' : '2px solid rgba(255,255,255,0.4)'),
-                color: lastBall ? (isVip ? '#1C0A35' : 'white') : (isVip ? '#FFD700' : T.brown),
+                color: lastBall ? 'white' : (isVip ? '#FFD700' : T.brown),
                 textShadow: isVip && lastBall ? '0 1px 1px rgba(255, 255, 255, 0.4)' : 'none',
                 boxShadow: lastBall 
                   ? (isVip ? 'inset -4px -4px 12px rgba(0,0,0,0.5), inset 3px 3px 10px rgba(255,255,255,0.8), 0 0 15px rgba(255, 215, 0, 0.6)' : 'inset -4px -4px 10px rgba(0,0,0,0.4), inset 2px 2px 6px rgba(255,255,255,0.6), 0 3px 8px rgba(0,0,0,0.3)')
@@ -1207,9 +1207,9 @@ function GameContent() {
                     initial={{ scale: 0.5, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     style={{
-                      backgroundColor: isVip ? '#C471ED' : COL_COLOR[label],
-                      backgroundImage: isVip ? 'radial-gradient(circle at 30% 30%, #FFE259 0%, #FFD700 25%, #C471ED 75%, #4A00E0 100%)' : 'radial-gradient(circle at 35% 35%, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 25%)',
-                      color: isVip ? '#1C0A35' : 'white',
+                      backgroundColor: COL_COLOR[label],
+                      backgroundImage: isVip ? BINGO_3D_COLORS[label] : 'radial-gradient(circle at 35% 35%, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 25%)',
+                      color: 'white',
                       textShadow: isVip ? '0 1px 1px rgba(255, 255, 255, 0.4)' : 'none',
                       fontWeight: '900',
                       width: '32px',
