@@ -57,6 +57,23 @@ export default function SettingsPage() {
   const [houseEdgeRate, setHouseEdgeRate] = useState('30');
   const [agentSharePct, setAgentSharePct] = useState('20');
 
+  const [appModal, setAppModal] = useState<{
+    isOpen: boolean;
+    type: 'confirm' | 'alert';
+    title: string;
+    message: string;
+    isError?: boolean;
+    onConfirm?: () => void;
+  }>({ isOpen: false, type: 'alert', title: '', message: '' });
+
+  const showAlert = (title: string, message: string, isError = false) => {
+    setAppModal({ isOpen: true, type: 'alert', title, message, isError });
+  };
+
+  const showConfirm = (title: string, message: string, onConfirm: () => void) => {
+    setAppModal({ isOpen: true, type: 'confirm', title, message, onConfirm });
+  };
+
   // Promotions state
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [loadingPromos, setLoadingPromos] = useState(true);
@@ -128,7 +145,7 @@ export default function SettingsPage() {
       await api.patch(`/admin/rooms/${roomId}`, data);
       await fetchRooms();
     } catch (err) {
-      alert('Update failed.');
+      showAlert('Error', 'Update failed.', true);
     } finally {
       setSavingRoom(null);
     }
@@ -173,7 +190,7 @@ export default function SettingsPage() {
 
   const handleSavePromotion = async () => {
     if (!promoForm.title.trim() || !promoForm.message.trim()) {
-      alert('Title and message are required.');
+      showAlert('Validation Error', 'Title and message are required.', true);
       return;
     }
     setSavingPromo(true);
@@ -205,21 +222,23 @@ export default function SettingsPage() {
       fetchPromotions();
     } catch (err: any) {
       const serverError = err.response?.data?.error || err.message || 'Failed to save promotion.';
-      alert(`Error: ${serverError}`);
+      showAlert('Error', serverError, true);
       console.error('[Promotion Save Error]', err.response?.data || err);
     } finally {
       setSavingPromo(false);
     }
   };
 
-  const handleDeletePromo = async (id: string) => {
-    if (!window.confirm('Delete this promotion? This cannot be undone.')) return;
-    try {
-      await api.delete(`/admin/promotions/${id}`);
-      fetchPromotions();
-    } catch (err) {
-      alert('Failed to delete promotion.');
-    }
+  const handleDeletePromo = (id: string) => {
+    showConfirm('Delete Promotion', 'Delete this promotion? This cannot be undone.', async () => {
+      setAppModal(prev => ({ ...prev, isOpen: false }));
+      try {
+        await api.delete(`/admin/promotions/${id}`);
+        fetchPromotions();
+      } catch (err) {
+        showAlert('Error', 'Failed to delete promotion.', true);
+      }
+    });
   };
 
   const handleTogglePromo = async (promo: Promotion) => {
@@ -227,22 +246,24 @@ export default function SettingsPage() {
       await api.patch(`/admin/promotions/${promo.id}`, { isActive: !promo.isActive });
       fetchPromotions();
     } catch (err) {
-      alert('Failed to toggle promotion.');
+      showAlert('Error', 'Failed to toggle promotion.', true);
     }
   };
 
-  const handleBroadcast = async (id: string) => {
-    if (!window.confirm('Broadcast this message to ALL users? This action cannot be undone.')) return;
-    setBroadcastingId(id);
-    try {
-      const res = await api.post(`/admin/promotions/${id}/broadcast`);
-      alert(`Broadcast queued to ${res.data.totalRecipients} users!`);
-      fetchPromotions();
-    } catch (err) {
-      alert('Failed to broadcast.');
-    } finally {
-      setBroadcastingId(null);
-    }
+  const handleBroadcast = (id: string) => {
+    showConfirm('Broadcast Message', 'Broadcast this message to ALL users? This action cannot be undone.', async () => {
+      setAppModal(prev => ({ ...prev, isOpen: false }));
+      setBroadcastingId(id);
+      try {
+        const res = await api.post(`/admin/promotions/${id}/broadcast`);
+        showAlert('Success', `Broadcast queued to ${res.data.totalRecipients} users!`);
+        fetchPromotions();
+      } catch (err) {
+        showAlert('Error', 'Failed to broadcast.', true);
+      } finally {
+        setBroadcastingId(null);
+      }
+    });
   };
 
   // Computed values for UI Live Preview
@@ -1089,6 +1110,45 @@ export default function SettingsPage() {
               })}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Global Application Modal (replaces alert and confirm) */}
+      {appModal.isOpen && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 100000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>
+          <div style={{ background: '#fff', borderRadius: '24px', width: '100%', maxWidth: '400px', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', animation: 'slideUp 0.3s ease-out forwards' }}>
+            <div style={{ padding: '24px' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: '800', color: appModal.isError ? '#ef4444' : '#3d2b1f', marginBottom: '12px' }}>
+                {appModal.title}
+              </h3>
+              <p style={{ fontSize: '15px', color: '#5c554b', lineHeight: '1.5', marginBottom: '32px' }}>
+                {appModal.message}
+              </p>
+
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                {appModal.type === 'confirm' && (
+                  <button
+                    onClick={() => setAppModal(prev => ({ ...prev, isOpen: false }))}
+                    style={{ padding: '12px 24px', borderRadius: '12px', fontSize: '14px', fontWeight: '700', color: '#78716c', background: '#f5f5f4', border: 'none', cursor: 'pointer' }}
+                  >
+                    Cancel
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    if (appModal.type === 'confirm' && appModal.onConfirm) {
+                      appModal.onConfirm();
+                    } else {
+                      setAppModal(prev => ({ ...prev, isOpen: false }));
+                    }
+                  }}
+                  style={{ padding: '12px 24px', borderRadius: '12px', fontSize: '14px', fontWeight: '800', color: '#fff', background: appModal.type === 'confirm' ? '#3b82f6' : '#d4af37', border: 'none', cursor: 'pointer' }}
+                >
+                  {appModal.type === 'confirm' ? 'Confirm' : 'OK'}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
