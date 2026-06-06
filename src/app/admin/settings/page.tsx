@@ -53,6 +53,10 @@ export default function SettingsPage() {
   const [settingsSaved, setSettingsSaved] = useState(false);
   const [settingsError, setSettingsError] = useState('');
 
+  // UI state for Revenue Split (House Edge Model)
+  const [houseEdgeRate, setHouseEdgeRate] = useState('30');
+  const [agentSharePct, setAgentSharePct] = useState('20');
+
   // Promotions state
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [loadingPromos, setLoadingPromos] = useState(true);
@@ -92,6 +96,14 @@ export default function SettingsPage() {
         BONUS_EXPIRY: res.data.BONUS_EXPIRY || '',
         HOUSE_BOT_ENABLED: res.data.HOUSE_BOT_ENABLED !== false,
       });
+
+      // Derive house margin UI values from stored rates
+      const compRate  = parseFloat(res.data.COMPANY_COMMISSION_RATE) || 0;
+      const agentRate = parseFloat(res.data.AGENT_PROFIT_RATE) || 0;
+      const totalEdge = compRate + agentRate;
+      const agentShare = totalEdge > 0 ? (agentRate / totalEdge) * 100 : 20;
+      setHouseEdgeRate(totalEdge.toFixed(2).replace(/\.00$/, ''));
+      setAgentSharePct(agentShare.toFixed(1).replace(/\.0$/, ''));
     } catch (err) {
       console.error('Failed to fetch settings:', err);
     } finally {
@@ -124,25 +136,32 @@ export default function SettingsPage() {
 
   const handleSaveSettings = async () => {
     setSettingsError('');
-    const compRate = parseFloat(settings.COMPANY_COMMISSION_RATE);
-    const agentRate = parseFloat(settings.AGENT_PROFIT_RATE);
+    const edge      = parseFloat(houseEdgeRate);
+    const agentShr  = parseFloat(agentSharePct);
 
-    if (isNaN(compRate) || compRate < 0 || compRate > 50) {
-      setSettingsError('Company commission must be between 0% and 50%.');
+    if (isNaN(edge) || edge < 0 || edge > 50) {
+      setSettingsError('Total house margin must be between 0% and 50%.');
       return;
     }
-    if (isNaN(agentRate) || agentRate < 0 || agentRate > 50) {
-      setSettingsError('Agent profit rate must be between 0% and 50%.');
+    if (isNaN(agentShr) || agentShr < 0 || agentShr > 100) {
+      setSettingsError('Agent profit percentage must be between 0% and 100%.');
       return;
     }
-    if (compRate + agentRate > 30) {
-      setSettingsError(`Total house margin (${(compRate + agentRate).toFixed(2)}%) cannot exceed 30%. Lower one of the rates.`);
-      return;
-    }
+
+    // Compute stored rates from the margin model
+    const computedAgentRate   = parseFloat((edge * agentShr / 100).toFixed(4));
+    const computedCompanyRate = parseFloat((edge * (100 - agentShr) / 100).toFixed(4));
+
+    const payload = {
+      ...settings,
+      COMPANY_COMMISSION_RATE: String(computedCompanyRate),
+      AGENT_PROFIT_RATE: String(computedAgentRate),
+    };
 
     setSavingSettings(true);
     try {
-      await api.put('/admin/settings', settings);
+      await api.put('/admin/settings', payload);
+      setSettings(s => ({ ...s, COMPANY_COMMISSION_RATE: String(computedCompanyRate), AGENT_PROFIT_RATE: String(computedAgentRate) }));
       setSettingsSaved(true);
       setTimeout(() => setSettingsSaved(false), 3000);
     } catch (err: any) {
@@ -226,14 +245,15 @@ export default function SettingsPage() {
     }
   };
 
-  const totalHouseMargin = (
-    parseFloat(settings.COMPANY_COMMISSION_RATE || '0') +
-    parseFloat(settings.AGENT_PROFIT_RATE || '0')
-  ).toFixed(2);
-
-  const playerPrize = (
-    100 - parseFloat(totalHouseMargin)
-  ).toFixed(2);
+  // Computed values for UI Live Preview
+  const edgeNum       = parseFloat(houseEdgeRate) || 0;
+  const agentShrNum   = parseFloat(agentSharePct) || 0;
+  const companyShrNum = 100 - agentShrNum;
+  
+  const agentETB      = parseFloat((edgeNum * agentShrNum / 100).toFixed(2));
+  const companyETB    = parseFloat((edgeNum * companyShrNum / 100).toFixed(2));
+  const playerPrize   = (100 - edgeNum).toFixed(2);
+  const totalHouseMargin = edgeNum.toFixed(2);
 
   // Bonus expiry helpers
   const bonusExpiry = settings.BONUS_EXPIRY ? new Date(settings.BONUS_EXPIRY) : null;
@@ -305,48 +325,48 @@ export default function SettingsPage() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px' }}>
                     <div>
                       <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', color: '#78716c', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                        🏢 Company Commission (%)
+                        🏦 Total House Margin (%)
                       </label>
                       <div style={{ position: 'relative' }}>
                         <input
                           type="number"
                           min="0" max="50" step="0.5"
                           className="login-input"
-                          style={{ width: '100%', paddingRight: '40px' }}
-                          value={settings.COMPANY_COMMISSION_RATE}
-                          onChange={(e) => setSettings(s => ({ ...s, COMPANY_COMMISSION_RATE: e.target.value }))}
+                          style={{ width: '100%', paddingRight: '40px', fontWeight: '800', fontSize: '18px' }}
+                          value={houseEdgeRate}
+                          onChange={(e) => setHouseEdgeRate(e.target.value)}
                         />
                         <span style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', fontWeight: '800', color: '#d4af37' }}>%</span>
                       </div>
-                      <p style={{ fontSize: '11px', color: '#78716c', marginTop: '6px' }}>Deducted from agent pre-deposit per game</p>
+                      <p style={{ fontSize: '11px', color: '#78716c', marginTop: '6px' }}>Total percentage of ticket sales kept by the house.</p>
                     </div>
 
                     <div>
                       <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', color: '#78716c', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                        👤 Agent Profit Rate (%)
+                        👤 Agent Profit (% of Margin)
                       </label>
                       <div style={{ position: 'relative' }}>
                         <input
                           type="number"
-                          min="0" max="50" step="0.5"
+                          min="0" max="100" step="1"
                           className="login-input"
-                          style={{ width: '100%', paddingRight: '40px' }}
-                          value={settings.AGENT_PROFIT_RATE}
-                          onChange={(e) => setSettings(s => ({ ...s, AGENT_PROFIT_RATE: e.target.value }))}
+                          style={{ width: '100%', paddingRight: '40px', fontWeight: '800', fontSize: '18px' }}
+                          value={agentSharePct}
+                          onChange={(e) => setAgentSharePct(e.target.value)}
                         />
                         <span style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', fontWeight: '800', color: '#d4af37' }}>%</span>
                       </div>
-                      <p style={{ fontSize: '11px', color: '#78716c', marginTop: '6px' }}>Retained by agent as net take-home</p>
+                      <p style={{ fontSize: '11px', color: '#78716c', marginTop: '6px' }}>How much of the {totalHouseMargin}% margin goes to the agent.</p>
                     </div>
                   </div>
 
                   {/* Live preview bar */}
                   <div style={{ background: '#faf9f7', borderRadius: '16px', padding: '20px', marginBottom: '24px', border: '1px solid #e7e5e4' }}>
                     <p style={{ fontSize: '11px', fontWeight: '800', color: '#78716c', textTransform: 'uppercase', marginBottom: '12px' }}>Revenue Split Preview (per 100 ETB ticket sales)</p>
-                    <div style={{ display: 'flex', height: '12px', borderRadius: '6px', overflow: 'hidden', marginBottom: '12px' }}>
-                      <div style={{ width: `${playerPrize}%`, background: '#22c55e' }} title={`Player Prize: ${playerPrize}%`} />
-                      <div style={{ width: `${settings.AGENT_PROFIT_RATE}%`, background: '#d4af37' }} title={`Agent: ${settings.AGENT_PROFIT_RATE}%`} />
-                      <div style={{ width: `${settings.COMPANY_COMMISSION_RATE}%`, background: '#3d2b1f' }} title={`Company: ${settings.COMPANY_COMMISSION_RATE}%`} />
+                    <div style={{ display: 'flex', height: '14px', borderRadius: '7px', overflow: 'hidden', marginBottom: '12px' }}>
+                      <div style={{ width: `${playerPrize}%`, background: '#22c55e', transition: 'width 0.4s ease' }} title={`Player Prize: ${playerPrize} ETB`} />
+                      <div style={{ width: `${agentETB}%`, background: '#d4af37', transition: 'width 0.4s ease' }} title={`Agent: ${agentETB} ETB`} />
+                      <div style={{ width: `${companyETB}%`, background: '#3d2b1f', transition: 'width 0.4s ease' }} title={`Company: ${companyETB} ETB`} />
                     </div>
                     <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
                       <span style={{ fontSize: '12px', fontWeight: '700', color: '#22c55e', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -355,11 +375,11 @@ export default function SettingsPage() {
                       </span>
                       <span style={{ fontSize: '12px', fontWeight: '700', color: '#d4af37', display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: '#d4af37', display: 'inline-block' }} />
-                        Agent: {settings.AGENT_PROFIT_RATE} ETB
+                        Agent Profit: {agentETB.toFixed(2)} ETB
                       </span>
                       <span style={{ fontSize: '12px', fontWeight: '700', color: '#3d2b1f', display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: '#3d2b1f', display: 'inline-block' }} />
-                        Company: {settings.COMPANY_COMMISSION_RATE} ETB
+                        Company Commission: {companyETB.toFixed(2)} ETB
                       </span>
                     </div>
                   </div>
@@ -522,8 +542,8 @@ export default function SettingsPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {[
                   { label: 'Player Prize Pool', value: `${playerPrize}%`, color: '#22c55e' },
-                  { label: 'Agent Take-Home', value: `${settings.AGENT_PROFIT_RATE}%`, color: '#d4af37' },
-                  { label: 'Company Commission', value: `${settings.COMPANY_COMMISSION_RATE}%`, color: '#f87171' },
+                  { label: 'Agent Take-Home', value: `${agentETB.toFixed(2)}%`, color: '#d4af37' },
+                  { label: 'Company Commission', value: `${companyETB.toFixed(2)}%`, color: '#f87171' },
                   { label: 'Total House Margin', value: `${totalHouseMargin}%`, color: '#a78bfa' },
                 ].map(({ label, value, color }) => (
                   <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
