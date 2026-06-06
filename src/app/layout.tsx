@@ -35,7 +35,7 @@ export default function RootLayout({
           strategy="beforeInteractive"
         />
 
-        {/* ── Eruda mobile debugger ── REMOVE after debugging is done ────────── */}
+        {/* ── Eruda mobile debugger ── Only visible to ADMINS */}
         <Script
           src="https://cdn.jsdelivr.net/npm/eruda"
           strategy="afterInteractive"
@@ -43,6 +43,21 @@ export default function RootLayout({
         />
         <Script id="eruda-init" strategy="afterInteractive">{`
           (function initEruda() {
+            function isDebugging() {
+              if (window.location.search.includes('debug=1')) return true;
+              if (localStorage.getItem('admin_token')) return true;
+              try {
+                var u = sessionStorage.getItem('lobby_user');
+                if (u) {
+                  var p = JSON.parse(u);
+                  return p.role === 'ADMIN' || p.isAdmin;
+                }
+              } catch(e) {}
+              return false;
+            }
+
+            if (!isDebugging()) return;
+
             if (typeof eruda !== 'undefined') {
               eruda.init();
             } else {
