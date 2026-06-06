@@ -54,7 +54,7 @@ export default function AdminAuditPage() {
       </div>
 
       {/* Row 1: Sales Breakdown */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginBottom: '28px' }}>
         {/* Total Gross */}
         <div className="premium-stat-card">
           <div className="card-top-row">
@@ -63,7 +63,7 @@ export default function AdminAuditPage() {
           </div>
           <div className="card-body">
             <div className="card-label">TOTAL GROSS SALES</div>
-            <div className="card-value" style={{ fontSize: '20px' }}>{fmt(data.totalSales)} ETB</div>
+            <div className="card-value" style={{ fontSize: '22px' }}>{fmt(data.totalSales)} ETB</div>
             <div className="card-subtext">Real + Bot combined volume</div>
           </div>
         </div>
@@ -76,7 +76,7 @@ export default function AdminAuditPage() {
           </div>
           <div className="card-body">
             <div className="card-label">REAL PLAYER SALES</div>
-            <div className="card-value" style={{ fontSize: '20px', color: '#15803d' }}>{fmt(data.realPlayerSales)} ETB</div>
+            <div className="card-value" style={{ fontSize: '22px', color: '#15803d' }}>{fmt(data.realPlayerSales)} ETB</div>
             <div className="card-subtext">Commission base (non-bot tickets)</div>
           </div>
         </div>
@@ -89,7 +89,7 @@ export default function AdminAuditPage() {
           </div>
           <div className="card-body">
             <div className="card-label">BOT SALES (FAKE)</div>
-            <div className="card-value" style={{ fontSize: '20px', color: '#9a3412' }}>{fmt(data.botSales)} ETB</div>
+            <div className="card-value" style={{ fontSize: '22px', color: '#9a3412' }}>{fmt(data.botSales)} ETB</div>
             <div className="card-subtext">Synthetic — no commission charged</div>
           </div>
         </div>
@@ -203,31 +203,31 @@ export default function AdminAuditPage() {
         {/* Global Economy Flow */}
         <div className="premium-card">
           <h3 className="premium-card-title">GLOBAL CASH FLOW (Real Player Deposits &amp; Withdrawals)</h3>
-          <div className="stat-grid-6" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', marginTop: '8px' }}>
             <div className="premium-stat-card" style={{ background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
-              <div className="card-label" style={{ color: '#166534' }}>TOTAL DEPOSITED</div>
-              <div className="card-value" style={{ color: '#166534', fontSize: '22px' }}>{fmt(data.totalDeposits)} ETB</div>
-              <div className="card-subtext" style={{ color: '#15803d' }}>Approved fiat entries</div>
+              <div className="card-label" style={{ color: '#166534', fontSize: '13px', marginBottom: '8px' }}>TOTAL DEPOSITED</div>
+              <div className="card-value" style={{ color: '#166534', fontSize: '28px', fontWeight: '900' }}>{fmt(data.totalDeposits)} ETB</div>
+              <div className="card-subtext" style={{ color: '#15803d', marginTop: '6px' }}>Approved fiat entries</div>
             </div>
 
             <div className="premium-stat-card" style={{ background: '#fef2f2', border: '1px solid #fecaca' }}>
-              <div className="card-label" style={{ color: '#991b1b' }}>TOTAL WITHDRAWN</div>
-              <div className="card-value" style={{ color: '#991b1b', fontSize: '22px' }}>{fmt(data.totalWithdrawals)} ETB</div>
-              <div className="card-subtext" style={{ color: '#b91c1c' }}>Completed payouts</div>
+              <div className="card-label" style={{ color: '#991b1b', fontSize: '13px', marginBottom: '8px' }}>TOTAL WITHDRAWN</div>
+              <div className="card-value" style={{ color: '#991b1b', fontSize: '28px', fontWeight: '900' }}>{fmt(data.totalWithdrawals)} ETB</div>
+              <div className="card-subtext" style={{ color: '#b91c1c', marginTop: '6px' }}>Completed payouts</div>
             </div>
 
             <div className="premium-stat-card" style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
-              <div className="card-label" style={{ color: '#334155' }}>NET RETENTION</div>
-              <div className="card-value" style={{ color: totalFlow >= 0 ? '#15803d' : '#991b1b', fontSize: '22px' }}>
+              <div className="card-label" style={{ color: '#334155', fontSize: '13px', marginBottom: '8px' }}>NET RETENTION</div>
+              <div className="card-value" style={{ color: totalFlow >= 0 ? '#15803d' : '#991b1b', fontSize: '28px', fontWeight: '900' }}>
                 {totalFlow >= 0 ? '+' : ''}{fmt(totalFlow)} ETB
               </div>
-              <div className="card-subtext" style={{ color: '#475569' }}>Deposits minus withdrawals</div>
+              <div className="card-subtext" style={{ color: '#475569', marginTop: '6px' }}>Deposits minus withdrawals</div>
             </div>
 
             <div className="premium-stat-card" style={{ background: '#faf5ff', border: '1px solid #e9d5ff' }}>
-              <div className="card-label" style={{ color: '#6b21a8' }}>BUNA WALLET BALANCE</div>
-              <div className="card-value" style={{ color: '#6b21a8', fontSize: '22px' }}>{fmt(data.bunaWalletBalance)} ETB</div>
-              <div className="card-subtext" style={{ color: '#7c3aed' }}>System winnings ({data.totalHouseWins} house bot wins)</div>
+              <div className="card-label" style={{ color: '#6b21a8', fontSize: '13px', marginBottom: '8px' }}>BUNA WALLET BALANCE</div>
+              <div className="card-value" style={{ color: '#6b21a8', fontSize: '28px', fontWeight: '900' }}>{fmt(data.bunaWalletBalance)} ETB</div>
+              <div className="card-subtext" style={{ color: '#7c3aed', marginTop: '6px' }}>System winnings ({data.totalHouseWins} house bot wins)</div>
             </div>
           </div>
         </div>
