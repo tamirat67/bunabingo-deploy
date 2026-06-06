@@ -18,15 +18,40 @@ import { logger } from '../lib/logger';
 // API Routes for Buna Bingo
 const router = Router();
 
-// File upload config
+// File upload config — ensure uploads directory exists
+import fs from 'fs';
+const uploadsDir = path.resolve(process.cwd(), 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+  logger.info(`[Upload] Created uploads directory at: ${uploadsDir}`);
+}
+
+const uploadStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, uploadsDir),
+  filename: (_req, file, cb) => {
+    const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(file.originalname)}`;
+    cb(null, unique);
+  },
+});
+
 const upload = multer({
-  dest: 'uploads/',
+  storage: uploadStorage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
   fileFilter: (_, file, cb) => {
-    const allowed = ['.jpg', '.jpeg', '.png', '.pdf'];
+    const allowed = ['.jpg', '.jpeg', '.png', '.pdf', '.webp', '.gif'];
     cb(null, allowed.includes(path.extname(file.originalname).toLowerCase()));
   },
 });
+
+/** Helper: wrap multer middleware to return JSON on error instead of crashing */
+function runUpload(req: Request, res: Response, middleware: any): Promise<void> {
+  return new Promise((resolve, reject) => {
+    middleware(req, res, (err: any) => {
+      if (err) reject(err);
+      else resolve();
+    });
+  });
+}
 
 import authRouter from './auth';
 
@@ -2049,13 +2074,22 @@ staffRouter.get('/promotions', restrictToAdmin, async (req, res) => {
 });
 
 // CREATE a promotion
-staffRouter.post('/promotions', restrictToAdmin, upload.single('image'), async (req, res) => {
+staffRouter.post('/promotions', restrictToAdmin, async (req, res) => {
+  // Handle file upload manually to return JSON on multer error
+  try {
+    await runUpload(req, res, upload.single('image'));
+  } catch (uploadErr: any) {
+    logger.error('Promotion upload error:', uploadErr);
+    return res.status(400).json({ error: `Image upload failed: ${uploadErr.message || String(uploadErr)}` });
+  }
+
   const { title, message, type, scheduledAt, expiresAt, isActive } = req.body;
   if (!title || !message) {
     return res.status(400).json({ error: 'Title and message are required' });
   }
   
   const parseDate = (val: any) => (val && val !== 'null' && val !== 'undefined' && val !== '' ? new Date(val) : null);
+  // Default isActive to true unless explicitly set to false
   const activeVal = isActive === 'false' || isActive === false ? false : true;
   const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
 
@@ -2078,8 +2112,8 @@ staffRouter.post('/promotions', restrictToAdmin, upload.single('image'), async (
       const { broadcastMessage } = await import('../bot/notifier');
       const formattedMessage = `📢 <b>${promotion.title}</b>\n\n${promotion.message}`;
 
-      broadcastMessage(formattedMessage, promotion.imageUrl).catch((err) => {
-        console.error(`[Broadcast] Background broadcast failed for newly created promotion ${promotion.id}:`, err);
+      broadcastMessage(formattedMessage, promotion.imageUrl).catch((broadcastErr) => {
+        logger.error(`[Broadcast] Background broadcast failed for newly created promotion ${promotion.id}:`, broadcastErr);
       });
     }
 
@@ -2091,7 +2125,15 @@ staffRouter.post('/promotions', restrictToAdmin, upload.single('image'), async (
 });
 
 // UPDATE a promotion
-staffRouter.patch('/promotions/:id', restrictToAdmin, upload.single('image'), async (req, res) => {
+staffRouter.patch('/promotions/:id', restrictToAdmin, async (req, res) => {
+  // Handle file upload manually to return JSON on multer error
+  try {
+    await runUpload(req, res, upload.single('image'));
+  } catch (uploadErr: any) {
+    logger.error('Promotion update upload error:', uploadErr);
+    return res.status(400).json({ error: `Image upload failed: ${uploadErr.message || String(uploadErr)}` });
+  }
+
   const { id } = req.params;
   const { title, message, type, scheduledAt, expiresAt, isActive, removeImage } = req.body;
   
@@ -2119,9 +2161,9 @@ staffRouter.patch('/promotions/:id', restrictToAdmin, upload.single('image'), as
       },
     });
     res.json(promotion);
-  } catch (err) {
-    console.error('Promotion update error:', err);
-    res.status(500).json({ error: 'Failed to update promotion' });
+  } catch (err: any) {
+    logger.error('Promotion update error:', err);
+    res.status(500).json({ error: `Failed to update promotion: ${err.message || String(err)}` });
   }
 });
 

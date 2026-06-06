@@ -185,7 +185,9 @@ export default function SettingsPage() {
       setPromoForm({ title: '', message: '', type: 'announcement', scheduledAt: '', expiresAt: '' });
       fetchPromotions();
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Failed to save promotion.');
+      const serverError = err.response?.data?.error || err.message || 'Failed to save promotion.';
+      alert(`Error: ${serverError}`);
+      console.error('[Promotion Save Error]', err.response?.data || err);
     } finally {
       setSavingPromo(false);
     }
