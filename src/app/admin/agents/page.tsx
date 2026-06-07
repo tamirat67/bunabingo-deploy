@@ -47,10 +47,28 @@ export default function AgentsPage() {
 
   // Alert Modal State
   const [alertModal, setAlertModal] = useState<{isOpen: boolean, title: string, message: string, type: 'info' | 'error' | 'success' | 'confirm' | 'balance'}>({ isOpen: false, title: '', message: '', type: 'info' });
+  const [discountRate, setDiscountRate] = useState(0.20);
 
   useEffect(() => {
     fetchAgents();
   }, [page]);
+
+  useEffect(() => {
+    fetchDiscountRate();
+  }, []);
+
+  async function fetchDiscountRate() {
+    try {
+      const res = await api.get('/admin/settings');
+      const compRate = parseFloat(res.data.COMPANY_COMMISSION_RATE) || 30;
+      const agentRate = parseFloat(res.data.AGENT_PROFIT_RATE) || 6;
+      if (compRate > 0) {
+        setDiscountRate(agentRate / compRate);
+      }
+    } catch (err) {
+      console.error('Failed to fetch settings/discount rate:', err);
+    }
+  }
 
   async function fetchAgents() {
     try {
@@ -430,6 +448,23 @@ export default function AgentsPage() {
                     onChange={(e) => setRechargeAmount(e.target.value)}
                  />
               </div>
+
+              {rechargeAmount && parseFloat(rechargeAmount) > 0 && (
+                <div style={{ background: '#faf9f7', borderRadius: '12px', padding: '16px', marginBottom: '20px', border: '1px solid #e7e5e4', fontSize: '13px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#78716c' }}>
+                    <span style={{ fontWeight: '600' }}>Digital Balance to add:</span>
+                    <strong style={{ color: '#22c55e', fontWeight: '800' }}>{parseFloat(rechargeAmount).toLocaleString()} ETB</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#78716c' }}>
+                    <span style={{ fontWeight: '600' }}>Cash to collect from Agent:</span>
+                    <strong style={{ color: '#3d2b1f', fontWeight: '800' }}>{(parseFloat(rechargeAmount) * (1 - discountRate)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#78716c' }}>
+                    <span style={{ fontWeight: '600' }}>Agent Profit (Margin):</span>
+                    <strong style={{ color: '#d4af37', fontWeight: '800' }}>{(parseFloat(rechargeAmount) * discountRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB</strong>
+                  </div>
+                </div>
+              )}
 
               <div style={{ display: 'flex', gap: '10px' }}>
                  <button 

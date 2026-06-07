@@ -1,10 +1,10 @@
-﻿import prisma from '../lib/prisma';
+import prisma from '../lib/prisma';
 import { logger } from '../lib/logger';
 import { config } from '../config';
 import { Decimal } from '@prisma/client/runtime/library';
 import { creditWallet, creditBonus, awardCoins, XP_REWARDS } from './wallet.service';
 import { getOrCreateAgentPreDepositWallet } from './agentPreDeposit.service';
-import { getAgentProfitRate } from './settings.service';
+import { getAgentProfitRate, getCompanyCommissionRate } from './settings.service';
 
 
 const REFERRAL_BONUS_ETB = 5;
@@ -510,13 +510,22 @@ export async function getAgents(page = 1, limit = 20) {
       }
 
       const rate = await getAgentProfitRate();
-      const realNetProfit = realBranchSales.mul(new Decimal(rate.toString()));
-      const botNetProfit  = botBranchSales.mul(new Decimal(rate.toString()));
-
-      // Stake Amount = total real ETB recharged into pre-deposit wallet by admin
-      const stakeAmount = new Decimal(
+      const companyRate = await getCompanyCommissionRate();
+      // Upfront Discount Model: Agent profit is derived from their recharge discount (agentRate / companyRate), not per-game sales.
+      const agentDiscountRate = new Decimal(companyRate > 0 ? (rate / companyRate) : 0);
+      
+      const totalDigitalRecharged = new Decimal(
         (agent.agentPreDepositWallet?.totalRecharged ?? 0).toString()
       );
+
+      // Physical cash collected by company = Total Digital Recharged * (1 - discount rate)
+      const stakeAmount = totalDigitalRecharged.mul(new Decimal(1).sub(agentDiscountRate));
+      
+      // Upfront profit kept by agent = Total Digital Recharged * discount rate
+      const realNetProfit = totalDigitalRecharged.mul(agentDiscountRate);
+      
+      // For legacy display purposes if bot net profit is still shown
+      const botNetProfit  = new Decimal(0);
 
       const { getAgentPreDepositStatus } = await import('./agentPreDeposit.service');
       const preDepositStatus = await getAgentPreDepositStatus(agent.id);

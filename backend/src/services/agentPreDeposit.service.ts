@@ -244,7 +244,15 @@ export async function rechargeAgentPreDepositWallet(
   amount: number,
   adminId: string
 ): Promise<Decimal> {
-  if (amount <= 0) throw new Error('Recharge amount must be positive');
+  const { getAgentProfitRate, getCompanyCommissionRate } = await import('./settings.service');
+  const agentRate = await getAgentProfitRate(); // e.g. 0.06
+  const companyRate = await getCompanyCommissionRate(); // e.g. 0.30
+  
+  // Calculate the actual discount on recharge (e.g. 0.06 / 0.30 = 0.20 = 20% discount)
+  const rechargeDiscountRate = companyRate > 0 ? (agentRate / companyRate) : 0;
+  
+  const cashReceived = amount * (1 - rechargeDiscountRate);
+  const agentMargin = amount * rechargeDiscountRate;
 
   const wallet = await getOrCreateAgentPreDepositWallet(agentId);
   const before = new Decimal(wallet.balance.toString());
@@ -278,7 +286,14 @@ export async function rechargeAgentPreDepositWallet(
         adminId,
         targetUserId: agentId,
         action: 'AGENT_WALLET_RECHARGE',
-        details: { amount, before: before.toNumber(), after: after.toNumber() },
+        details: {
+          amount,
+          cashReceived,
+          agentMargin,
+          discountRate: rechargeDiscountRate,
+          before: before.toNumber(),
+          after: after.toNumber(),
+        },
       },
     });
   });
@@ -290,7 +305,9 @@ export async function rechargeAgentPreDepositWallet(
       agentId,
       `💰 <b>Wallet Refilled!</b>\n\n` +
       `Your branch pre-deposit wallet has been refilled by the administrator.\n\n` +
-      `➕ <b>Amount:</b> ${amount.toLocaleString()} ETB\n` +
+      `💵 <b>Cash Paid:</b> ${cashReceived.toLocaleString()} ETB\n` +
+      `🎁 <b>Agent Margin:</b> ${agentMargin.toLocaleString()} ETB\n` +
+      `➕ <b>Digital Balance Added:</b> ${amount.toLocaleString()} ETB\n` +
       `🏦 <b>New Balance:</b> ${after.toFixed(2)} ETB\n\n` +
       `☕️ <i>Keep the games running!</i>`
     );
