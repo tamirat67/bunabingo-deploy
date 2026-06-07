@@ -396,13 +396,15 @@ export default function AgentsPage() {
                         <FiEdit2 size={12} /> EDIT
                       </button>
                     )}
-                    <button 
-                      onClick={() => { setSelectedAgent(agent); setShowRechargeModal(true); }}
-                      className="action-button"
-                      style={{ background: '#fef3c7', color: '#b45309', padding: '6px 12px', borderRadius: '8px', border: 'none', fontSize: '11px', fontWeight: '900', cursor: 'pointer' }}
-                    >
-                       REFILL
-                    </button>
+                    {isAdmin && (
+                      <button 
+                        onClick={() => { setSelectedAgent(agent); setShowRechargeModal(true); }}
+                        className="action-button"
+                        style={{ background: '#fef3c7', color: '#b45309', padding: '6px 12px', borderRadius: '8px', border: 'none', fontSize: '11px', fontWeight: '900', cursor: 'pointer' }}
+                      >
+                         REFILL
+                      </button>
+                    )}
                     <button 
                       onClick={() => openDepositPhonesModal(agent)}
                       style={{ background: '#f0fdf4', color: '#16a34a', padding: '6px 12px', borderRadius: '8px', border: 'none', fontSize: '11px', fontWeight: '900', cursor: 'pointer' }}
