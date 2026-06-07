@@ -2104,7 +2104,10 @@ staffRouter.post('/promotions', restrictToAdmin, async (req, res) => {
     return res.status(400).json({ error: 'Title and message are required' });
   }
   
-  const parseDate = (val: any) => (val && val !== 'null' && val !== 'undefined' && val !== '' ? new Date(val) : null);
+  const parseDate = (val: any) => {
+    if (!val || val === 'null' || val === 'undefined' || val === '') return null;
+    return new Date(val);
+  };
   // Default isActive to true unless explicitly set to false
   const activeVal = isActive === 'false' || isActive === false ? false : true;
   const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
@@ -2157,7 +2160,10 @@ staffRouter.patch('/promotions/:id', restrictToAdmin, async (req, res) => {
   const { id } = req.params;
   const { title, message, type, scheduledAt, expiresAt, isActive, removeImage } = req.body;
   
-  const parseDate = (val: any) => (val && val !== 'null' && val !== 'undefined' && val !== '' ? new Date(val) : null);
+  const parseDate = (val: any) => {
+    if (!val || val === 'null' || val === 'undefined' || val === '') return null;
+    return new Date(val);
+  };
   
   try {
     let imageUrlUpdate: any = undefined;
