@@ -27,6 +27,8 @@ export default function LoginPage() {
       
       if (user.role === 'ADMIN' || user.isAdmin) {
         router.push('/admin');
+      } else if (user.role === 'STAFF') {
+        router.push('/admin/staff-dashboard');
       } else {
         router.push('/agent');
       }
