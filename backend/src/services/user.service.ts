@@ -214,6 +214,30 @@ export async function getUserByTelegramId(telegramId: number) {
   });
 }
 
+/** Same as getUserByTelegramId but accepts BigInt directly to avoid
+ *  precision loss when the ID exceeds Number.MAX_SAFE_INTEGER (2^53-1)
+ *  or the old unsafe Number() cast that truncates IDs > 2^31.
+ */
+export async function getUserByTelegramIdBigInt(telegramId: bigint) {
+  return prisma.user.findUnique({
+    where: { telegramId },
+    include: { 
+      wallet: true,
+      referrer: {
+        select: {
+          id: true,
+          telegramId: true,
+          telegramUsername: true,
+          firstName: true,
+          phone: true,
+          phoneNumber: true,
+        }
+      },
+      _count: { select: { referrals: true } }
+    },
+  });
+}
+
 export async function getAllUsers(page = 1, limit = 20, search = '', agentIds?: string[]) {
   const skip = (page - 1) * limit;
 

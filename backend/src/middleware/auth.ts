@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { getUserByTelegramId, findOrCreateUser } from '../services/user.service';
+import { getUserByTelegramId, getUserByTelegramIdBigInt, findOrCreateUser } from '../services/user.service';
 import crypto from 'crypto';
 import { logger } from '../lib/logger';
 import jwt from 'jsonwebtoken';
@@ -23,11 +23,14 @@ export async function telegramAuthMiddleware(
       const token = authHeader.split(' ')[1];
       try {
         const decoded = jwt.verify(token, config.server.jwtSecret) as any;
-        const user = await getUserByTelegramId(Number(decoded.telegramId));
+        // Use BigInt directly to avoid precision loss for large Telegram IDs (>2^31)
+        const user = await getUserByTelegramIdBigInt(BigInt(decoded.telegramId));
         if (user) {
           if (user.status === 'BANNED') return res.status(403).json({ error: 'Account banned' });
           (req as any).user = user;
           return next();
+        } else {
+          logger.warn(`[Auth] JWT valid but user not found for telegramId: ${decoded.telegramId}`);
         }
       } catch (err) {
         logger.warn('[Auth] Invalid JWT token provided');
