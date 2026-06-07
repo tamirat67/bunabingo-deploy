@@ -2456,8 +2456,8 @@ staffRouter.post('/staff/create', restrictToAdmin, async (req, res) => {
   if (!telegramId || !username || !role || !password) {
     return res.status(400).json({ error: 'telegramId, username, role and password are required.' });
   }
-  if (!['ADMIN', 'AGENT'].includes(role)) {
-    return res.status(400).json({ error: 'Role must be ADMIN or AGENT.' });
+  if (!['ADMIN', 'AGENT', 'STAFF'].includes(role)) {
+    return res.status(400).json({ error: 'Role must be ADMIN, AGENT, or STAFF.' });
   }
   if (password.length < 6) {
     return res.status(400).json({ error: 'Password must be at least 6 characters.' });

@@ -490,7 +490,7 @@ export default function AgentsPage() {
         <div className="modal-overlay">
           <div className="modal-content" style={{ maxWidth: '480px', width: '90%' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h2 style={{ fontWeight: '900', fontSize: '22px', margin: 0 }}>Create Agent / Admin</h2>
+              <h2 style={{ fontWeight: '900', fontSize: '22px', margin: 0 }}>Create Agent / Staff / Admin</h2>
               <button onClick={() => { setShowCreateModal(false); setCreateError(''); setCreateSuccess(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px' }}>
                 <FiX />
               </button>
@@ -522,6 +522,7 @@ export default function AgentsPage() {
                   <label style={{ fontSize: '11px', fontWeight: '800', color: '#78716c', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Role</label>
                   <select className="login-input" value={newStaff.role} onChange={e => setNewStaff(s => ({ ...s, role: e.target.value }))} style={{ cursor: 'pointer' }}>
                     <option value="AGENT">Agent</option>
+                    <option value="STAFF">Staff</option>
                     <option value="ADMIN">Admin</option>
                   </select>
                 </div>
