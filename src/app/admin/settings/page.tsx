@@ -196,8 +196,8 @@ export default function SettingsPage() {
     setSavingPromo(true);
     try {
       const formData = new FormData();
-      formData.append('title', promoForm.title);
-      formData.append('message', promoForm.message);
+      formData.append('title', promoForm.title.trim());
+      formData.append('message', promoForm.message.trim());
       formData.append('type', promoForm.type);
       formData.append('scheduledAt', promoForm.scheduledAt || '');
       formData.append('expiresAt', promoForm.expiresAt || '');
@@ -209,9 +209,9 @@ export default function SettingsPage() {
         if (removeImage) {
           formData.append('removeImage', 'true');
         }
-        await api.patch(`/admin/promotions/${editingPromo.id}`, formData);
+        await api.patch(`/admin/promotions/${editingPromo.id}`, formData, { timeout: 30000 });
       } else {
-        await api.post('/admin/promotions', formData);
+        await api.post('/admin/promotions', formData, { timeout: 30000 });
       }
       setShowPromoForm(false);
       setEditingPromo(null);
@@ -220,8 +220,14 @@ export default function SettingsPage() {
       setRemoveImage(false);
       setPromoForm({ title: '', message: '', type: 'announcement', scheduledAt: '', expiresAt: '' });
       fetchPromotions();
+      showAlert('Success', editingPromo ? 'Announcement updated successfully!' : 'Announcement created and broadcast started!');
     } catch (err: any) {
-      const serverError = err.response?.data?.error || err.message || 'Failed to save promotion.';
+      let serverError = err.response?.data?.error || err.message || 'Failed to save announcement.';
+      if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+        serverError = 'Request timed out. The server may be starting up — please try again in 30 seconds.';
+      } else if (!err.response) {
+        serverError = 'Cannot reach the server. Check your internet connection or the backend may be restarting.';
+      }
       showAlert('Error', serverError, true);
       console.error('[Promotion Save Error]', err.response?.data || err);
     } finally {
@@ -243,10 +249,17 @@ export default function SettingsPage() {
 
   const handleTogglePromo = async (promo: Promotion) => {
     try {
-      await api.patch(`/admin/promotions/${promo.id}`, { isActive: !promo.isActive });
+      // Send as JSON (plain object) — the backend PATCH now handles both
+      // JSON and multipart requests correctly.
+      await api.patch(
+        `/admin/promotions/${promo.id}`,
+        { isActive: !promo.isActive },
+        { timeout: 15000 }
+      );
       fetchPromotions();
-    } catch (err) {
-      showAlert('Error', 'Failed to toggle promotion.', true);
+    } catch (err: any) {
+      const msg = err.response?.data?.error || err.message || 'Failed to toggle announcement.';
+      showAlert('Error', msg, true);
     }
   };
 
@@ -255,11 +268,12 @@ export default function SettingsPage() {
       setAppModal(prev => ({ ...prev, isOpen: false }));
       setBroadcastingId(id);
       try {
-        const res = await api.post(`/admin/promotions/${id}/broadcast`);
+        const res = await api.post(`/admin/promotions/${id}/broadcast`, {}, { timeout: 30000 });
         showAlert('Success', `Broadcast queued to ${res.data.totalRecipients} users!`);
         fetchPromotions();
-      } catch (err) {
-        showAlert('Error', 'Failed to broadcast.', true);
+      } catch (err: any) {
+        const msg = err.response?.data?.error || err.message || 'Failed to broadcast.';
+        showAlert('Error', msg, true);
       } finally {
         setBroadcastingId(null);
       }

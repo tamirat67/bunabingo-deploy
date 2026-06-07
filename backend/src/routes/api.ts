@@ -2138,12 +2138,16 @@ staffRouter.post('/promotions', restrictToAdmin, async (req, res) => {
 
 // UPDATE a promotion
 staffRouter.patch('/promotions/:id', restrictToAdmin, async (req, res) => {
-  // Handle file upload manually to return JSON on multer error
-  try {
-    await runUpload(req, res, upload.single('image'));
-  } catch (uploadErr: any) {
-    logger.error('Promotion update upload error:', uploadErr);
-    return res.status(400).json({ error: `Image upload failed: ${uploadErr.message || String(uploadErr)}` });
+  // Only run multer if the request is multipart/form-data (i.e. includes a file upload).
+  // Plain JSON PATCH requests (e.g. toggle isActive) should skip multer entirely.
+  const contentType = req.headers['content-type'] || '';
+  if (contentType.includes('multipart/form-data')) {
+    try {
+      await runUpload(req, res, upload.single('image'));
+    } catch (uploadErr: any) {
+      logger.error('Promotion update upload error:', uploadErr);
+      return res.status(400).json({ error: `Image upload failed: ${uploadErr.message || String(uploadErr)}` });
+    }
   }
 
   const { id } = req.params;
