@@ -1635,12 +1635,7 @@ staffRouter.get('/analytics', restrictToAdmin, async (req, res) => {
     }
   });
 
-  const breakdown = Object.keys(roomStats).map(key => ({
-    gameType: key,
-    entryFee: roomStats[key].ticketPrice,
-    totalStake: roomStats[key].totalStake,
-    serviceFee: roomStats[key].totalStake * 0.25
-  }));
+  // NOTE: breakdown is finalized after companyRate is loaded below
 
   // Pre-deposit totals: single agent uses direct fields; global uses aggregate sums
   let totalPreDepositBalance: number;
@@ -1692,6 +1687,14 @@ staffRouter.get('/analytics', restrictToAdmin, async (req, res) => {
 
   const AGENT_RATE = agentRate;
   const COMPANY_RATE = Math.max(0, companyRate - agentRate);
+
+  // Breakdown using dynamic companyRate (fixes hardcoded 0.25 bug)
+  const breakdown = Object.keys(roomStats).map(key => ({
+    gameType: key,
+    entryFee: roomStats[key].ticketPrice,
+    totalStake: roomStats[key].totalStake,
+    serviceFee: roomStats[key].totalStake * companyRate
+  }));
 
   const realCompanyRevenue = realGrossSales * COMPANY_RATE;
   const realAgentRevenue   = realGrossSales * AGENT_RATE;

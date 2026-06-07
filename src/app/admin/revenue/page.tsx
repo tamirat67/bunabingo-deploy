@@ -179,6 +179,12 @@ export default function RevenuePage() {
   const realPct = totalAllSales > 0 ? (totalRealSales / totalAllSales) * 100 : 0;
   const botPct  = totalAllSales > 0 ? (totalBotSales  / totalAllSales) * 100 : 0;
 
+  // Dynamic rates from admin analytics (set in Settings page)
+  const companyRevRate = overallStats?.companyRevenueRate ?? 20;   // e.g. 20
+  const agentRevRate   = overallStats?.agentRevenueRate   ?? 10;   // e.g. 10
+  const totalHouseEdge = overallStats?.companyCommissionRate ?? 30; // e.g. 30
+  const winnerPct      = 100 - totalHouseEdge;
+
   const fmt = (n: number) =>
     n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -200,7 +206,7 @@ export default function RevenuePage() {
           icon={<FiDollarSign size={18} />}
           label="Real Company Revenue"
           value={`${fmt(realCompanyRevenue)} ETB`}
-          sub="✅ 20% of real player sales — actual profit"
+          sub={`✅ ${companyRevRate}% of real player sales — actual profit`}
           accent="#22c55e"
         />
         <KpiCard
@@ -214,7 +220,7 @@ export default function RevenuePage() {
           icon={<FiUsers size={18} />}
           label="Agent Revenue"
           value={`${fmt(realAgentRevenue)} ETB`}
-          sub="✅ 10% of real player sales — actual agent share"
+          sub={`✅ ${agentRevRate}% of real player sales — actual agent share`}
           accent="#8b5cf6"
         />
         <KpiCard
@@ -265,7 +271,7 @@ export default function RevenuePage() {
             {[
               { color: '#22c55e', label: 'Real Sales' },
               { color: '#f97316', label: 'Bot Sales (Synthetic)' },
-              { color: '#3b82f6', label: 'Company Revenue (20%)' },
+              { color: '#3b82f6', label: `Company Revenue (${companyRevRate}%)` },
             ].map(({ color, label }) => (
               <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <div style={{ width: '12px', height: '3px', background: color, borderRadius: '2px' }} />
@@ -293,9 +299,9 @@ export default function RevenuePage() {
             <div>👥 Real Players: <strong>{realPlayerCount.toLocaleString()}</strong></div>
             <div>🎟 Real Ticket Sales: <strong>{fmt(totalRealSales)} ETB</strong></div>
             <div style={{ marginTop: '8px', padding: '8px 12px', background: 'rgba(255,255,255,0.6)', borderRadius: '10px' }}>
-              <div>🏦 Company (20%): <strong style={{ color: '#059669' }}>{fmt(realCompanyRevenue)} ETB</strong></div>
-              <div>🤝 Agents (10%): <strong style={{ color: '#059669' }}>{fmt(realAgentRevenue)} ETB</strong></div>
-              <div>🏆 Prize Pool (70%): <strong style={{ color: '#059669' }}>{fmt(totalRealSales * 0.70)} ETB</strong></div>
+              <div>🏦 Company ({companyRevRate}%): <strong style={{ color: '#059669' }}>{fmt(realCompanyRevenue)} ETB</strong></div>
+              <div>🤝 Agents ({agentRevRate}%): <strong style={{ color: '#059669' }}>{fmt(realAgentRevenue)} ETB</strong></div>
+              <div>🏆 Prize Pool ({winnerPct}%): <strong style={{ color: '#059669' }}>{fmt(totalRealSales * (winnerPct / 100))} ETB</strong></div>
             </div>
           </div>
           <div style={{ marginTop: '16px' }}>
@@ -433,7 +439,7 @@ export default function RevenuePage() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
             <thead>
               <tr style={{ borderBottom: '2px solid #f0ede8' }}>
-                {['Day', 'Real Sales', 'Bot Sales (Synthetic)', 'Company Rev (20%)', 'Agent Rev (10%)'].map(h => (
+                {['Day', 'Real Sales', 'Bot Sales (Synthetic)', `Company Rev (${companyRevRate}%)`, `Agent Rev (${agentRevRate}%)`].map(h => (
                   <th key={h} style={{ textAlign: h === 'Day' ? 'left' : 'right', padding: '10px 14px', fontSize: '10px', fontWeight: '900', color: '#8c857b', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>
                     {h}
                   </th>
@@ -485,7 +491,7 @@ export default function RevenuePage() {
           <ul style={{ margin: 0, padding: '0 0 0 18px', lineHeight: '2', fontSize: '13px', color: '#cbd5e1' }}>
             <li>House bots buy tickets using <strong style={{ color: '#fbbf24' }}>synthetic credits</strong> (not real deposited ETB)</li>
             <li>When a bot wins, the payout is credited to the bot's wallet — but bots <strong style={{ color: '#4ade80' }}>cannot withdraw</strong>, so the money stays in the system</li>
-            <li><strong style={{ color: '#22c55e' }}>Real Company Revenue</strong> = 20% × real player ticket sales only</li>
+            <li><strong style={{ color: '#22c55e' }}>Real Company Revenue</strong> = {companyRevRate}% × real player ticket sales only</li>
             <li><strong style={{ color: '#f97316' }}>Bot "Revenue"</strong> is labeled SYNTHETIC — it is NOT actual profit and should NOT be counted as company income</li>
             <li>Net Cash Position = Total Deposits − Total Approved Withdrawals (real cash flow)</li>
           </ul>

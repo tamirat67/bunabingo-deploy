@@ -88,6 +88,7 @@ router.get('/stats', async (req: Request, res: Response) => {
     // Agent Take-Home = Total Sales * Agent Profit Rate
     const rate = await getAgentProfitRate();
     const agentTakeHome = totalSales.mul(rate);
+    const agentRatePct = Math.round(Number(rate) * 100); // e.g. 10
 
     const walletBalance = wallet ? Number(wallet.balance) : 0;
     const walletDebited = wallet ? Number(wallet.totalDebited) : 0;
@@ -99,6 +100,7 @@ router.get('/stats', async (req: Request, res: Response) => {
       totalSales: totalSales,
       netCommissionPaid: netCommissionPaid,
       agentTakeHome: agentTakeHome,
+      agentRatePct,
       activePlayers: activePlayersToday.length,
       activeGames,
       preDeposit: {

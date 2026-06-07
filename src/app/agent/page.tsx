@@ -132,7 +132,7 @@ function AgentDashboardContent() {
 
   const globalSales = Number(stats.totalSales || 0);
   const agentRevenue = Number(stats.agentTakeHome || 0);
-  const companyRevenue = globalSales * 0.20;
+  const agentRatePct = stats.agentRatePct ?? 10; // from backend — dynamic
   const activePlayers = stats.activePlayers || 0;
   const activeGames = stats.activeGames || 0;
   const totalDeposits = Number(stats.totalDeposits || 0);
@@ -262,12 +262,12 @@ function AgentDashboardContent() {
         <div className="premium-stat-card">
           <div className="card-top-row">
             <div className="card-icon-container"><FiDollarSign size={20} /></div>
-            <span className="card-pill" style={{ color: '#d4af37', background: 'rgba(212,175,55,0.12)' }}>Your 10%</span>
+            <span className="card-pill" style={{ color: '#d4af37', background: 'rgba(212,175,55,0.12)' }}>Your {agentRatePct}%</span>
           </div>
           <div className="card-body">
             <div className="card-label">YOUR EARNINGS</div>
             <div className="card-value" style={{ color: '#d4af37' }}>{agentRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB</div>
-            <div className="card-subtext">10% of Real Stake</div>
+            <div className="card-subtext">{agentRatePct}% of Real Stake</div>
           </div>
         </div>
 
@@ -369,28 +369,35 @@ function AgentDashboardContent() {
             <h3 style={{ fontSize: '16px', fontWeight: '900', color: '#3d2b1f', margin: 0 }}>Commission Breakdown</h3>
           </div>
           <p style={{ fontSize: '12px', color: '#8c857b', marginBottom: '16px', lineHeight: '1.5' }}>
-            30% house margin on real stakes — your share is 10%.
+            House margin on real stakes — your share is {agentRatePct}%.
           </p>
 
-          {/* Visual flow */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#faf8f5', borderRadius: '12px', padding: '14px', marginBottom: '14px' }}>
-            {[
-              { label: 'Real Stake', value: '100 ETB', color: '#3d2b1f' },
-              null,
-              { label: 'Winners (70%)', value: '70 ETB', color: '#22c55e' },
-              null,
-              { label: 'Company (20%)', value: '20 ETB', color: '#3b82f6' },
-              null,
-              { label: 'You (10%)', value: '10 ETB', color: '#d4af37', bold: true },
-            ].map((item, i) => item === null ? (
-              <FiArrowRight key={i} size={12} style={{ color: '#d4cbbd', flexShrink: 0 }} />
-            ) : (
-              <div key={i} style={{ textAlign: 'center', flex: 1 }}>
-                <div style={{ fontSize: '9px', fontWeight: '800', color: '#8c857b', textTransform: 'uppercase', letterSpacing: '0.3px' }}>{item.label}</div>
-                <div style={{ fontSize: '12px', fontWeight: item.bold ? '900' : '700', color: item.color, marginTop: '3px' }}>{item.value}</div>
+          {/* Visual flow — dynamic from settings */}
+          {(() => {
+            const houseEdge = 30; // full house cut (company + agent combined) — matches settings default
+            const companyCut = houseEdge - agentRatePct;
+            const winnerPct = 100 - houseEdge;
+            return (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#faf8f5', borderRadius: '12px', padding: '14px', marginBottom: '14px' }}>
+                {[
+                  { label: 'Real Stake', value: '100 ETB', color: '#3d2b1f' },
+                  null,
+                  { label: `Winners (${winnerPct}%)`, value: `${winnerPct} ETB`, color: '#22c55e' },
+                  null,
+                  { label: `Company (${companyCut}%)`, value: `${companyCut} ETB`, color: '#3b82f6' },
+                  null,
+                  { label: `You (${agentRatePct}%)`, value: `${agentRatePct} ETB`, color: '#d4af37', bold: true },
+                ].map((item, i) => item === null ? (
+                  <FiArrowRight key={i} size={12} style={{ color: '#d4cbbd', flexShrink: 0 }} />
+                ) : (
+                  <div key={i} style={{ textAlign: 'center', flex: 1 }}>
+                    <div style={{ fontSize: '9px', fontWeight: '800', color: '#8c857b', textTransform: 'uppercase', letterSpacing: '0.3px' }}>{item.label}</div>
+                    <div style={{ fontSize: '12px', fontWeight: item.bold ? '900' : '700', color: item.color, marginTop: '3px' }}>{item.value}</div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            );
+          })()}
 
           {/* Today stats */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>

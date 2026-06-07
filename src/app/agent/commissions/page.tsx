@@ -27,6 +27,8 @@ export default function CommissionsPage() {
     fetchData();
   }, []);
 
+  const agentRatePct = stats?.agentRatePct ?? 10;
+
   if (loading) return (
     <div className="agent-space-y-6">
       <div className="agent-skeleton" style={{ height: '2.5rem', width: '33%', borderRadius: '0.5rem' }} />
@@ -73,13 +75,13 @@ export default function CommissionsPage() {
               <h2 className="agent-h2">{(stats?.totalCommissionEarned || 0).toLocaleString()} ETB</h2>
             </div>
           </div>
-          <div className="agent-flex-between agent-mt-8" style={{
-            padding: '1rem', background: 'rgba(0,0,0,0.2)',
-            borderRadius: '0.75rem', border: '1px solid rgba(255,255,255,0.05)'
-          }}>
-            <span style={{ fontSize:'0.75rem', color:'#9ca3af', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em' }}>Fixed Commission Rate</span>
-            <span className="agent-text-gold" style={{ fontWeight:900, fontSize:'1.125rem' }}>10%</span>
-          </div>
+            <div className="agent-flex-between agent-mt-8" style={{
+              padding: '1rem', background: 'rgba(0,0,0,0.2)',
+              borderRadius: '0.75rem', border: '1px solid rgba(255,255,255,0.05)'
+            }}>
+              <span style={{ fontSize:'0.75rem', color:'#9ca3af', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em' }}>Commission Rate</span>
+              <span className="agent-text-gold" style={{ fontWeight:900, fontSize:'1.125rem' }}>{agentRatePct}%</span>
+            </div>
         </div>
 
         {/* Tier Badge */}
@@ -125,7 +127,7 @@ export default function CommissionsPage() {
                   </td>
                   <td>Deposit Reward</td>
                   <td style={{ fontWeight:900, color:'#1c1917' }}>{(item.totalDeposited || 500).toLocaleString()} ETB</td>
-                  <td className="agent-text-gold" style={{ fontWeight:900 }}>+{(item.totalDeposited ? item.totalDeposited * 0.1 : 50).toLocaleString()} ETB</td>
+                  <td className="agent-text-gold" style={{ fontWeight:900 }}>+{(item.totalDeposited ? item.totalDeposited * (agentRatePct / 100) : agentRatePct * 5).toLocaleString()} ETB</td>
                   <td className="right">
                     <span className="agent-pill gold">CREDITED</span>
                   </td>
