@@ -39,7 +39,7 @@ router.post('/login', async (req: Request, res: Response) => {
     }
 
     // Verify role
-    if (user.role !== 'ADMIN' && user.role !== 'AGENT' && !user.isAdmin) {
+    if (user.role !== 'ADMIN' && user.role !== 'AGENT' && user.role !== 'STAFF' && !user.isAdmin) {
       return res.status(403).json({ error: 'Insufficient permissions' });
     }
 
@@ -89,7 +89,7 @@ router.post('/setup-password', async (req: Request, res: Response) => {
   const user = (req as any).user;
 
   if (!user) return res.status(401).json({ error: 'Telegram authentication required' });
-  if (user.role !== 'ADMIN' && user.role !== 'AGENT' && !user.isAdmin) {
+  if (user.role !== 'ADMIN' && user.role !== 'AGENT' && user.role !== 'STAFF' && !user.isAdmin) {
     return res.status(403).json({ error: 'Only staff can set passwords' });
   }
 
