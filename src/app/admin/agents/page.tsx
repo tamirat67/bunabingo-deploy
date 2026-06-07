@@ -11,6 +11,7 @@ import '@/app/admin.css';
 export default function AgentsPage() {
   const [agents, setAgents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -55,6 +56,13 @@ export default function AgentsPage() {
 
   useEffect(() => {
     fetchDiscountRate();
+    try {
+      const token = localStorage.getItem('admin_token');
+      if (token) {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        setIsAdmin(payload.role === 'ADMIN' || payload.isAdmin);
+      }
+    } catch (e) {}
   }, []);
 
   async function fetchDiscountRate() {
@@ -220,13 +228,15 @@ export default function AgentsPage() {
           <h1 style={{ fontSize: '36px', fontWeight: '900', margin: 0, color: '#3d2b1f' }}>Agent Network</h1>
           <p style={{ color: 'var(--admin-text-muted)', marginTop: '4px' }}>Manage your branch managers and refill their pre-deposit liquidity.</p>
         </div>
-        <button 
-          className="login-button" 
-          onClick={() => setShowCreateModal(true)}
-          style={{ width: 'auto', padding: '12px 24px', display: 'flex', alignItems: 'center', gap: '8px' }}
-        >
-          <FiUserPlus /> Create Agent / Admin
-        </button>
+        {isAdmin && (
+          <button 
+            className="login-button" 
+            onClick={() => setShowCreateModal(true)}
+            style={{ width: 'auto', padding: '12px 24px', display: 'flex', alignItems: 'center', gap: '8px' }}
+          >
+            <FiUserPlus /> Create Agent / Admin
+          </button>
+        )}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '32px' }}>
@@ -377,13 +387,15 @@ export default function AgentsPage() {
                         <FiBarChart2 size={12} /> REPORT
                       </button>
                     </Link>
-                    <button
-                      onClick={() => openEditModal(agent)}
-                      style={{ background: '#fef9c3', color: '#854d0e', padding: '6px 12px', borderRadius: '8px', border: 'none', fontSize: '11px', fontWeight: '900', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                      title="Edit Agent"
-                    >
-                      <FiEdit2 size={12} /> EDIT
-                    </button>
+                    {isAdmin && (
+                      <button
+                        onClick={() => openEditModal(agent)}
+                        style={{ background: '#fef9c3', color: '#854d0e', padding: '6px 12px', borderRadius: '8px', border: 'none', fontSize: '11px', fontWeight: '900', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                        title="Edit Agent"
+                      >
+                        <FiEdit2 size={12} /> EDIT
+                      </button>
+                    )}
                     <button 
                       onClick={() => { setSelectedAgent(agent); setShowRechargeModal(true); }}
                       className="action-button"
@@ -397,13 +409,15 @@ export default function AgentsPage() {
                     >
                        <FiPhone size={12} style={{ marginRight: '4px' }} /> PHONES
                     </button>
-                    <button 
-                      onClick={() => handleDemote(agent.id)}
-                      style={{ background: '#fef2f2', border: 'none', color: '#ef4444', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
-                      title="Demote from Agent"
-                    >
-                       <FiUserX />
-                    </button>
+                    {isAdmin && (
+                      <button 
+                        onClick={() => handleDemote(agent.id)}
+                        style={{ background: '#fef2f2', border: 'none', color: '#ef4444', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+                        title="Demote from Agent"
+                      >
+                         <FiUserX />
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>
