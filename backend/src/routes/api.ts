@@ -1693,8 +1693,20 @@ staffRouter.get('/analytics', restrictToAdmin, async (req, res) => {
     _sum: { amount: true }
   });
 
+  // House Bot Advantage: bot wins kept in system
+  const botWinnerRecords = await prisma.winner.aggregate({
+    where: {
+      user: { isBot: true },
+      ...(agentId ? { user: { referredBy: agentId, isBot: true } } : {})
+    },
+    _sum: { prizeAmount: true },
+    _count: { id: true },
+  });
+
   const realGrossSales = Number(realSalesAgg._sum.amount || 0);
   const botGrossSales  = Number(botSalesAgg._sum.amount || 0);
+  const botWinPayoutAmount = Number(botWinnerRecords._sum?.prizeAmount || 0);
+  const botWinCount = Number(botWinnerRecords._count?.id || 0);
 
   // Dynamic Revenue Split Settings
   const { getAgentProfitRate, getCompanyCommissionRate } = await import('../services/settings.service');
@@ -1755,6 +1767,8 @@ staffRouter.get('/analytics', restrictToAdmin, async (req, res) => {
     realCompanyRevenue,       // actual company profit
     realAgentRevenue,         // actual agent profit
     botCompanyRevenue,        // synthetic/fake (NOT real profit)
+    botWinPayoutAmount,       // House Advantage: total bot wins kept in system
+    botWinCount,              // House Advantage: number of bot wins
     // Today's values (computed from real sales only)
     today: {
       globalSales: todayGlobalSales,

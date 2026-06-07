@@ -135,6 +135,8 @@ function DashboardContent() {
   const realCompanyRevenue  = isAdmin ? Number(stats.realCompanyRevenue || 0) : 0;
   const realAgentRevenue    = isAdmin ? Number(stats.realAgentRevenue  || 0) : 0;
   const botCompanyRevenue   = isAdmin ? Number(stats.botCompanyRevenue  || 0) : 0;
+  const botWinPayoutAmount  = isAdmin ? Number(stats.botWinPayoutAmount || 0) : 0;
+  const botWinCount         = isAdmin ? Number(stats.botWinCount || 0) : 0;
   const totalGross          = realGrossSales + botGrossSales;
   const realPct             = totalGross > 0 ? (realGrossSales / totalGross) * 100 : 0;
   const botPct              = totalGross > 0 ? (botGrossSales  / totalGross) * 100 : 0;
@@ -421,7 +423,7 @@ function DashboardContent() {
             </span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px' }}>
             {/* Real Gross Sales */}
             <div style={{ background: '#f0fdf4', borderRadius: '14px', padding: '16px', border: '1px solid #bbf7d0' }}>
               <div style={{ fontSize: '10px', fontWeight: '900', color: '#059669', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>✅ Real Gross Sales</div>
@@ -454,6 +456,13 @@ function DashboardContent() {
               <div style={{ fontSize: '10px', fontWeight: '900', color: '#2563eb', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>✅ Agent Revenue ({agentRevenueRate}%)</div>
               <div style={{ fontSize: '22px', fontWeight: '900', color: '#1e3a8a' }}>{realAgentRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
               <div style={{ fontSize: '11px', color: '#2563eb', marginTop: '4px' }}>ETB — {agentRevenueRate}% of real gross (all-time)</div>
+            </div>
+
+            {/* House Bot Advantage */}
+            <div style={{ background: '#fefce8', borderRadius: '14px', padding: '16px', border: '1px solid #fde047' }}>
+              <div style={{ fontSize: '10px', fontWeight: '900', color: '#ca8a04', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>🤖 House Bot Advantage</div>
+              <div style={{ fontSize: '22px', fontWeight: '900', color: '#854d0e' }}>{botWinPayoutAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+              <div style={{ fontSize: '11px', color: '#ca8a04', marginTop: '4px' }}>ETB — from {botWinCount.toLocaleString()} bot wins</div>
             </div>
           </div>
         </div>
