@@ -2499,4 +2499,50 @@ staffRouter.post('/staff/create', restrictToAdmin, async (req, res) => {
 });
 
 
+// ─── Admin Logs ───────────────────────────────────────────────
+staffRouter.get('/logs', restrictToAdmin, async (req, res) => {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const action = req.query.action as string;
+    const search = req.query.search as string;
+
+    const where: any = {};
+    if (action) where.action = action;
+    if (search) {
+      where.OR = [
+        { admin: { firstName: { contains: search, mode: 'insensitive' } } },
+        { targetUser: { firstName: { contains: search, mode: 'insensitive' } } },
+        { action: { contains: search, mode: 'insensitive' } }
+      ];
+    }
+
+    const logs = await prisma.adminLog.findMany({
+      where,
+      include: {
+        admin: { select: { id: true, firstName: true, telegramUsername: true } },
+        targetUser: { select: { id: true, firstName: true, telegramUsername: true } }
+      },
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    const totalLogs = await prisma.adminLog.count({ where });
+
+    res.json({
+      logs,
+      pagination: {
+        page,
+        limit,
+        totalItems: totalLogs,
+        totalPages: Math.ceil(totalLogs / limit),
+      }
+    });
+  } catch (err) {
+    logger.error('Failed to fetch admin logs:', err);
+    res.status(500).json({ error: 'Failed to fetch logs' });
+  }
+});
+
 export default router;
