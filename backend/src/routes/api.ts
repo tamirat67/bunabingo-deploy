@@ -1684,9 +1684,14 @@ staffRouter.get('/analytics', restrictToAdmin, async (req, res) => {
 
   const realGrossSales = Number(realSalesAgg._sum.amount || 0);
   const botGrossSales  = Number(botSalesAgg._sum.amount || 0);
-  // Revenue split: 30% total commission = 20% company + 10% agent
-  const COMPANY_RATE = 0.20;  // 20% of real gross → company profit
-  const AGENT_RATE   = 0.10;  // 10% of real gross → agent profit
+
+  // Dynamic Revenue Split Settings
+  const { getAgentProfitRate, getCompanyCommissionRate } = await import('../services/settings.service');
+  const agentRate = await getAgentProfitRate(); // e.g. 0.06 (6%)
+  const companyRate = await getCompanyCommissionRate(); // e.g. 0.30 (30%)
+
+  const AGENT_RATE = agentRate;
+  const COMPANY_RATE = Math.max(0, companyRate - agentRate);
 
   const realCompanyRevenue = realGrossSales * COMPANY_RATE;
   const realAgentRevenue   = realGrossSales * AGENT_RATE;
@@ -1721,18 +1726,22 @@ staffRouter.get('/analytics', restrictToAdmin, async (req, res) => {
     preDepositBalance: totalPreDepositBalance,
     preDepositAdded: totalPreDepositAdded,
     bunaWalletBalance,
+    // Dynamic rates for frontend display
+    companyRevenueRate: COMPANY_RATE * 100,
+    agentRevenueRate: AGENT_RATE * 100,
+    companyCommissionRate: companyRate * 100,
     // ── Real vs Bot breakdown (all-time, key for admin accounting) ──
     realGrossSales,           // real player ticket sales (real ETB)
     botGrossSales,            // house bot ticket sales (synthetic ETB)
-    realCompanyRevenue,       // 20% of real gross → actual company profit
-    realAgentRevenue,         // 10% of real gross → actual agent profit
-    botCompanyRevenue,        // 20% of bot sales → synthetic/fake (NOT real profit)
+    realCompanyRevenue,       // actual company profit
+    realAgentRevenue,         // actual agent profit
+    botCompanyRevenue,        // synthetic/fake (NOT real profit)
     // Today's values (computed from real sales only)
     today: {
       globalSales: todayGlobalSales,
       realSales: todayRealSales,
-      totalCompanyRevenue: todayCompanyRevenue,   // 20% of today's real sales
-      totalAgentRevenue: todayAgentRevenue,        // 10% of today's real sales
+      totalCompanyRevenue: todayCompanyRevenue,
+      totalAgentRevenue: todayAgentRevenue,
       activePlayers: activePlayersTodayCount.length,
       activeGames: activeGamesTodayCount,
       breakdown
@@ -1814,8 +1823,13 @@ staffRouter.get('/bot-analytics', restrictToAdmin, async (req, res) => {
     const botWinPayoutAmount = Number(botWinnerRecords._sum?.prizeAmount || 0);
     const botWinCount = Number(botWinnerRecords._count?.id || 0);
 
-    const COMPANY_RATE = 0.20;
-    const AGENT_RATE   = 0.10;
+    // Dynamic Revenue Split Settings
+    const { getAgentProfitRate, getCompanyCommissionRate } = await import('../services/settings.service');
+    const agentRate = await getAgentProfitRate(); // e.g. 0.06 (6%)
+    const companyRate = await getCompanyCommissionRate(); // e.g. 0.30 (30%)
+
+    const AGENT_RATE = agentRate;
+    const COMPANY_RATE = Math.max(0, companyRate - agentRate);
 
     const realCompanyRevenue = totalRealSales * COMPANY_RATE;
     const realAgentRevenue   = totalRealSales * AGENT_RATE;
@@ -1885,12 +1899,14 @@ staffRouter.get('/bot-analytics', restrictToAdmin, async (req, res) => {
         botWinPayouts,           // count of house bot wins (from gameCycle tracker)
         botWinCount,             // count of Winner records where winner.user.isBot=true
         // Prize money the house BOT "won" — this amount STAYED in the system reserve.
-        // The engine NEVER credits a bot wallet (engine.ts skips wallet update for isHouseBot=true).
-        // So this is the house advantage: prize pool that real players contributed but the house kept.
         botWinPayoutAmount,
-        realCompanyRevenue,      // ✅ REAL: 20% of real gross
-        realAgentRevenue,        // ✅ REAL: 10% of real gross
-        botCompanyRevenue,       // ⚠ SYNTHETIC: 20% of bot gross (NOT real profit)
+        realCompanyRevenue,      // ✅ REAL
+        realAgentRevenue,        // ✅ REAL
+        botCompanyRevenue,       // ⚠ SYNTHETIC (NOT real profit)
+        // Dynamic rates for frontend
+        companyRevenueRate: COMPANY_RATE * 100,
+        agentRevenueRate: AGENT_RATE * 100,
+        companyCommissionRate: companyRate * 100,
         // 7-day trend
         trend,
         // Per-room breakdown

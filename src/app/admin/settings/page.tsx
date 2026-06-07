@@ -156,12 +156,12 @@ export default function SettingsPage() {
     const edge      = parseFloat(houseEdgeRate);
     const agentShr  = parseFloat(agentSharePct);
 
-    if (isNaN(edge) || edge < 0 || edge > 50) {
-      setSettingsError('Total house margin must be between 0% and 50%.');
+    if (isNaN(edge) || edge < 0 || edge > 100) {
+      setSettingsError('House edge (% deducted per game) must be between 0% and 100%.');
       return;
     }
     if (isNaN(agentShr) || agentShr < 0 || agentShr > 100) {
-      setSettingsError('Agent profit percentage must be between 0% and 100%.');
+      setSettingsError('Agent recharge discount must be between 0% and 100%.');
       return;
     }
 
@@ -362,6 +362,15 @@ export default function SettingsPage() {
                 <FiPercent style={{ color: '#d4af37' }} /> Revenue Split Settings
               </h2>
 
+              {/* Clear instruction box */}
+              <div style={{ background: '#fffbeb', border: '2px solid #fbbf24', borderRadius: '14px', padding: '16px 18px', marginBottom: '24px' }}>
+                <p style={{ margin: 0, fontSize: '13px', color: '#92400e', fontWeight: '700', lineHeight: '1.7' }}>
+                  📌 <strong>HOW TO SET:</strong><br />
+                  • <strong>House Edge per Game</strong> = the % deducted from agent wallet every game (e.g. <code>30</code> means 30 ETB taken from every 100 ETB collected).<br />
+                  • <strong>Agent Recharge Discount</strong> = the % discount agent gets when topping up wallet (e.g. <code>20</code> means agent pays 8,000 ETB for 10,000 ETB balance).
+                </p>
+              </div>
+
               {loadingSettings ? (
                 <div style={{ textAlign: 'center', padding: '40px' }}>
                   <div className="animate-spin" style={{ width: '28px', height: '28px', border: '3px solid #d4af37', borderTopColor: 'transparent', borderRadius: '50%', margin: '0 auto' }} />
@@ -371,12 +380,12 @@ export default function SettingsPage() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px' }}>
                     <div>
                       <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', color: '#78716c', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                        🏦 Company Commission (%)
+                        🎮 House Edge per Game (%)
                       </label>
                       <div style={{ position: 'relative' }}>
                         <input
                           type="number"
-                          min="0" max="50" step="0.5"
+                          min="0" max="100" step="0.5"
                           className="login-input"
                           style={{ width: '100%', paddingRight: '40px', fontWeight: '800', fontSize: '18px' }}
                           value={houseEdgeRate}
@@ -384,7 +393,9 @@ export default function SettingsPage() {
                         />
                         <span style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', fontWeight: '800', color: '#d4af37' }}>%</span>
                       </div>
-                      <p style={{ fontSize: '11px', color: '#78716c', marginTop: '6px', lineHeight: '1.4' }}>The system will deduct this full percentage from the agent's wallet every game.</p>
+                      <p style={{ fontSize: '11px', color: '#78716c', marginTop: '6px', lineHeight: '1.4' }}>
+                        ✅ Correct value: <strong>30</strong> (means 30% is deducted from agent wallet each game, 70% goes to prize pool).
+                      </p>
                     </div>
 
                     <div>
@@ -402,7 +413,9 @@ export default function SettingsPage() {
                         />
                         <span style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', fontWeight: '800', color: '#d4af37' }}>%</span>
                       </div>
-                      <p style={{ fontSize: '11px', color: '#78716c', marginTop: '6px', lineHeight: '1.4' }}>Discount given when agents buy balance (e.g. 20% means they pay 8k for 10k balance).</p>
+                      <p style={{ fontSize: '11px', color: '#78716c', marginTop: '6px', lineHeight: '1.4' }}>
+                        ✅ Correct value: <strong>20</strong> (means agent pays 8,000 ETB cash for 10,000 ETB digital balance).
+                      </p>
                     </div>
                   </div>
 
@@ -412,15 +425,19 @@ export default function SettingsPage() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '12px', borderRadius: '12px', border: '1px solid #f5f5f4' }}>
                         <span style={{ fontSize: '13px', fontWeight: '700', color: '#78716c' }}>Agent pays in cash:</span>
-                        <span style={{ fontSize: '14px', fontWeight: '800', color: '#d4af37' }}>{10000 - (10000 * parseFloat(agentSharePct) / 100)} ETB</span>
+                        <span style={{ fontSize: '14px', fontWeight: '800', color: '#d4af37' }}>{(10000 - (10000 * parseFloat(agentSharePct || '0') / 100)).toLocaleString()} ETB</span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '12px', borderRadius: '12px', border: '1px solid #f5f5f4' }}>
                         <span style={{ fontSize: '13px', fontWeight: '700', color: '#78716c' }}>Admin credits wallet:</span>
                         <span style={{ fontSize: '14px', fontWeight: '800', color: '#22c55e' }}>10,000 ETB</span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '12px', borderRadius: '12px', border: '1px solid #f5f5f4' }}>
-                        <span style={{ fontSize: '13px', fontWeight: '700', color: '#78716c' }}>Company deduction per game:</span>
-                        <span style={{ fontSize: '14px', fontWeight: '800', color: '#3d2b1f' }}>Full {houseEdgeRate}%</span>
+                        <span style={{ fontSize: '13px', fontWeight: '700', color: '#78716c' }}>House edge deducted per game:</span>
+                        <span style={{ fontSize: '14px', fontWeight: '800', color: '#3d2b1f' }}>Full {houseEdgeRate || '0'}%</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f0fdf4', padding: '12px', borderRadius: '12px', border: '1px solid #bbf7d0' }}>
+                        <span style={{ fontSize: '13px', fontWeight: '700', color: '#059669' }}>Prize pool goes to players:</span>
+                        <span style={{ fontSize: '14px', fontWeight: '800', color: '#059669' }}>{(100 - parseFloat(houseEdgeRate || '0')).toFixed(0)}%</span>
                       </div>
                     </div>
                   </div>

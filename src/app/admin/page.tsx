@@ -88,14 +88,19 @@ function DashboardContent() {
   // todayRealSales = today's gross from REAL players only
   const todayRealSales = isAdmin ? Number(stats.today?.realSales || 0) : Number(stats.totalSales || 0);
 
-  // Company Revenue = 20% of REAL gross only
-  const companyRevenue = isAdmin
-    ? Number(stats.today?.totalCompanyRevenue || (todayRealSales * 0.20))
-    : (todayRealSales * 0.20);
+  // Dynamic Rates from API
+  const companyRevenueRate = stats.companyRevenueRate !== undefined ? stats.companyRevenueRate : 20;
+  const agentRevenueRate = stats.agentRevenueRate !== undefined ? stats.agentRevenueRate : 10;
+  const companyCommissionRate = stats.companyCommissionRate !== undefined ? stats.companyCommissionRate : 30;
 
-  // Agent Revenue = 10% of REAL gross only
+  // Company Revenue = dynamic rate of REAL gross only
+  const companyRevenue = isAdmin
+    ? Number(stats.today?.totalCompanyRevenue ?? (todayRealSales * (companyRevenueRate / 100)))
+    : (todayRealSales * (companyRevenueRate / 100));
+
+  // Agent Revenue = dynamic rate of REAL gross only
   const agentRevenue = isAdmin
-    ? Number(stats.today?.totalAgentRevenue || (todayRealSales * 0.10))
+    ? Number(stats.today?.totalAgentRevenue ?? (todayRealSales * (agentRevenueRate / 100)))
     : Number(stats.agentTakeHome || 0);
 
   const totalPlayers = isAdmin
@@ -331,12 +336,12 @@ function DashboardContent() {
             <div className="card-icon-container">
               <FiDollarSign size={20} />
             </div>
-            <span className="card-pill" style={{ color: '#22c55e', background: 'rgba(34, 197, 94, 0.1)' }}>Today's 20%</span>
+            <span className="card-pill" style={{ color: '#22c55e', background: 'rgba(34, 197, 94, 0.1)' }}>Today's {companyRevenueRate}%</span>
           </div>
           <div className="card-body">
             <div className="card-label">COMPANY REVENUE</div>
             <div className="card-value">{companyRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB</div>
-            <div className="card-subtext">20% of Real Stake</div>
+            <div className="card-subtext">{companyRevenueRate}% of Real Stake</div>
           </div>
         </div>
 
@@ -345,12 +350,12 @@ function DashboardContent() {
             <div className="card-icon-container">
               <FiUsers size={20} />
             </div>
-            <span className="card-pill" style={{ color: '#22c55e', background: 'rgba(34, 197, 94, 0.1)' }}>Today's 10%</span>
+            <span className="card-pill" style={{ color: '#22c55e', background: 'rgba(34, 197, 94, 0.1)' }}>Today's {agentRevenueRate}%</span>
           </div>
           <div className="card-body">
             <div className="card-label">AGENT REVENUE</div>
             <div className="card-value">{agentRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB</div>
-            <div className="card-subtext">10% of Real Stake</div>
+            <div className="card-subtext">{agentRevenueRate}% of Real Stake</div>
           </div>
         </div>
 
@@ -437,18 +442,18 @@ function DashboardContent() {
               </div>
             </div>
 
-            {/* Real Company Revenue (20%) */}
+            {/* Real Company Revenue (dynamic) */}
             <div style={{ background: '#f0fdf4', borderRadius: '14px', padding: '16px', border: '1px solid #86efac' }}>
-              <div style={{ fontSize: '10px', fontWeight: '900', color: '#16a34a', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>✅ Company Revenue (20%)</div>
+              <div style={{ fontSize: '10px', fontWeight: '900', color: '#16a34a', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>✅ Company Revenue ({companyRevenueRate}%)</div>
               <div style={{ fontSize: '22px', fontWeight: '900', color: '#14532d' }}>{realCompanyRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-              <div style={{ fontSize: '11px', color: '#16a34a', marginTop: '4px' }}>ETB — 20% of real gross (all-time)</div>
+              <div style={{ fontSize: '11px', color: '#16a34a', marginTop: '4px' }}>ETB — {companyRevenueRate}% of real gross (all-time)</div>
             </div>
 
-            {/* Real Agent Revenue (10%) */}
+            {/* Real Agent Revenue (dynamic) */}
             <div style={{ background: '#eff6ff', borderRadius: '14px', padding: '16px', border: '1px solid #93c5fd' }}>
-              <div style={{ fontSize: '10px', fontWeight: '900', color: '#2563eb', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>✅ Agent Revenue (10%)</div>
+              <div style={{ fontSize: '10px', fontWeight: '900', color: '#2563eb', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>✅ Agent Revenue ({agentRevenueRate}%)</div>
               <div style={{ fontSize: '22px', fontWeight: '900', color: '#1e3a8a' }}>{realAgentRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-              <div style={{ fontSize: '11px', color: '#2563eb', marginTop: '4px' }}>ETB — 10% of real gross (all-time)</div>
+              <div style={{ fontSize: '11px', color: '#2563eb', marginTop: '4px' }}>ETB — {agentRevenueRate}% of real gross (all-time)</div>
             </div>
           </div>
         </div>
@@ -505,10 +510,10 @@ function DashboardContent() {
           {/* How Commission Works Card */}
           <div className="premium-card">
             <h3 className="premium-card-title" style={{ fontSize: '14px', fontWeight: '900', borderBottom: 'none', paddingBottom: 0, marginBottom: '8px' }}>
-              HOW COMMISSION WORKS (30% ON REAL STAKE)
+              HOW COMMISSION WORKS ({companyCommissionRate}% ON REAL STAKE)
             </h3>
             <p style={{ fontSize: '13px', color: '#8c857b', marginBottom: '20px', lineHeight: '1.5' }}>
-              For every bet placed by a <b>REAL PLAYER</b>, 30% of the stake goes to commission and 70% goes to the prize pool. Bot stakes are not charged commission and go 100% to winners.
+              For every bet placed by a <b>REAL PLAYER</b>, {companyCommissionRate}% of the stake goes to commission and {100 - companyCommissionRate}% goes to the prize pool. Bot stakes are not charged commission and go 100% to winners.
             </p>
             
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', background: '#faf8f5', borderRadius: '16px', padding: '16px 12px', border: '1px solid rgba(0,0,0,0.03)', margin: '16px 0' }}>
@@ -522,8 +527,8 @@ function DashboardContent() {
               </div>
               
               <div style={{ textAlign: 'center', flex: 1 }}>
-                <div style={{ fontSize: '10px', fontWeight: '800', color: '#8c857b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Commission (30%)</div>
-                <div style={{ fontSize: '14px', fontWeight: '900', color: '#3d2b1f', marginTop: '4px' }}>30 ETB</div>
+                <div style={{ fontSize: '10px', fontWeight: '800', color: '#8c857b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Commission ({companyCommissionRate}%)</div>
+                <div style={{ fontSize: '14px', fontWeight: '900', color: '#3d2b1f', marginTop: '4px' }}>{companyCommissionRate} ETB</div>
               </div>
               
               <div style={{ color: '#d4cbbd', display: 'flex', alignItems: 'center' }}>
@@ -531,13 +536,13 @@ function DashboardContent() {
               </div>
               
               <div style={{ textAlign: 'center', flex: 1 }}>
-                <div style={{ fontSize: '10px', fontWeight: '800', color: '#8c857b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Winners (70%)</div>
-                <div style={{ fontSize: '14px', fontWeight: '900', color: '#3d2b1f', marginTop: '4px' }}>70 ETB</div>
+                <div style={{ fontSize: '10px', fontWeight: '800', color: '#8c857b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Winners ({100 - companyCommissionRate}%)</div>
+                <div style={{ fontSize: '14px', fontWeight: '900', color: '#3d2b1f', marginTop: '4px' }}>{100 - companyCommissionRate} ETB</div>
               </div>
             </div>
             
             <p style={{ fontSize: '12px', color: '#8c857b', fontStyle: 'italic', margin: 0 }}>
-              Of the 30 ETB commission: 20 ETB to Company, 10 ETB to Agent.
+              Of the {companyCommissionRate} ETB commission: {companyRevenueRate} ETB to Company, {agentRevenueRate} ETB to Agent.
             </p>
           </div>
 
@@ -551,7 +556,7 @@ function DashboardContent() {
                     <th>GAME TYPE</th>
                     <th>ENTRY FEE</th>
                     <th>TOTAL STAKE</th>
-                    <th className="text-right">REVENUE (20% Company + 10% Agent)</th>
+                    <th className="text-right">REVENUE ({companyRevenueRate}% Company + {agentRevenueRate}% Agent)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -561,7 +566,7 @@ function DashboardContent() {
                       <td>{item.entryFee} ETB</td>
                       <td>{item.totalStake.toLocaleString()} ETB</td>
                       <td className="text-right" style={{ fontWeight: '700' }}>
-                        {(item.totalStake * 0.30).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
+                        {(item.totalStake * (companyCommissionRate / 100)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
                       </td>
                     </tr>
                   ))}
@@ -607,15 +612,15 @@ function DashboardContent() {
                   <td className="text-right" style={{ fontWeight: '700' }}>{globalSales.toLocaleString()} ETB</td>
                 </tr>
                 <tr>
-                  <td>Total Service Fee (30% of Real)</td>
+                  <td>Total Service Fee ({companyCommissionRate}% of Real)</td>
                   <td className="text-right" style={{ fontWeight: '700' }}>{((companyRevenue + agentRevenue) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB</td>
                 </tr>
                 <tr className="highlighted-row">
-                  <td>Company Revenue (20%)</td>
+                  <td>Company Revenue ({companyRevenueRate}%)</td>
                   <td className="text-right">{companyRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB</td>
                 </tr>
                 <tr className="highlighted-row">
-                  <td>Agent Revenue (10%)</td>
+                  <td>Agent Revenue ({agentRevenueRate}%)</td>
                   <td className="text-right">{agentRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB</td>
                 </tr>
                 <tr>
@@ -642,15 +647,15 @@ function DashboardContent() {
               <ul className="revenue-split-list">
                 <li className="revenue-split-item" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ color: '#d4af37', fontWeight: 'bold' }}>•</span>
-                  <span>70% goes to Winners (70 ETB)</span>
+                  <span>{100 - companyCommissionRate}% goes to Winners ({100 - companyCommissionRate} ETB)</span>
                 </li>
                 <li className="revenue-split-item" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ color: '#d4af37', fontWeight: 'bold' }}>•</span>
-                  <span>20% goes to Company (20 ETB)</span>
+                  <span>{companyRevenueRate}% goes to Company ({companyRevenueRate} ETB)</span>
                 </li>
                 <li className="revenue-split-item" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ color: '#d4af37', fontWeight: 'bold' }}>•</span>
-                  <span>10% goes to Agent (10 ETB)</span>
+                  <span>{agentRevenueRate}% goes to Agent ({agentRevenueRate} ETB)</span>
                 </li>
               </ul>
             </div>
