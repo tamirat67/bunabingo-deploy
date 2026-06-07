@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { FiSearch, FiUserX, FiShield, FiEdit2, FiUserCheck, FiX, FiUser, FiPhone, FiDollarSign } from 'react-icons/fi';
+import { FiSearch, FiUserX, FiShield, FiEdit2, FiUserCheck, FiX, FiUser, FiPhone, FiDollarSign, FiCheckSquare, FiSquare } from 'react-icons/fi';
 import api from '@/lib/api';
 import { Pagination } from '@/components/Pagination';
 import BunaModal from '@/components/BunaModal';
@@ -18,6 +18,7 @@ export default function UsersPage() {
   const [stats, setStats] = useState({ total: 0, active: 0, banned: 0 });
   const [agentFilter, setAgentFilter] = useState('');
   const [modalState, setModalState] = useState<{isOpen: boolean, action: string, userId: string}>({ isOpen: false, action: '', userId: '' });
+  const [agentsList, setAgentsList] = useState<any[]>([]);
 
   // Edit modal state
   const [editModal, setEditModal] = useState(false);
@@ -26,8 +27,14 @@ export default function UsersPage() {
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState('');
   const [editSuccess, setEditSuccess] = useState('');
-  
-  const [agentsList, setAgentsList] = useState<any[]>([]);
+
+  // Staff management state
+  const [staffModal, setStaffModal] = useState(false);
+  const [staffTarget, setStaffTarget] = useState<any>(null);
+  const [staffAgentsList, setStaffAgentsList] = useState<any[]>([]);
+  const [selectedAgentIds, setSelectedAgentIds] = useState<string[]>([]);
+  const [staffLoading, setStaffLoading] = useState(false);
+  const [staffMsg, setStaffMsg] = useState('');
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -52,10 +59,10 @@ export default function UsersPage() {
 
   const fetchAgents = async () => {
     try {
-      // Fetch agents (limit 100 should be enough for a dropdown)
       const response = await api.get('/admin/agents?limit=100');
-      if (response.data && response.data.agents) {
+      if (response.data?.agents) {
         setAgentsList(response.data.agents);
+        setStaffAgentsList(response.data.agents);
       }
     } catch (err) {
       console.error('Failed to fetch agents', err);
@@ -129,8 +136,86 @@ export default function UsersPage() {
     }
   };
 
+  // ── Staff management handlers ──────────────────────────────
+  const openStaffModal = async (user: any) => {
+    setStaffTarget(user);
+    setStaffMsg('');
+    setStaffModal(true);
+    // Load currently assigned agents
+    if (user.role === 'STAFF') {
+      try {
+        const res = await api.get(`/admin/staff/${user.id}/assigned-agents`);
+        setSelectedAgentIds(res.data.agentIds || []);
+      } catch (_) {
+        setSelectedAgentIds([]);
+      }
+    } else {
+      setSelectedAgentIds([]);
+    }
+  };
+
+  const handlePromoteToStaff = async () => {
+    if (!staffTarget) return;
+    setStaffLoading(true);
+    setStaffMsg('');
+    try {
+      await api.post(`/admin/users/${staffTarget.id}/promote-staff`);
+      setStaffMsg('✅ User promoted to STAFF! Now assign their agents below.');
+      fetchUsers(page, debouncedSearch);
+    } catch (err: any) {
+      setStaffMsg('❌ ' + (err?.response?.data?.error || 'Promotion failed'));
+    } finally {
+      setStaffLoading(false);
+    }
+  };
+
+  const handleDemoteStaff = async () => {
+    if (!staffTarget) return;
+    if (!confirm('Demote this staff member back to PLAYER? Their agent assignments will be cleared.')) return;
+    setStaffLoading(true);
+    try {
+      await api.post(`/admin/users/${staffTarget.id}/demote-staff`);
+      setStaffMsg('✅ Staff demoted to PLAYER.');
+      fetchUsers(page, debouncedSearch);
+      setStaffModal(false);
+    } catch (err: any) {
+      setStaffMsg('❌ ' + (err?.response?.data?.error || 'Failed'));
+    } finally {
+      setStaffLoading(false);
+    }
+  };
+
+  const toggleAgentAssignment = (agentId: string) => {
+    setSelectedAgentIds(prev =>
+      prev.includes(agentId) ? prev.filter(id => id !== agentId) : [...prev, agentId]
+    );
+  };
+
+  const handleSaveAssignments = async () => {
+    if (!staffTarget) return;
+    setStaffLoading(true);
+    setStaffMsg('');
+    try {
+      await api.post(`/admin/staff/${staffTarget.id}/assign-agents`, { agentIds: selectedAgentIds });
+      setStaffMsg(`✅ Assigned ${selectedAgentIds.length} agent(s) to ${staffTarget.firstName || 'staff'}.`);
+      fetchUsers(page, debouncedSearch);
+    } catch (err: any) {
+      setStaffMsg('❌ ' + (err?.response?.data?.error || 'Failed to save assignments'));
+    } finally {
+      setStaffLoading(false);
+    }
+  };
+
+  const roleBadgeStyle = (role: string): React.CSSProperties => {
+    if (role === 'ADMIN') return { background: '#fef9c3', color: '#854d0e' };
+    if (role === 'AGENT') return { background: '#eff6ff', color: '#1d4ed8' };
+    if (role === 'STAFF') return { background: '#f3e8ff', color: '#7c3aed' };
+    return { background: '#f0fdf4', color: '#16a34a' };
+  };
+
   return (
     <div className="admin-page">
+      {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
         <div>
           <h1 style={{ fontSize: '28px', fontWeight: '900', color: '#3d2b1f', margin: 0 }}>User Network</h1>
@@ -157,6 +242,7 @@ export default function UsersPage() {
         </div>
       )}
 
+      {/* Filters */}
       <div className="stat-card-m" style={{ padding: '20px', marginBottom: '32px', display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
         <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
           <FiSearch style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#a8a29e' }} />
@@ -169,7 +255,6 @@ export default function UsersPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        {/* Agent Filter Dropdown */}
         <div style={{ position: 'relative', minWidth: '200px' }}>
           <select
             value={agentFilter}
@@ -196,10 +281,11 @@ export default function UsersPage() {
         )}
       </div>
 
+      {/* Table */}
       <div className="data-table-container">
         {loading ? (
           <div style={{ padding: '100px', textAlign: 'center' }}>
-            <div className="animate-spin" style={{ width: '40px', height: '40px', border: '4px solid #d4af37', borderTopColor: 'transparent', borderRadius: '50%', margin: '0 auto' }}></div>
+            <div className="animate-spin" style={{ width: '40px', height: '40px', border: '4px solid #d4af37', borderTopColor: 'transparent', borderRadius: '50%', margin: '0 auto' }} />
             <p style={{ marginTop: '16px', fontWeight: '700', color: '#3d2b1f' }}>Brewing data...</p>
           </div>
         ) : (
@@ -208,7 +294,7 @@ export default function UsersPage() {
               <tr>
                 <th>Player</th>
                 <th>Telegram ID</th>
-                <th>Phone Number</th>
+                <th>Phone</th>
                 <th>Balance</th>
                 <th>Agent</th>
                 <th>Role</th>
@@ -218,7 +304,11 @@ export default function UsersPage() {
             </thead>
             <tbody>
               {users.map((user) => (
-                <tr key={user.id} style={{ transition: 'background 0.15s' }} onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.02)'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
+                <tr key={user.id}
+                  style={{ transition: 'background 0.15s' }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(0,0,0,0.02)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                >
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                       <div className="user-avatar" style={{ width: '40px', height: '40px', fontSize: '16px' }}>
@@ -254,66 +344,79 @@ export default function UsersPage() {
                     )}
                   </td>
                   <td>
-                    <span className={`badge ${user.isAdmin || user.role === 'ADMIN' ? 'badge-gold' : user.role === 'AGENT' ? 'badge-blue' : 'badge-green'}`}>
+                    <span style={{
+                      display: 'inline-block', padding: '3px 10px', borderRadius: '20px',
+                      fontSize: '11px', fontWeight: '800', ...roleBadgeStyle(user.role)
+                    }}>
                       {user.role}
                     </span>
                   </td>
                   <td>
-                    <span className={`badge ${user.status === 'BANNED' ? 'badge-red' : 'badge-green'}`} style={user.status === 'BANNED' ? { background: '#fef2f2', color: '#ef4444' } : {}}>
+                    <span className={`badge ${user.status === 'BANNED' ? 'badge-red' : 'badge-green'}`}
+                      style={user.status === 'BANNED' ? { background: '#fef2f2', color: '#ef4444' } : {}}>
                       {user.status || 'ACTIVE'}
                     </span>
                   </td>
                   <td>
                     <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                      {/* Edit Button */}
-                      <button
-                        onClick={() => openEditModal(user)}
+                      {/* Edit */}
+                      <button onClick={() => openEditModal(user)}
                         className="login-button"
                         style={{ padding: '7px 12px', background: '#fef9c3', color: '#854d0e', fontSize: '11px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px' }}
-                        title="Edit User"
-                      >
+                        title="Edit User">
                         <FiEdit2 size={12} /> EDIT
                       </button>
 
+                      {/* Ban / Unban */}
                       {user.status !== 'BANNED' ? (
-                        <button
-                          onClick={() => handleAction(user.id, 'ban')}
+                        <button onClick={() => handleAction(user.id, 'ban')}
                           className="login-button"
                           style={{ padding: '8px', background: '#fef2f2', color: '#ef4444' }}
-                          title="Ban User"
-                        >
+                          title="Ban User">
                           <FiUserX />
                         </button>
                       ) : (
-                        <button
-                          onClick={() => handleAction(user.id, 'unban')}
+                        <button onClick={() => handleAction(user.id, 'unban')}
                           className="login-button"
                           style={{ padding: '8px', background: '#f0fdf4', color: '#22c55e' }}
-                          title="Unban User"
-                        >
+                          title="Unban User">
                           <FiUserCheck />
                         </button>
                       )}
 
-                      {user.role !== 'AGENT' && user.role !== 'ADMIN' ? (
-                        <button
-                          onClick={() => handleAction(user.id, 'promote')}
+                      {/* Promote to Agent */}
+                      {user.role !== 'AGENT' && user.role !== 'ADMIN' && user.role !== 'STAFF' && (
+                        <button onClick={() => handleAction(user.id, 'promote')}
                           className="login-button"
                           style={{ padding: '8px', background: '#eff6ff', color: '#3b82f6' }}
-                          title="Promote to Agent"
-                        >
+                          title="Promote to Agent">
                           <FiShield />
                         </button>
-                      ) : user.role === 'AGENT' ? (
-                        <button
-                          onClick={() => handleAction(user.id, 'demote')}
+                      )}
+                      {user.role === 'AGENT' && (
+                        <button onClick={() => handleAction(user.id, 'demote')}
                           className="login-button"
                           style={{ padding: '8px', background: '#fff7ed', color: '#f97316' }}
-                          title="Demote from Agent"
-                        >
+                          title="Demote from Agent">
                           <FiShield style={{ opacity: 0.5 }} />
                         </button>
-                      ) : null}
+                      )}
+
+                      {/* Staff Management Button */}
+                      {user.role !== 'ADMIN' && user.role !== 'AGENT' && (
+                        <button onClick={() => openStaffModal(user)}
+                          className="login-button"
+                          style={{
+                            padding: '7px 10px', fontSize: '11px', fontWeight: '800',
+                            display: 'flex', alignItems: 'center', gap: '4px',
+                            background: user.role === 'STAFF' ? '#f3e8ff' : '#f9f9f9',
+                            color: user.role === 'STAFF' ? '#7c3aed' : '#6b7280',
+                            border: user.role === 'STAFF' ? '1px solid #e9d5ff' : '1px solid #e5e7eb'
+                          }}
+                          title={user.role === 'STAFF' ? 'Manage Staff Agents' : 'Promote to Staff'}>
+                          👤 {user.role === 'STAFF' ? 'STAFF ▾' : 'STAFF'}
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -357,12 +460,6 @@ export default function UsersPage() {
             </div>
             <p style={{ fontSize: '13px', color: '#78716c', marginBottom: '20px' }}>
               Editing <b>{editUser?.firstName}</b> — Telegram ID: <code>{editUser?.telegramId}</code>
-              {editUser?.referrer && (
-                <span style={{ marginLeft: '8px', background: '#eff6ff', color: '#1d4ed8', padding: '2px 8px', borderRadius: '6px', fontWeight: '700', fontSize: '12px' }}>
-                  Agent: @{editUser.referrer.telegramUsername || editUser.referrer.firstName}
-                  {editUser.referrer.referralCode && ` (${editUser.referrer.referralCode})`}
-                </span>
-              )}
             </p>
 
             {editError && <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px', padding: '10px 14px', marginBottom: '14px', fontSize: '13px', color: '#dc2626', fontWeight: '600' }}>{editError}</div>}
@@ -379,17 +476,10 @@ export default function UsersPage() {
                   <input type="text" className="login-input" value={editForm.telegramUsername} onChange={e => setEditForm(f => ({ ...f, telegramUsername: e.target.value }))} placeholder="e.g. john_doe" />
                 </div>
               </div>
-
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div style={{ marginBottom: '16px' }}>
+                <div>
                   <label style={{ display: 'block', marginBottom: '8px', fontWeight: '800', color: '#78716c', fontSize: '12px' }}>Phone Number</label>
-                  <input
-                    type="text"
-                    className="login-input"
-                    value={editForm.phone}
-                    onChange={e => setEditForm({ ...editForm, phone: e.target.value })}
-                    placeholder="e.g. +251912345678"
-                  />
+                  <input type="text" className="login-input" value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} placeholder="e.g. +251912345678" />
                 </div>
                 <div>
                   <label style={{ fontSize: '11px', fontWeight: '800', color: '#78716c', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Status</label>
@@ -400,7 +490,6 @@ export default function UsersPage() {
                   </select>
                 </div>
               </div>
-
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ fontSize: '11px', fontWeight: '800', color: '#78716c', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}><FiDollarSign size={10} /> Wallet Balance (ETB)</label>
@@ -426,6 +515,133 @@ export default function UsersPage() {
               </button>
               <button onClick={() => setEditModal(false)} style={{ flex: 1, background: '#eee', border: 'none', borderRadius: '12px', fontWeight: '900', cursor: 'pointer' }}>Cancel</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Staff Management Modal ── */}
+      {staffModal && staffTarget && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '520px', width: '92%', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <div>
+                <h2 style={{ fontWeight: '900', fontSize: '20px', margin: 0 }}>
+                  {staffTarget.role === 'STAFF' ? '👤 Manage Staff Member' : '👤 Promote to Staff'}
+                </h2>
+                <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#78716c' }}>
+                  {staffTarget.firstName || staffTarget.telegramUsername} — current role: <b>{staffTarget.role}</b>
+                </p>
+              </div>
+              <button onClick={() => setStaffModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#78716c' }}>
+                <FiX size={20} />
+              </button>
+            </div>
+
+            {staffMsg && (
+              <div style={{
+                padding: '10px 14px', borderRadius: '10px', marginBottom: '14px', fontSize: '13px', fontWeight: '600',
+                background: staffMsg.startsWith('✅') ? '#f0fdf4' : '#fef2f2',
+                color: staffMsg.startsWith('✅') ? '#16a34a' : '#dc2626',
+                border: staffMsg.startsWith('✅') ? '1px solid #bbf7d0' : '1px solid #fecaca'
+              }}>
+                {staffMsg}
+              </div>
+            )}
+
+            {staffTarget.role !== 'STAFF' ? (
+              /* Not yet STAFF — show promote button */
+              <div style={{ textAlign: 'center', padding: '24px 0' }}>
+                <div style={{ fontSize: '48px', marginBottom: '12px' }}>👤</div>
+                <p style={{ color: '#78716c', fontSize: '14px', marginBottom: '24px', lineHeight: 1.6 }}>
+                  Promoting <b>{staffTarget.firstName}</b> will give them <b>read-only</b> access to their assigned agents' dashboards and reports.
+                </p>
+                <button
+                  onClick={handlePromoteToStaff}
+                  disabled={staffLoading}
+                  style={{
+                    width: '100%', padding: '14px', borderRadius: '12px', border: 'none',
+                    background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
+                    color: 'white', fontWeight: '900', fontSize: '15px', cursor: 'pointer'
+                  }}>
+                  {staffLoading ? 'Promoting...' : '✓ Promote to Staff'}
+                </button>
+              </div>
+            ) : (
+              /* Already STAFF — show agent assignment */
+              <>
+                <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '12px' }}>
+                  Select which agents this staff member can monitor. They will see data <b>only</b> for selected agents.
+                </p>
+
+                <div style={{ flex: 1, overflowY: 'auto', maxHeight: '340px', display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+                  {staffAgentsList.length === 0 ? (
+                    <p style={{ color: '#a8a29e', textAlign: 'center', padding: '24px' }}>No agents found on the platform.</p>
+                  ) : staffAgentsList.map((agent: any) => {
+                    const isSelected = selectedAgentIds.includes(agent.id);
+                    return (
+                      <div
+                        key={agent.id}
+                        onClick={() => toggleAgentAssignment(agent.id)}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '12px',
+                          padding: '12px 14px', borderRadius: '12px', cursor: 'pointer',
+                          border: isSelected ? '1.5px solid #7c3aed' : '1.5px solid rgba(0,0,0,0.06)',
+                          background: isSelected ? 'rgba(124,58,237,0.05)' : '#fafafa',
+                          transition: 'all 0.15s'
+                        }}
+                      >
+                        <div style={{ color: isSelected ? '#7c3aed' : '#d1d5db', flexShrink: 0 }}>
+                          {isSelected ? <FiCheckSquare size={18} /> : <FiSquare size={18} />}
+                        </div>
+                        <div style={{
+                          width: '34px', height: '34px', borderRadius: '9px', flexShrink: 0,
+                          background: isSelected ? 'linear-gradient(135deg, #7c3aed, #a855f7)' : '#e5e7eb',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontWeight: '900', fontSize: '13px', color: isSelected ? 'white' : '#6b7280'
+                        }}>
+                          {(agent.firstName || agent.telegramUsername || 'A')[0].toUpperCase()}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: '800', color: '#3d2b1f', fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {agent.firstName || '—'} <span style={{ color: '#9ca3af', fontWeight: '600' }}>@{agent.telegramUsername || 'N/A'}</span>
+                          </div>
+                          <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2px' }}>
+                            {agent.referrals?.length ?? 0} players • Balance: {Number(agent.wallet?.balance || 0).toLocaleString()} ETB
+                          </div>
+                        </div>
+                        {isSelected && (
+                          <span style={{ fontSize: '10px', fontWeight: '800', color: '#7c3aed', background: '#ede9fe', padding: '2px 8px', borderRadius: '20px', flexShrink: 0 }}>
+                            ASSIGNED
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px', borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: '14px' }}>
+                  <button
+                    onClick={handleSaveAssignments}
+                    disabled={staffLoading}
+                    style={{
+                      flex: 1, padding: '12px', borderRadius: '12px', border: 'none',
+                      background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
+                      color: 'white', fontWeight: '900', fontSize: '14px', cursor: 'pointer'
+                    }}>
+                    {staffLoading ? 'Saving...' : `💾 Save Assignments (${selectedAgentIds.length} agents)`}
+                  </button>
+                  <button
+                    onClick={handleDemoteStaff}
+                    disabled={staffLoading}
+                    style={{
+                      padding: '12px 16px', borderRadius: '12px', border: '1px solid #fecaca',
+                      background: '#fef2f2', color: '#dc2626', fontWeight: '800', fontSize: '13px', cursor: 'pointer'
+                    }}>
+                    Demote
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

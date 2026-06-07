@@ -14,6 +14,7 @@ import multer from 'multer';
 import path from 'path';
 import { config } from '../config';
 import { logger } from '../lib/logger';
+import { logAdminAction } from '../services/log.service';
 
 // API Routes for Buna Bingo
 const router = Router();
@@ -1091,6 +1092,13 @@ const restrictToAdmin = async (req: Request, res: Response, next: any) => {
   adminMiddleware(req, res, next);
 };
 
+// ─── Staff + Admin Routes ────────────────────────────────────
+const staffMiddleware = async (req: Request, res: Response, next: any) => {
+  const { staffMiddleware: mw } = await import('../middleware/auth');
+  mw(req, res, next);
+};
+
+
 staffRouter.get('/deposits/pending', async (req, res) => {
   const admin = (req as any).user;
   const agentId = (admin.isAdmin || admin.role === 'ADMIN') ? undefined : admin.id;
@@ -1098,15 +1106,19 @@ staffRouter.get('/deposits/pending', async (req, res) => {
 });
 staffRouter.post('/deposits/:id/approve', async (req, res) => {
   const admin = (req as any).user;
+  if (admin.role === 'STAFF') return res.status(403).json({ error: 'STAFF users are read-only.' });
   try {
     await approveDeposit(req.params.id, admin.id);
+    await logAdminAction(admin.id, 'APPROVE_DEPOSIT', null, { depositId: req.params.id });
     res.json({ success: true });
   } catch (e: any) { res.status(400).json({ error: e.message }); }
 });
 staffRouter.post('/deposits/:id/reject', async (req, res) => {
   const admin = (req as any).user;
+  if (admin.role === 'STAFF') return res.status(403).json({ error: 'STAFF users are read-only.' });
   try {
     await rejectDeposit(req.params.id, admin.id, req.body.reason || 'Rejected');
+    await logAdminAction(admin.id, 'REJECT_DEPOSIT', null, { depositId: req.params.id, reason: req.body.reason || 'Rejected' });
     res.json({ success: true });
   } catch (e: any) { res.status(400).json({ error: e.message }); }
 });
@@ -1118,22 +1130,37 @@ staffRouter.get('/withdrawals/pending', async (req, res) => {
 });
 staffRouter.post('/withdrawals/:id/approve', async (req, res) => {
   const admin = (req as any).user;
+  if (admin.role === 'STAFF') return res.status(403).json({ error: 'STAFF users are read-only.' });
   try {
     await approveWithdrawal(req.params.id, admin.id);
+    await logAdminAction(admin.id, 'APPROVE_WITHDRAWAL', null, { withdrawalId: req.params.id });
     res.json({ success: true });
   } catch (e: any) { res.status(400).json({ error: e.message }); }
 });
 staffRouter.post('/withdrawals/:id/reject', async (req, res) => {
   const admin = (req as any).user;
+  if (admin.role === 'STAFF') return res.status(403).json({ error: 'STAFF users are read-only.' });
   try {
     await rejectWithdrawal(req.params.id, admin.id, req.body.reason || 'Rejected');
+    await logAdminAction(admin.id, 'REJECT_WITHDRAWAL', null, { withdrawalId: req.params.id, reason: req.body.reason || 'Rejected' });
     res.json({ success: true });
   } catch (e: any) { res.status(400).json({ error: e.message }); }
 });
 
 staffRouter.get('/transactions/summary', async (req, res) => {
   const user = (req as any).user;
-  const userFilter = (user.isAdmin || user.role === 'ADMIN') ? {} : { referredBy: user.id };
+  
+  let userFilter: any = {};
+  if (user.role === 'STAFF') {
+    const assigned = Array.isArray(user.depositPhones) ? user.depositPhones : [];
+    if (assigned.length > 0) {
+      userFilter = { referredBy: { in: assigned } };
+    } else {
+      userFilter = { referredBy: 'no-agents-assigned' };
+    }
+  } else if (!user.isAdmin && user.role !== 'ADMIN') {
+    userFilter = { referredBy: user.id };
+  }
 
   try {
     const [
@@ -1263,25 +1290,52 @@ staffRouter.get('/users', async (req, res) => {
 staffRouter.post('/users/:id/suspend', async (req, res) => {
   const admin = (req as any).user;
   await suspendUser(req.params.id, admin.id, req.body.reason || '');
+  await logAdminAction(admin.id, 'SUSPEND_USER', req.params.id, { reason: req.body.reason || '' });
   res.json({ success: true });
 });
 staffRouter.post('/users/:id/ban', async (req, res) => {
   const admin = (req as any).user;
   await banUser(req.params.id, admin.id, req.body.reason || '');
+  await logAdminAction(admin.id, 'BAN_USER', req.params.id, { reason: req.body.reason || '' });
+  res.json({ success: true });
+});
+staffRouter.post('/users/:id/unban', async (req, res) => {
+  const admin = (req as any).user;
+  await prisma.user.update({ where: { id: req.params.id }, data: { status: 'ACTIVE' } });
+  await logAdminAction(admin.id, 'UNBAN_USER', req.params.id);
   res.json({ success: true });
 });
 
-// ─── Admin-Only Management ──────────────────────────────────
-staffRouter.get('/agents', restrictToAdmin, async (req, res) => {
+// ─── Admin/Staff Management ──────────────────────────────────
+staffRouter.get('/agents', staffMiddleware, async (req, res) => {
   const page = parseInt(req.query.page as string) || 1;
+  const admin = (req as any).user;
+  let agentIds: string[] | undefined = undefined;
+
+  if (admin.role === 'STAFF') {
+    const assigned = Array.isArray(admin.depositPhones) ? admin.depositPhones : [];
+    agentIds = assigned;
+    if (agentIds.length === 0) {
+      agentIds = ['no-agents-assigned'];
+    }
+  }
+
   const { getAgents } = await import('../services/user.service');
-  res.json(await getAgents(page));
+  res.json(await getAgents(page, 20, agentIds));
 });
 
 // ─── Single Agent Detailed Report ───────────────────────────
-staffRouter.get('/agents/:id/report', restrictToAdmin, async (req, res) => {
+staffRouter.get('/agents/:id/report', staffMiddleware, async (req, res) => {
   try {
+    const admin = (req as any).user;
     const agentId = req.params.id;
+
+    if (admin.role === 'STAFF') {
+      const assigned = Array.isArray(admin.depositPhones) ? admin.depositPhones : [];
+      if (!assigned.includes(agentId)) {
+        return res.status(403).json({ error: 'You are not assigned to this agent' });
+      }
+    }
 
     const agent = await prisma.user.findUnique({
       where: { id: agentId },
@@ -1422,11 +1476,82 @@ staffRouter.post('/users/:id/promote', restrictToAdmin, async (req, res) => {
   const { promoteToAgent } = await import('../services/user.service');
   try {
     await promoteToAgent(req.params.id, admin.id);
+    await logAdminAction(admin.id, 'PROMOTE_TO_AGENT', req.params.id);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'Promotion failed' });
   }
 });
+
+// ─── Promote user to STAFF role ─────────────────────────────
+staffRouter.post('/users/:id/promote-staff', restrictToAdmin, async (req, res) => {
+  try {
+    const admin = (req as any).user;
+    await prisma.user.update({
+      where: { id: req.params.id },
+      data: { role: 'STAFF', isAdmin: false },
+    });
+    await logAdminAction(admin.id, 'PROMOTE_TO_STAFF', req.params.id);
+    res.json({ success: true, message: 'User promoted to STAFF' });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Promotion to STAFF failed' });
+  }
+});
+
+// ─── Demote STAFF back to PLAYER ────────────────────────────
+staffRouter.post('/users/:id/demote-staff', restrictToAdmin, async (req, res) => {
+  try {
+    const admin = (req as any).user;
+    await prisma.user.update({
+      where: { id: req.params.id },
+      data: { role: 'PLAYER', depositPhones: [] },
+    });
+    await logAdminAction(admin.id, 'DEMOTE_FROM_STAFF', req.params.id);
+    res.json({ success: true, message: 'Staff demoted to PLAYER' });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Demotion failed' });
+  }
+});
+
+// ─── Assign agents to a STAFF user ──────────────────────────
+// We store assigned agentIds in the staff user's depositPhones JSON field
+// (no DB migration needed — repurposed for staff assignment storage)
+staffRouter.post('/staff/:id/assign-agents', restrictToAdmin, async (req, res) => {
+  try {
+    const { agentIds } = req.body; // array of agent user IDs
+    if (!Array.isArray(agentIds)) {
+      return res.status(400).json({ error: 'agentIds must be an array' });
+    }
+    const admin = (req as any).user;
+    await prisma.user.update({
+      where: { id: req.params.id },
+      data: { depositPhones: agentIds },
+    });
+    await logAdminAction(admin.id, 'ASSIGN_AGENTS_TO_STAFF', req.params.id, { assignedAgents: agentIds });
+    res.json({ success: true, assignedAgents: agentIds });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to assign agents' });
+  }
+});
+
+// ─── Get staff user's assigned agents ───────────────────────
+staffRouter.get('/staff/:id/assigned-agents', restrictToAdmin, async (req, res) => {
+  try {
+    const staffUser = await prisma.user.findUnique({ where: { id: req.params.id } });
+    if (!staffUser || staffUser.role !== 'STAFF') {
+      return res.status(404).json({ error: 'Staff user not found' });
+    }
+    const agentIds = Array.isArray(staffUser.depositPhones) ? staffUser.depositPhones : [];
+    const agents = await prisma.user.findMany({
+      where: { id: { in: agentIds as string[] } },
+      select: { id: true, firstName: true, telegramUsername: true, referralCode: true }
+    });
+    res.json({ agentIds, agents });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 
 staffRouter.post('/agents/:id/recharge', restrictToAdmin, async (req, res) => {
   const admin = (req as any).user;
@@ -1434,6 +1559,7 @@ staffRouter.post('/agents/:id/recharge', restrictToAdmin, async (req, res) => {
   const { rechargeAgentPreDepositWallet } = await import('../services/agentPreDeposit.service');
   try {
     const newBalance = await rechargeAgentPreDepositWallet(req.params.id, parseFloat(amount), admin.id);
+    await logAdminAction(admin.id, 'RECHARGE_AGENT', req.params.id, { amount: parseFloat(amount), newBalance });
     res.json({ success: true, newBalance });
   } catch (err: any) {
     res.status(400).json({ error: err.message });
@@ -1446,10 +1572,12 @@ staffRouter.patch('/agents/:id/deposit-phones', restrictToAdmin, async (req, res
     if (!Array.isArray(depositPhones)) {
       return res.status(400).json({ error: 'depositPhones must be an array' });
     }
+    const admin = (req as any).user;
     await prisma.user.update({
       where: { id: req.params.id },
       data: { depositPhones },
     });
+    await logAdminAction(admin.id, 'UPDATE_DEPOSIT_PHONES', req.params.id, { depositPhones });
     res.json({ success: true });
   } catch (err: any) {
     res.status(500).json({ error: 'Failed to update deposit phones' });
@@ -1462,6 +1590,7 @@ staffRouter.post('/users/:id/demote', restrictToAdmin, async (req, res) => {
   const { demoteFromAgent } = await import('../services/user.service');
   try {
     await demoteFromAgent(req.params.id, admin.id);
+    await logAdminAction(admin.id, 'DEMOTE_FROM_AGENT', req.params.id);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'Demotion failed' });
@@ -1493,6 +1622,9 @@ staffRouter.patch('/users/:id', restrictToAdmin, async (req, res) => {
         data: { balance: parseFloat(walletBalance) },
       });
     }
+
+    const admin = (req as any).user;
+    await logAdminAction(admin.id, 'EDIT_USER', req.params.id, updateData);
 
     res.json({ success: true, user });
   } catch (err: any) {
@@ -1538,10 +1670,27 @@ staffRouter.patch('/agents/:id', restrictToAdmin, async (req, res) => {
   }
 });
 
-staffRouter.get('/analytics', restrictToAdmin, async (req, res) => {
+staffRouter.get('/analytics', staffMiddleware, async (req, res) => {
   const dateStr = req.query.date as string; // Optional date 'YYYY-MM-DD'
-  const agentId = req.query.agentId as string; // Optional agent filter
+  const agentIdQuery = req.query.agentId as string; // Optional agent filter
+  const admin = (req as any).user;
   
+  let agentIds: string[] | undefined = undefined;
+
+  // If a specific agentId is requested
+  if (agentIdQuery) {
+    agentIds = [agentIdQuery];
+  } 
+  // If no specific agent requested, but user is STAFF, enforce filtering by their assigned agents
+  else if (admin.role === 'STAFF') {
+    const assigned = Array.isArray(admin.depositPhones) ? admin.depositPhones : [];
+    agentIds = assigned;
+    // If a staff has 0 assigned agents, we should still filter down to an empty array so they see 0.
+    if (agentIds.length === 0) {
+      agentIds = ['no-agents-assigned'];
+    }
+  }
+
   let todayStart = new Date();
   if (dateStr) {
     todayStart = new Date(dateStr);
@@ -1551,10 +1700,10 @@ staffRouter.get('/analytics', restrictToAdmin, async (req, res) => {
   const todayEnd = new Date(todayStart);
   todayEnd.setHours(23,59,59,999);
 
-  const userFilter = agentId ? { referredBy: agentId } : {};
-  const txFilter = agentId ? { user: { referredBy: agentId } } : {};
-  const ticketFilter = agentId ? { user: { referredBy: agentId } } : {};
-  const commFilter = agentId ? { agentId: agentId } : {};
+  const userFilter = agentIds ? { referredBy: { in: agentIds } } : {};
+  const txFilter = agentIds ? { user: { referredBy: { in: agentIds } } } : {};
+  const ticketFilter = agentIds ? { user: { referredBy: { in: agentIds } } } : {};
+  const commFilter = agentIds ? { agentId: { in: agentIds } } : {};
 
   const [
     totalUsers,
@@ -1621,9 +1770,12 @@ staffRouter.get('/analytics', restrictToAdmin, async (req, res) => {
         }
       }
     }),
-    // Pre-deposit wallet totals — specific agent OR sum of ALL agents
-    agentId 
-      ? prisma.agentPreDepositWallet.findUnique({ where: { agentId } })
+    // Pre-deposit wallet totals — specific agents OR sum of ALL agents
+    agentIds 
+      ? prisma.agentPreDepositWallet.aggregate({
+          where: { agentId: { in: agentIds } },
+          _sum: { balance: true, totalDebited: true, totalRecharged: true }
+        })
       : prisma.agentPreDepositWallet.aggregate({
           _sum: { balance: true, totalDebited: true, totalRecharged: true }
         }),
@@ -1653,32 +1805,24 @@ staffRouter.get('/analytics', restrictToAdmin, async (req, res) => {
 
   // NOTE: breakdown is finalized after companyRate is loaded below
 
-  // Pre-deposit totals: single agent uses direct fields; global uses aggregate sums
+  // Pre-deposit totals: agentIds uses aggregate sums over subset; global uses aggregate sums over all
   let totalPreDepositBalance: number;
   let totalPreDepositAdded: number;
 
-  if (agentId) {
-    // Single agent: agentPreDepositObj is an AgentPreDepositWallet row
-    const w = agentPreDepositObj as any;
-    totalPreDepositBalance = Number(w?.balance || 0);
-    totalPreDepositAdded   = Number(w?.totalRecharged || 0);
-  } else {
-    // Global: agentPreDepositObj is an aggregate result { _sum: { balance, totalDebited, totalRecharged } }
-    const sums = (agentPreDepositObj as any)?._sum;
-    totalPreDepositBalance = Number(sums?.balance || 0);
-    totalPreDepositAdded   = Number(sums?.totalRecharged || 0);
-  }
+  const sums = (agentPreDepositObj as any)?._sum;
+  totalPreDepositBalance = Number(sums?.balance || 0);
+  totalPreDepositAdded   = Number(sums?.totalRecharged || 0);
 
   const bunaWalletBalance = Number(bunaWallet?.balance || 0);
 
-  // ── Real vs Bot Sales Split (all-time) ──────────────────────────────────
+  // Real vs Bot Sales Split (all-time)
   // Real player sales = ticket purchases by non-bot users
   const realSalesAgg = await prisma.transaction.aggregate({
     where: {
       type: 'TICKET_PURCHASE',
       status: 'COMPLETED',
       user: { isBot: false },
-      ...(agentId ? { user: { referredBy: agentId, isBot: false } } : {})
+      ...(agentIds ? { user: { referredBy: { in: agentIds }, isBot: false } } : {})
     },
     _sum: { amount: true }
   });
@@ -1688,7 +1832,7 @@ staffRouter.get('/analytics', restrictToAdmin, async (req, res) => {
       type: 'TICKET_PURCHASE',
       status: 'COMPLETED',
       user: { isBot: true },
-      ...(agentId ? { user: { referredBy: agentId, isBot: true } } : {})
+      ...(agentIds ? { user: { referredBy: { in: agentIds }, isBot: true } } : {})
     },
     _sum: { amount: true }
   });
@@ -1697,7 +1841,7 @@ staffRouter.get('/analytics', restrictToAdmin, async (req, res) => {
   const botWinnerRecords = await prisma.winner.aggregate({
     where: {
       user: { isBot: true },
-      ...(agentId ? { user: { referredBy: agentId, isBot: true } } : {})
+      ...(agentIds ? { user: { referredBy: { in: agentIds }, isBot: true } } : {})
     },
     _sum: { prizeAmount: true },
     _count: { id: true },
@@ -1736,7 +1880,7 @@ staffRouter.get('/analytics', restrictToAdmin, async (req, res) => {
       status: 'COMPLETED',
       user: { isBot: false },
       createdAt: { gte: todayStart, lte: todayEnd },
-      ...(agentId ? { user: { referredBy: agentId, isBot: false } } : {})
+      ...(agentIds ? { user: { referredBy: { in: agentIds }, isBot: false } } : {})
     },
     _sum: { amount: true }
   });
@@ -2115,6 +2259,8 @@ staffRouter.put('/settings', restrictToAdmin, async (req, res) => {
         await setSystemSetting(key, String(req.body[key]));
       }
     }
+    const admin = (req as any).user;
+    await logAdminAction(admin.id, 'UPDATE_SETTINGS', null, req.body);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'Failed to save settings' });
@@ -2185,6 +2331,9 @@ staffRouter.post('/promotions', restrictToAdmin, async (req, res) => {
       });
     }
 
+    const admin = (req as any).user;
+    await logAdminAction(admin.id, 'CREATE_PROMOTION', promotion.id, promotion);
+
     res.json(promotion);
   } catch (err: any) {
     logger.error('Promotion creation error:', err);
@@ -2235,6 +2384,10 @@ staffRouter.patch('/promotions/:id', restrictToAdmin, async (req, res) => {
         updatedAt: new Date(),
       },
     });
+
+    const admin = (req as any).user;
+    await logAdminAction(admin.id, 'EDIT_PROMOTION', id, promotion);
+
     res.json(promotion);
   } catch (err: any) {
     logger.error('Promotion update error:', err);
@@ -2247,6 +2400,8 @@ staffRouter.delete('/promotions/:id', restrictToAdmin, async (req, res) => {
   const { id } = req.params;
   try {
     await prisma.promotion.delete({ where: { id } });
+    const admin = (req as any).user;
+    await logAdminAction(admin.id, 'DELETE_PROMOTION', id);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'Failed to delete promotion' });
@@ -2277,6 +2432,9 @@ staffRouter.post('/promotions/:id/broadcast', restrictToAdmin, async (req, res) 
 
     // Get total recipient count for response
     const totalRecipients = await prisma.user.count();
+
+    const admin = (req as any).user;
+    await logAdminAction(admin.id, 'BROADCAST_PROMOTION', id, { totalRecipients });
 
     res.json({ success: true, totalRecipients, message: 'Broadcast queued successfully' });
   } catch (err) {

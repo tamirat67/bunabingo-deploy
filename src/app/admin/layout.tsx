@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { 
   FiPieChart, FiUsers, FiUserCheck, FiDollarSign, 
   FiSettings, FiLogOut, FiMenu, FiX, FiAward,
-  FiActivity, FiShield, FiCreditCard, FiCalendar, FiChevronDown, FiTrendingUp
+  FiActivity, FiShield, FiCreditCard, FiCalendar, FiChevronDown, FiTrendingUp, FiGrid, FiFileText
 } from 'react-icons/fi';
 import api from '@/lib/api';
 import '@/app/admin.css';
@@ -76,7 +76,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       try {
         const response = await api.get('/me');
         const userData = response.data;
-        if (userData.role !== 'ADMIN' && userData.role !== 'AGENT' && !userData.isAdmin) {
+        if (userData.role !== 'ADMIN' && userData.role !== 'AGENT' && userData.role !== 'STAFF' && !userData.isAdmin) {
           router.push('/admin/login'); // Redirect unauthorized users
           return;
         }
@@ -93,6 +93,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   </div>;
 
   const isAdmin = user.role === 'ADMIN' || user.isAdmin;
+  const isStaff = user.role === 'STAFF';
 
   // ─── LOGIN PAGE VIEW ──────────────────────────────────────
   // If we are on the login page, don't show sidebars or headers
@@ -122,13 +123,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
 
         <nav className="sidebar-nav">
-          <NavLink href="/admin" icon={<FiActivity />} label="Dashboard" />
-          <NavLink href="/admin/users" icon={<FiUsers />} label="All Users" />
-          <NavLink href="/admin/agents" icon={<FiShield />} label="All Agents" />
-          <NavLink href="/admin/transactions" icon={<FiCreditCard />} label="Transactions" />
-          <NavLink href="/admin/revenue" icon={<FiTrendingUp />} label="Revenue" />
-          <NavLink href="/admin/audit" icon={<FiPieChart />} label="System Audit" />
-          <NavLink href="/admin/settings" icon={<FiSettings />} label="Settings" />
+          {isStaff ? (
+            // Staff-only nav
+            <>
+              <NavLink href="/admin/staff-dashboard" icon={<FiGrid />} label="My Dashboard" />
+              <NavLink href="/admin/agents" icon={<FiShield />} label="Assigned Agents" />
+              <NavLink href="/admin/transactions" icon={<FiCreditCard />} label="Transactions" />
+            </>
+          ) : (
+            // Admin / Agent nav
+            <>
+              <NavLink href="/admin" icon={<FiActivity />} label="Dashboard" />
+              <NavLink href="/admin/users" icon={<FiUsers />} label="All Users" />
+              <NavLink href="/admin/agents" icon={<FiShield />} label="All Agents" />
+              <NavLink href="/admin/transactions" icon={<FiCreditCard />} label="Transactions" />
+              <NavLink href="/admin/revenue" icon={<FiTrendingUp />} label="Revenue" />
+              {isAdmin && <NavLink href="/admin/audit" icon={<FiPieChart />} label="System Audit" />}
+              {isAdmin && <NavLink href="/admin/logs" icon={<FiFileText />} label="System Logs" />}
+              {isAdmin && <NavLink href="/admin/settings" icon={<FiSettings />} label="Settings" />}
+            </>
+          )}
         </nav>
 
         <div className="sidebar-footer">

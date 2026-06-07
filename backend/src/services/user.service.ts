@@ -214,7 +214,7 @@ export async function getUserByTelegramId(telegramId: number) {
   });
 }
 
-export async function getAllUsers(page = 1, limit = 20, search = '') {
+export async function getAllUsers(page = 1, limit = 20, search = '', agentIds?: string[]) {
   const skip = (page - 1) * limit;
 
   // Build optional search where clause
@@ -230,6 +230,10 @@ export async function getAllUsers(page = 1, limit = 20, search = '') {
         ],
       }
     : {};
+    
+  if (agentIds) {
+    where.referredBy = { in: agentIds };
+  }
 
   const [users, total] = await Promise.all([
     prisma.user.findMany({
@@ -436,11 +440,16 @@ export async function getPlayersUnderAgent(agentId: string, page = 1, limit = 20
   return { players, users: players, total, pages: Math.ceil(total / limit) };
 }
 
-export async function getAgents(page = 1, limit = 20) {
+export async function getAgents(page = 1, limit = 20, agentIds?: string[]) {
   const skip = (page - 1) * limit;
+  const whereClause: any = { role: 'AGENT' };
+  if (agentIds) {
+    whereClause.id = { in: agentIds };
+  }
+
   const [agents, total] = await Promise.all([
     prisma.user.findMany({
-      where: { role: 'AGENT' },
+      where: whereClause,
       skip,
       take: limit,
       include: { 
@@ -450,7 +459,7 @@ export async function getAgents(page = 1, limit = 20) {
       },
       orderBy: { createdAt: 'desc' },
     }),
-    prisma.user.count({ where: { role: 'AGENT' } }),
+    prisma.user.count({ where: whereClause }),
   ]);
 
   // Backfill: generate and save a referralCode for any agent that was promoted before this feature existed.

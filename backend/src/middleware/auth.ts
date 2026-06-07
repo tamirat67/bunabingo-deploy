@@ -117,8 +117,19 @@ export function adminMiddleware(req: Request, res: Response, next: NextFunction)
  */
 export function agentMiddleware(req: Request, res: Response, next: NextFunction) {
   const user = (req as any).user;
-  if (!user || (user.role !== 'AGENT' && user.role !== 'ADMIN' && !user.isAdmin)) {
+  if (!user || (user.role !== 'AGENT' && user.role !== 'STAFF' && user.role !== 'ADMIN' && !user.isAdmin)) {
     return res.status(403).json({ error: 'Agent access required' });
+  }
+  next();
+}
+
+/**
+ * Staff middleware — allows Staff and Admins to access staff portals
+ */
+export function staffMiddleware(req: Request, res: Response, next: NextFunction) {
+  const user = (req as any).user;
+  if (!user || (user.role !== 'STAFF' && user.role !== 'ADMIN' && !user.isAdmin)) {
+    return res.status(403).json({ error: 'Staff access required' });
   }
   next();
 }

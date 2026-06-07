@@ -28,6 +28,13 @@ function DashboardContent() {
         setUser(userData);
         
         const isAdmin = userData.role === 'ADMIN' || userData.isAdmin;
+        const isStaff = userData.role === 'STAFF';
+
+        // Staff users get their own dedicated dashboard
+        if (isStaff) {
+          router.replace('/admin/staff-dashboard');
+          return;
+        }
         
         if (isAdmin) {
           try {
