@@ -195,23 +195,40 @@ export default function SettingsPage() {
     }
     setSavingPromo(true);
     try {
-      const formData = new FormData();
-      formData.append('title', promoForm.title.trim());
-      formData.append('message', promoForm.message.trim());
-      formData.append('type', promoForm.type);
-      formData.append('scheduledAt', promoForm.scheduledAt || '');
-      formData.append('expiresAt', promoForm.expiresAt || '');
+      let payload: any;
+      let isMultipart = false;
+
       if (imageFile) {
-        formData.append('image', imageFile);
+        isMultipart = true;
+        payload = new FormData();
+        payload.append('title', promoForm.title.trim());
+        payload.append('message', promoForm.message.trim());
+        payload.append('type', promoForm.type);
+        payload.append('scheduledAt', promoForm.scheduledAt || '');
+        payload.append('expiresAt', promoForm.expiresAt || '');
+        payload.append('image', imageFile);
+        if (editingPromo && removeImage) {
+          payload.append('removeImage', 'true');
+        }
+      } else {
+        payload = {
+          title: promoForm.title.trim(),
+          message: promoForm.message.trim(),
+          type: promoForm.type,
+          scheduledAt: promoForm.scheduledAt || '',
+          expiresAt: promoForm.expiresAt || '',
+        };
+        if (editingPromo && removeImage) {
+          payload.removeImage = true;
+        }
       }
 
+      const config = { timeout: 30000 };
+
       if (editingPromo) {
-        if (removeImage) {
-          formData.append('removeImage', 'true');
-        }
-        await api.patch(`/admin/promotions/${editingPromo.id}`, formData, { timeout: 30000 });
+        await api.patch(`/admin/promotions/${editingPromo.id}`, payload, config);
       } else {
-        await api.post('/admin/promotions', formData, { timeout: 30000 });
+        await api.post('/admin/promotions', payload, config);
       }
       setShowPromoForm(false);
       setEditingPromo(null);

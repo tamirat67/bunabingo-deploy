@@ -2087,12 +2087,16 @@ staffRouter.get('/promotions', restrictToAdmin, async (req, res) => {
 
 // CREATE a promotion
 staffRouter.post('/promotions', restrictToAdmin, async (req, res) => {
-  // Handle file upload manually to return JSON on multer error
-  try {
-    await runUpload(req, res, upload.single('image'));
-  } catch (uploadErr: any) {
-    logger.error('Promotion upload error:', uploadErr);
-    return res.status(400).json({ error: `Image upload failed: ${uploadErr.message || String(uploadErr)}` });
+  // Only run multer if the request is multipart/form-data (i.e. includes an image).
+  // Plain JSON requests should skip multer entirely.
+  const contentType = req.headers['content-type'] || '';
+  if (contentType.includes('multipart/form-data')) {
+    try {
+      await runUpload(req, res, upload.single('image'));
+    } catch (uploadErr: any) {
+      logger.error('Promotion upload error:', uploadErr);
+      return res.status(400).json({ error: `Image upload failed: ${uploadErr.message || String(uploadErr)}` });
+    }
   }
 
   const { title, message, type, scheduledAt, expiresAt, isActive } = req.body;
