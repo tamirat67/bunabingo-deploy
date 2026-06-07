@@ -207,15 +207,15 @@ export default function ProfilePage() {
                   display: 'flex', 
                   alignItems: 'center', 
                   justifyContent: 'center', 
-                  border: (profile?.isAdmin || profile?.role === 'ADMIN' || profile?.role === 'admin') ? `3px solid #FFD700` : (profile?.role === 'AGENT' || profile?.role === 'agent' ? `3px solid #2196F3` : `3px solid ${T.gold}`),
-                  boxShadow: (profile?.isAdmin || profile?.role === 'ADMIN' || profile?.role === 'admin') ? '0 0 15px rgba(255,215,0,0.4)' : '0 4px 15px rgba(0,0,0,0.1)',
+                  border: (profile?.isAdmin || profile?.role === 'ADMIN' || profile?.role === 'admin' || profile?.role === 'STAFF' || profile?.role === 'staff') ? `3px solid #FFD700` : (profile?.role === 'AGENT' || profile?.role === 'agent' ? `3px solid #2196F3` : `3px solid ${T.gold}`),
+                  boxShadow: (profile?.isAdmin || profile?.role === 'ADMIN' || profile?.role === 'admin' || profile?.role === 'STAFF' || profile?.role === 'staff') ? '0 0 15px rgba(255,215,0,0.4)' : '0 4px 15px rgba(0,0,0,0.1)',
                   position: 'relative',
                   zIndex: 1
                }}>
-                  <User size={45} color={(profile?.isAdmin || profile?.role === 'ADMIN' || profile?.role === 'admin') ? '#FFD700' : (profile?.role === 'AGENT' || profile?.role === 'agent' ? '#2196F3' : T.gold)} />
+                  <User size={45} color={(profile?.isAdmin || profile?.role === 'ADMIN' || profile?.role === 'admin' || profile?.role === 'STAFF' || profile?.role === 'staff') ? '#FFD700' : (profile?.role === 'AGENT' || profile?.role === 'agent' ? '#2196F3' : T.gold)} />
                </div>
 
-               {(profile?.role === 'AGENT' || profile?.role === 'agent' || profile?.role === 'ADMIN' || profile?.role === 'admin' || profile?.isAdmin) && (
+               {(profile?.role === 'AGENT' || profile?.role === 'agent' || profile?.role === 'ADMIN' || profile?.role === 'admin' || profile?.isAdmin || profile?.role === 'STAFF' || profile?.role === 'staff') && (
                  <motion.div 
                    initial={{ scale: 0, rotate: -45 }}
                    animate={{ scale: 1, rotate: 0 }}
@@ -225,7 +225,7 @@ export default function ProfilePage() {
                      right: '2px',
                      width: '28px',
                      height: '28px',
-                     background: (profile?.isAdmin || profile?.role === 'ADMIN' || profile?.role === 'admin') ? 'linear-gradient(135deg, #FFD700, #B8860B)' : 'linear-gradient(135deg, #2196F3, #1976D2)',
+                     background: (profile?.isAdmin || profile?.role === 'ADMIN' || profile?.role === 'admin' || profile?.role === 'STAFF' || profile?.role === 'staff') ? 'linear-gradient(135deg, #FFD700, #B8860B)' : 'linear-gradient(135deg, #2196F3, #1976D2)',
                      borderRadius: '50%',
                      border: '2px solid white',
                      display: 'flex',
@@ -235,14 +235,14 @@ export default function ProfilePage() {
                      zIndex: 2
                    }}
                  >
-                    {(profile?.isAdmin || profile?.role === 'ADMIN' || profile?.role === 'admin') ? <ShieldCheck size={16} color="white" /> : <Trophy size={14} color="white" />}
+                    {(profile?.isAdmin || profile?.role === 'ADMIN' || profile?.role === 'admin' || profile?.role === 'STAFF' || profile?.role === 'staff') ? <ShieldCheck size={16} color="white" /> : <Trophy size={14} color="white" />}
                  </motion.div>
                )}
             </div>
 
             <div style={{ fontSize: '24px', fontWeight: '900' }}>{profile?.username || profile?.firstName || 'Buna Player'}</div>
             
-            {(profile?.role === 'AGENT' || profile?.role === 'agent' || profile?.role === 'ADMIN' || profile?.role === 'admin' || profile?.isAdmin) ? (
+            {(profile?.role === 'AGENT' || profile?.role === 'agent' || profile?.role === 'ADMIN' || profile?.role === 'admin' || profile?.isAdmin || profile?.role === 'STAFF' || profile?.role === 'staff') ? (
               <motion.div 
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
@@ -250,8 +250,8 @@ export default function ProfilePage() {
                   display: 'inline-flex', 
                   alignItems: 'center', 
                   gap: '6px',
-                  background: (profile?.isAdmin || profile?.role === 'ADMIN' || profile?.role === 'admin') ? 'linear-gradient(135deg, #FFD700, #B8860B)' : 'linear-gradient(135deg, #d4af37, #b8962e)', 
-                  color: (profile?.isAdmin || profile?.role === 'ADMIN' || profile?.role === 'admin') ? 'white' : 'black', 
+                  background: (profile?.isAdmin || profile?.role === 'ADMIN' || profile?.role === 'admin' || profile?.role === 'STAFF' || profile?.role === 'staff') ? 'linear-gradient(135deg, #FFD700, #B8860B)' : 'linear-gradient(135deg, #d4af37, #b8962e)', 
+                  color: (profile?.isAdmin || profile?.role === 'ADMIN' || profile?.role === 'admin' || profile?.role === 'STAFF' || profile?.role === 'staff') ? 'white' : 'black', 
                   padding: '4px 12px', 
                   borderRadius: '20px', 
                   fontSize: '11px', 
@@ -263,8 +263,8 @@ export default function ProfilePage() {
                   letterSpacing: '0.5px'
                 }}
               >
-                 {(profile?.isAdmin || profile?.role === 'ADMIN' || profile?.role === 'admin') ? <ShieldCheck size={14} /> : <Check size={14} />} 
-                 {(profile?.isAdmin || profile?.role === 'ADMIN' || profile?.role === 'admin') ? 'ADMINISTRATOR' : 'OFFICIAL AGENT'}
+                 {(profile?.isAdmin || profile?.role === 'ADMIN' || profile?.role === 'admin' || profile?.role === 'STAFF' || profile?.role === 'staff') ? <ShieldCheck size={14} /> : <Check size={14} />} 
+                 {(profile?.isAdmin || profile?.role === 'ADMIN' || profile?.role === 'admin') ? 'ADMINISTRATOR' : (profile?.role === 'STAFF' || profile?.role === 'staff') ? 'STAFF MEMBER' : 'OFFICIAL AGENT'}
               </motion.div>
             ) : (
               <div style={{ fontSize: '11px', color: T.gold, fontWeight: '900', opacity: 0.6, textTransform: 'uppercase', letterSpacing: '1px', marginTop: '8px' }}>
@@ -477,7 +477,7 @@ export default function ProfilePage() {
            </div>
         </div>
 
-        {/* ── Action Buttons (Admin & Agent) ── */}
+         {/* ── Action Buttons (Admin, Staff & Agent) ── */}
          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
             {(profile?.isAdmin || profile?.role === 'ADMIN' || profile?.role === 'admin') && (
                <button 
@@ -485,6 +485,15 @@ export default function ProfilePage() {
                   style={{ width: '100%', padding: '16px', borderRadius: '16px', background: 'linear-gradient(135deg, #1a1a1a, #333333)', border: `2px solid ${T.gold}`, color: T.gold, fontWeight: '900', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', boxShadow: '0 4px 15px rgba(0,0,0,0.3)' }}
                >
                   <ShieldCheck size={20} /> Web Admin Portal
+               </button>
+            )}
+
+            {(profile?.role === 'STAFF' || profile?.role === 'staff') && (
+               <button 
+                  onClick={() => router.push('/admin')} 
+                  style={{ width: '100%', padding: '16px', borderRadius: '16px', background: 'linear-gradient(135deg, #4b5563, #374151)', border: `2px solid #9ca3af`, color: '#f3f4f6', fontWeight: '900', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', boxShadow: '0 4px 15px rgba(0,0,0,0.3)' }}
+               >
+                  <ShieldCheck size={20} /> Web Staff Portal
                </button>
             )}
 
