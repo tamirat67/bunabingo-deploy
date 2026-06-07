@@ -223,7 +223,7 @@ export default function SettingsPage() {
         }
       }
 
-      const config = { timeout: 30000 };
+      const config = { timeout: 120000 };
 
       if (editingPromo) {
         await api.patch(`/admin/promotions/${editingPromo.id}`, payload, config);
@@ -241,7 +241,7 @@ export default function SettingsPage() {
     } catch (err: any) {
       let serverError = err.response?.data?.error || err.message || 'Failed to save announcement.';
       if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
-        serverError = 'Request timed out. The server may be starting up — please try again in 30 seconds.';
+        serverError = 'Request timed out (took longer than 2 minutes). Your internet connection might be slow, or the server is starting up. Please try again.';
       } else if (!err.response) {
         serverError = 'Cannot reach the server. Check your internet connection or the backend may be restarting.';
       }
