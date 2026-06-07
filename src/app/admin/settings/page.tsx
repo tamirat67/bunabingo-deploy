@@ -114,10 +114,10 @@ export default function SettingsPage() {
         HOUSE_BOT_ENABLED: res.data.HOUSE_BOT_ENABLED !== false,
       });
 
-      // Derive house margin UI values from stored rates
-      const compRate  = parseFloat(res.data.COMPANY_COMMISSION_RATE) || 0;
-      const agentRate = parseFloat(res.data.AGENT_PROFIT_RATE) || 0;
-      const totalEdge = compRate + agentRate;
+      // Derive house margin UI values from stored rates (Upfront Discount Model)
+      const compRate  = parseFloat(res.data.COMPANY_COMMISSION_RATE) || 30;
+      const agentRate = parseFloat(res.data.AGENT_PROFIT_RATE) || 6;
+      const totalEdge = compRate;
       const agentShare = totalEdge > 0 ? (agentRate / totalEdge) * 100 : 20;
       setHouseEdgeRate(totalEdge.toFixed(2).replace(/\.00$/, ''));
       setAgentSharePct(agentShare.toFixed(1).replace(/\.0$/, ''));
@@ -165,9 +165,9 @@ export default function SettingsPage() {
       return;
     }
 
-    // Compute stored rates from the margin model
+    // In the Upfront Discount Model, the Company Commission is the FULL house edge
+    const computedCompanyRate = edge;
     const computedAgentRate   = parseFloat((edge * agentShr / 100).toFixed(4));
-    const computedCompanyRate = parseFloat((edge * (100 - agentShr) / 100).toFixed(4));
 
     const payload = {
       ...settings,
@@ -299,13 +299,7 @@ export default function SettingsPage() {
 
   // Computed values for UI Live Preview
   const edgeNum       = parseFloat(houseEdgeRate) || 0;
-  const agentShrNum   = parseFloat(agentSharePct) || 0;
-  const companyShrNum = 100 - agentShrNum;
-  
-  const agentETB      = parseFloat((edgeNum * agentShrNum / 100).toFixed(2));
-  const companyETB    = parseFloat((edgeNum * companyShrNum / 100).toFixed(2));
   const playerPrize   = (100 - edgeNum).toFixed(2);
-  const totalHouseMargin = edgeNum.toFixed(2);
 
   // Bonus expiry helpers
   const bonusExpiry = settings.BONUS_EXPIRY ? new Date(settings.BONUS_EXPIRY) : null;
@@ -377,7 +371,7 @@ export default function SettingsPage() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px' }}>
                     <div>
                       <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', color: '#78716c', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                        🏦 Total House Margin (%)
+                        🏦 Company Commission (%)
                       </label>
                       <div style={{ position: 'relative' }}>
                         <input
@@ -390,12 +384,12 @@ export default function SettingsPage() {
                         />
                         <span style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', fontWeight: '800', color: '#d4af37' }}>%</span>
                       </div>
-                      <p style={{ fontSize: '11px', color: '#78716c', marginTop: '6px' }}>Total percentage of ticket sales kept by the house.</p>
+                      <p style={{ fontSize: '11px', color: '#78716c', marginTop: '6px', lineHeight: '1.4' }}>The system will deduct this full percentage from the agent's wallet every game.</p>
                     </div>
 
                     <div>
                       <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', color: '#78716c', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                        👤 Agent Profit (% of Margin)
+                        👤 Agent Recharge Discount (%)
                       </label>
                       <div style={{ position: 'relative' }}>
                         <input
@@ -408,31 +402,26 @@ export default function SettingsPage() {
                         />
                         <span style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', fontWeight: '800', color: '#d4af37' }}>%</span>
                       </div>
-                      <p style={{ fontSize: '11px', color: '#78716c', marginTop: '6px' }}>How much of the {totalHouseMargin}% margin goes to the agent.</p>
+                      <p style={{ fontSize: '11px', color: '#78716c', marginTop: '6px', lineHeight: '1.4' }}>Discount given when agents buy balance (e.g. 20% means they pay 8k for 10k balance).</p>
                     </div>
                   </div>
 
-                  {/* Live preview bar */}
+                  {/* Live preview block */}
                   <div style={{ background: '#faf9f7', borderRadius: '16px', padding: '20px', marginBottom: '24px', border: '1px solid #e7e5e4' }}>
-                    <p style={{ fontSize: '11px', fontWeight: '800', color: '#78716c', textTransform: 'uppercase', marginBottom: '12px' }}>Revenue Split Preview (per 100 ETB ticket sales)</p>
-                    <div style={{ display: 'flex', height: '14px', borderRadius: '7px', overflow: 'hidden', marginBottom: '12px' }}>
-                      <div style={{ width: `${playerPrize}%`, background: '#22c55e', transition: 'width 0.4s ease' }} title={`Player Prize: ${playerPrize} ETB`} />
-                      <div style={{ width: `${agentETB}%`, background: '#d4af37', transition: 'width 0.4s ease' }} title={`Agent: ${agentETB} ETB`} />
-                      <div style={{ width: `${companyETB}%`, background: '#3d2b1f', transition: 'width 0.4s ease' }} title={`Company: ${companyETB} ETB`} />
-                    </div>
-                    <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '12px', fontWeight: '700', color: '#22c55e', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: '#22c55e', display: 'inline-block' }} />
-                        Player Prize: {playerPrize} ETB
-                      </span>
-                      <span style={{ fontSize: '12px', fontWeight: '700', color: '#d4af37', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: '#d4af37', display: 'inline-block' }} />
-                        Agent Profit: {agentETB.toFixed(2)} ETB
-                      </span>
-                      <span style={{ fontSize: '12px', fontWeight: '700', color: '#3d2b1f', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: '#3d2b1f', display: 'inline-block' }} />
-                        Company Commission: {companyETB.toFixed(2)} ETB
-                      </span>
+                    <p style={{ fontSize: '11px', fontWeight: '800', color: '#78716c', textTransform: 'uppercase', marginBottom: '16px' }}>Business Model Preview (Per 10k ETB Recharge)</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '12px', borderRadius: '12px', border: '1px solid #f5f5f4' }}>
+                        <span style={{ fontSize: '13px', fontWeight: '700', color: '#78716c' }}>Agent pays in cash:</span>
+                        <span style={{ fontSize: '14px', fontWeight: '800', color: '#d4af37' }}>{10000 - (10000 * parseFloat(agentSharePct) / 100)} ETB</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '12px', borderRadius: '12px', border: '1px solid #f5f5f4' }}>
+                        <span style={{ fontSize: '13px', fontWeight: '700', color: '#78716c' }}>Admin credits wallet:</span>
+                        <span style={{ fontSize: '14px', fontWeight: '800', color: '#22c55e' }}>10,000 ETB</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '12px', borderRadius: '12px', border: '1px solid #f5f5f4' }}>
+                        <span style={{ fontSize: '13px', fontWeight: '700', color: '#78716c' }}>Company deduction per game:</span>
+                        <span style={{ fontSize: '14px', fontWeight: '800', color: '#3d2b1f' }}>Full {houseEdgeRate}%</span>
+                      </div>
                     </div>
                   </div>
 
@@ -594,9 +583,8 @@ export default function SettingsPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {[
                   { label: 'Player Prize Pool', value: `${playerPrize}%`, color: '#22c55e' },
-                  { label: 'Agent Take-Home', value: `${agentETB.toFixed(2)}%`, color: '#d4af37' },
-                  { label: 'Company Commission', value: `${companyETB.toFixed(2)}%`, color: '#f87171' },
-                  { label: 'Total House Margin', value: `${totalHouseMargin}%`, color: '#a78bfa' },
+                  { label: 'Company Commission', value: `${houseEdgeRate}%`, color: '#f87171' },
+                  { label: 'Recharge Discount', value: `${agentSharePct}%`, color: '#d4af37' },
                 ].map(({ label, value, color }) => (
                   <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ color: '#a8a29e', fontSize: '13px' }}>{label}</span>
