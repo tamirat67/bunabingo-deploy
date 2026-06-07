@@ -1304,11 +1304,17 @@ staffRouter.get('/agents/:id/report', restrictToAdmin, async (req, res) => {
       },
     });
 
-    if (!agent || agent.role !== 'AGENT') {
+    if (!agent) {
       return res.status(404).json({ error: 'Agent not found' });
     }
+    if (agent.role !== 'AGENT' && agent.role !== 'ADMIN') {
+      return res.status(404).json({ error: 'User is not a staff member' });
+    }
 
-    const referredUserIds = agent.referrals.map((r) => r.id);
+    // Only real (non-bot) referred users
+    const referredUserIds = agent.referrals.filter((r: any) => !r.isBot).map((r: any) => r.id);
+    const realPlayers = agent.referrals.filter((r: any) => !r.isBot);
+    const botPlayers = agent.referrals.filter((r: any) => r.isBot);
 
     const [
       totalDepositsAgg,
@@ -1318,6 +1324,7 @@ staffRouter.get('/agents/:id/report', restrictToAdmin, async (req, res) => {
       recentTransactions,
       recentDeposits,
       gameCount,
+      rechargeHistory,
     ] = await Promise.all([
       prisma.deposit.aggregate({
         where: { status: 'APPROVED', userId: { in: referredUserIds } },
@@ -1353,6 +1360,13 @@ staffRouter.get('/agents/:id/report', restrictToAdmin, async (req, res) => {
       }),
       prisma.game.count({
         where: { tickets: { some: { userId: { in: referredUserIds } } } },
+      }),
+      // Recharge history for this agent's pre-deposit wallet
+      prisma.agentCommissionLog.findMany({
+        where: { agentId, type: 'RECHARGE' },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+        select: { id: true, amount: true, createdAt: true, description: true }
       }),
     ]);
 
@@ -1391,9 +1405,11 @@ staffRouter.get('/agents/:id/report', restrictToAdmin, async (req, res) => {
         profitRate,
         gamesPlayed: gameCount,
       },
-      players: agent.referrals,
+      players: realPlayers,
+      botCount: botPlayers.length,
       recentTransactions,
       recentDeposits,
+      rechargeHistory,
     });
   } catch (err: any) {
     logger.error('[Agent Report]', err);

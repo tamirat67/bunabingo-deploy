@@ -59,7 +59,7 @@ export default function AgentReportPage() {
 
   if (!report) return null;
 
-  const { agent, preDepositStatus, stats, players, recentTransactions, recentDeposits } = report;
+  const { agent, preDepositStatus, stats, players, botCount, recentTransactions, recentDeposits, rechargeHistory } = report;
 
   return (
     <div className="admin-page">
@@ -212,7 +212,10 @@ export default function AgentReportPage() {
       <div className="data-table-container" style={{ marginTop: '32px' }}>
         <div style={{ padding: '24px', borderBottom: '1px solid var(--admin-border)' }}>
           <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '900' }}>Branch Players Directory</h2>
-          <p style={{ margin: '4px 0 0', color: '#78716c', fontSize: '14px' }}>All {players.length} players registered under {agent.firstName}'s link</p>
+          <p style={{ margin: '4px 0 0', color: '#78716c', fontSize: '14px' }}>
+            {players.length} real players registered under {agent.firstName}'s link
+            {botCount > 0 && <span style={{ marginLeft: '10px', background: '#fff7ed', color: '#ea580c', fontSize: '11px', fontWeight: '800', padding: '2px 8px', borderRadius: '999px', border: '1px solid #fed7aa' }}>+{botCount} bots (excluded)</span>}
+          </p>
         </div>
         <table className="data-table">
           <thead>
@@ -258,6 +261,48 @@ export default function AgentReportPage() {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Recharge History */}
+      <div className="stat-card-m" style={{ marginTop: '32px', padding: 0, overflow: 'hidden' }}>
+        <div style={{ padding: '20px', borderBottom: '1px solid #f5f5f4', background: '#fafaf9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            💳 Pre-Deposit Recharge History
+          </h3>
+          <span style={{ fontSize: '12px', color: '#78716c', fontWeight: '600' }}>Last 20 recharges by admin</span>
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Amount</th>
+                <th>Note</th>
+                <th style={{ textAlign: 'right' }}>Date & Time</th>
+              </tr>
+            </thead>
+            <tbody>
+              {!rechargeHistory || rechargeHistory.length === 0 ? (
+                <tr>
+                  <td colSpan={4} style={{ textAlign: 'center', padding: '32px', color: '#a8a29e', fontWeight: '600' }}>
+                    No recharge records found for this agent.
+                  </td>
+                </tr>
+              ) : rechargeHistory.map((rh: any, i: number) => (
+                <tr key={rh.id}>
+                  <td style={{ color: '#78716c', fontSize: '13px' }}>#{i + 1}</td>
+                  <td>
+                    <span style={{ fontWeight: '900', color: '#16a34a', fontSize: '16px' }}>+{Number(rh.amount).toLocaleString()} ETB</span>
+                  </td>
+                  <td style={{ color: '#5c554b', fontSize: '13px' }}>{rh.description || '—'}</td>
+                  <td style={{ textAlign: 'right', color: '#78716c', fontSize: '13px' }}>
+                    {new Date(rh.createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
