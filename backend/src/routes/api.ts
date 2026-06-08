@@ -40,7 +40,12 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
   fileFilter: (_, file, cb) => {
     const allowed = ['.jpg', '.jpeg', '.png', '.pdf', '.webp', '.gif'];
-    cb(null, allowed.includes(path.extname(file.originalname).toLowerCase()));
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowed.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`Invalid file type. Only ${allowed.join(', ')} are allowed.`) as any, false);
+    }
   },
 });
 
@@ -2325,8 +2330,9 @@ staffRouter.post('/promotions', restrictToAdmin, async (req, res) => {
     if (activeVal) {
       const { broadcastMessage } = await import('../bot/notifier');
       const formattedMessage = `📢 <b>${promotion.title}</b>\n\n${promotion.message}`;
+      const readMoreUrl = `${config.bot.miniAppUrl}/announcements/${promotion.id}`;
 
-      broadcastMessage(formattedMessage, promotion.imageUrl).catch((broadcastErr) => {
+      broadcastMessage(formattedMessage, promotion.imageUrl, undefined, readMoreUrl).catch((broadcastErr) => {
         logger.error(`[Broadcast] Background broadcast failed for newly created promotion ${promotion.id}:`, broadcastErr);
       });
     }

@@ -89,9 +89,9 @@ export async function broadcastMessage(
     // Build buttons: always show Play button; add Read More if truncated
     const buttonRows: any[] = [];
     if (hasMore && readMoreUrl) {
-      buttonRows.push(Markup.button.url('📖 Read Full Announcement', readMoreUrl));
+      buttonRows.push([Markup.button.url('📖 Read Full Announcement', readMoreUrl)]);
     }
-    buttonRows.push(Markup.button.url('Play Buna Bingo 🎮', 'https://t.me/buna_bingobot'));
+    buttonRows.push([Markup.button.url('Play Buna Bingo 🎮', 'https://t.me/buna_bingobot')]);
     const finalButtons = buttons ? buttons : Markup.inlineKeyboard(buttonRows);
 
     // Post to the Telegram Channel @buna_bingobot1 (the public announcement channel)
