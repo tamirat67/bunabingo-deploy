@@ -2,7 +2,8 @@ import prisma from '../lib/prisma';
 import { creditWallet } from './wallet.service';
 import { triggerAdminEvent, triggerUserEvent } from '../lib/pusher';
 import { logger } from '../lib/logger';
-import { notifyAgent, notifyUser } from '../bot/notifier';
+import { notifyAgent, notifyUser, notifySuperAdmin } from '../bot/notifier';
+import { Markup } from 'telegraf';
 
 export async function createDepositRequest(
   userId: string,
@@ -32,6 +33,34 @@ export async function createDepositRequest(
     reference,
   });
 
+  // Build shared deposit notification message with receipt link + approve/reject buttons
+  const isTelebirrRef = reference && /^[A-Z0-9]{8,15}$/i.test(reference.trim());
+  const receiptLink = isTelebirrRef
+    ? `https://transactioninfo.ethiotelecom.et/receipt/${reference.trim()}`
+    : null;
+
+  const depositMsg =
+    `🔔 <b>አዲስ የብር ገቢ ጥያቄ (New Deposit Request)</b>\n\n` +
+    `👤 <b>ተጫዋች (Player):</b> ${deposit.user?.username || 'Unknown'}\n` +
+    `💰 <b>መጠን (Amount):</b> ${amount} ETB\n` +
+    `🔖 <b>ማጣቀሻ (Ref):</b> ${reference || 'N/A'}\n` +
+    (receiptLink ? `🧾 <b>Receipt:</b> <a href="${receiptLink}">${reference}</a>\n` : '') +
+    `\nእባክዎ ያረጋግጡ ✅ ወይም ውድቅ ❌ ያድርጉ።`;
+
+  const depositButtons = Markup.inlineKeyboard([
+    [
+      Markup.button.callback('✅ Approve', `approve_dep_${deposit.id}`),
+      Markup.button.callback('❌ Reject',  `reject_dep_${deposit.id}`),
+    ],
+  ]);
+
+  // Notify the super-admin / all admins on Telegram
+  try {
+    await notifySuperAdmin(depositMsg, depositButtons);
+  } catch (e) {
+    logger.warn(`[Deposit] Could not notify super-admin about deposit ${deposit.id}.`, e);
+  }
+
   // If user has an agent (referredBy), notify that specific agent channel too
   if (deposit.user?.referredBy) {
     const referrer = await prisma.user.findUnique({ where: { id: deposit.user.referredBy }, select: { role: true } });
@@ -43,15 +72,12 @@ export async function createDepositRequest(
         userName: deposit.user?.username || 'User',
       });
 
-      // Notify agent on Telegram
-      await notifyAgent(
-        deposit.user.referredBy,
-        `🔔 <b>አዲስ የብር ገቢ ጥያቄ (New Deposit Request)</b>\n\n` +
-        `👤 <b>ተጫዋች (Player):</b> ${deposit.user?.username || 'Unknown'}\n` +
-        `💰 <b>መጠን (Amount):</b> ${amount} ETB\n` +
-        `🔖 <b>ማጣቀሻ (Ref):</b> ${reference || 'N/A'}\n\n` +
-        `እባክዎ ወደ ኤጀንት ፖርታልዎ በመግባት ያረጋግጡ።`
-      );
+      // Notify agent on Telegram with approve/reject buttons + receipt link
+      try {
+        await notifyAgent(deposit.user.referredBy, depositMsg, depositButtons);
+      } catch (e) {
+        logger.warn(`[Deposit] Could not notify agent ${deposit.user.referredBy} about deposit ${deposit.id}.`, e);
+      }
     }
   }
 
@@ -183,7 +209,8 @@ export async function rejectDeposit(depositId: string, adminId: string, reason: 
 export async function getPendingDeposits(agentId?: string) {
   return prisma.deposit.findMany({
     where: { 
-      user: agentId ? { referredBy: agentId } : undefined
+      status: { in: ['pending', 'PENDING'] },
+      ...(agentId ? { user: { referredBy: agentId } } : {}),
     },
     include: { user: { select: { username: true, telegramId: true, telegramUsername: true, firstName: true } } },
     orderBy: { createdAt: 'desc' },

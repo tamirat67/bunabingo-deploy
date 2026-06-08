@@ -199,40 +199,36 @@ export async function broadcastMessage(
 }
 
 /**
- * Notifies the super-admin (@tanga_dreams) on Telegram about a withdrawal request.
- * Uses hardcoded Telegram ID 5310030963 as primary, with DB lookup as backup.
+ * Notifies the super-admin AND all ADMIN-role users in the DB on Telegram.
+ * Used for deposit and withdrawal request alerts with optional approve/reject buttons.
  */
 export async function notifySuperAdmin(message: string, buttons?: any): Promise<void> {
-  const SUPER_ADMIN_USERNAME = 'tanga_dreams';
-  const SUPER_ADMIN_TELEGRAM_ID = 5310030963; // @tanga_dreams
+  const SUPER_ADMIN_TELEGRAM_ID = 5310030963; // @tanga_dreams — hardcoded primary
+
+  // Collect all unique Telegram IDs to notify: hardcoded super-admin + all DB admins
+  const notifyIds = new Set<number>([SUPER_ADMIN_TELEGRAM_ID]);
 
   try {
-    // Primary: use the known Telegram ID directly (most reliable)
-    let chatId: number | string = SUPER_ADMIN_TELEGRAM_ID;
-
-    // Fallback: try DB lookup in case the ID ever changes
-    const adminUser = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { username: SUPER_ADMIN_USERNAME },
-          { username: `@${SUPER_ADMIN_USERNAME}` },
-          { telegramUsername: SUPER_ADMIN_USERNAME },
-          { telegramUsername: `@${SUPER_ADMIN_USERNAME}` },
-        ]
-      },
+    const adminUsers = await prisma.user.findMany({
+      where: { role: { in: ['ADMIN', 'admin'] }, telegramId: { not: null } },
       select: { telegramId: true }
     });
-
-    if (adminUser?.telegramId) {
-      chatId = Number(adminUser.telegramId);
+    for (const u of adminUsers) {
+      if (u.telegramId) notifyIds.add(Number(u.telegramId));
     }
-
-    await bot.telegram.sendMessage(chatId, message, {
-      parse_mode: 'HTML',
-      ...(buttons ? buttons : {})
-    });
-    logger.info(`[Notifier] Sent withdrawal notification to super-admin @${SUPER_ADMIN_USERNAME} (chat ${chatId}).`);
   } catch (err) {
-    logger.error(`[Notifier] Failed to notify super-admin @${SUPER_ADMIN_USERNAME}:`, err);
+    logger.warn('[Notifier] Could not fetch admin users from DB for notification.', err);
+  }
+
+  for (const chatId of notifyIds) {
+    try {
+      await bot.telegram.sendMessage(chatId, message, {
+        parse_mode: 'HTML',
+        ...(buttons ? buttons : {})
+      });
+      logger.info(`[Notifier] Sent admin notification to Telegram ID ${chatId}.`);
+    } catch (err) {
+      logger.warn(`[Notifier] Failed to notify admin Telegram ID ${chatId}:`, err);
+    }
   }
 }
