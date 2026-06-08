@@ -259,9 +259,15 @@ async function runGame(gameId: string): Promise<void> {
       const houseEdge = totalCharge.mul(houseEdgePercent).div(100);
       const prizeContribution = totalCharge.sub(houseEdge);
 
-      // Skip charging house bots, but STILL ADD their simulated contribution to the prize pool
+      // Charge house bots from the SystemWallet (real money) — not from a balance check
       if (botUserMap.get(userId) === true) {
-        logger.debug(`[Game ${gameId}] User ${userId} is a house bot — skipping balance check but adding simulated prize`);
+        const botCharge = new Decimal(unitPrice).mul(numTickets);
+        try {
+          // Debit the SystemWallet for bot tickets — this makes the prize pool honest
+          await debitBunaWallet(botCharge, `House bot tickets for game ${gameId} (${numTickets} × ${unitPrice} ETB)`);
+        } catch (e) {
+          logger.error(`[Game ${gameId}] Failed to debit SystemWallet for bot tickets:`, e);
+        }
         totalPrizePool = totalPrizePool.add(prizeContribution);
         totalHouseEdge = totalHouseEdge.add(houseEdge);
         continue;
@@ -381,9 +387,9 @@ async function runGame(gameId: string): Promise<void> {
   }
 
   // ─── Mark game as RUNNING (both real and DEMO) ────────────────────────────
-  // Prize pool = 70% of REAL PLAYER stakes ONLY (bot stakes are synthetic, not real cash)
-  // House commission = 30% of REAL PLAYER stakes (20% company + 10% agent) — from pre-deposit
-  // Bot stakes are visual only: they inflate player count but do NOT add real cash to prize pool
+  // Prize pool = 70% of ALL tickets (real players + house bots both pay real money now)
+  // House commission = 30% of ALL tickets
+  // Agent pre-deposit covers company commission (20%) from real player stakes only
   let displayPrizePool: Decimal;
   let displayHouseEdge: Decimal;
   const GUARANTEED_PRIZES: Record<string, number> = { CASUAL: 50, STANDARD: 100, PRO: 250, JACKPOT: 500, VIP: 1000 };
@@ -392,24 +398,19 @@ async function runGame(gameId: string): Promise<void> {
     displayPrizePool = new Decimal(100);
     displayHouseEdge = new Decimal(0);
   } else {
-    // For visual calculations (PRIZE 70%), we use the TOTAL tickets (real + bot)
-    // so the prize matches the visual card count on the frontend.
+    // All tickets (real + bots) contribute to the prize pool — bots now pay real money
     const totalTicketsCount = game.tickets.length;
-    const totalStakeSimulated = new Decimal(unitPrice).mul(totalTicketsCount);
+    const totalStake = new Decimal(unitPrice).mul(totalTicketsCount);
     
-    // Commission is still derived from REAL player stakes only (from agent pre-deposit).
-    const totalRealStake = new Decimal(unitPrice).mul(realPlayerCount);
-    displayHouseEdge = totalRealStake.mul(houseEdgePercent).div(100);
-    
-    // Calculate the inflated prize pool (70% of ALL simulated stakes)
-    const simulatedPrizePool = totalStakeSimulated.mul(70).div(100);
+    displayHouseEdge = totalStake.mul(houseEdgePercent).div(100);
+    const calculatedPrizePool = totalStake.sub(displayHouseEdge); // 70% of all tickets
     
     const roomTypeName = game.room.type;
     const minPrize = GUARANTEED_PRIZES[roomTypeName] || 50;
     
-    displayPrizePool = Decimal.max(new Decimal(minPrize), simulatedPrizePool);
+    displayPrizePool = Decimal.max(new Decimal(minPrize), calculatedPrizePool);
     
-    logger.info(`[Game ${gameId}] Cards: ${totalTicketsCount} (${realPlayerCount} real) × ${unitPrice} ETB | Simulated Prize: ${displayPrizePool} ETB | Real Comm: ${displayHouseEdge} ETB`);
+    logger.info(`[Game ${gameId}] Cards: ${totalTicketsCount} (${realPlayerCount} real + ${totalTicketsCount - realPlayerCount} bots) × ${unitPrice} ETB | Prize Pool: ${displayPrizePool} ETB | House Edge: ${displayHouseEdge} ETB`);
   }
 
   await prisma.game.update({
@@ -1032,26 +1033,20 @@ async function processWinner(
   });
 
   // ─── Update System Reserve (Guaranteed Prize System) ─────────────────────
+  // Now that bots pay real money (SystemWallet debited in runGame), the SystemWallet
+  // holds the full prize pool (70% of ALL tickets = real + bots). Winner payouts
+  // are debited from this reserve.
   if (!isDemo) {
-    // 1. Calculate Real Player Contribution (70% of real stakes)
-    const realTicketsCount = await prisma.ticket.count({ where: { gameId, user: { isBot: false } } });
-    const realContribution = new Decimal(game.room.ticketPrice).mul(realTicketsCount).mul(0.70);
-    
-    // 2. Always credit real contributions to the Reserve Wallet first
-    if (realContribution.greaterThan(0)) {
-       await creditBunaWallet(realContribution, `Real stakes contribution from Game: ${gameId} (${game.room.type})`);
-    }
-    
-    // 3. Process the payout logic against the reserve
     if (!isHouseBot) {
-       // Real player won: The Guaranteed Prize is paid OUT of the reserve
+       // Real player won: deduct prize from the reserve
        await debitBunaWallet(prizeAmount, `Guaranteed payout to real player [${winMode}] Game: ${gameId}`);
        await recordCycleResult(game.room.type, false);
        logger.info(`[SystemWallet] Deducted guaranteed prize of ${prizeAmount} ETB for Game ${gameId}`);
     } else {
-       // House bot won: The prize stays in the reserve (already credited above), just record cycle
+       // House bot won: prize stays in the reserve (SystemWallet was already debited
+       // for bot tickets in runGame when they were charged). Record the cycle result.
        await recordCycleResult(game.room.type, true);
-       logger.info(`[SystemWallet] House bot won Game ${gameId} — Reserve grew by ${realContribution} ETB`);
+       logger.info(`[SystemWallet] House bot won Game ${gameId} — prize retained in reserve`);
     }
   }
 
@@ -1543,22 +1538,15 @@ export async function joinGame(
       const pCount = uniqueUsers.size;
       const tCount = allTickets.length;
 
-      // 7. Calculate & Update prize pool (Bots contribute 100% to prize, real players contribute 70%)
+      // 7. Calculate & Update prize pool (All tickets — real + bots — contribute equally.
+      //    Bots are now charged real money from SystemWallet in runGame(), so the prize
+      //    pool is simply 70% of ALL ticket sales.)
       const houseEdgePercent = config.game.houseEdgePercent;
       
-      // Fetch all users to separate bots from real players
-      const users = await tx.user.findMany({
-        where: { id: { in: Array.from(uniqueUsers) } },
-        select: { id: true, isBot: true }
-      });
-      const botUserIds = new Set(users.filter(u => u.isBot).map(u => u.id));
-      
-      const realTicketCount = allTickets.filter(t => !botUserIds.has(t.userId)).length;
-      
       const totalStakeAll = new Decimal(unitPrice).mul(tCount);
-      const totalRealStake = new Decimal(unitPrice).mul(realTicketCount);
-      const houseEdge = totalRealStake.mul(houseEdgePercent).div(100);
-      const prizePool = totalStakeAll.sub(houseEdge);
+      // House edge = 30% of ALL ticket sales (bots included — SystemWallet covers it)
+      const houseEdge = totalStakeAll.mul(houseEdgePercent).div(100);
+      const prizePool = totalStakeAll.sub(houseEdge); // 70% of all tickets
 
       await tx.game.update({
         where: { id: gameId },
