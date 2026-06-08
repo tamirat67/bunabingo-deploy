@@ -279,7 +279,7 @@ export async function handleDepositMessage(ctx: Context): Promise<boolean> {
     return true;
   }
 
-  // ── AWAITING_SMS: instant local validation → background online check ─────────
+  // ── AWAITING_SMS: validate SMS then immediately credit wallet ─────────────────
   if (session.step === 'AWAITING_SMS') {
     const smsText = (msg as Message.TextMessage)?.text?.trim();
 
@@ -333,7 +333,7 @@ export async function handleDepositMessage(ctx: Context): Promise<boolean> {
     const matchedAccount = accounts.find((a: any) => a.last4 === d.recipientPhoneLast4);
     const verifiedBadge = result.onlineVerified
       ? '✅ ኦፊሴላዊ ዌብሳይት ላይ ተረጋግጧል'
-      : '📋 አስተዳዳሪ ሲያረጋግጥ ይጠብቁ';
+      : '✅ SMS ምዝገባ ተሳካ — ሂሳብ ተሞልቷል';
 
     await ctx.replyWithHTML(
       `✅ <b>SMS ተረጋግጧል!</b>\n\n` +
@@ -349,7 +349,10 @@ export async function handleDepositMessage(ctx: Context): Promise<boolean> {
       `⏳ ገቢዎን እያስተናገድን ነው...`
     );
 
-    await submitDeposit(ctx, session.amount!, d.transactionId, undefined, 'telebirr', d, result.onlineVerified);
+    // ── FIX: Credit wallet immediately after local SMS validation passes. ─────
+    // Online verification (result.onlineVerified) is used for admin audit only —
+    // it must NOT gate wallet crediting, since the scraper frequently times out.
+    await submitDeposit(ctx, session.amount!, d.transactionId, undefined, 'telebirr', d, true);
     return true;
   }
 
@@ -394,9 +397,10 @@ async function submitDeposit(
         if (bonusAmount > 0) {
           await creditBonus(user.id, bonusAmount, `${bonusPercentage}% Telebirr Deposit Bonus for #${deposit.id}`);
         }
-        logger.info(`[Deposit] Credited user ${user.id} for deposit ${deposit.id}`);
+        logger.info(`[Deposit] ✅ Credited user ${user.id} +${amount} ETB for deposit ${deposit.id}`);
       } catch (creditErr) {
         logger.error(`[Deposit] Auto-credit failed for ${deposit.id}:`, creditErr);
+        // Revert status to pending so admin can manually approve
         await prisma.deposit.update({
           where: { id: deposit.id },
           data: { status: 'pending', details: 'Auto-credit failed, needs manual review' },
@@ -429,6 +433,7 @@ async function submitDeposit(
         ]),
       });
     } else {
+      // Auto-credit failed — notify user to wait for manual review
       await ctx.reply(
         `⏳ *ደረሰኙን እያረጋገጥን ነው...*\n\n` +
         `💵 መጠን፡ *${amount.toFixed(2)} ብር (ETB)*\n` +

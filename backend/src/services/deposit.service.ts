@@ -91,29 +91,36 @@ export async function approveDeposit(depositId: string, adminId: string) {
     include: { user: { select: { username: true, referredBy: true } } }
   });
   if (!deposit) throw new Error('Deposit not found');
-  if (deposit.status !== 'pending') throw new Error('Deposit already processed');
+
+  // Guard against double-processing
+  if (deposit.status === 'approved') throw new Error('Deposit already approved');
+  if (deposit.status === 'rejected') throw new Error('Deposit already rejected');
+
+  // If the bot already auto-completed this deposit (credited wallet), just mark approved — no double-credit
+  const alreadyCredited = deposit.status === 'completed';
 
   await prisma.deposit.update({
     where: { id: depositId },
-    data: { status: 'approved' }, 
+    data: { status: 'approved' },
   });
 
   if (deposit.userId) {
-    await creditWallet(deposit.userId, deposit.amount, 'DEPOSIT', depositId, 'Deposit approved');
+    if (!alreadyCredited) {
+      await creditWallet(deposit.userId, deposit.amount, 'DEPOSIT', depositId, 'Deposit approved');
 
-    // ─── Deposit Bonus (Dynamic based on system settings) ───
-    const { isDepositBonusEligible } = await import('./settings.service');
-    const { percentage: bonusPercentage } = await isDepositBonusEligible(Number(deposit.amount));
-    const { creditBonus } = await import('./wallet.service');
-    const bonusAmount = Number(deposit.amount) * (bonusPercentage / 100);
-    
-    if (bonusAmount > 0) {
-      await creditBonus(deposit.userId, bonusAmount, `Deposit bonus (${bonusPercentage}%) for request #${depositId}`);
-    }
+      // ─── Deposit Bonus (Dynamic based on system settings) ───
+      const { isDepositBonusEligible } = await import('./settings.service');
+      const { percentage: bonusPercentage } = await isDepositBonusEligible(Number(deposit.amount));
+      const { creditBonus } = await import('./wallet.service');
+      const bonusAmount = Number(deposit.amount) * (bonusPercentage / 100);
 
-    await prisma.adminLog.create({
-      data: { adminId: adminId, targetUserId: deposit.userId, action: 'APPROVE_DEPOSIT', details: { depositId, amount: deposit.amount, bonus: bonusAmount } },
-    });
+      if (bonusAmount > 0) {
+        await creditBonus(deposit.userId, bonusAmount, `Deposit bonus (${bonusPercentage}%) for request #${depositId}`);
+      }
+
+      await prisma.adminLog.create({
+        data: { adminId, targetUserId: deposit.userId, action: 'APPROVE_DEPOSIT', details: { depositId, amount: deposit.amount, bonus: bonusAmount } },
+      });
 
       await triggerUserEvent(deposit.userId, 'deposit-approved', {
         depositId,
@@ -132,6 +139,13 @@ export async function approveDeposit(depositId: string, adminId: string) {
       msgText += `ሂሳብዎ ገቢ ሆኗል። አሁኑኑ ተጫውተው ያሸንፉ! 🎰`;
 
       await notifyUser(deposit.userId, msgText);
+    } else {
+      // Bot already auto-credited — log it, skip wallet credit to avoid double-crediting
+      logger.info(`[Deposit] Skipping wallet credit for ${depositId} — already auto-credited by bot.`);
+      await prisma.adminLog.create({
+        data: { adminId, targetUserId: deposit.userId, action: 'APPROVE_DEPOSIT', details: { depositId, amount: deposit.amount, note: 'auto-credited by bot, no re-credit' } },
+      });
+    }
   }
 
   logger.info(`Deposit approved: ${depositId} by admin/agent ${adminId}`);
@@ -169,7 +183,7 @@ export async function rejectDeposit(depositId: string, adminId: string, reason: 
 export async function getPendingDeposits(agentId?: string) {
   return prisma.deposit.findMany({
     where: { 
-      status: { in: ['pending', 'PENDING'] },
+      status: 'pending',
       user: agentId ? { referredBy: agentId } : undefined
     },
     include: { user: { select: { username: true, telegramId: true, telegramUsername: true, firstName: true } } },

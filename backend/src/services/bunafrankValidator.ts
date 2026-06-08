@@ -246,10 +246,9 @@ export async function validateTelebirrSms(
   }
 
   // ── Load authorized deposit accounts for this user ─────────────────────────
-  // Default fallback (always in sync with depositFlow.ts)
+  // Default fallback — MUST stay in sync with depositFlow.ts DEFAULT_DEPOSIT_ACCOUNTS
   const DEFAULT_ACCOUNTS = [
-    { name: 'Yohanis Ashenafi',  phone: '251997688294', last4: '8294', keywords: ['yohanis', 'ashenafi'] },
-    { name: 'LUEL', phone: '251969455111', last4: '5111', keywords: ['luel'] },
+    { name: 'Teme', phone: '251966129707', last4: '9707', keywords: ['teme'] },
   ];
 
   let authorizedAccounts = DEFAULT_ACCOUNTS;
@@ -279,11 +278,15 @@ export async function validateTelebirrSms(
     }
 
     if (agentPhones.length === 0) {
+      // Fallback to master admin — same lookup as depositFlow.ts
       const defaultAgent = await prisma.user.findFirst({
-        where: { telegramUsername: 'Luel1616' }
+        where: { telegramId: BigInt('5310030963') }
       });
       if (defaultAgent?.depositPhones) {
         agentPhones = defaultAgent.depositPhones as any[];
+      } else if (defaultAgent && (defaultAgent.phone || defaultAgent.phoneNumber)) {
+        const phone = defaultAgent.phone || defaultAgent.phoneNumber!;
+        agentPhones = [{ name: defaultAgent.firstName || 'Teme', phone, last4: phone.slice(-4) }];
       }
     }
 
@@ -394,9 +397,9 @@ export async function validateTelebirrSmsLocal(
   }
 
   // 3. Load agent deposit accounts from DB
+  // Default fallback — MUST stay in sync with depositFlow.ts DEFAULT_DEPOSIT_ACCOUNTS
   const DEFAULT_ACCOUNTS = [
-    { name: 'Yohanis Ashenafi', phone: '251997688294', last4: '8294', keywords: ['yohanis', 'ashenafi'] },
-    { name: 'LUEL', phone: '251969455111', last4: '5111', keywords: ['luel'] },
+    { name: 'Teme', phone: '251966129707', last4: '9707', keywords: ['teme'] },
   ];
   let authorizedAccounts = DEFAULT_ACCOUNTS;
   try {
@@ -422,8 +425,14 @@ export async function validateTelebirrSmsLocal(
     }
 
     if (agentPhones.length === 0) {
-      const defaultAgent = await prisma.user.findFirst({ where: { telegramUsername: 'Luel1616' } });
-      if (defaultAgent?.depositPhones) agentPhones = defaultAgent.depositPhones as any[];
+      // Fallback to master admin — same lookup as depositFlow.ts
+      const defaultAgent = await prisma.user.findFirst({ where: { telegramId: BigInt('5310030963') } });
+      if (defaultAgent?.depositPhones) {
+        agentPhones = defaultAgent.depositPhones as any[];
+      } else if (defaultAgent && (defaultAgent.phone || defaultAgent.phoneNumber)) {
+        const phone = defaultAgent.phone || defaultAgent.phoneNumber!;
+        agentPhones = [{ name: defaultAgent.firstName || 'Teme', phone, last4: phone.slice(-4) }];
+      }
     }
     if (agentPhones.length > 0) {
       authorizedAccounts = agentPhones.map(p => ({
