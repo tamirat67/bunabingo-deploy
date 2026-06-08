@@ -96,7 +96,10 @@ export default function GamePage() {
         if (gameData.drawHistory && gameData.drawHistory.length > 0) {
           const numbers = gameData.drawHistory.map((d: any) => d.number);
           const sequences = gameData.drawHistory.map((d: any) => d.sequence);
-          setCalledNumbers(numbers);
+          setCalledNumbers(prev => {
+            const merged = new Set([...prev, ...numbers]);
+            return Array.from(merged);
+          });
           if (numbers.length > 0) {
             setCurrentCall(numbers[numbers.length - 1]);
             setDrawnSequence(Math.max(...sequences));

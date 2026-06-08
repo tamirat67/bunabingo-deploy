@@ -359,8 +359,11 @@ function GameContent() {
       try { sessionStorage.setItem(`game_tickets_${gameId}`, JSON.stringify(sorted)); } catch (e) {}
 
       const hist = (g.drawHistory || []).map((d: any) => d.number);
-      // Sync UI drawn states immediately (board highlights)
-      setDrawn(hist);
+      // Sync UI drawn states immediately (board highlights) without removing socket-received balls
+      setDrawn(prev => {
+        const merged = new Set([...prev, ...hist]);
+        return Array.from(merged);
+      });
       const latestBall = hist.at(-1);
 
       // ── Audio queue management ──────────────────────────────────────────────────
