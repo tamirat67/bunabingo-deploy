@@ -6,9 +6,9 @@ import { config } from '../../config';
 import prisma from '../../lib/prisma';
 import { logger } from '../../lib/logger';
 
-// ─── Default fallback deposit accounts ────────────────────────────────────────
+// ─── Default fallback deposit accounts (master admin — LUEL G/Libanos) ────────
 const DEFAULT_DEPOSIT_ACCOUNTS = [
-  { name: 'Teme', phone: '0966129707', last4: '9707' }
+  { name: 'LUEL G/Libanos', phone: '0969455111', last4: '5111' }
 ];
 
 interface AgentProfile {
@@ -29,15 +29,15 @@ async function getAgentProfileForUser(userId: string): Promise<AgentProfile | nu
     const defaultAgent = await prisma.user.findFirst({ where: { telegramId: BigInt('5310030963') } });
     if (!defaultAgent) {
       return {
-        displayName: 'Teme',
-        contactPhone: '0966129707',
-        telegramUsername: 'tanga_dreams',
+        displayName: 'LUEL G/Libanos',
+        contactPhone: '0969455111',
+        telegramUsername: 'Luel1616',
       };
     }
     return {
-      displayName: defaultAgent.firstName || defaultAgent.telegramUsername || 'Teme',
-      contactPhone: defaultAgent.phone || defaultAgent.phoneNumber || '0966129707',
-      telegramUsername: defaultAgent.telegramUsername || 'tanga_dreams',
+      displayName: defaultAgent.firstName || defaultAgent.telegramUsername || 'LUEL G/Libanos',
+      contactPhone: defaultAgent.phone || defaultAgent.phoneNumber || '0969455111',
+      telegramUsername: defaultAgent.telegramUsername || 'Luel1616',
     };
   }
 
@@ -90,9 +90,9 @@ async function getDepositAccountsForUser(userId: string) {
       }];
     } else {
       depositPhones = [{
-        name: 'Teme',
-        phone: '0966129707',
-        last4: '9707'
+        name: 'LUEL G/Libanos',
+        phone: '0969455111',
+        last4: '5111'
       }];
     }
   }

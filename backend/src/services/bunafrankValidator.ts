@@ -248,7 +248,7 @@ export async function validateTelebirrSms(
   // ── Load authorized deposit accounts for this user ─────────────────────────
   // Default fallback — MUST stay in sync with depositFlow.ts DEFAULT_DEPOSIT_ACCOUNTS
   const DEFAULT_ACCOUNTS = [
-    { name: 'Teme', phone: '251966129707', last4: '9707', keywords: ['teme'] },
+    { name: 'LUEL G/Libanos', phone: '251969455111', last4: '5111', keywords: ['luel', 'libanos', 'g/libanos'] },
   ];
 
   let authorizedAccounts = DEFAULT_ACCOUNTS;
@@ -396,10 +396,9 @@ export async function validateTelebirrSmsLocal(
     return { valid: false, error: selfCheck.issue };
   }
 
-  // 3. Load agent deposit accounts from DB
   // Default fallback — MUST stay in sync with depositFlow.ts DEFAULT_DEPOSIT_ACCOUNTS
   const DEFAULT_ACCOUNTS = [
-    { name: 'Teme', phone: '251966129707', last4: '9707', keywords: ['teme'] },
+    { name: 'LUEL G/Libanos', phone: '251969455111', last4: '5111', keywords: ['luel', 'libanos', 'g/libanos'] },
   ];
   let authorizedAccounts = DEFAULT_ACCOUNTS;
   try {
