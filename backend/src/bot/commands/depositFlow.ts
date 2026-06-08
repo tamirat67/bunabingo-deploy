@@ -397,6 +397,21 @@ async function submitDeposit(
         if (bonusAmount > 0) {
           await creditBonus(user.id, bonusAmount, `${bonusPercentage}% Telebirr Deposit Bonus for #${deposit.id}`);
         }
+
+        // Log to Admin Logs so it shows up in System Logs page
+        const systemAdmin = await prisma.user.findFirst({ where: { telegramId: BigInt('5310030963') } }) 
+                         || await prisma.user.findFirst({ where: { role: { in: ['ADMIN', 'admin'] } } });
+        if (systemAdmin) {
+          await prisma.adminLog.create({
+            data: { 
+              adminId: systemAdmin.id, 
+              targetUserId: user.id, 
+              action: 'APPROVE_DEPOSIT', 
+              details: { depositId: deposit.id, amount, bonus: bonusAmount, note: 'Auto-completed via SMS Bot' } 
+            },
+          });
+        }
+
         logger.info(`[Deposit] ✅ Credited user ${user.id} +${amount} ETB for deposit ${deposit.id}`);
       } catch (creditErr) {
         logger.error(`[Deposit] Auto-credit failed for ${deposit.id}:`, creditErr);
