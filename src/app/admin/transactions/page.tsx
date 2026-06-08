@@ -214,12 +214,22 @@ export default function TransactionsPage() {
                 </thead>
                 <tbody>
                   {pendingDeposits.map((d: any) => {
-                    const telebirrUrlMatch = typeof d.reference === 'string' ? d.reference.match(/(https:\/\/transactioninfo\.ethiotelecom\.et\/receipt\/[A-Z0-9]+)/i) : null;
-                    const telebirrUrl = telebirrUrlMatch ? telebirrUrlMatch[1] : null;
-                    
-                    const txIdMatch = typeof d.reference === 'string' ? d.reference.match(/transaction number is ([A-Z0-9]+)/i) : null;
                     const rawRef = d.reference || d.txnId || 'N/A';
-                    const displayRef = txIdMatch ? txIdMatch[1] : (rawRef.length > 20 ? rawRef.substring(0, 15) + '...' : rawRef);
+                    
+                    // 1. Check if the string already contains a full URL
+                    const telebirrUrlMatch = typeof rawRef === 'string' ? rawRef.match(/(https:\/\/transactioninfo\.ethiotelecom\.et\/receipt\/[A-Z0-9]+)/i) : null;
+                    let telebirrUrl = telebirrUrlMatch ? telebirrUrlMatch[1] : null;
+
+                    // 2. Extract transaction ID from text
+                    const txIdMatch = typeof rawRef === 'string' ? rawRef.match(/transaction number is ([A-Z0-9]+)/i) : null;
+                    const cleanTxnId = txIdMatch ? txIdMatch[1] : (rawRef !== 'N/A' && !rawRef.includes('http') ? rawRef.trim() : null);
+
+                    // 3. Construct link if we have a clean transaction ID and no explicit URL
+                    if (!telebirrUrl && cleanTxnId && /^[A-Z0-9]{8,15}$/i.test(cleanTxnId)) {
+                      telebirrUrl = `https://transactioninfo.ethiotelecom.et/receipt/${cleanTxnId}`;
+                    }
+
+                    const displayRef = txIdMatch ? txIdMatch[1] : (rawRef.length > 20 && !telebirrUrlMatch ? rawRef.substring(0, 15) + '...' : rawRef.split('/').pop());
 
                     return (
                     <tr key={d.id}>
@@ -235,10 +245,10 @@ export default function TransactionsPage() {
                             <FiEye size={12} /> View Slip
                           </a>
                         ) : telebirrUrl ? (
-                          <a href={telebirrUrl} target="_blank" rel="noopener noreferrer" className="badge badge-gold" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                            <FiEye size={12} /> View Slip
+                          <a href={telebirrUrl} target="_blank" rel="noopener noreferrer" className="badge badge-gold" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(34, 197, 94, 0.1)', color: '#16a34a', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
+                            <FiEye size={12} /> Telebirr Link
                           </a>
-                        ) : 'No Proof'}
+                        ) : <span style={{ color: '#9ca3af', fontSize: '12px' }}>No Proof</span>}
                       </td>
                       <td style={{ color: '#78716c', fontSize: '13px' }}>{new Date(d.createdAt).toLocaleString()}</td>
                       <td style={{ textAlign: 'right' }}>

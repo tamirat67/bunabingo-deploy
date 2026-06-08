@@ -314,7 +314,8 @@ export async function rejectWithdrawal(withdrawalId: string, adminId: string, re
 export async function getPendingWithdrawals(agentId?: string) {
   const withdrawals = await prisma.withdrawal.findMany({
     where: { 
-      user: agentId ? { referredBy: agentId } : undefined
+      status: { in: ['pending', 'PENDING'] },
+      ...(agentId ? { user: { referredBy: agentId } } : {}),
     },
     include: { 
       user: { 
