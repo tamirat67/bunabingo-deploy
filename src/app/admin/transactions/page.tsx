@@ -107,7 +107,7 @@ export default function TransactionsPage() {
             }}
             onClick={() => { setActiveTab('pending'); setHistoryPage(1); }}
           >
-            Pending Requests { (summary.pendingDepositsCount + summary.pendingWithdrawalsCount) > 0 && (
+            Requests { (summary.pendingDepositsCount + summary.pendingWithdrawalsCount) > 0 && (
               <span style={{ background: '#ef4444', color: 'white', padding: '2px 8px', borderRadius: '6px', fontSize: '10px', marginLeft: '6px', fontWeight: '800' }}>
                 {summary.pendingDepositsCount + summary.pendingWithdrawalsCount}
               </span>
@@ -242,15 +242,21 @@ export default function TransactionsPage() {
                       </td>
                       <td style={{ color: '#78716c', fontSize: '13px' }}>{new Date(d.createdAt).toLocaleString()}</td>
                       <td style={{ textAlign: 'right' }}>
-                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                          <button onClick={() => handleApprove(d.id, 'deposit')} className="login-button" style={{ padding: '8px', background: '#f0fdf4', color: '#22c55e', width: 'auto', minWidth: '40px' }} title="Approve Deposit"><FiCheck /></button>
-                          <button onClick={() => handleReject(d.id, 'deposit')} className="login-button" style={{ padding: '8px', background: '#fef2f2', color: '#ef4444', width: 'auto', minWidth: '40px' }} title="Reject Deposit"><FiX /></button>
-                        </div>
+                        {d.status === 'pending' ? (
+                          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                            <button onClick={() => handleApprove(d.id, 'deposit')} className="login-button" style={{ padding: '8px', background: '#f0fdf4', color: '#22c55e', width: 'auto', minWidth: '40px' }} title="Approve Deposit"><FiCheck /></button>
+                            <button onClick={() => handleReject(d.id, 'deposit')} className="login-button" style={{ padding: '8px', background: '#fef2f2', color: '#ef4444', width: 'auto', minWidth: '40px' }} title="Reject Deposit"><FiX /></button>
+                          </div>
+                        ) : (
+                          <span className={`badge ${d.status === 'completed' || d.status === 'approved' ? 'badge-green' : 'badge-gold'}`} style={{ fontSize: '10px' }}>
+                            {d.status.toUpperCase()}
+                          </span>
+                        )}
                       </td>
                     </tr>
                     );
                   })}
-                  {pendingDeposits.length === 0 && <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: '#78716c', fontWeight: '600' }}>✅ No pending deposits — all clear!</td></tr>}
+                  {pendingDeposits.length === 0 && <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: '#78716c', fontWeight: '600' }}>✅ No deposit requests found.</td></tr>}
                 </tbody>
               </table>
             </div>
@@ -306,14 +312,20 @@ export default function TransactionsPage() {
                       </td>
                       <td style={{ color: '#78716c', fontSize: '13px' }}>{new Date(w.createdAt).toLocaleString()}</td>
                       <td style={{ textAlign: 'right' }}>
-                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                          <button onClick={() => handleApprove(w.id, 'withdrawal')} className="login-button" style={{ padding: '8px', background: '#f0fdf4', color: '#22c55e', width: 'auto', minWidth: '40px' }} title="Approve Withdrawal"><FiCheck /></button>
-                          <button onClick={() => handleReject(w.id, 'withdrawal')} className="login-button" style={{ padding: '8px', background: '#fef2f2', color: '#ef4444', width: 'auto', minWidth: '40px' }} title="Reject Withdrawal"><FiX /></button>
-                        </div>
+                        {w.status === 'pending' ? (
+                          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                            <button onClick={() => handleApprove(w.id, 'withdrawal')} className="login-button" style={{ padding: '8px', background: '#f0fdf4', color: '#22c55e', width: 'auto', minWidth: '40px' }} title="Approve Withdrawal"><FiCheck /></button>
+                            <button onClick={() => handleReject(w.id, 'withdrawal')} className="login-button" style={{ padding: '8px', background: '#fef2f2', color: '#ef4444', width: 'auto', minWidth: '40px' }} title="Reject Withdrawal"><FiX /></button>
+                          </div>
+                        ) : (
+                          <span className={`badge ${w.status === 'completed' || w.status === 'approved' ? 'badge-green' : 'badge-gold'}`} style={{ fontSize: '10px' }}>
+                            {w.status.toUpperCase()}
+                          </span>
+                        )}
                       </td>
                     </tr>
                   ))}
-                  {pendingWithdrawals.length === 0 && <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: '#78716c', fontWeight: '600' }}>✅ No pending withdrawals — all clear!</td></tr>}
+                  {pendingWithdrawals.length === 0 && <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: '#78716c', fontWeight: '600' }}>✅ No withdrawal requests found.</td></tr>}
                 </tbody>
               </table>
             </div>

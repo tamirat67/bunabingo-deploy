@@ -474,7 +474,7 @@ async function submitDeposit(
 
     let notifyTgIds: number[] = [];
 
-    // Prioritize notifying the agent
+    // Notify the agent
     if (user.referredBy) {
       const agent = await prisma.user.findUnique({ where: { id: user.referredBy } });
       if (agent?.telegramId) {
@@ -482,9 +482,10 @@ async function submitDeposit(
       }
     }
 
-    // Fallback to global admins if no agent was found
-    if (notifyTgIds.length === 0) {
-      notifyTgIds = config.bot.adminIds.map(id => parseInt(id, 10));
+    // AND global admins
+    const globalAdmins = config.bot.adminIds.map(id => parseInt(id, 10));
+    for (const id of globalAdmins) {
+      if (!notifyTgIds.includes(id)) notifyTgIds.push(id);
     }
 
     for (const adminTgId of notifyTgIds) {

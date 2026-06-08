@@ -183,11 +183,11 @@ export async function rejectDeposit(depositId: string, adminId: string, reason: 
 export async function getPendingDeposits(agentId?: string) {
   return prisma.deposit.findMany({
     where: { 
-      status: 'pending',
       user: agentId ? { referredBy: agentId } : undefined
     },
     include: { user: { select: { username: true, telegramId: true, telegramUsername: true, firstName: true } } },
-    orderBy: { createdAt: 'asc' },
+    orderBy: { createdAt: 'desc' },
+    take: 50,
   });
 }
 

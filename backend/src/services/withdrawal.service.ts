@@ -314,7 +314,6 @@ export async function rejectWithdrawal(withdrawalId: string, adminId: string, re
 export async function getPendingWithdrawals(agentId?: string) {
   const withdrawals = await prisma.withdrawal.findMany({
     where: { 
-      status: { in: ['pending', 'PENDING'] },
       user: agentId ? { referredBy: agentId } : undefined
     },
     include: { 
@@ -324,7 +323,8 @@ export async function getPendingWithdrawals(agentId?: string) {
         } 
       } 
     },
-    orderBy: { createdAt: 'asc' },
+    orderBy: { createdAt: 'desc' },
+    take: 50,
   });
 
   // Enrich each withdrawal with a ledger-based balance check
