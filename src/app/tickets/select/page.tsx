@@ -42,6 +42,13 @@ function SelectionContent() {
   const [fakePlayersCount, setFakePlayersCount] = useState(0);
   const [fakeOccupied, setFakeOccupied] = useState<number[]>([]);
   const [mounted, setMounted] = useState(false);
+  // ── House-bot simulation: drip bots in one-by-one during countdown ──────────
+  const [simulatedBotCount, setSimulatedBotCount] = useState(0);
+  const simulatedBotCountRef = useRef(0);
+  const [playerJoinToast, setPlayerJoinToast] = useState<string | null>(null);
+  const simulatedBotTimersRef = useRef<any[]>([]);
+  const botSimStartedRef = useRef(false);
+  const playerJoinToastTimerRef = useRef<any>(null);
   // isInitializing: true until the very first getOccupiedCards call resolves.
   // While true the grid stays covered so there's no flash of unlocked UI on refresh.
   const [isInitializing, setIsInitializing] = useState(true);
@@ -412,13 +419,111 @@ function SelectionContent() {
     return () => clearInterval(interval);
   }, [isVip]);
 
-
-  
   // Real bot count per room type (must match backend houseBot.service.ts)
   const BOT_COUNTS_SELECT: Record<string, number> = {
     CASUAL: 30, STANDARD: 30, PRO: 30, VIP: 20, JACKPOT: 10,
   };
   const botCountForRoom = BOT_COUNTS_SELECT[roomType] ?? 30;
+
+  // ── Bot drip-in simulation ────────────────────────────────────────────────
+  // Keep simulatedBotCountRef in sync so scheduling effect reads fresh value
+  useEffect(() => {
+    simulatedBotCountRef.current = simulatedBotCount;
+  }, [simulatedBotCount]);
+
+  // Pre-warm: show 3-8 bots immediately on page load (OPEN state feels alive)
+  useEffect(() => {
+    const preWarm = Math.floor(Math.random() * 6) + 3;
+    const clamped = Math.min(preWarm, botCountForRoom);
+    setSimulatedBotCount(clamped);
+    simulatedBotCountRef.current = clamped;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Bot join scheduler — fires once when countdown starts, clears on game-start / 0s
+  useEffect(() => {
+    // When game goes live: snap remaining bots to full count instantly
+    if (isGameRunning) {
+      simulatedBotTimersRef.current.forEach(clearTimeout);
+      simulatedBotTimersRef.current = [];
+      botSimStartedRef.current = false;
+      setSimulatedBotCount(botCountForRoom);
+      simulatedBotCountRef.current = botCountForRoom;
+      return;
+    }
+
+    // Countdown hit 0 — snap remaining bots ONLY when a real player is confirmed.
+    // The backend requires 1+ real player to start the game. Without one, the
+    // game will NOT launch and a new countdown begins — so we don't snap bots
+    // (the drip-progress display is fine as-is until the next cycle).
+    if (countdown === 0) {
+      simulatedBotTimersRef.current.forEach(clearTimeout);
+      simulatedBotTimersRef.current = [];
+      botSimStartedRef.current = false; // reset so next countdown schedules fresh
+
+      // Guard: only snap to full if at least 1 real human is confirmed in the game.
+      // game?.currentPlayers / playerCount come from the DB (real tickets bought).
+      // ownedCardIds means the current user has joined this round.
+      // Without a real player the backend won't start — no false 30-player snap.
+      const hasRealPlayer = Math.max(game?.currentPlayers || 0, playerCount || 0) >= 1 || ownedCardIds.length > 0;
+      if (hasRealPlayer) {
+        setSimulatedBotCount(botCountForRoom);
+        simulatedBotCountRef.current = botCountForRoom;
+      }
+      // If no real player: leave display where the drip stopped — backend will
+      // create a new game/countdown and the next cycle will run a fresh drip.
+      return;
+    }
+
+    // Countdown reset (null) — clear scheduling flag but keep displayed count
+    if (countdown === null) {
+      if (botSimStartedRef.current) {
+        simulatedBotTimersRef.current.forEach(clearTimeout);
+        simulatedBotTimersRef.current = [];
+        botSimStartedRef.current = false;
+      }
+      return;
+    }
+
+    // countdown > 0 and not yet scheduled — schedule all remaining bots
+    if (countdown > 0 && !botSimStartedRef.current) {
+      botSimStartedRef.current = true;
+
+      const startCount = simulatedBotCountRef.current;
+      const remaining = botCountForRoom - startCount;
+      if (remaining <= 0) return;
+
+      // Spread bots across 85% of countdown window with random timing
+      const windowMs = countdown * 1000 * 0.85;
+      const times = Array.from({ length: remaining }, () => Math.random() * windowMs)
+        .sort((a, b) => a - b);
+
+      const timers = times.map((delay, i) =>
+        setTimeout(() => {
+          const newCount = startCount + i + 1;
+          setSimulatedBotCount(newCount);
+          simulatedBotCountRef.current = newCount;
+          // ~30% chance to show a join toast (varies per bot — feels organic)
+          if (Math.random() < 0.30) {
+            if (playerJoinToastTimerRef.current) clearTimeout(playerJoinToastTimerRef.current);
+            setPlayerJoinToast('🟢 Player joined');
+            playerJoinToastTimerRef.current = setTimeout(() => setPlayerJoinToast(null), 1100);
+          }
+        }, delay)
+      );
+
+      simulatedBotTimersRef.current = timers;
+    }
+  }, [countdown, isGameRunning, botCountForRoom]);
+
+  // Cleanup all bot timers on unmount
+  useEffect(() => {
+    return () => {
+      simulatedBotTimersRef.current.forEach(clearTimeout);
+      if (playerJoinToastTimerRef.current) clearTimeout(playerJoinToastTimerRef.current);
+    };
+  }, []);
+
   const { socket, isConnected } = useSocket();
 
   const [modal, setModal] = useState<{
@@ -1166,21 +1271,22 @@ const balance = Number(user?.wallet?.balance || 0);
 
   const isDark = activeThemeKey === 'DARK' || activeThemeKey === 'GRAY';
 
-  // ─── Real Prize / Player / Commission calculation ─────────────────────────
-  // PLAYERS = bot count for room type + real players from server
-  // PRIZE   = total visual cards × stake × 70%
+  // ─── Bot-Animated Player & Prize Calculations ────────────────────────────
+  // PLAYERS = server real count OR simulated bot drip (whichever is bigger)
+  // PRIZE   = PLAYERS × stake × 70%
   const totalOccupiedList = Array.from(new Set([...occupied, ...fakeOccupied]));
   const occupiedCount = totalOccupiedList.filter(id => !ownedCardIds.includes(id)).length;
 
-  // After bot injection, server's currentPlayers / playerCount already includes bots.
-  // Before injection: fallback = botCount + user's own selected cards (1–5).
-  const allCards = Math.max(
-    game?.currentPlayers || 0,             // server total (bots + real) once injected
-    playerCount > 0 ? playerCount : 0,    // server ticket count (also includes bots)
-    botCountForRoom + selected.length      // pre-injection estimate: bots + user's own cards
-  );
-  const displayPlayerCount = allCards;
-  const totalStake = allCards * stake;
+  // Server-reported real player total (real tickets in DB)
+  const serverReportedPlayers = Math.max(game?.currentPlayers || 0, playerCount || 0);
+
+  // Simulated local count: pre-warmed bots on OPEN, dripping during countdown, full on game start
+  const localSimulated = simulatedBotCount + (ownedCardIds.length > 0 || selected.length > 0 ? 1 : 0);
+
+  // Display whichever is larger (server wins if it already reports higher from DB)
+  const displayPlayerCount = Math.max(serverReportedPlayers, localSimulated);
+
+  const totalStake = displayPlayerCount * stake;
 
   // House edge: 30% of total stake
   const houseEdge = Math.round(totalStake * 0.30);
@@ -1427,8 +1533,42 @@ const balance = Number(user?.wallet?.balance || 0);
       <div className="stats-row-brown">
         <div className="capsule-white"><div className="l">WALLET</div><div className="v">{Number(balance).toFixed(0)}</div></div>
         <div className="capsule-white"><div className="l">BONUS</div><div className="v">{Number(user?.wallet?.bonusBalance || 0).toFixed(0)}</div></div>
-        <div className="capsule-white"><div className="l">PLAYERS</div><div className="v">{displayPlayerCount}</div></div>
-        <div className="capsule-brown total-box"><div className="l" style={{ color: 'rgba(255,255,255,0.5)' }}>PRIZE</div><div className="v">{prize.toFixed(0)}</div></div>
+        {/* PLAYERS capsule — number rolls up on each bot join */}
+        <div className="capsule-white" style={{ position: 'relative', overflow: 'visible' }}>
+          <div className="l">PLAYERS</div>
+          <div className="v">
+            <span key={displayPlayerCount} className="count-roll">{displayPlayerCount}</span>
+          </div>
+          {/* Join toast — floats above PLAYERS capsule */}
+          {playerJoinToast && (
+            <div style={{
+              position: 'absolute',
+              top: '-22px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              background: 'rgba(46,204,113,0.92)',
+              color: '#fff',
+              fontSize: '8px',
+              fontWeight: '800',
+              padding: '2px 7px',
+              borderRadius: '6px',
+              whiteSpace: 'nowrap',
+              zIndex: 20,
+              pointerEvents: 'none',
+              animation: 'joinToastFade 1.1s ease forwards',
+              boxShadow: '0 2px 6px rgba(46,204,113,0.4)',
+            }}>
+              {playerJoinToast}
+            </div>
+          )}
+        </div>
+        {/* PRIZE capsule — number rolls up alongside player count */}
+        <div className="capsule-brown total-box">
+          <div className="l" style={{ color: 'rgba(255,255,255,0.5)' }}>PRIZE</div>
+          <div className="v">
+            <span key={Math.round(prize)} className="count-roll">{prize.toFixed(0)}</span>
+          </div>
+        </div>
       </div>
 
       {/* ── PREMIUM JACKPOT + COUNTDOWN BANNER ── */}
@@ -1469,7 +1609,7 @@ const balance = Number(user?.wallet?.balance || 0);
           }}>
             <Trophy size={9} /> PRIZE POOL
           </div>
-          {/* Main prize amount — this is what the winner receives */}
+          {/* Main prize amount — rolls up on each bot join */}
           <div
             style={{
               color: 'white',
@@ -1480,7 +1620,7 @@ const balance = Number(user?.wallet?.balance || 0);
               textShadow: `0 0 20px ${urgencyColor}66`,
             }}
           >
-            {prize.toFixed(0)} ETB
+            <span key={Math.round(prize)} className="count-roll">{prize.toFixed(0)} ETB</span>
           </div>
         </div>
 

@@ -799,4 +799,28 @@ h1, h2, h3 { font-weight: 900; text-transform: uppercase; letter-spacing: 1px; }
   color: #C471ED !important;
 }
 
+/* ─── Bot Simulation: Number Roll Animation ─── */
+@keyframes countRoll {
+  from {
+    transform: translateY(6px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.count-roll {
+  display: inline-block;
+  animation: countRoll 0.22s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Join toast fade-in / fade-out */
+@keyframes joinToastFade {
+  0%   { opacity: 0; transform: translateX(-50%) translateY(-3px); }
+  18%  { opacity: 1; transform: translateX(-50%) translateY(0); }
+  72%  { opacity: 1; transform: translateX(-50%) translateY(0); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-3px); }
+}
 
