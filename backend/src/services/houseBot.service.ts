@@ -146,8 +146,9 @@ export async function injectBotTickets(
   }
   gamesWithBotsInjected.add(gameId);
 
-  const botCount = BOT_COUNTS[roomType] ?? 30;
-  const isVip = roomType === 'VIP' || roomType === 'JACKPOT';
+  const safeRoomType = (roomType || '').toUpperCase().trim();
+  const botCount = BOT_COUNTS[safeRoomType] ?? 30;
+  const isVip = safeRoomType === 'VIP' || safeRoomType === 'JACKPOT';
   const cardPoolMax = isVip ? 50 : 250;
 
   // Fetch random bots from DB
