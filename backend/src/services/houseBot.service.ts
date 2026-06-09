@@ -24,7 +24,7 @@ export const BOT_COUNTS: Record<string, number> = {
   CASUAL:   30,
   STANDARD: 30,
   PRO:      30,
-  VIP:      15,
+  VIP:      10,
   JACKPOT:  10,
 };
 
