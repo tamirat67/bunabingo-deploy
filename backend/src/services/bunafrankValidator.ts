@@ -345,9 +345,9 @@ export async function validateTelebirrSms(
   // ─── Time Expiry Check (3 Hours) ───
   if (data.dateTime) {
     try {
-      // Expected format: "DD/MM/YYYY HH:mm:ss"
+      // Expected format: "DD/MM/YYYY HH:mm:ss" or "DD-MM-YYYY HH:mm:ss"
       const [datePart, timePart] = data.dateTime.split(' ');
-      const [d, m, y] = datePart.split('/').map(Number);
+      const [d, m, y] = datePart.replace(/-/g, '/').split('/').map(Number);
       const [hh, mm, ss] = timePart.split(':').map(Number);
       
       const receiptDate = new Date(y, m - 1, d, hh, mm, ss);
@@ -475,7 +475,7 @@ export async function validateTelebirrSmsLocal(
   if (data.dateTime) {
     try {
       const [datePart, timePart] = data.dateTime.split(' ');
-      const [d, m, y] = datePart.split('/').map(Number);
+      const [d, m, y] = datePart.replace(/-/g, '/').split('/').map(Number);
       const [hh, mm, ss] = timePart.split(':').map(Number);
       const receiptDate = new Date(y, m - 1, d, hh, mm, ss);
       const diffHours = (Date.now() - receiptDate.getTime()) / (1000 * 60 * 60);

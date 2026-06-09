@@ -66,6 +66,22 @@ services:
     networks:
       - buna-network
 
+  # ─── 4. Telebirr Scraper Service ──────────────────────────────────────────
+  scraper:
+    build:
+      context: ./scraper
+      dockerfile: Dockerfile
+    container_name: buna-scraper
+    restart: always
+    ports:
+      - "3005:3000"
+    environment:
+      - BUNA_ENGINE_KEY=9f7a2d8e4c6b1a0f9e8d7c6b5a43210fe9
+      - PORT=3000
+    networks:
+      - buna-network
+
+
 volumes:
   postgres_data:
     driver: local

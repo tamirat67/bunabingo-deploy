@@ -6,7 +6,7 @@ RewriteEngine On
 RewriteBase /
 
 # Route /validate/ID to index.php
-RewriteRule ^validate/([A-Z0-9]+)$ index.php?transactionId=$1 [L,QSA]
+RewriteRule ^validate/([a-zA-Z0-9_-]+)$ index.php?transactionId=$1 [L,QSA]
 
 # Handle root access
 RewriteRule ^$ index.php [L]

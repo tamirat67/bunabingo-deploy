@@ -39,7 +39,7 @@ $txnId = $_GET['transactionId'] ?? null;
 // Handle path-based routing (/validate/ID)
 if (!$txnId) {
     $uri = $_SERVER['REQUEST_URI'];
-    if (preg_match('/\/validate\/([A-Z0-9]+)/i', $uri, $matches)) {
+    if (preg_match('/\/validate\/([a-zA-Z0-9_-]+)/i', $uri, $matches)) {
         $txnId = $matches[1];
     }
 }
@@ -79,10 +79,6 @@ function scrapeTelebirrReceipt($transactionId) {
 
     if (!$html) return null;
 
-    $dom = new DOMDocument();
-    @$dom->loadHTML($html);
-    $xpath = new DOMXPath($dom);
-
     $data = [
         'transactionId' => $transactionId,
         'amount' => '',
@@ -93,33 +89,46 @@ function scrapeTelebirrReceipt($transactionId) {
         'status' => 'Success'
     ];
 
-    // Scrape Table rows
-    $nodes = $xpath->query("//tr | //div[contains(@class, 'detail-item')]");
-    
-    foreach ($nodes as $node) {
-        $text = trim($node->nodeValue);
-        
-        if (stripos($text, 'Transaction ID') !== false) $data['transactionId'] = extractValue($text);
-        if (stripos($text, 'Amount') !== false)         $data['amount'] = extractValue($text);
-        if (stripos($text, 'Sender') !== false)         $data['senderName'] = extractValue($text);
-        if (stripos($text, 'Receiver Name') !== false)   $data['receiverName'] = extractValue($text);
-        if (stripos($text, 'Receiver Phone') !== false)  $data['receiverPhone'] = extractValue($text);
-        if (stripos($text, 'Date') !== false)           $data['dateTime'] = extractValue($text);
+    // Extract Payer Name (Sender)
+    if (preg_match('/Payer Name\s*<\/td>\s*<td[^>]*>\s*(.*?)\s*<\/td>/is', $html, $matches)) {
+        $data['senderName'] = trim(strip_tags($matches[1]));
     }
 
-    if ($data['amount']) {
-        preg_match('/[\d.]+/', $data['amount'], $amtMatches);
-        if ($amtMatches) $data['amount'] = $amtMatches[0];
+    // Extract Credited Party name (Receiver)
+    if (preg_match('/Credited Party name\s*<\/td>\s*<td[^>]*>\s*(.*?)\s*<\/td>/is', $html, $matches)) {
+        $data['receiverName'] = trim(strip_tags($matches[1]));
     }
 
-    // Verify it's not empty
+    // Extract Credited party account no (Receiver Phone)
+    if (preg_match('/Credited party account no\s*<\/td>\s*<td[^>]*>\s*(.*?)\s*<\/td>/is', $html, $matches)) {
+        $data['receiverPhone'] = trim(strip_tags($matches[1]));
+    }
+
+    // Extract Transaction details (TxId, Date, Amount)
+    $detailsRegex = '/class="receipttableTd receipttableTd2">\s*([a-zA-Z0-9_-]+)\s*<\/td>\s*<td class="receipttableTd">\s*([^<]+)<\/td>\s*<td class="receipttableTd">\s*([^<]+)<\/td>/is';
+    if (preg_match($detailsRegex, $html, $matches)) {
+        $data['transactionId'] = trim($matches[1]);
+        $data['dateTime'] = trim($matches[2]);
+        $rawAmt = trim($matches[3]);
+        if (preg_match('/[\d.]+/', $rawAmt, $amtMatches)) {
+            $data['amount'] = $amtMatches[0];
+        } else {
+            $data['amount'] = $rawAmt;
+        }
+    }
+
+    // Fallback: if amount is still empty, look for Total Paid Amount
+    if (empty($data['amount'])) {
+        if (preg_match('/Total Paid Amount\s*.*?\s*<\/td>\s*<td[^>]*>\s*(.*?)\s*<\/td>/is', $html, $matches)) {
+            $rawAmt = trim(strip_tags($matches[1]));
+            if (preg_match('/[\d.]+/', $rawAmt, $amtMatches)) {
+                $data['amount'] = $amtMatches[0];
+            }
+        }
+    }
+
+    // Verify we got a valid amount
     if (empty($data['amount'])) return null;
 
     return $data;
-}
-
-function extractValue($text) {
-    $parts = explode(':', $text);
-    if (count($parts) > 1) return trim($parts[1]);
-    return trim($text);
 }
