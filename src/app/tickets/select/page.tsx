@@ -345,7 +345,7 @@ function SelectionContent() {
   // ── Bot drip-in simulation ────────────────────────────────────────────────
   // A simple interval that slowly increments the simulated bots up to botCountForRoom
   useEffect(() => {
-    if (isGameRunning) {
+    if (isGameRunning || (countdown !== null && countdown <= 2)) {
       setSimulatedBotCount(botCountForRoom);
       return;
     }
@@ -358,7 +358,7 @@ function SelectionContent() {
     }, 500); // 1 bot every 0.5s -> takes 15s to reach 30
 
     return () => clearInterval(timer);
-  }, [isGameRunning, botCountForRoom]);
+  }, [isGameRunning, botCountForRoom, countdown]);
 
 
 
@@ -1392,14 +1392,14 @@ const balance = Number(user?.wallet?.balance || 0);
         <div className="capsule-white" style={{ position: 'relative', overflow: 'visible' }}>
           <div className="l">PLAYERS</div>
           <div className="v">
-            <span key={displayPlayerCount} className="count-roll">{displayPlayerCount}</span>
+            <span className="count-normal">{displayPlayerCount}</span>
           </div>
         </div>
         {/* PRIZE capsule — number rolls up alongside player count */}
         <div className="capsule-brown total-box">
           <div className="l" style={{ color: 'rgba(255,255,255,0.5)' }}>PRIZE</div>
           <div className="v">
-            <span key={Math.round(prize)} className="count-roll">{prize.toFixed(0)}</span>
+            <span className="count-normal">{prize.toFixed(0)}</span>
           </div>
         </div>
       </div>
@@ -1453,7 +1453,7 @@ const balance = Number(user?.wallet?.balance || 0);
               textShadow: `0 0 20px ${urgencyColor}66`,
             }}
           >
-            <span key={Math.round(prize)} className="count-roll">{prize.toFixed(0)} ETB</span>
+            <span className="count-normal">{prize.toFixed(0)} ETB</span>
           </div>
         </div>
 
