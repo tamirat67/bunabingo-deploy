@@ -42,6 +42,8 @@ function SelectionContent() {
   const [fakePlayersCount, setFakePlayersCount] = useState(0);
   const [fakeOccupied, setFakeOccupied] = useState<number[]>([]);
   const [mounted, setMounted] = useState(false);
+  const [realPlayerCount, setRealPlayerCount] = useState(0);
+  const [simulatedBotCount, setSimulatedBotCount] = useState(0);
   // isInitializing: true until the very first getOccupiedCards call resolves.
   // While true the grid stays covered so there's no flash of unlocked UI on refresh.
   const [isInitializing, setIsInitializing] = useState(true);
@@ -185,7 +187,10 @@ function SelectionContent() {
               if (liveGameSyncRef.current) clearInterval(liveGameSyncRef.current);
               if (res.gameId) { activeGameIdRef.current = res.gameId; setActiveGameId(res.gameId); loadGameData(res.gameId); }
               if (res.occupiedIds) setOccupied(res.occupiedIds);
-              if (res.playerCount !== undefined) setPlayerCount(res.playerCount);
+              if (res.playerCount !== undefined) {
+                setPlayerCount(res.playerCount);
+                if (res.realPlayerCount !== undefined) setRealPlayerCount(res.realPlayerCount);
+              }
             } else {
               // Still running — start the next 20s cycle, anchored to server's gameStartedAt if available
               let next: number;
@@ -230,7 +235,10 @@ function SelectionContent() {
       if (liveGameSyncRef.current) clearInterval(liveGameSyncRef.current);
       if (res?.gameId) { activeGameIdRef.current = res.gameId; setActiveGameId(res.gameId); loadGameData(res.gameId); }
       if (res?.occupiedIds) setOccupied(res.occupiedIds);
-      if (res?.playerCount !== undefined) setPlayerCount(res.playerCount);
+      if (res?.playerCount !== undefined) {
+        setPlayerCount(res.playerCount);
+        if (res.realPlayerCount !== undefined) setRealPlayerCount(res.realPlayerCount);
+      }
     }).catch(() => {
       // Even on error — unlock locally so player is never permanently stuck
       isGameRunningRef.current = false;
@@ -420,6 +428,24 @@ function SelectionContent() {
   };
   const botCountForRoom = BOT_COUNTS_SELECT[safeRoomType] ?? 30;
 
+  // ── Bot drip-in simulation ────────────────────────────────────────────────
+  // A simple interval that slowly increments the simulated bots up to botCountForRoom
+  useEffect(() => {
+    if (isGameRunning) {
+      setSimulatedBotCount(botCountForRoom);
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setSimulatedBotCount(prev => {
+        if (prev >= botCountForRoom) return botCountForRoom;
+        return prev + 1;
+      });
+    }, 500); // 1 bot every 0.5s -> takes 15s to reach 30
+
+    return () => clearInterval(timer);
+  }, [isGameRunning, botCountForRoom]);
+
 
 
   const { socket, isConnected } = useSocket();
@@ -538,6 +564,7 @@ function SelectionContent() {
       setOccupied(res.occupiedIds || []);
       prevOccupied.current = res.occupiedIds || [];
       setPlayerCount(res.playerCount || 0);
+      setRealPlayerCount(res.realPlayerCount || 0);
       if (res.myCardIds && res.myCardIds.length > 0) {
         setSelected(res.myCardIds);
         setOwnedCardIds(res.myCardIds);
@@ -583,6 +610,7 @@ function SelectionContent() {
         }
         if (data.playerCount !== undefined) {
           setPlayerCount(data.playerCount);
+          if (data.realPlayerCount !== undefined) setRealPlayerCount(data.realPlayerCount);
         }
       });
 
@@ -656,6 +684,7 @@ function SelectionContent() {
 
         if (typeof d.playerCount === 'number') {
           setPlayerCount(d.playerCount);
+          if (d.realPlayerCount !== undefined) setRealPlayerCount(d.realPlayerCount);
         }
       });
 
@@ -773,6 +802,7 @@ function SelectionContent() {
           }
           setOccupied(res.occupiedIds || []);
           setPlayerCount(res.playerCount || 0);
+          setRealPlayerCount(res.realPlayerCount || 0);
           const myNewCardIds = res.myCardIds || [];
           setOwnedCardIds(myNewCardIds);
         }).catch(() => {});
@@ -920,7 +950,10 @@ function SelectionContent() {
         }
 
         if (res.occupiedIds) setOccupied(res.occupiedIds);
-        if (res.playerCount !== undefined) setPlayerCount(res.playerCount);
+        if (res.playerCount !== undefined) {
+          setPlayerCount(res.playerCount);
+          if (res.realPlayerCount !== undefined) setRealPlayerCount(res.realPlayerCount);
+        }
 
         setHasTicketsInRunningGame(!!res.hasTicketsInRunningGame);
         const newRunningId = res.runningGameId || null;
@@ -1183,15 +1216,15 @@ const balance = Number(user?.wallet?.balance || 0);
   if (isGameRunning) {
     displayPlayerCount = serverReportedPlayers;
   } else {
-    // If the server has already injected bots, serverReportedPlayers will instantly be >= botCountForRoom.
-    const realPlayers = serverReportedPlayers >= botCountForRoom 
-      ? serverReportedPlayers - botCountForRoom 
-      : serverReportedPlayers;
+    // Instead of guessing real players from total player count, we just use the real numbers from the DB.
+    // If the API hasn't given us realPlayerCount yet, we fallback to 0.
+    const realPlayers = realPlayerCount || 0;
     
     // Add current user if they've bought/selected cards but the server hasn't counted them yet
     const localHumanPending = (ownedCardIds.length > 0 || selected.length > 0) && realPlayers === 0 ? 1 : 0;
     
-    displayPlayerCount = botCountForRoom + Math.max(realPlayers, localHumanPending);
+    // Smoothly animate bots up to limit, plus real humans
+    displayPlayerCount = simulatedBotCount + Math.max(realPlayers, localHumanPending);
   }
 
   const totalStake = displayPlayerCount * stake;

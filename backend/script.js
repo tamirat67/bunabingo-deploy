@@ -1,0 +1,1 @@
+const { PrismaClient } = require('@prisma/client'); const prisma = new PrismaClient(); async function run() { const t = await prisma.ticket.groupBy({ by: ['gameId'], _count: { id: true }, orderBy: { _count: { id: 'desc' } }, take: 10 }); console.log(t); } run().finally(() => process.exit(0));

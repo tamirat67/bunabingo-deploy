@@ -1,0 +1,1 @@
+const fs = require('fs'); const { PrismaClient } = require('@prisma/client'); const prisma = new PrismaClient(); async function run() { const rooms = await prisma.room.findMany(); fs.writeFileSync('rooms.json', JSON.stringify(rooms, null, 2)); } run().finally(() => process.exit(0));

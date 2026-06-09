@@ -650,7 +650,7 @@ router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
 
     const tickets = await prisma.ticket.findMany({
       where: { gameId },
-      select: { card: true, userId: true }
+      select: { card: true, userId: true, user: { select: { isBot: true } } }
     });
 
     const myCardIds = user ? tickets.filter(t => t.userId === user.id).map(t => (t.card as any).id) : [];
@@ -658,13 +658,17 @@ router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
       ? tickets.filter(t => t.userId !== user.id).map(t => (t.card as any).id) 
       : tickets.map(t => (t.card as any).id);
 
-    const playerCount = new Set(tickets.map(t => t.userId)).size;
+    const realUserIds = new Set(tickets.filter(t => !t.user?.isBot).map(t => t.userId));
+    const botUserIds = new Set(tickets.filter(t => t.user?.isBot).map(t => t.userId));
+    const playerCount = realUserIds.size + botUserIds.size;
     const responseData = { 
       occupiedIds: otherOccupiedIds, 
       myCardIds, 
       gameId, 
       roomId: room.id, 
       playerCount,
+      realPlayerCount: realUserIds.size,
+      botPlayerCount: botUserIds.size,
       isGameRunning,
       hasTicketsInRunningGame,
       runningGameId,

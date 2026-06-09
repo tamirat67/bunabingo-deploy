@@ -1,0 +1,1 @@
+const { PrismaClient } = require('@prisma/client'); const prisma = new PrismaClient(); async function run() { const rooms = await prisma.room.findMany(); console.log(rooms); } run().finally(() => process.exit(0));
