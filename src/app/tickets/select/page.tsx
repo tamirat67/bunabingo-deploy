@@ -424,7 +424,7 @@ function SelectionContent() {
 
   // Real bot count per room type (must match backend houseBot.service.ts)
   const BOT_COUNTS_SELECT: Record<string, number> = {
-    CASUAL: 30, STANDARD: 30, PRO: 30, VIP: 20, JACKPOT: 10,
+    CASUAL: 30, STANDARD: 30, PRO: 30, VIP: 15, JACKPOT: 10,
   };
   const botCountForRoom = BOT_COUNTS_SELECT[safeRoomType] ?? 30;
 
