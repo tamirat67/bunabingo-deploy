@@ -42,11 +42,6 @@ function SelectionContent() {
   const [fakePlayersCount, setFakePlayersCount] = useState(0);
   const [fakeOccupied, setFakeOccupied] = useState<number[]>([]);
   const [mounted, setMounted] = useState(false);
-  // ── House-bot simulation: drip bots in one-by-one during countdown ──────────
-  const [simulatedBotCount, setSimulatedBotCount] = useState(0);
-  const simulatedBotCountRef = useRef(0);
-  const simulatedBotTimersRef = useRef<any[]>([]);
-  const botSimStartedRef = useRef(false);
   // isInitializing: true until the very first getOccupiedCards call resolves.
   // While true the grid stays covered so there's no flash of unlocked UI on refresh.
   const [isInitializing, setIsInitializing] = useState(true);
@@ -425,97 +420,7 @@ function SelectionContent() {
   };
   const botCountForRoom = BOT_COUNTS_SELECT[safeRoomType] ?? 30;
 
-  // ── Bot drip-in simulation ────────────────────────────────────────────────
-  // Keep simulatedBotCountRef in sync so scheduling effect reads fresh value
-  useEffect(() => {
-    simulatedBotCountRef.current = simulatedBotCount;
-  }, [simulatedBotCount]);
 
-  // Pre-warm: show 3-8 bots immediately on page load (OPEN state feels alive)
-  useEffect(() => {
-    const preWarm = Math.floor(Math.random() * 6) + 3;
-    const clamped = Math.min(preWarm, botCountForRoom);
-    setSimulatedBotCount(clamped);
-    simulatedBotCountRef.current = clamped;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Bot join scheduler — fires once when countdown starts, clears on game-start / 0s
-  useEffect(() => {
-    // When game goes live: snap remaining bots to full count instantly
-    if (isGameRunning) {
-      simulatedBotTimersRef.current.forEach(clearTimeout);
-      simulatedBotTimersRef.current = [];
-      botSimStartedRef.current = false;
-      setSimulatedBotCount(botCountForRoom);
-      simulatedBotCountRef.current = botCountForRoom;
-      return;
-    }
-
-    // Countdown hit 0 — snap remaining bots ONLY when a real player is confirmed.
-    // The backend requires 1+ real player to start the game. Without one, the
-    // game will NOT launch and a new countdown begins — so we don't snap bots
-    // (the drip-progress display is fine as-is until the next cycle).
-    if (countdown === 0) {
-      simulatedBotTimersRef.current.forEach(clearTimeout);
-      simulatedBotTimersRef.current = [];
-      botSimStartedRef.current = false; // reset so next countdown schedules fresh
-
-      // Guard: only snap to full if at least 1 real human is confirmed in the game.
-      // game?.currentPlayers / playerCount come from the DB (real tickets bought).
-      // ownedCardIds means the current user has joined this round.
-      // Without a real player the backend won't start — no false 30-player snap.
-      const hasRealPlayer = Math.max(game?.currentPlayers || 0, playerCount || 0) >= 1 || ownedCardIds.length > 0;
-      if (hasRealPlayer) {
-        setSimulatedBotCount(botCountForRoom);
-        simulatedBotCountRef.current = botCountForRoom;
-      }
-      // If no real player: leave display where the drip stopped — backend will
-      // create a new game/countdown and the next cycle will run a fresh drip.
-      return;
-    }
-
-    // Countdown reset (null) — clear scheduling flag but keep displayed count
-    if (countdown === null) {
-      if (botSimStartedRef.current) {
-        simulatedBotTimersRef.current.forEach(clearTimeout);
-        simulatedBotTimersRef.current = [];
-        botSimStartedRef.current = false;
-      }
-      return;
-    }
-
-    // countdown > 0 and not yet scheduled — schedule all remaining bots
-    if (countdown > 0 && !botSimStartedRef.current) {
-      botSimStartedRef.current = true;
-
-      const startCount = simulatedBotCountRef.current;
-      const remaining = botCountForRoom - startCount;
-      if (remaining <= 0) return;
-
-      // Spread bots across 85% of countdown window with random timing
-      const windowMs = countdown * 1000 * 0.85;
-      const times = Array.from({ length: remaining }, () => Math.random() * windowMs)
-        .sort((a, b) => a - b);
-
-      const timers = times.map((delay, i) =>
-        setTimeout(() => {
-          const newCount = startCount + i + 1;
-          setSimulatedBotCount(newCount);
-          simulatedBotCountRef.current = newCount;
-        }, delay)
-      );
-
-      simulatedBotTimersRef.current = timers;
-    }
-  }, [countdown, isGameRunning, botCountForRoom]);
-
-  // Cleanup all bot timers on unmount
-  useEffect(() => {
-    return () => {
-      simulatedBotTimersRef.current.forEach(clearTimeout);
-    };
-  }, []);
 
   const { socket, isConnected } = useSocket();
 
@@ -1279,7 +1184,6 @@ const balance = Number(user?.wallet?.balance || 0);
     displayPlayerCount = serverReportedPlayers;
   } else {
     // If the server has already injected bots, serverReportedPlayers will instantly be >= botCountForRoom.
-    // To keep our visual drip-in animation, we must subtract the server's bots and only add real humans.
     const realPlayers = serverReportedPlayers >= botCountForRoom 
       ? serverReportedPlayers - botCountForRoom 
       : serverReportedPlayers;
@@ -1287,7 +1191,7 @@ const balance = Number(user?.wallet?.balance || 0);
     // Add current user if they've bought/selected cards but the server hasn't counted them yet
     const localHumanPending = (ownedCardIds.length > 0 || selected.length > 0) && realPlayers === 0 ? 1 : 0;
     
-    displayPlayerCount = simulatedBotCount + Math.max(realPlayers, localHumanPending);
+    displayPlayerCount = botCountForRoom + Math.max(realPlayers, localHumanPending);
   }
 
   const totalStake = displayPlayerCount * stake;
