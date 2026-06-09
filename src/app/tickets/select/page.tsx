@@ -45,10 +45,8 @@ function SelectionContent() {
   // ── House-bot simulation: drip bots in one-by-one during countdown ──────────
   const [simulatedBotCount, setSimulatedBotCount] = useState(0);
   const simulatedBotCountRef = useRef(0);
-  const [playerJoinToast, setPlayerJoinToast] = useState<string | null>(null);
   const simulatedBotTimersRef = useRef<any[]>([]);
   const botSimStartedRef = useRef(false);
-  const playerJoinToastTimerRef = useRef<any>(null);
   // isInitializing: true until the very first getOccupiedCards call resolves.
   // While true the grid stays covered so there's no flash of unlocked UI on refresh.
   const [isInitializing, setIsInitializing] = useState(true);
@@ -503,12 +501,6 @@ function SelectionContent() {
           const newCount = startCount + i + 1;
           setSimulatedBotCount(newCount);
           simulatedBotCountRef.current = newCount;
-          // ~30% chance to show a join toast (varies per bot — feels organic)
-          if (Math.random() < 0.30) {
-            if (playerJoinToastTimerRef.current) clearTimeout(playerJoinToastTimerRef.current);
-            setPlayerJoinToast('🟢 Player joined');
-            playerJoinToastTimerRef.current = setTimeout(() => setPlayerJoinToast(null), 1100);
-          }
         }, delay)
       );
 
@@ -520,7 +512,6 @@ function SelectionContent() {
   useEffect(() => {
     return () => {
       simulatedBotTimersRef.current.forEach(clearTimeout);
-      if (playerJoinToastTimerRef.current) clearTimeout(playerJoinToastTimerRef.current);
     };
   }, []);
 
@@ -1280,11 +1271,22 @@ const balance = Number(user?.wallet?.balance || 0);
   // Server-reported real player total (real tickets in DB)
   const serverReportedPlayers = Math.max(game?.currentPlayers || 0, playerCount || 0);
 
-  // Simulated local count: pre-warmed bots on OPEN, dripping during countdown, full on game start
-  const localSimulated = simulatedBotCount + (ownedCardIds.length > 0 || selected.length > 0 ? 1 : 0);
-
-  // Display whichever is larger (server wins if it already reports higher from DB)
-  const displayPlayerCount = Math.max(serverReportedPlayers, localSimulated);
+  let displayPlayerCount;
+  
+  if (isGameRunning) {
+    displayPlayerCount = serverReportedPlayers;
+  } else {
+    // If the server has already injected bots, serverReportedPlayers will instantly be >= botCountForRoom.
+    // To keep our visual drip-in animation, we must subtract the server's bots and only add real humans.
+    const realPlayers = serverReportedPlayers >= botCountForRoom 
+      ? serverReportedPlayers - botCountForRoom 
+      : serverReportedPlayers;
+    
+    // Add current user if they've bought/selected cards but the server hasn't counted them yet
+    const localHumanPending = (ownedCardIds.length > 0 || selected.length > 0) && realPlayers === 0 ? 1 : 0;
+    
+    displayPlayerCount = simulatedBotCount + Math.max(realPlayers, localHumanPending);
+  }
 
   const totalStake = displayPlayerCount * stake;
 
@@ -1539,28 +1541,6 @@ const balance = Number(user?.wallet?.balance || 0);
           <div className="v">
             <span key={displayPlayerCount} className="count-roll">{displayPlayerCount}</span>
           </div>
-          {/* Join toast — floats above PLAYERS capsule */}
-          {playerJoinToast && (
-            <div style={{
-              position: 'absolute',
-              top: '-22px',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              background: 'rgba(46,204,113,0.92)',
-              color: '#fff',
-              fontSize: '8px',
-              fontWeight: '800',
-              padding: '2px 7px',
-              borderRadius: '6px',
-              whiteSpace: 'nowrap',
-              zIndex: 20,
-              pointerEvents: 'none',
-              animation: 'joinToastFade 1.1s ease forwards',
-              boxShadow: '0 2px 6px rgba(46,204,113,0.4)',
-            }}>
-              {playerJoinToast}
-            </div>
-          )}
         </div>
         {/* PRIZE capsule — number rolls up alongside player count */}
         <div className="capsule-brown total-box">
