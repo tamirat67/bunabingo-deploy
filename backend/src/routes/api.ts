@@ -1137,6 +1137,68 @@ staffRouter.get('/withdrawals/pending', async (req, res) => {
   const agentId = (admin.isAdmin || admin.role === 'ADMIN') ? undefined : admin.id;
   res.json(await getPendingWithdrawals(agentId));
 });
+
+// ─── Deposit History (all statuses) ─────────────────────────────────────────
+staffRouter.get('/deposits/history', async (req, res) => {
+  const admin = (req as any).user;
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = 50;
+  const skip = (page - 1) * limit;
+  const agentId = (admin.isAdmin || admin.role === 'ADMIN') ? undefined : admin.id;
+
+  const where: any = agentId ? { user: { referredBy: agentId } } : {};
+
+  try {
+    const [deposits, total] = await Promise.all([
+      prisma.deposit.findMany({
+        where,
+        include: {
+          user: {
+            select: { firstName: true, telegramId: true, telegramUsername: true, username: true }
+          }
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      prisma.deposit.count({ where }),
+    ]);
+    res.json({ deposits, total, pages: Math.ceil(total / limit) });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Withdrawal History (all statuses) ──────────────────────────────────────
+staffRouter.get('/withdrawals/history', async (req, res) => {
+  const admin = (req as any).user;
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = 50;
+  const skip = (page - 1) * limit;
+  const agentId = (admin.isAdmin || admin.role === 'ADMIN') ? undefined : admin.id;
+
+  const where: any = agentId ? { user: { referredBy: agentId } } : {};
+
+  try {
+    const [withdrawals, total] = await Promise.all([
+      prisma.withdrawal.findMany({
+        where,
+        include: {
+          user: {
+            select: { firstName: true, telegramId: true, telegramUsername: true, username: true }
+          }
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      prisma.withdrawal.count({ where }),
+    ]);
+    res.json({ withdrawals, total, pages: Math.ceil(total / limit) });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
 staffRouter.post('/withdrawals/:id/approve', async (req, res) => {
   const admin = (req as any).user;
   if (admin.role === 'STAFF') return res.status(403).json({ error: 'STAFF users are read-only.' });
@@ -1737,12 +1799,12 @@ staffRouter.get('/analytics', staffMiddleware, async (req, res) => {
     prisma.user.count({ where: userFilter }),
     prisma.game.count({ where: { status: 'FINISHED' } }),
     prisma.game.count({ where: { status: { in: ['RUNNING', 'COUNTDOWN', 'WAITING'] } } }),
-    prisma.deposit.aggregate({ where: { status: 'APPROVED', ...txFilter }, _sum: { amount: true } }),
-    prisma.withdrawal.aggregate({ where: { status: 'COMPLETED', ...txFilter }, _sum: { amount: true } }),
-    prisma.deposit.count({ where: { status: 'PENDING', ...txFilter } }),
-    prisma.withdrawal.count({ where: { status: 'PENDING', ...txFilter } }),
+    prisma.deposit.aggregate({ where: { status: { in: ['approved', 'APPROVED', 'completed', 'COMPLETED'] }, ...txFilter }, _sum: { amount: true } }),
+    prisma.withdrawal.aggregate({ where: { status: { in: ['approved', 'APPROVED', 'completed', 'COMPLETED'] }, ...txFilter }, _sum: { amount: true } }),
+    prisma.deposit.count({ where: { status: { in: ['pending', 'PENDING'] }, ...txFilter } }),
+    prisma.withdrawal.count({ where: { status: { in: ['pending', 'PENDING'] }, ...txFilter } }),
     prisma.transaction.aggregate({ 
-      where: { type: 'TICKET_PURCHASE', status: 'COMPLETED', ...txFilter }, 
+      where: { type: 'TICKET_PURCHASE', status: { in: ['completed', 'COMPLETED'] }, ...txFilter }, 
       _sum: { amount: true } 
     }),
     prisma.agentCommissionLog.aggregate({ 
@@ -1751,7 +1813,7 @@ staffRouter.get('/analytics', staffMiddleware, async (req, res) => {
     }),
     // Today's Sales (Gross Volume)
     prisma.transaction.aggregate({
-      where: { type: 'TICKET_PURCHASE', status: 'COMPLETED', createdAt: { gte: todayStart, lte: todayEnd }, ...txFilter },
+      where: { type: 'TICKET_PURCHASE', status: { in: ['completed', 'COMPLETED'] }, createdAt: { gte: todayStart, lte: todayEnd }, ...txFilter },
       _sum: { amount: true }
     }),
     // Today's Company Revenue
@@ -1829,7 +1891,7 @@ staffRouter.get('/analytics', staffMiddleware, async (req, res) => {
   const realSalesAgg = await prisma.transaction.aggregate({
     where: {
       type: 'TICKET_PURCHASE',
-      status: 'COMPLETED',
+      status: { in: ['completed', 'COMPLETED'] },
       user: { isBot: false },
       ...(agentIds ? { user: { referredBy: { in: agentIds }, isBot: false } } : {})
     },
@@ -1839,7 +1901,7 @@ staffRouter.get('/analytics', staffMiddleware, async (req, res) => {
   const botSalesAgg = await prisma.transaction.aggregate({
     where: {
       type: 'TICKET_PURCHASE',
-      status: 'COMPLETED',
+      status: { in: ['completed', 'COMPLETED'] },
       user: { isBot: true },
       ...(agentIds ? { user: { referredBy: { in: agentIds }, isBot: true } } : {})
     },
@@ -1886,7 +1948,7 @@ staffRouter.get('/analytics', staffMiddleware, async (req, res) => {
   const todayRealSalesAgg = await prisma.transaction.aggregate({
     where: {
       type: 'TICKET_PURCHASE',
-      status: 'COMPLETED',
+      status: { in: ['completed', 'COMPLETED'] },
       user: { isBot: false },
       createdAt: { gte: todayStart, lte: todayEnd },
       ...(agentIds ? { user: { referredBy: { in: agentIds }, isBot: false } } : {})
@@ -2106,7 +2168,7 @@ staffRouter.get('/bot-analytics', restrictToAdmin, async (req, res) => {
 
 staffRouter.get('/audit', restrictToAdmin, async (req, res) => {
   try {
-    const { getCompanyCommissionRate } = await import('../services/settings.service');
+    const { getCompanyCommissionRate, getAgentProfitRate } = await import('../services/settings.service');
     
     const [
       bunaWallet,
@@ -2117,21 +2179,30 @@ staffRouter.get('/audit', restrictToAdmin, async (req, res) => {
       totalDepositsAgg,
       totalWithdrawalsAgg,
       rate,
+      agentRate,
       realSalesAgg,
       botSalesAgg,
-      agentPreDepositAgg
+      agentPreDepositAgg,
+      realPrizesAgg,
     ] = await Promise.all([
       prisma.systemWallet.findUnique({ where: { id: 1 } }),
       prisma.gameCycle.aggregate({ _sum: { houseWins: true } }),
-      prisma.transaction.aggregate({ where: { type: 'TICKET_PURCHASE', status: 'COMPLETED' }, _sum: { amount: true } }),
+      // Fix: transactions saved as 'completed' (lowercase)
+      prisma.transaction.aggregate({ where: { type: 'TICKET_PURCHASE', status: { in: ['completed', 'COMPLETED'] } }, _sum: { amount: true } }),
       prisma.agentCommissionLog.aggregate({ where: { type: 'COMMISSION_DEBIT' }, _sum: { amount: true } }),
       prisma.user.count({ where: { role: 'AGENT' } }),
-      prisma.deposit.aggregate({ where: { status: 'APPROVED' }, _sum: { amount: true } }),
-      prisma.withdrawal.aggregate({ where: { status: 'COMPLETED' }, _sum: { amount: true } }),
+      // Fix: deposits saved as 'approved' (lowercase)
+      prisma.deposit.aggregate({ where: { status: { in: ['approved', 'APPROVED', 'completed', 'COMPLETED'] } }, _sum: { amount: true } }),
+      // Fix: withdrawals saved as 'approved' (lowercase) when paid out
+      prisma.withdrawal.aggregate({ where: { status: { in: ['approved', 'APPROVED', 'completed', 'COMPLETED'] } }, _sum: { amount: true } }),
       getCompanyCommissionRate(),
-      prisma.transaction.aggregate({ where: { type: 'TICKET_PURCHASE', status: 'COMPLETED', user: { isBot: false } }, _sum: { amount: true } }),
-      prisma.transaction.aggregate({ where: { type: 'TICKET_PURCHASE', status: 'COMPLETED', user: { isBot: true } }, _sum: { amount: true } }),
-      prisma.agentPreDepositWallet.aggregate({ _sum: { totalRecharged: true, totalDebited: true, balance: true } })
+      getAgentProfitRate(),
+      // Fix: status lowercase
+      prisma.transaction.aggregate({ where: { type: 'TICKET_PURCHASE', status: { in: ['completed', 'COMPLETED'] }, user: { isBot: false } }, _sum: { amount: true } }),
+      prisma.transaction.aggregate({ where: { type: 'TICKET_PURCHASE', status: { in: ['completed', 'COMPLETED'] }, user: { isBot: true } }, _sum: { amount: true } }),
+      prisma.agentPreDepositWallet.aggregate({ _sum: { totalRecharged: true, totalDebited: true, balance: true } }),
+      // Real player prize wins paid out
+      prisma.transaction.aggregate({ where: { type: 'PRIZE_WIN', status: { in: ['completed', 'COMPLETED'] }, user: { isBot: false } }, _sum: { amount: true } }),
     ]);
 
     const totalSales = Number(totalSalesAgg._sum.amount || 0);
@@ -2139,6 +2210,23 @@ staffRouter.get('/audit', restrictToAdmin, async (req, res) => {
     const botSales = Number(botSalesAgg._sum.amount || 0);
     const totalCommissionsDeducted = Number(commissionsAgg._sum.amount || 0);
     const expectedCommissions = realPlayerSales * rate;
+    const totalDeposits = Number(totalDepositsAgg._sum.amount || 0);
+    const totalWithdrawals = Number(totalWithdrawalsAgg._sum.amount || 0);
+
+    // ─── Real Company Profit Breakdown ─────────────────────────────────────
+    // Commission split: 30% total from real player ticket sales
+    //   Company share = 20% (rate - agentRate)
+    //   Agent share   = 10% (agentRate)
+    const companyCommissionRate = rate - agentRate; // e.g. 0.30 - 0.10 = 0.20
+    const companyCommissionEarned = realPlayerSales * companyCommissionRate;
+    const agentCommissionEarned = realPlayerSales * agentRate;
+
+    // House edge: ticket revenue from real players minus prizes paid to real players
+    const realPlayerPrizes = Number(realPrizesAgg._sum.amount || 0);
+    const houseEdgeFromRealPlayers = realPlayerSales - realPlayerPrizes;
+
+    // Net cash position: money in minus money out
+    const netCashFlow = totalDeposits - totalWithdrawals;
 
     res.json({
       success: true,
@@ -2151,8 +2239,17 @@ staffRouter.get('/audit', restrictToAdmin, async (req, res) => {
         totalCommissionsDeducted,
         expectedCommissions,
         commissionRate: rate,
-        totalDeposits: Number(totalDepositsAgg._sum.amount || 0),
-        totalWithdrawals: Number(totalWithdrawalsAgg._sum.amount || 0),
+        agentRate,
+        companyCommissionRate,
+        // Real profit metrics
+        companyCommissionEarned,
+        agentCommissionEarned,
+        realPlayerPrizes,
+        houseEdgeFromRealPlayers,
+        netCashFlow,
+        // Deposits & withdrawals
+        totalDeposits,
+        totalWithdrawals,
         agentsCount,
         agentPreDepositTotalRecharged: Number(agentPreDepositAgg._sum?.totalRecharged || 0),
         agentPreDepositTotalDebited: Number(agentPreDepositAgg._sum?.totalDebited || 0),

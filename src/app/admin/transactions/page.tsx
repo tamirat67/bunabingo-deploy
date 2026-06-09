@@ -3,14 +3,31 @@
 import React, { useEffect, useState } from 'react';
 import { 
   FiCheck, FiX, FiEye, FiArrowUpRight, FiArrowDownLeft, 
-  FiClock, FiCreditCard, FiActivity, FiArrowUp, FiArrowDown
+  FiClock, FiCreditCard, FiActivity, FiArrowUp, FiArrowDown,
+  FiList
 } from 'react-icons/fi';
 import api from '@/lib/api';
 import { Pagination } from '@/components/Pagination';
 import '@/app/admin.css';
 
+type Tab = 'pending' | 'history' | 'dwhistory';
+
+function StatusBadge({ status }: { status: string }) {
+  const s = status?.toLowerCase();
+  if (s === 'approved' || s === 'completed') {
+    return <span className="badge badge-green" style={{ fontSize: '10px' }}>{status.toUpperCase()}</span>;
+  }
+  if (s === 'pending') {
+    return <span className="badge badge-gold" style={{ fontSize: '10px' }}>PENDING</span>;
+  }
+  if (s === 'rejected' || s === 'failed') {
+    return <span style={{ background: 'rgba(239,68,68,0.12)', color: '#ef4444', padding: '3px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: '800' }}>{status.toUpperCase()}</span>;
+  }
+  return <span className="badge" style={{ fontSize: '10px' }}>{status.toUpperCase()}</span>;
+}
+
 export default function TransactionsPage() {
-  const [activeTab, setActiveTab] = useState<'pending' | 'history'>('pending');
+  const [activeTab, setActiveTab] = useState<Tab>('pending');
   const [pendingDeposits, setPendingDeposits] = useState<any[]>([]);
   const [pendingWithdrawals, setPendingWithdrawals] = useState<any[]>([]);
   const [history, setHistory] = useState<any[]>([]);
@@ -20,6 +37,15 @@ export default function TransactionsPage() {
   const [historyPage, setHistoryPage] = useState(1);
   const [historyTotalPages, setHistoryTotalPages] = useState(1);
   const [historyTotalCount, setHistoryTotalCount] = useState(0);
+
+  // D&W History state
+  const [depositHistory, setDepositHistory] = useState<any[]>([]);
+  const [withdrawalHistory, setWithdrawalHistory] = useState<any[]>([]);
+  const [depHistoryPage, setDepHistoryPage] = useState(1);
+  const [depHistoryTotalPages, setDepHistoryTotalPages] = useState(1);
+  const [wdHistoryPage, setWdHistoryPage] = useState(1);
+  const [wdHistoryTotalPages, setWdHistoryTotalPages] = useState(1);
+  const [dwLoading, setDwLoading] = useState(false);
 
   // Financial summary
   const [summary, setSummary] = useState({
@@ -35,14 +61,16 @@ export default function TransactionsPage() {
     fetchData();
   }, [activeTab, historyPage]);
 
+  useEffect(() => {
+    if (activeTab === 'dwhistory') fetchDWHistory();
+  }, [depHistoryPage, wdHistoryPage]);
+
   const fetchData = async () => {
     setLoading(true);
     try {
-      // 1. Fetch top financial summary
       const summaryRes = await api.get('/admin/transactions/summary');
       setSummary(summaryRes.data);
 
-      // 2. Fetch active tab data
       if (activeTab === 'pending') {
         const [depRes, wdRes] = await Promise.all([
           api.get('/admin/deposits/pending'),
@@ -50,16 +78,36 @@ export default function TransactionsPage() {
         ]);
         setPendingDeposits(depRes.data || []);
         setPendingWithdrawals(wdRes.data || []);
-      } else {
+      } else if (activeTab === 'history') {
         const txRes = await api.get(`/admin/transactions?page=${historyPage}`);
         setHistory(txRes.data.transactions || []);
         setHistoryTotalPages(txRes.data.pages || 1);
         setHistoryTotalCount(txRes.data.total || 0);
+      } else if (activeTab === 'dwhistory') {
+        await fetchDWHistory();
       }
     } catch (err) {
       console.error('Failed to fetch transactions:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchDWHistory = async () => {
+    setDwLoading(true);
+    try {
+      const [depRes, wdRes] = await Promise.all([
+        api.get(`/admin/deposits/history?page=${depHistoryPage}`),
+        api.get(`/admin/withdrawals/history?page=${wdHistoryPage}`),
+      ]);
+      setDepositHistory(depRes.data.deposits || []);
+      setDepHistoryTotalPages(depRes.data.pages || 1);
+      setWithdrawalHistory(wdRes.data.withdrawals || []);
+      setWdHistoryTotalPages(wdRes.data.pages || 1);
+    } catch (err) {
+      console.error('Failed to fetch D&W history:', err);
+    } finally {
+      setDwLoading(false);
     }
   };
 
@@ -114,6 +162,19 @@ export default function TransactionsPage() {
             )}
           </button>
           <button 
+            className={`login-button ${activeTab === 'dwhistory' ? 'active' : ''}`}
+            style={{ 
+              padding: '10px 20px', 
+              borderRadius: '12px', 
+              background: activeTab === 'dwhistory' ? '#3d2b1f' : 'transparent', 
+              color: activeTab === 'dwhistory' ? 'white' : '#3d2b1f',
+              width: 'auto'
+            }}
+            onClick={() => setActiveTab('dwhistory')}
+          >
+            D&amp;W History
+          </button>
+          <button 
             className={`login-button ${activeTab === 'history' ? 'active' : ''}`}
             style={{ 
               padding: '10px 20px', 
@@ -129,7 +190,7 @@ export default function TransactionsPage() {
         </div>
       </div>
 
-      {/* Top summary about transactions history (beautifully implemented!) */}
+      {/* Top summary cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
         <div className="premium-stat-card" style={{ borderLeft: '4px solid #eab308' }}>
           <div className="card-top-row">
@@ -188,7 +249,7 @@ export default function TransactionsPage() {
         </div>
       </div>
 
-      {loading ? (
+      {loading && activeTab !== 'dwhistory' ? (
         <div style={{ padding: '100px', textAlign: 'center' }}>
           <div className="animate-spin" style={{ width: '40px', height: '40px', border: '4px solid #d4af37', borderTopColor: 'transparent', borderRadius: '50%', margin: '0 auto' }}></div>
           <p style={{ marginTop: '16px', fontWeight: '700', color: '#3d2b1f' }}>Loading transactions...</p>
@@ -215,22 +276,14 @@ export default function TransactionsPage() {
                 <tbody>
                   {pendingDeposits.map((d: any) => {
                     const rawRef = d.reference || d.txnId || 'N/A';
-                    
-                    // 1. Check if the string already contains a full URL
                     const telebirrUrlMatch = typeof rawRef === 'string' ? rawRef.match(/(https:\/\/transactioninfo\.ethiotelecom\.et\/receipt\/[A-Z0-9]+)/i) : null;
                     let telebirrUrl = telebirrUrlMatch ? telebirrUrlMatch[1] : null;
-
-                    // 2. Extract transaction ID from text
                     const txIdMatch = typeof rawRef === 'string' ? rawRef.match(/transaction number is ([A-Z0-9]+)/i) : null;
                     const cleanTxnId = txIdMatch ? txIdMatch[1] : (rawRef !== 'N/A' && !rawRef.includes('http') ? rawRef.trim() : null);
-
-                    // 3. Construct link if we have a clean transaction ID and no explicit URL
                     if (!telebirrUrl && cleanTxnId && /^[A-Z0-9]{8,15}$/i.test(cleanTxnId)) {
                       telebirrUrl = `https://transactioninfo.ethiotelecom.et/receipt/${cleanTxnId}`;
                     }
-
                     const displayRef = txIdMatch ? txIdMatch[1] : (rawRef.length > 20 && !telebirrUrlMatch ? rawRef.substring(0, 15) + '...' : rawRef.split('/').pop());
-
                     return (
                     <tr key={d.id}>
                       <td>
@@ -258,9 +311,7 @@ export default function TransactionsPage() {
                             <button onClick={() => handleReject(d.id, 'deposit')} className="login-button" style={{ padding: '8px', background: '#fef2f2', color: '#ef4444', width: 'auto', minWidth: '40px' }} title="Reject Deposit"><FiX /></button>
                           </div>
                         ) : (
-                          <span className={`badge ${d.status === 'completed' || d.status === 'approved' ? 'badge-green' : 'badge-gold'}`} style={{ fontSize: '10px' }}>
-                            {d.status.toUpperCase()}
-                          </span>
+                          <StatusBadge status={d.status} />
                         )}
                       </td>
                     </tr>
@@ -296,16 +347,7 @@ export default function TransactionsPage() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <div style={{ fontWeight: '700' }}>{w.user?.firstName || 'Player'}</div>
                           {w.user && (
-                            <span 
-                              style={{ 
-                                fontSize: '10px', 
-                                padding: '2px 6px', 
-                                fontWeight: '800',
-                                background: w.isBalanceLegit ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                                color: w.isBalanceLegit ? '#22c55e' : '#ef4444',
-                                borderRadius: '4px'
-                              }}
-                            >
+                            <span style={{ fontSize: '10px', padding: '2px 6px', fontWeight: '800', background: w.isBalanceLegit ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)', color: w.isBalanceLegit ? '#22c55e' : '#ef4444', borderRadius: '4px' }}>
                               Bal: {Number(w.user.wallet?.balance || 0).toFixed(2)} ETB {w.isBalanceLegit ? '✓' : '⚠️'}
                             </span>
                           )}
@@ -328,9 +370,7 @@ export default function TransactionsPage() {
                             <button onClick={() => handleReject(w.id, 'withdrawal')} className="login-button" style={{ padding: '8px', background: '#fef2f2', color: '#ef4444', width: 'auto', minWidth: '40px' }} title="Reject Withdrawal"><FiX /></button>
                           </div>
                         ) : (
-                          <span className={`badge ${w.status === 'completed' || w.status === 'approved' ? 'badge-green' : 'badge-gold'}`} style={{ fontSize: '10px' }}>
-                            {w.status.toUpperCase()}
-                          </span>
+                          <StatusBadge status={w.status} />
                         )}
                       </td>
                     </tr>
@@ -341,6 +381,138 @@ export default function TransactionsPage() {
             </div>
           </section>
         </div>
+
+      ) : activeTab === 'dwhistory' ? (
+        /* ─── Deposit & Withdrawal History Tab ─── */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
+          {dwLoading && !depositHistory.length && !withdrawalHistory.length ? (
+            <div style={{ padding: '80px', textAlign: 'center' }}>
+              <div className="animate-spin" style={{ width: '40px', height: '40px', border: '4px solid #d4af37', borderTopColor: 'transparent', borderRadius: '50%', margin: '0 auto' }}></div>
+              <p style={{ marginTop: '16px', fontWeight: '700', color: '#3d2b1f' }}>Loading history...</p>
+            </div>
+          ) : (
+            <>
+              {/* All Deposits */}
+              <section>
+                <h2 style={{ fontSize: '18px', fontWeight: '800', color: '#3d2b1f', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <FiArrowDownLeft style={{ color: '#22c55e' }} /> All Deposit Records
+                </h2>
+                <p style={{ fontSize: '13px', color: '#78716c', marginBottom: '16px' }}>
+                  Every deposit request ever made — including auto-approved and rejected ones.
+                </p>
+                <div className="data-table-container">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>User</th>
+                        <th>Amount</th>
+                        <th>Reference / TxnID</th>
+                        <th>Proof</th>
+                        <th>Status</th>
+                        <th>Time</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {depositHistory.map((d: any) => {
+                        const rawRef = d.txnId || 'N/A';
+                        const isTelebirrId = /^[A-Z0-9]{8,15}$/i.test(rawRef.trim());
+                        const telebirrUrl = isTelebirrId
+                          ? `https://transactioninfo.ethiotelecom.et/receipt/${rawRef.trim()}`
+                          : null;
+                        return (
+                          <tr key={d.id}>
+                            <td>
+                              <div style={{ fontWeight: '700' }}>{d.user?.firstName || d.user?.username || 'Player'}</div>
+                              <div style={{ fontSize: '12px', color: '#78716c' }}>ID: {d.user?.telegramId?.toString()}</div>
+                            </td>
+                            <td style={{ fontWeight: '800', color: '#22c55e' }}>+{parseFloat(d.amount).toLocaleString()} ETB</td>
+                            <td style={{ fontFamily: 'monospace', fontSize: '12px', color: '#3d2b1f', maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={rawRef}>
+                              {rawRef.length > 18 ? rawRef.substring(0, 16) + '…' : rawRef}
+                            </td>
+                            <td>
+                              {d.receiptUrl ? (
+                                <a href={d.receiptUrl.startsWith('http') ? d.receiptUrl : `${api.defaults.baseURL?.replace('/api', '')}/api/file/${d.receiptUrl}`} target="_blank" rel="noopener noreferrer" className="badge badge-gold" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                                  <FiEye size={11} /> Slip
+                                </a>
+                              ) : telebirrUrl ? (
+                                <a href={telebirrUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '5px', background: 'rgba(34,197,94,0.1)', color: '#16a34a', padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '700' }}>
+                                  <FiEye size={11} /> Telebirr
+                                </a>
+                              ) : <span style={{ color: '#9ca3af', fontSize: '12px' }}>—</span>}
+                            </td>
+                            <td><StatusBadge status={d.status} /></td>
+                            <td style={{ color: '#78716c', fontSize: '12px' }}>{new Date(d.createdAt).toLocaleString()}</td>
+                          </tr>
+                        );
+                      })}
+                      {depositHistory.length === 0 && (
+                        <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: '#78716c', fontWeight: '600' }}>No deposit records found.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+                {depHistoryTotalPages > 1 && (
+                  <div style={{ marginTop: '16px' }}>
+                    <Pagination currentPage={depHistoryPage} totalPages={depHistoryTotalPages} onPageChange={(p) => { setDepHistoryPage(p); }} loading={dwLoading} />
+                  </div>
+                )}
+              </section>
+
+              {/* All Withdrawals */}
+              <section>
+                <h2 style={{ fontSize: '18px', fontWeight: '800', color: '#3d2b1f', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <FiArrowUpRight style={{ color: '#3b82f6' }} /> All Withdrawal Records
+                </h2>
+                <p style={{ fontSize: '13px', color: '#78716c', marginBottom: '16px' }}>
+                  Every withdrawal request ever made — including approved and rejected ones.
+                </p>
+                <div className="data-table-container">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>User</th>
+                        <th>Amount</th>
+                        <th>Account Info</th>
+                        <th>Bank</th>
+                        <th>Status</th>
+                        <th>Time</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {withdrawalHistory.map((w: any) => (
+                        <tr key={w.id}>
+                          <td>
+                            <div style={{ fontWeight: '700' }}>{w.user?.firstName || w.user?.username || 'Player'}</div>
+                            <div style={{ fontSize: '12px', color: '#78716c' }}>ID: {w.user?.telegramId?.toString()}</div>
+                          </td>
+                          <td style={{ fontWeight: '800', color: '#ef4444' }}>-{parseFloat(w.amount).toLocaleString()} ETB</td>
+                          <td>
+                            <div style={{ fontWeight: '700', fontSize: '13px' }}>{w.accountName}</div>
+                            <div style={{ fontSize: '12px', color: '#3d2b1f', fontFamily: 'monospace' }}>{w.accountNumber}</div>
+                          </td>
+                          <td>
+                            <span className="badge badge-blue" style={{ fontSize: '11px' }}>{w.bankName}</span>
+                          </td>
+                          <td><StatusBadge status={w.status} /></td>
+                          <td style={{ color: '#78716c', fontSize: '12px' }}>{new Date(w.createdAt).toLocaleString()}</td>
+                        </tr>
+                      ))}
+                      {withdrawalHistory.length === 0 && (
+                        <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: '#78716c', fontWeight: '600' }}>No withdrawal records found.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+                {wdHistoryTotalPages > 1 && (
+                  <div style={{ marginTop: '16px' }}>
+                    <Pagination currentPage={wdHistoryPage} totalPages={wdHistoryTotalPages} onPageChange={(p) => { setWdHistoryPage(p); }} loading={dwLoading} />
+                  </div>
+                )}
+              </section>
+            </>
+          )}
+        </div>
+
       ) : (
         /* Transaction Ledger History */
         <div style={{ marginTop: '24px' }}>
@@ -384,9 +556,7 @@ export default function TransactionsPage() {
                     </td>
                     <td style={{ fontWeight: '700' }}>{parseFloat(tx.balanceAfter).toLocaleString()} ETB</td>
                     <td>
-                      <span className={`badge ${tx.status?.toUpperCase() === 'COMPLETED' ? 'badge-green' : 'badge-gold'}`}>
-                        {tx.status?.toUpperCase()}
-                      </span>
+                      <StatusBadge status={tx.status || 'completed'} />
                     </td>
                     <td style={{ color: '#78716c', fontSize: '13px' }}>{new Date(tx.createdAt).toLocaleString()}</td>
                   </tr>
