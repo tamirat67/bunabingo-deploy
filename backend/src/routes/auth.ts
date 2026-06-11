@@ -22,7 +22,7 @@ router.post('/login', async (req: Request, res: Response) => {
   }
 
   try {
-    // We use telegramId as the "username" for login
+    // We use telegramUsername or telegramId as the "username" for login
     const user = await prisma.user.findFirst({
       where: {
         OR: [
@@ -107,6 +107,119 @@ router.post('/setup-password', async (req: Request, res: Response) => {
     res.json({ success: true, message: 'Password set successfully' });
   } catch (err) {
     res.status(500).json({ error: 'Failed to set password' });
+  }
+});
+
+/**
+ * Helper: Verify admin JWT from Authorization header.
+ * Used by routes in the public /api/auth router that need admin-only access.
+ */
+async function verifyAdminJwt(req: Request): Promise<{ id: string; role: string; isAdmin: boolean } | null> {
+  const authHeader = req.headers['authorization'];
+  if (!authHeader?.startsWith('Bearer ')) return null;
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, config.server.jwtSecret) as any;
+    if (decoded.role !== 'ADMIN' && !decoded.isAdmin) return null;
+    return { id: decoded.id, role: decoded.role, isAdmin: decoded.isAdmin };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * POST /api/auth/create-staff
+ * Admin-only: Create a portal-only cashier/staff/agent account with username + password.
+ * No Telegram required.
+ */
+router.post('/create-staff', async (req: Request, res: Response) => {
+  const admin = await verifyAdminJwt(req);
+
+  // Must be called with a valid JWT from an ADMIN
+  if (!admin || (admin.role !== 'ADMIN' && !admin.isAdmin)) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+
+  const { username, password, role = 'STAFF', firstName } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).json({ error: 'Username and password are required' });
+  }
+  if (password.length < 6) {
+    return res.status(400).json({ error: 'Password must be at least 6 characters' });
+  }
+
+  const allowedRoles = ['STAFF', 'AGENT', 'ADMIN'];
+  if (!allowedRoles.includes(role.toUpperCase())) {
+    return res.status(400).json({ error: `Role must be one of: ${allowedRoles.join(', ')}` });
+  }
+
+  try {
+    // Check username is not taken
+    const existing = await prisma.user.findFirst({
+      where: { telegramUsername: username }
+    });
+    if (existing) {
+      return res.status(409).json({ error: `Username "${username}" is already taken` });
+    }
+
+    // Synthetic negative telegramId so we never collide with real Telegram users
+    const syntheticTelegramId = BigInt(-1) * BigInt(Date.now());
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = await prisma.user.create({
+      data: {
+        telegramId: syntheticTelegramId,
+        telegramUsername: username,
+        firstName: firstName || username,
+        role: role.toUpperCase() as any,
+        passwordHash: hashedPassword,
+        wallet: { create: { balance: 0 } }
+      }
+    });
+
+    logger.info(`[Auth] Admin ${admin.id} created portal staff user: ${username} (${role})`);
+
+    res.json({
+      success: true,
+      user: {
+        id: newUser.id,
+        username: newUser.telegramUsername,
+        firstName: newUser.firstName,
+        role: newUser.role
+      }
+    });
+  } catch (err: any) {
+    logger.error('[Auth] create-staff error:', err);
+    res.status(500).json({ error: 'Failed to create user' });
+  }
+});
+
+/**
+ * POST /api/auth/reset-password
+ * Admin-only: Reset another user's password by their ID.
+ */
+router.post('/reset-password', async (req: Request, res: Response) => {
+  const admin = await verifyAdminJwt(req);
+  if (!admin || (admin.role !== 'ADMIN' && !admin.isAdmin)) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+
+  const { userId, newPassword } = req.body;
+  if (!userId || !newPassword || newPassword.length < 6) {
+    return res.status(400).json({ error: 'userId and newPassword (min 6 chars) are required' });
+  }
+
+  try {
+    const hashed = await bcrypt.hash(newPassword, 10);
+    await prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash: hashed }
+    });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to reset password' });
   }
 });
 
