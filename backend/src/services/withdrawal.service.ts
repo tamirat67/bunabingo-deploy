@@ -40,7 +40,11 @@ export async function createWithdrawalRequest(
   accountName: string
 ) {
   // 1. Minimum amount check
-  if (amount < 200) {
+  const safeAmount = Number(amount);
+  if (!safeAmount || isNaN(safeAmount) || safeAmount <= 0) {
+    throw new Error('Invalid withdrawal amount. Please restart the withdrawal flow.');
+  }
+  if (safeAmount < 200) {
     throw new Error('Minimum withdrawal is 200 ETB');
   }
 

@@ -59,11 +59,19 @@ export async function handleWithdrawMessage(ctx: Context): Promise<boolean> {
   // ── STEP 1: AWAITING_AMOUNT ───────────────────────────────────────────────
   if (session.step === 'AWAITING_AMOUNT') {
     const amount = parseFloat(text);
-    if (isNaN(amount) || amount < config.withdrawal.minAmount) {
-      await ctx.reply(`⚠️ የተሳሳተ የገንዘብ መጠን። ዝቅተኛው፡ ${config.withdrawal.minAmount} ብር።`, {
-        ...Markup.inlineKeyboard(CANCEL_BTN),
-      });
-      return true;
+    // 1. Minimum amount check
+    const safeAmount = Number(amount);
+    if (!safeAmount || isNaN(safeAmount) || safeAmount <= 0) {
+        await ctx.reply(`⚠️ የተሳሳተ የገንዘብ መጠን። ዝቅተኛው፡ ${config.withdrawal.minAmount} ብር።`, {
+            ...Markup.inlineKeyboard(CANCEL_BTN),
+        });
+        return true;
+    }
+    if (safeAmount < 200) {
+        await ctx.reply(`⚠️ ዝቅተኛው የማውጫ መጠን 200 ብር ነው።`, {
+            ...Markup.inlineKeyboard(CANCEL_BTN),
+        });
+        return true;
     }
 
     // Check if user actually has enough balance
@@ -111,7 +119,7 @@ export async function handleWithdrawMessage(ctx: Context): Promise<boolean> {
       return true;
     }
 
-    setSession(tgUser.id, { ...session, step: 'AWAITING_ACCOUNT', bankName: 'telebirr' });
+    setSession(tgUser.id, { ...session, step: 'AWAITING_ACCOUNT', amount, bankName: 'telebirr' });
     await ctx.reply(
       `📱 *ቴሌብር ቁጥርዎን ያስገቡ (Telebirr number):*\n\n` +
       `_ምሳሌ: 0912345678_`,
