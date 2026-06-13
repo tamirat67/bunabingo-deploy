@@ -41,13 +41,13 @@ export const config = {
     playerPrizeRate:       parseFloat(process.env.PLAYER_PRIZE_RATE || '70') / 100,        // 0.70
     commissionRate: 0.30,
     countdown: {
-      default: 20,
-      DEMO: 20,
-      CASUAL: 20,
-      STANDARD: 20,
-      PRO: 20,
-      JACKPOT: 20,
-      VIP: 20,
+      default: 50,
+      DEMO: 50,
+      CASUAL: 50,
+      STANDARD: 50,
+      PRO: 50,
+      JACKPOT: 50,
+      VIP: 50,
     } as Record<string, number>,
     drawIntervalMs: 3000,         // 3.0 seconds between draws
     minBallsBeforeWin: 20,        // at least 20 balls must be drawn before any win is valid (~50 seconds minimum game)

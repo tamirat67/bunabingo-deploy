@@ -228,7 +228,7 @@ async function runGame(gameId: string): Promise<void> {
   let totalHouseEdge = new Decimal(0);
 
   if (!isDemo && realPlayerCount < 1) {
-    logger.info(`[Game ${gameId}] Loop Guard: 0 real players found. Restarting 20s countdown to wait for real players.`);
+    logger.info(`[Game ${gameId}] Loop Guard: 0 real players found. Restarting 50s countdown to wait for real players.`);
     await startCountdown(gameId, ticketCount);
     return;
   }
@@ -498,7 +498,7 @@ async function runSpinRaffle(gameId: string): Promise<void> {
 
   const uniqueUsers = new Set(game.tickets.map(t => t.userId));
   if (!game || game.tickets.length < game.room.minPlayers || uniqueUsers.size < 2) {
-    logger.info(`[Spin ${gameId}] 0 players found. Restarting 20s countdown to wait for players.`);
+    logger.info(`[Spin ${gameId}] 0 players found. Restarting 50s countdown to wait for players.`);
     await startCountdown(gameId, game.tickets.length);
     return;
   }
@@ -1597,7 +1597,7 @@ export async function joinGame(
 
       // ─── Max Wait Time Timeout Trigger ──────────────────────────────────
       if (game.status === GameStatus.WAITING && !isDemo && !waitingTimers.has(gameId)) {
-        const maxWaitTimeMs = 150 * 1000; // 2.5 minutes
+        const maxWaitTimeMs = 50 * 1000; // 50 seconds
         const timer = setTimeout(async () => {
           waitingTimers.delete(gameId);
           try {
@@ -1649,7 +1649,7 @@ export async function joinGame(
           }
         }, maxWaitTimeMs);
         waitingTimers.set(gameId, timer);
-        logger.info(`[Engine] Scheduled 2.5-minute max wait timeout for game ${gameId}`);
+        logger.info(`[Engine] Scheduled 50-second max wait timeout for game ${gameId}`);
       }
 
       // ─── Invalidate active room cache ───────────────────────────────────
@@ -1751,7 +1751,7 @@ export async function joinGame(
                   await injectBotTickets(gameId, game.room.type, takenCardIds);
                   const fullCount = await prisma.ticket.count({ where: { gameId } });
                   const botCount = BOT_COUNTS[game.room.type] ?? 30;
-                  logger.info(`[HouseBot] Real player joined. Injected ${botCount} bots. Starting 20s countdown for game ${gameId}.`);
+                  logger.info(`[HouseBot] Real player joined. Injected ${botCount} bots. Starting 50s countdown for game ${gameId}.`);
 
                   await Promise.all([
                     triggerGameEvent(gameId, 'player-joined', {
@@ -1764,7 +1764,7 @@ export async function joinGame(
                     triggerGameEvent(game.roomId, 'player-count-update', { playerCount: fullCount }),
                   ]);
 
-                  // Start the proper 20s countdown — ticks every second, game launches at 0s
+                  // Start the proper 50s countdown — ticks every second, game launches at 0s
                   await startCountdown(gameId, fullCount);
                 } catch (e) {
                   gamesWithBotsInjectedPublic.delete(gameId);
