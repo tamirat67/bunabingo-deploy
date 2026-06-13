@@ -8,15 +8,15 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 const ETHIOPIAN_NAMES = [
-  'Abebe', 'Kebede', 'Selam', 'Tesfaye', 'Girma', 'Tadesse', 'Haile',
+  'Abebe', 'Kebede', 'Tommy', 'Tesfaye', 'Girma', 'Tadesse', 'Haile',
   'Dawit', 'Bereket', 'Solomon', 'Yonas', 'Fitsum', 'Ermias', 'Mulugeta',
   'Getachew', 'Mekonnen', 'Amanuel', 'Henok', 'Natnael', 'Biniam',
-  'Teklay', 'Yohannes', 'Tewodros', 'Mekdes', 'Meseret', 'Tigist',
-  'Hiwot', 'Almaz', 'Bethlehem', 'Tsion', 'Betelhem', 'Yeshi', 'Rahel',
-  'Feven', 'Liya', 'Saba', 'Eden', 'Meron', 'Blen', 'Haben',
+  'Teklay', 'Yohannes', 'Tewodros', 'Feleke', 'Bekele', 'Alemayehu',
+  'Getu', 'Degu', 'Bura', 'Tigistu', 'Gadisa', 'Tolosa', 'Dereje',
+  'Hussein', 'Abel', 'Challa', 'Gemechu', 'Tilahun', 'Ephrem', 'Surafel',
   'Kidus', 'Robel', 'Eyob', 'Berhane', 'Tsegay', 'Kibrom', 'Hagos',
-  'Bisrat', 'Semere', 'Aman', 'Kalkidan', 'Winta', 'Miriam', 'Senait',
-  'Azeb', 'Hana', 'Zeritu', 'Mahlet', 'Fikru', 'Sirak', 'Leul',
+  'Bisrat', 'Semere', 'Aman', 'Zelalem', 'Matias', 'Mikias', 'Nahom',
+  'Samuel', 'Elias', 'Kaleb', 'Abdi', 'Fikru', 'Sirak', 'Leul',
 ];
 
 async function main() {
