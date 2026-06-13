@@ -64,7 +64,7 @@ export async function createWithdrawalRequest(
 
   if (winsCount < 1) {
     throw new Error(
-      `Restricted: You must win at least 1 game before you can request a withdrawal. Keep playing! 🎰`
+      `ክልክል ነው፡ ገንዘብ ለማውጣት ቢያንስ 1 ጊዜ ማሸነፍ አለቦት። መጫወትዎን ይቀጥሉ! 🎰`
     );
   }
 
