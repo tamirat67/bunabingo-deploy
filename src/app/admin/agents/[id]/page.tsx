@@ -2,9 +2,12 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { FiArrowLeft, FiUser, FiPhone, FiCalendar, FiDollarSign, FiTrendingUp, FiActivity, FiUsers, FiClock, FiCheckCircle } from 'react-icons/fi';
+import {
+  FiArrowLeft, FiUser, FiCalendar, FiDollarSign, FiTrendingUp, FiTrendingDown,
+  FiActivity, FiUsers, FiCheckCircle, FiAlertTriangle, FiInfo, FiArrowDownLeft,
+  FiArrowUpRight, FiClock, FiAward, FiBarChart2, FiPercent
+} from 'react-icons/fi';
 import api from '@/lib/api';
-import { Pagination } from '@/components/Pagination';
 import '@/app/admin.css';
 
 export default function AgentReportPage() {
@@ -15,10 +18,9 @@ export default function AgentReportPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [report, setReport] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<'overview' | 'transactions' | 'players' | 'wallet'>('overview');
 
-  useEffect(() => {
-    fetchReport();
-  }, [agentId]);
+  useEffect(() => { fetchReport(); }, [agentId]);
 
   const fetchReport = async () => {
     try {
@@ -37,8 +39,8 @@ export default function AgentReportPage() {
     return (
       <div className="admin-page" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
         <div style={{ textAlign: 'center' }}>
-          <div className="animate-spin" style={{ width: '40px', height: '40px', border: '4px solid #d4af37', borderTopColor: 'transparent', borderRadius: '50%', margin: '0 auto' }}></div>
-          <p style={{ marginTop: '16px', fontWeight: '700', color: '#3d2b1f' }}>Loading comprehensive report...</p>
+          <div className="animate-spin" style={{ width: '44px', height: '44px', border: '4px solid #d4af37', borderTopColor: 'transparent', borderRadius: '50%', margin: '0 auto' }} />
+          <p style={{ marginTop: '16px', fontWeight: '700', color: '#3d2b1f' }}>Generating agent profit report…</p>
         </div>
       </div>
     );
@@ -59,250 +61,504 @@ export default function AgentReportPage() {
 
   if (!report) return null;
 
-  const { agent, preDepositStatus, stats, players, botCount, recentTransactions, recentDeposits, rechargeHistory } = report;
+  const { agent, preDepositStatus, preDepositWallet, stats, players, topPlayers, recentTransactions, recentDeposits, rechargeHistory, commissionDebits, monthlyTrend } = report;
+
+  const fmt = (n: number) => Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmtInt = (n: number) => Number(n || 0).toLocaleString();
+  const fmtPct = (r: number) => (r * 100).toFixed(1) + '%';
+
+  const stateColor = preDepositStatus.state === 'RED' ? '#ef4444' : preDepositStatus.state === 'YELLOW' ? '#f59e0b' : '#10b981';
+  const stateBg   = preDepositStatus.state === 'RED' ? '#fef2f2' : preDepositStatus.state === 'YELLOW' ? '#fefce8' : '#f0fdf4';
+  const stateBorder = preDepositStatus.state === 'RED' ? '#fecaca' : preDepositStatus.state === 'YELLOW' ? '#fef08a' : '#bbf7d0';
+
+  const maxTrend = Math.max(...(monthlyTrend || []).map((m: any) => Math.max(m.deposits, m.ticketSales)), 1);
+
+  const tabs = [
+    { key: 'overview', label: '📊 Overview' },
+    { key: 'transactions', label: '💳 Transactions' },
+    { key: 'players', label: '👥 Players' },
+    { key: 'wallet', label: '💰 Wallet & Commission' },
+  ] as const;
 
   return (
     <div className="admin-page">
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
-        <div>
-          <button onClick={() => router.back()} style={{ background: 'none', border: 'none', color: '#78716c', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginBottom: '16px', padding: 0 }}>
-            <FiArrowLeft /> Back to Agents
-          </button>
-          <h1 style={{ fontSize: '32px', fontWeight: '900', color: '#3d2b1f', margin: 0, display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div className="user-avatar" style={{ width: '48px', height: '48px', fontSize: '20px' }}>
+      {/* ── Header ─────────────────────────────────────────── */}
+      <div style={{ marginBottom: '28px' }}>
+        <button onClick={() => router.back()} style={{ background: 'none', border: 'none', color: '#78716c', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginBottom: '16px', padding: 0 }}>
+          <FiArrowLeft /> Back to Agents
+        </button>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
+          {/* Agent Identity */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div className="user-avatar" style={{ width: '56px', height: '56px', fontSize: '22px' }}>
               {agent.firstName?.[0] || 'A'}
             </div>
-            {agent.firstName}
-          </h1>
-          <p style={{ color: '#78716c', margin: '8px 0 0', fontSize: '15px' }}>
-            {agent.telegramUsername ? `@${agent.telegramUsername}` : 'No username'} • ID: {agent.telegramId}
-          </p>
-        </div>
-
-        {/* Pre-Deposit Card */}
-        <div style={{ 
-          background: preDepositStatus.state === 'RED' ? '#fef2f2' : preDepositStatus.state === 'YELLOW' ? '#fefce8' : '#f0fdf4',
-          border: `1px solid ${preDepositStatus.state === 'RED' ? '#fecaca' : preDepositStatus.state === 'YELLOW' ? '#fef08a' : '#bbf7d0'}`,
-          padding: '20px',
-          borderRadius: '16px',
-          minWidth: '240px',
-          textAlign: 'right'
-        }}>
-          <p style={{ margin: '0 0 8px 0', fontSize: '13px', fontWeight: '800', color: '#78716c', textTransform: 'uppercase' }}>Pre-Deposit Liquidity</p>
-          <div style={{ fontSize: '28px', fontWeight: '900', color: preDepositStatus.state === 'RED' ? '#ef4444' : preDepositStatus.state === 'YELLOW' ? '#eab308' : '#16a34a' }}>
-            {Number(preDepositStatus.balance).toLocaleString()} <span style={{ fontSize: '14px' }}>ETB</span>
+            <div>
+              <h1 style={{ fontSize: '28px', fontWeight: '900', color: '#3d2b1f', margin: 0 }}>{agent.firstName}</h1>
+              <p style={{ color: '#78716c', margin: '4px 0 0', fontSize: '14px' }}>
+                {agent.telegramUsername ? `@${agent.telegramUsername}` : 'No username'} · ID {agent.telegramId}
+                {agent.referralCode && <span style={{ marginLeft: '8px', background: 'rgba(212,175,55,0.15)', color: '#d4af37', padding: '2px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: '800' }}>CODE: {agent.referralCode}</span>}
+              </p>
+              <p style={{ color: '#a8a29e', margin: '2px 0 0', fontSize: '12px' }}>
+                Member since {new Date(agent.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+              </p>
+            </div>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
-            <span className={`badge ${preDepositStatus.state === 'RED' ? 'badge-red' : preDepositStatus.state === 'YELLOW' ? 'badge-gold' : 'badge-green'}`}>
-              {preDepositStatus.state === 'RED' ? 'CRITICAL - REFILL NEEDED' : preDepositStatus.state === 'YELLOW' ? 'WARNING - RUNNING LOW' : 'HEALTHY'}
-            </span>
+
+          {/* Pre-deposit status badge */}
+          <div style={{ background: stateBg, border: `1px solid ${stateBorder}`, padding: '16px 20px', borderRadius: '16px', textAlign: 'right', minWidth: '200px' }}>
+            <div style={{ fontSize: '11px', fontWeight: '800', color: stateColor, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Pre-Deposit Liquidity</div>
+            <div style={{ fontSize: '26px', fontWeight: '900', color: stateColor }}>{fmt(preDepositWallet?.balance)} <span style={{ fontSize: '13px' }}>ETB</span></div>
+            <div style={{ fontSize: '11px', color: stateColor, marginTop: '4px', fontWeight: '700' }}>
+              {preDepositStatus.state === 'RED' ? '🔴 CRITICAL — Refill Now' : preDepositStatus.state === 'YELLOW' ? '🟡 LOW — Running Low' : '🟢 HEALTHY'}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Main KPIs */}
-      <div className="stat-grid" style={{ marginBottom: '32px' }}>
-        <div className="stat-card-m" style={{ borderLeft: '4px solid #3b82f6' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#78716c', fontWeight: '800', fontSize: '12px', marginBottom: '12px' }}>
-            <FiUsers /> TOTAL BRANCH PLAYERS
-          </div>
-          <h2 style={{ margin: 0, fontSize: '32px', fontWeight: '900', color: '#3d2b1f' }}>
-            {stats.totalPlayers}
-          </h2>
+      {/* ── HERO: Agent Profit Summary ──────────────────────── */}
+      <div style={{
+        background: 'linear-gradient(135deg, #1a0a00 0%, #3d2b1f 60%, #5c3d2e 100%)',
+        borderRadius: '20px', padding: '28px 32px', marginBottom: '28px',
+        color: 'white', position: 'relative', overflow: 'hidden',
+      }}>
+        <div style={{ position: 'absolute', top: '-40px', right: '-40px', width: '200px', height: '200px', background: 'rgba(212,175,55,0.08)', borderRadius: '50%' }} />
+        <div style={{ position: 'absolute', bottom: '-60px', right: '80px', width: '160px', height: '160px', background: 'rgba(212,175,55,0.05)', borderRadius: '50%' }} />
+
+        <div style={{ fontSize: '12px', fontWeight: '800', color: '#d4af37', letterSpacing: '2px', marginBottom: '6px', textTransform: 'uppercase' }}>
+          💰 Branch Profit Breakdown — All Time
+        </div>
+        <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.55)', marginBottom: '24px' }}>
+          Agent earns <strong style={{ color: '#d4af37' }}>{fmtPct(stats.agentRate)}</strong> of all real ticket sales · Company earns <strong style={{ color: '#fbbf24' }}>{fmtPct(stats.companyRate)}</strong>
         </div>
 
-        <div className="stat-card-m" style={{ borderLeft: '4px solid #10b981' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#78716c', fontWeight: '800', fontSize: '12px', marginBottom: '12px' }}>
-            <FiDollarSign /> TOTAL BRANCH DEPOSITS
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '16px' }}>
+          {/* Agent Earned */}
+          <div style={{ background: 'rgba(212,175,55,0.15)', borderRadius: '14px', padding: '16px', border: '1px solid rgba(212,175,55,0.3)' }}>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', fontWeight: '800', letterSpacing: '1px', marginBottom: '6px' }}>AGENT EARNED ({fmtPct(stats.agentRate)})</div>
+            <div style={{ fontSize: '24px', fontWeight: '900', color: '#d4af37' }}>{fmt(stats.agentEarned)}</div>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', marginTop: '4px' }}>ETB of ticket sales</div>
           </div>
-          <h2 style={{ margin: 0, fontSize: '32px', fontWeight: '900', color: '#3d2b1f' }}>
-            {stats.totalDeposited.toLocaleString()} <span style={{ fontSize: '16px', color: '#a8a29e' }}>ETB</span>
-          </h2>
-          <p style={{ margin: '8px 0 0', fontSize: '12px', color: '#78716c', fontWeight: '600' }}>
-            From {stats.totalDepositsCount} approved transactions
-          </p>
-        </div>
 
-        <div className="stat-card-m" style={{ borderLeft: '4px solid #8b5cf6' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#78716c', fontWeight: '800', fontSize: '12px', marginBottom: '12px' }}>
-            <FiActivity /> TOTAL TICKET SALES
+          {/* Company Earned From This Branch */}
+          <div style={{ background: 'rgba(255,255,255,0.07)', borderRadius: '14px', padding: '16px', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', fontWeight: '800', letterSpacing: '1px', marginBottom: '6px' }}>COMPANY SHARE ({fmtPct(stats.companyRate)})</div>
+            <div style={{ fontSize: '24px', fontWeight: '900', color: '#fbbf24' }}>{fmt(stats.companyEarnedFromBranch)}</div>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', marginTop: '4px' }}>ETB from branch</div>
           </div>
-          <h2 style={{ margin: 0, fontSize: '32px', fontWeight: '900', color: '#3d2b1f' }}>
-            {stats.totalTicketSales.toLocaleString()} <span style={{ fontSize: '16px', color: '#a8a29e' }}>ETB</span>
-          </h2>
-          <p style={{ margin: '8px 0 0', fontSize: '12px', color: '#78716c', fontWeight: '600' }}>
-            {stats.totalTicketsCount} tickets sold • {stats.gamesPlayed} games played
-          </p>
-        </div>
 
-        <div className="stat-card-m" style={{ borderLeft: '4px solid #f59e0b', background: '#fffbeb' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#d97706', fontWeight: '900', fontSize: '12px', marginBottom: '12px' }}>
-            <FiTrendingUp /> AGENT NET PROFIT
+          {/* Real Ticket Sales (Base) */}
+          <div style={{ background: 'rgba(255,255,255,0.07)', borderRadius: '14px', padding: '16px', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', fontWeight: '800', letterSpacing: '1px', marginBottom: '6px' }}>REAL TICKET SALES</div>
+            <div style={{ fontSize: '24px', fontWeight: '900', color: 'white' }}>{fmt(stats.totalTicketSales)}</div>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', marginTop: '4px' }}>{fmtInt(stats.totalTicketsCount)} tickets sold</div>
           </div>
-          <h2 style={{ margin: 0, fontSize: '32px', fontWeight: '900', color: '#b45309' }}>
-            {stats.netProfit.toLocaleString()} <span style={{ fontSize: '16px', opacity: 0.7 }}>ETB</span>
-          </h2>
-          <p style={{ margin: '8px 0 0', fontSize: '12px', color: '#b45309', fontWeight: '700' }}>
-            Based on {(stats.profitRate * 100).toFixed(1)}% commission rate
-          </p>
+
+          {/* Net Cash Flow */}
+          <div style={{ background: 'rgba(255,255,255,0.07)', borderRadius: '14px', padding: '16px', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', fontWeight: '800', letterSpacing: '1px', marginBottom: '6px' }}>NET CASH FLOW</div>
+            <div style={{ fontSize: '24px', fontWeight: '900', color: stats.netCashFlow >= 0 ? '#4ade80' : '#f87171' }}>
+              {stats.netCashFlow >= 0 ? '+' : ''}{fmt(stats.netCashFlow)}
+            </div>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', marginTop: '4px' }}>Deposits − Withdrawals</div>
+          </div>
+
+          {/* House Edge */}
+          <div style={{ background: 'rgba(255,255,255,0.07)', borderRadius: '14px', padding: '16px', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', fontWeight: '800', letterSpacing: '1px', marginBottom: '6px' }}>HOUSE EDGE</div>
+            <div style={{ fontSize: '24px', fontWeight: '900', color: stats.houseEdge >= 0 ? '#4ade80' : '#f87171' }}>{fmt(stats.houseEdge)}</div>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', marginTop: '4px' }}>Sales − Prizes Paid</div>
+          </div>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '32px' }}>
-        {/* Recent Deposits */}
-        <div className="stat-card-m" style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '20px', borderBottom: '1px solid #f5f5f4', background: '#fafaf9' }}>
-            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <FiCheckCircle color="#10b981" /> Recent Branch Deposits
-            </h3>
-          </div>
-          <div style={{ maxHeight: '400px', overflowY: 'auto', padding: '0 20px' }}>
-            {recentDeposits.length === 0 ? (
-              <p style={{ padding: '20px 0', textAlign: 'center', color: '#a8a29e', fontWeight: '600' }}>No recent deposits</p>
-            ) : (
-              recentDeposits.map((dep: any) => (
-                <div key={dep.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0', borderBottom: '1px solid #f5f5f4' }}>
-                  <div>
-                    <div style={{ fontWeight: '800', color: '#3d2b1f' }}>{dep.user?.firstName || 'Unknown'}</div>
-                    <div style={{ fontSize: '12px', color: '#78716c' }}>{new Date(dep.createdAt).toLocaleString()}</div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontWeight: '900', color: '#10b981' }}>+{Number(dep.amount).toLocaleString()} ETB</div>
-                    <div style={{ fontSize: '11px', fontWeight: '700', color: dep.status === 'APPROVED' ? '#10b981' : '#f59e0b' }}>{dep.status}</div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
+      {/* ── KPI Grid ────────────────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px', marginBottom: '28px' }}>
+        <StatCard icon={<FiUsers />} label="Branch Players" value={fmtInt(stats.totalPlayers)} sub={`+${stats.botCount} bots excluded`} color="#3b82f6" />
+        <StatCard icon={<FiArrowDownLeft />} label="Total Deposited" value={`${fmt(stats.totalDeposited)} ETB`} sub={`${fmtInt(stats.totalDepositsCount)} transactions`} color="#10b981" />
+        <StatCard icon={<FiArrowUpRight />} label="Total Withdrawn" value={`${fmt(stats.totalWithdrawn)} ETB`} sub={`${fmtInt(stats.totalWithdrawalsCount)} payments`} color="#ef4444" />
+        <StatCard icon={<FiClock />} label="Pending Deposits" value={`${fmt(stats.pendingDeposits)} ETB`} sub={`${fmtInt(stats.pendingDepositsCount)} awaiting`} color="#f59e0b" />
+        <StatCard icon={<FiClock />} label="Pending Withdrawals" value={`${fmt(stats.pendingWithdrawals)} ETB`} sub={`${fmtInt(stats.pendingWithdrawalsCount)} awaiting`} color="#f59e0b" />
+        <StatCard icon={<FiAward />} label="Prizes Paid Out" value={`${fmt(stats.totalPrizesWon)} ETB`} sub={`${fmtInt(stats.totalWinnersCount)} winners`} color="#8b5cf6" />
+        <StatCard icon={<FiActivity />} label="Games Played" value={fmtInt(stats.gamesPlayed)} sub="by branch players" color="#06b6d4" />
+      </div>
 
-        {/* Recent Transactions */}
-        <div className="stat-card-m" style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '20px', borderBottom: '1px solid #f5f5f4', background: '#fafaf9' }}>
-            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <FiActivity color="#8b5cf6" /> Recent Branch Activity
-            </h3>
-          </div>
-          <div style={{ maxHeight: '400px', overflowY: 'auto', padding: '0 20px' }}>
-            {recentTransactions.length === 0 ? (
-              <p style={{ padding: '20px 0', textAlign: 'center', color: '#a8a29e', fontWeight: '600' }}>No recent activity</p>
-            ) : (
-              recentTransactions.map((tx: any) => (
-                <div key={tx.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0', borderBottom: '1px solid #f5f5f4' }}>
-                  <div>
-                    <div style={{ fontWeight: '800', color: '#3d2b1f', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      {tx.type === 'TICKET_PURCHASE' ? <span style={{ color: '#8b5cf6' }}>🎫 Ticket</span> : 
-                       tx.type === 'GAME_WIN' ? <span style={{ color: '#d4af37' }}>🏆 Win</span> : 
-                       <span>{tx.type}</span>}
+      {/* ── Tabs ────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', gap: '4px', borderBottom: '2px solid #f0ece8', marginBottom: '24px', overflowX: 'auto' }}>
+        {tabs.map(t => (
+          <button
+            key={t.key}
+            onClick={() => setActiveTab(t.key)}
+            style={{
+              background: activeTab === t.key ? '#3d2b1f' : 'transparent',
+              color: activeTab === t.key ? 'white' : '#78716c',
+              border: 'none', borderRadius: '10px 10px 0 0',
+              padding: '10px 18px', fontWeight: '800', fontSize: '13px',
+              cursor: 'pointer', whiteSpace: 'nowrap',
+              transition: 'all 0.2s',
+            }}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── OVERVIEW TAB ─────────────────────────────────────── */}
+      {activeTab === 'overview' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+
+          {/* Monthly Trend Chart */}
+          {monthlyTrend && monthlyTrend.length > 0 && (
+            <div className="premium-card">
+              <h3 className="premium-card-title" style={{ marginBottom: '20px' }}>📈 6-Month Branch Performance</h3>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', height: '140px' }}>
+                {monthlyTrend.map((m: any, i: number) => (
+                  <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', height: '100%', justifyContent: 'flex-end' }}>
+                    <div style={{ fontSize: '9px', fontWeight: '700', color: '#d4af37' }}>{fmt(m.agentProfit).split('.')[0]}</div>
+                    <div style={{ width: '100%', display: 'flex', gap: '2px', alignItems: 'flex-end', height: '110px' }}>
+                      <div style={{ flex: 1, background: '#10b981', borderRadius: '4px 4px 0 0', height: `${Math.round((m.deposits / maxTrend) * 100)}%`, minHeight: m.deposits > 0 ? '4px' : '0', transition: 'height 0.5s' }} title={`Deposits: ${fmt(m.deposits)} ETB`} />
+                      <div style={{ flex: 1, background: '#d4af37', borderRadius: '4px 4px 0 0', height: `${Math.round((m.ticketSales / maxTrend) * 100)}%`, minHeight: m.ticketSales > 0 ? '4px' : '0', transition: 'height 0.5s' }} title={`Ticket Sales: ${fmt(m.ticketSales)} ETB`} />
                     </div>
-                    <div style={{ fontSize: '12px', color: '#78716c' }}>{tx.user?.firstName} • {new Date(tx.createdAt).toLocaleTimeString()}</div>
+                    <div style={{ fontSize: '10px', fontWeight: '700', color: '#78716c', textAlign: 'center' }}>{m.month}</div>
                   </div>
-                  <div style={{ fontWeight: '900', color: tx.amount > 0 ? '#10b981' : '#3d2b1f' }}>
-                    {tx.amount > 0 ? '+' : ''}{Number(tx.amount).toLocaleString()} ETB
+                ))}
+              </div>
+              <div style={{ display: 'flex', gap: '16px', marginTop: '12px', justifyContent: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#78716c', fontWeight: '700' }}><div style={{ width: '10px', height: '10px', background: '#10b981', borderRadius: '2px' }} /> Deposits</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#78716c', fontWeight: '700' }}><div style={{ width: '10px', height: '10px', background: '#d4af37', borderRadius: '2px' }} /> Ticket Sales</div>
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+            {/* Profit Calculation Card */}
+            <div className="premium-card">
+              <h3 className="premium-card-title">How Agent Profit is Calculated</h3>
+              <table className="premium-table" style={{ marginTop: '12px' }}>
+                <tbody>
+                  <tr>
+                    <td style={{ color: '#8c857b' }}>Real Ticket Sales (Base)</td>
+                    <td className="text-right" style={{ fontWeight: '800', color: '#15803d' }}>{fmt(stats.totalTicketSales)} ETB</td>
+                  </tr>
+                  <tr>
+                    <td style={{ color: '#8c857b' }}>Total Commission Rate</td>
+                    <td className="text-right" style={{ fontWeight: '800' }}>{fmtPct(stats.fullCommissionRate)}</td>
+                  </tr>
+                  <tr style={{ background: 'rgba(212,175,55,0.06)' }}>
+                    <td style={{ fontWeight: '700', color: '#3d2b1f' }}>→ Agent Share ({fmtPct(stats.agentRate)})</td>
+                    <td className="text-right" style={{ fontWeight: '900', color: '#d4af37', fontSize: '15px' }}>{fmt(stats.agentEarned)} ETB</td>
+                  </tr>
+                  <tr>
+                    <td style={{ color: '#8c857b' }}>→ Company Share ({fmtPct(stats.companyRate)})</td>
+                    <td className="text-right" style={{ fontWeight: '800', color: '#78716c' }}>{fmt(stats.companyEarnedFromBranch)} ETB</td>
+                  </tr>
+                  <tr style={{ borderTop: '1px solid #f0ece8' }}>
+                    <td style={{ color: '#8c857b' }}>Commission Expected (Total)</td>
+                    <td className="text-right" style={{ fontWeight: '800' }}>{fmt(stats.totalCommissionExpected)} ETB</td>
+                  </tr>
+                  <tr>
+                    <td style={{ color: '#8c857b' }}>Commission Deducted (Actual)</td>
+                    <td className="text-right" style={{ fontWeight: '800', color: Math.abs(stats.totalCommissionDeducted - stats.totalCommissionExpected) < 1 ? '#22c55e' : '#f59e0b' }}>
+                      {fmt(stats.totalCommissionDeducted)} ETB
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style={{ color: '#8c857b' }}>Prizes Won by Players</td>
+                    <td className="text-right" style={{ fontWeight: '800', color: '#ef4444' }}>-{fmt(stats.totalPrizesWon)} ETB</td>
+                  </tr>
+                  <tr style={{ background: '#f0fdf4' }}>
+                    <td style={{ fontWeight: '800', color: '#3d2b1f' }}>House Edge (Sales − Prizes)</td>
+                    <td className="text-right" style={{ fontWeight: '900', color: stats.houseEdge >= 0 ? '#22c55e' : '#ef4444', fontSize: '15px' }}>
+                      {fmt(stats.houseEdge)} ETB
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <div style={{ marginTop: '12px', padding: '10px 14px', borderRadius: '10px', background: '#fefce8', border: '1px solid #fde68a', display: 'flex', gap: '8px' }}>
+                <FiInfo size={14} style={{ color: '#ca8a04', marginTop: '2px', flexShrink: 0 }} />
+                <span style={{ fontSize: '12px', color: '#713f12', lineHeight: '1.5' }}>
+                  Agent profit = <strong>{fmtPct(stats.agentRate)}</strong> × ticket sales. No bot ticket sales are included — only real players.
+                </span>
+              </div>
+            </div>
+
+            {/* Top Players */}
+            <div className="premium-card">
+              <h3 className="premium-card-title">🏆 Top Depositors in Branch</h3>
+              <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {topPlayers && topPlayers.length > 0 ? topPlayers.map((p: any, i: number) => (
+                  <div key={p.userId} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', background: i === 0 ? '#fffbeb' : '#fafaf9', borderRadius: '10px', border: i === 0 ? '1px solid #fde68a' : '1px solid #f5f5f4' }}>
+                    <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: i === 0 ? '#d4af37' : '#e7e5e4', color: i === 0 ? 'white' : '#78716c', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: '900' }}>
+                      {i + 1}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: '800', color: '#3d2b1f', fontSize: '13px' }}>{p.name}</div>
+                      {p.username && <div style={{ fontSize: '11px', color: '#78716c' }}>@{p.username}</div>}
+                    </div>
+                    <div style={{ fontWeight: '900', color: '#15803d', fontSize: '14px' }}>{fmt(p.totalDeposited)} ETB</div>
                   </div>
-                </div>
-              ))
-            )}
+                )) : (
+                  <p style={{ color: '#a8a29e', textAlign: 'center', padding: '20px', fontWeight: '600' }}>No deposit data yet.</p>
+                )}
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Players List */}
-      <div className="data-table-container" style={{ marginTop: '32px' }}>
-        <div style={{ padding: '24px', borderBottom: '1px solid var(--admin-border)' }}>
-          <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '900' }}>Branch Players Directory</h2>
-          <p style={{ margin: '4px 0 0', color: '#78716c', fontSize: '14px' }}>
-            {players.length} real players registered under {agent.firstName}'s link
-            {botCount > 0 && <span style={{ marginLeft: '10px', background: '#fff7ed', color: '#ea580c', fontSize: '11px', fontWeight: '800', padding: '2px 8px', borderRadius: '999px', border: '1px solid #fed7aa' }}>+{botCount} bots (excluded)</span>}
-          </p>
+      {/* ── TRANSACTIONS TAB ─────────────────────────────────── */}
+      {activeTab === 'transactions' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+          {/* Recent Deposits */}
+          <div className="data-table-container" style={{ overflow: 'hidden' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid #f5f5f4', background: '#fafaf9' }}>
+              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FiCheckCircle color="#10b981" /> Recent Branch Deposits
+              </h3>
+            </div>
+            <div style={{ maxHeight: '480px', overflowY: 'auto' }}>
+              <table className="data-table">
+                <thead>
+                  <tr><th>Player</th><th>Amount</th><th>Status</th><th>Date</th></tr>
+                </thead>
+                <tbody>
+                  {recentDeposits.length === 0 ? (
+                    <tr><td colSpan={4} style={{ textAlign: 'center', padding: '32px', color: '#a8a29e' }}>No deposits yet.</td></tr>
+                  ) : recentDeposits.map((dep: any) => (
+                    <tr key={dep.id}>
+                      <td style={{ fontWeight: '700' }}>{dep.user?.firstName || '—'}</td>
+                      <td style={{ fontWeight: '900', color: '#10b981' }}>+{fmt(dep.amount)} ETB</td>
+                      <td>
+                        <span style={{
+                          fontSize: '10px', fontWeight: '800', padding: '2px 8px', borderRadius: '999px',
+                          background: dep.status === 'approved' || dep.status === 'APPROVED' ? '#f0fdf4' : dep.status === 'pending' ? '#fefce8' : '#fef2f2',
+                          color: dep.status === 'approved' || dep.status === 'APPROVED' ? '#15803d' : dep.status === 'pending' ? '#ca8a04' : '#dc2626',
+                        }}>
+                          {String(dep.status).toUpperCase()}
+                        </span>
+                      </td>
+                      <td style={{ fontSize: '12px', color: '#78716c' }}>{new Date(dep.createdAt).toLocaleDateString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Recent Transactions */}
+          <div className="data-table-container" style={{ overflow: 'hidden' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid #f5f5f4', background: '#fafaf9' }}>
+              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FiActivity color="#8b5cf6" /> Recent Branch Activity
+              </h3>
+            </div>
+            <div style={{ maxHeight: '480px', overflowY: 'auto' }}>
+              <table className="data-table">
+                <thead>
+                  <tr><th>Player</th><th>Type</th><th>Amount</th><th>Date</th></tr>
+                </thead>
+                <tbody>
+                  {recentTransactions.length === 0 ? (
+                    <tr><td colSpan={4} style={{ textAlign: 'center', padding: '32px', color: '#a8a29e' }}>No activity yet.</td></tr>
+                  ) : recentTransactions.map((tx: any) => {
+                    const isCredit = ['PRIZE_WIN', 'DEPOSIT', 'REFUND', 'REFERRAL_BONUS'].includes(tx.type);
+                    const typeLabel: Record<string, string> = {
+                      TICKET_PURCHASE: '🎫 Ticket',
+                      PRIZE_WIN: '🏆 Prize Win',
+                      DEPOSIT: '💵 Deposit',
+                      WITHDRAWAL: '🏦 Withdrawal',
+                      REFUND: '↩️ Refund',
+                    };
+                    return (
+                      <tr key={tx.id}>
+                        <td style={{ fontWeight: '700' }}>{tx.user?.firstName || '—'}</td>
+                        <td style={{ fontSize: '12px' }}>{typeLabel[tx.type] || tx.type}</td>
+                        <td style={{ fontWeight: '900', color: isCredit ? '#10b981' : '#78716c' }}>
+                          {isCredit ? '+' : '-'}{fmt(Math.abs(tx.amount))} ETB
+                        </td>
+                        <td style={{ fontSize: '12px', color: '#78716c' }}>{new Date(tx.createdAt).toLocaleDateString()}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Player</th>
-              <th>Phone</th>
-              <th>Wallet Balance</th>
-              <th>Joined Date</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {players.length === 0 ? (
+      )}
+
+      {/* ── PLAYERS TAB ─────────────────────────────────────── */}
+      {activeTab === 'players' && (
+        <div className="data-table-container">
+          <div style={{ padding: '20px 24px', borderBottom: '1px solid #f5f5f4' }}>
+            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '900' }}>Branch Player Directory</h2>
+            <p style={{ margin: '4px 0 0', color: '#78716c', fontSize: '13px' }}>
+              {players.length} real players · {stats.botCount} bots excluded from all calculations
+            </p>
+          </div>
+          <table className="data-table">
+            <thead>
               <tr>
-                <td colSpan={5} style={{ textAlign: 'center', padding: '40px', color: '#a8a29e', fontWeight: '600' }}>
-                  No players in this branch yet.
-                </td>
+                <th>#</th>
+                <th>Player</th>
+                <th>Phone</th>
+                <th>Wallet Balance</th>
+                <th>Joined</th>
+                <th>Status</th>
               </tr>
-            ) : (
-              players.map((player: any) => (
+            </thead>
+            <tbody>
+              {players.length === 0 ? (
+                <tr><td colSpan={6} style={{ textAlign: 'center', padding: '40px', color: '#a8a29e', fontWeight: '600' }}>No players in this branch yet.</td></tr>
+              ) : players.map((player: any, i: number) => (
                 <tr key={player.id}>
+                  <td style={{ color: '#78716c', fontSize: '13px' }}>#{i + 1}</td>
                   <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div className="user-avatar" style={{ width: '32px', height: '32px', fontSize: '12px' }}>
-                        {player.firstName?.[0] || 'U'}
-                      </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div className="user-avatar" style={{ width: '30px', height: '30px', fontSize: '11px' }}>{player.firstName?.[0] || 'U'}</div>
                       <div>
-                        <div style={{ fontWeight: '800' }}>{player.firstName}</div>
-                        <div style={{ fontSize: '12px', color: '#78716c' }}>@{player.telegramUsername || 'no_username'}</div>
+                        <div style={{ fontWeight: '800', fontSize: '13px' }}>{player.firstName}</div>
+                        <div style={{ fontSize: '11px', color: '#78716c' }}>@{player.telegramUsername || 'no_username'}</div>
                       </div>
                     </div>
                   </td>
-                  <td>{player.phone || 'N/A'}</td>
-                  <td style={{ fontWeight: '800' }}>{Number(player.wallet?.balance || 0).toLocaleString()} ETB</td>
-                  <td style={{ color: '#78716c', fontSize: '13px' }}>{new Date(player.createdAt).toLocaleDateString()}</td>
+                  <td style={{ color: '#5c554b', fontSize: '13px' }}>{player.phone || 'N/A'}</td>
+                  <td style={{ fontWeight: '800' }}>{fmt(player.wallet?.balance || 0)} ETB</td>
+                  <td style={{ color: '#78716c', fontSize: '12px' }}>{new Date(player.createdAt).toLocaleDateString()}</td>
                   <td>
                     <span className={`badge ${player.status === 'BANNED' ? 'badge-red' : 'badge-green'}`}>
                       {player.status || 'ACTIVE'}
                     </span>
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Recharge History */}
-      <div className="stat-card-m" style={{ marginTop: '32px', padding: 0, overflow: 'hidden' }}>
-        <div style={{ padding: '20px', borderBottom: '1px solid #f5f5f4', background: '#fafaf9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            💳 Pre-Deposit Recharge History
-          </h3>
-          <span style={{ fontSize: '12px', color: '#78716c', fontWeight: '600' }}>Last 20 recharges by admin</span>
-        </div>
-        <div style={{ overflowX: 'auto' }}>
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Amount</th>
-                <th>Note</th>
-                <th style={{ textAlign: 'right' }}>Date & Time</th>
-              </tr>
-            </thead>
-            <tbody>
-              {!rechargeHistory || rechargeHistory.length === 0 ? (
-                <tr>
-                  <td colSpan={4} style={{ textAlign: 'center', padding: '32px', color: '#a8a29e', fontWeight: '600' }}>
-                    No recharge records found for this agent.
-                  </td>
-                </tr>
-              ) : rechargeHistory.map((rh: any, i: number) => (
-                <tr key={rh.id}>
-                  <td style={{ color: '#78716c', fontSize: '13px' }}>#{i + 1}</td>
-                  <td>
-                    <span style={{ fontWeight: '900', color: '#16a34a', fontSize: '16px' }}>+{Number(rh.amount).toLocaleString()} ETB</span>
-                  </td>
-                  <td style={{ color: '#5c554b', fontSize: '13px' }}>{rh.description || '—'}</td>
-                  <td style={{ textAlign: 'right', color: '#78716c', fontSize: '13px' }}>
-                    {new Date(rh.createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                  </td>
-                </tr>
               ))}
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* ── WALLET & COMMISSION TAB ──────────────────────────── */}
+      {activeTab === 'wallet' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+
+          {/* Pre-Deposit Summary */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+            <div className="premium-stat-card" style={{ background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
+              <div className="card-label" style={{ color: '#166534' }}>TOTAL REFILLS (ADMIN)</div>
+              <div className="card-value" style={{ color: '#15803d' }}>+{fmt(preDepositWallet?.totalRecharged)} ETB</div>
+              <div className="card-subtext">Money added to reserve</div>
+            </div>
+            <div className="premium-stat-card" style={{ background: '#fef2f2', border: '1px solid #fecaca' }}>
+              <div className="card-label" style={{ color: '#991b1b' }}>TOTAL DEBITED (COMMISSION)</div>
+              <div className="card-value" style={{ color: '#dc2626' }}>-{fmt(preDepositWallet?.totalDebited)} ETB</div>
+              <div className="card-subtext">{fmtInt(stats.commissionDebitsCount)} commission deductions</div>
+            </div>
+            <div className="premium-stat-card" style={{ background: stateBg, border: `1px solid ${stateBorder}` }}>
+              <div className="card-label" style={{ color: stateColor }}>CURRENT BALANCE</div>
+              <div className="card-value" style={{ color: stateColor }}>{fmt(preDepositWallet?.balance)} ETB</div>
+              <div className="card-subtext">{preDepositStatus.state === 'GREEN' ? 'Healthy reserve' : preDepositStatus.state === 'YELLOW' ? 'Running low — refill soon' : '⚠️ Critical — refill now!'}</div>
+            </div>
+          </div>
+
+          {/* Commission Audit */}
+          <div className="premium-card">
+            <h3 className="premium-card-title">📋 Commission Audit</h3>
+            <table className="premium-table" style={{ marginTop: '12px' }}>
+              <tbody>
+                <tr>
+                  <td style={{ color: '#8c857b' }}>Real Ticket Sales (commission base)</td>
+                  <td className="text-right" style={{ fontWeight: '800', color: '#15803d' }}>{fmt(stats.totalTicketSales)} ETB</td>
+                </tr>
+                <tr>
+                  <td style={{ color: '#8c857b' }}>Full Commission Rate</td>
+                  <td className="text-right" style={{ fontWeight: '800' }}>{fmtPct(stats.fullCommissionRate)}</td>
+                </tr>
+                <tr style={{ background: 'rgba(212,175,55,0.05)' }}>
+                  <td style={{ fontWeight: '700' }}>Expected Commission Total</td>
+                  <td className="text-right" style={{ fontWeight: '900' }}>{fmt(stats.totalCommissionExpected)} ETB</td>
+                </tr>
+                <tr style={{ background: Math.abs(stats.totalCommissionDeducted - stats.totalCommissionExpected) > 1 ? 'rgba(239,68,68,0.05)' : 'rgba(34,197,94,0.05)' }}>
+                  <td style={{ fontWeight: '700' }}>Actual Commission Deducted</td>
+                  <td className="text-right" style={{ fontWeight: '900', color: Math.abs(stats.totalCommissionDeducted - stats.totalCommissionExpected) > 1 ? '#ef4444' : '#22c55e' }}>
+                    {fmt(stats.totalCommissionDeducted)} ETB
+                  </td>
+                </tr>
+                <tr>
+                  <td style={{ color: '#8c857b' }}>Variance</td>
+                  <td className="text-right" style={{ fontWeight: '800', color: Math.abs(stats.totalCommissionDeducted - stats.totalCommissionExpected) < 1 ? '#22c55e' : '#f59e0b' }}>
+                    {fmt(Math.abs(stats.totalCommissionDeducted - stats.totalCommissionExpected))} ETB
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+            {/* Recharge History */}
+            <div className="data-table-container" style={{ overflow: 'hidden' }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid #f5f5f4', background: '#fafaf9' }}>
+                <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '800' }}>💳 Admin Refill History</h3>
+              </div>
+              <div style={{ maxHeight: '360px', overflowY: 'auto' }}>
+                <table className="data-table">
+                  <thead><tr><th>#</th><th>Amount</th><th>Note</th><th>Date</th></tr></thead>
+                  <tbody>
+                    {!rechargeHistory || rechargeHistory.length === 0 ? (
+                      <tr><td colSpan={4} style={{ textAlign: 'center', padding: '28px', color: '#a8a29e' }}>No refills yet.</td></tr>
+                    ) : rechargeHistory.map((rh: any, i: number) => (
+                      <tr key={rh.id}>
+                        <td style={{ color: '#78716c', fontSize: '12px' }}>#{i + 1}</td>
+                        <td><span style={{ fontWeight: '900', color: '#16a34a' }}>+{fmt(rh.amount)} ETB</span></td>
+                        <td style={{ fontSize: '12px', color: '#5c554b' }}>{rh.description || '—'}</td>
+                        <td style={{ fontSize: '12px', color: '#78716c' }}>{new Date(rh.createdAt).toLocaleDateString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Commission Debits Log */}
+            <div className="data-table-container" style={{ overflow: 'hidden' }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid #f5f5f4', background: '#fafaf9' }}>
+                <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '800' }}>📤 Commission Deductions Log</h3>
+              </div>
+              <div style={{ maxHeight: '360px', overflowY: 'auto' }}>
+                <table className="data-table">
+                  <thead><tr><th>#</th><th>Amount</th><th>Note</th><th>Date</th></tr></thead>
+                  <tbody>
+                    {!commissionDebits || commissionDebits.length === 0 ? (
+                      <tr><td colSpan={4} style={{ textAlign: 'center', padding: '28px', color: '#a8a29e' }}>No deductions yet.</td></tr>
+                    ) : commissionDebits.map((cd: any, i: number) => (
+                      <tr key={cd.id}>
+                        <td style={{ color: '#78716c', fontSize: '12px' }}>#{i + 1}</td>
+                        <td><span style={{ fontWeight: '900', color: '#dc2626' }}>-{fmt(cd.amount)} ETB</span></td>
+                        <td style={{ fontSize: '12px', color: '#5c554b' }}>{cd.description || '—'}</td>
+                        <td style={{ fontSize: '12px', color: '#78716c' }}>{new Date(cd.createdAt).toLocaleDateString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StatCard({ icon, label, value, sub, color }: { icon: React.ReactNode; label: string; value: string; sub: string; color: string }) {
+  return (
+    <div className="premium-stat-card">
+      <div className="card-top-row">
+        <div className="card-icon-container" style={{ background: `${color}15`, color }}>{icon}</div>
+      </div>
+      <div className="card-body">
+        <div className="card-label">{label}</div>
+        <div className="card-value" style={{ fontSize: '18px' }}>{value}</div>
+        <div className="card-subtext">{sub}</div>
       </div>
     </div>
   );

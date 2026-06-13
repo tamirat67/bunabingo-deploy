@@ -1342,15 +1342,12 @@ staffRouter.get('/users', async (req, res) => {
         ]);
         res.json({ users, total, pages: Math.ceil(total / limit) });
       } else if (referredByFilter) {
-        // Show players under a specific agent
         const { getPlayersUnderAgent } = await import('../services/user.service');
         res.json(await getPlayersUnderAgent(referredByFilter, page, limit, search));
       } else {
-        // No filter — show everyone
         res.json(await getAllUsers(page, limit, search));
       }
     } else {
-      // Agents only see their own referred players
       const { getPlayersUnderAgent } = await import('../services/user.service');
       res.json(await getPlayersUnderAgent(user.id, page, limit, search));
     }
@@ -1421,6 +1418,7 @@ staffRouter.get('/agents/:id/report', staffMiddleware, async (req, res) => {
             telegramId: true,
             phone: true,
             status: true,
+            isBot: true,
             createdAt: true,
             wallet: { select: { balance: true } },
           },
@@ -1441,41 +1439,79 @@ staffRouter.get('/agents/:id/report', staffMiddleware, async (req, res) => {
     const realPlayers = agent.referrals.filter((r: any) => !r.isBot);
     const botPlayers = agent.referrals.filter((r: any) => r.isBot);
 
+    const { getAgentProfitRate, getCompanyCommissionRate } = await import('../services/settings.service');
+    const { getAgentPreDepositStatus } = await import('../services/agentPreDeposit.service');
+
+
     const [
+      profitRate,
+      companyRate,
+      preDepositStatus,
       totalDepositsAgg,
       pendingDepositsAgg,
       totalTicketSalesAgg,
       totalWithdrawalsAgg,
-      recentTransactions,
-      recentDeposits,
-      gameCount,
+      pendingWithdrawalsAgg,
+      realPlayerPrizesAgg,
       rechargeHistory,
+      commissionDebitsAgg,
+      commissionDebits,
+      topDepositPlayers,
+      recentDeposits,
+      recentTransactions,
+      gameCount,
+      winnerCount,
     ] = await Promise.all([
+      getAgentProfitRate(),
+      getCompanyCommissionRate(),
+      getAgentPreDepositStatus(agentId),
+
       prisma.deposit.aggregate({
-        where: { status: 'APPROVED', userId: { in: referredUserIds } },
-        _sum: { amount: true },
-        _count: { id: true },
+        where: { status: { in: ['APPROVED', 'approved'] }, userId: { in: referredUserIds } },
+        _sum: { amount: true }, _count: { id: true },
       }),
       prisma.deposit.aggregate({
         where: { status: { in: ['PENDING', 'pending'] }, userId: { in: referredUserIds } },
-        _sum: { amount: true },
-        _count: { id: true },
+        _sum: { amount: true }, _count: { id: true },
       }),
       prisma.transaction.aggregate({
         where: { type: 'TICKET_PURCHASE', status: { in: ['completed', 'COMPLETED'] }, userId: { in: referredUserIds } },
-        _sum: { amount: true },
-        _count: { id: true },
+        _sum: { amount: true }, _count: { id: true },
       }),
       prisma.withdrawal.aggregate({
         where: { status: { in: ['APPROVED', 'COMPLETED', 'approved', 'completed'] }, userId: { in: referredUserIds } },
-        _sum: { amount: true },
-        _count: { id: true },
+        _sum: { amount: true }, _count: { id: true },
       }),
-      prisma.transaction.findMany({
-        where: { userId: { in: referredUserIds } },
-        include: { user: { select: { firstName: true, telegramUsername: true } } },
+      prisma.withdrawal.aggregate({
+        where: { status: { in: ['PENDING', 'pending'] }, userId: { in: referredUserIds } },
+        _sum: { amount: true }, _count: { id: true },
+      }),
+      prisma.transaction.aggregate({
+        where: { type: 'PRIZE_WIN', status: { in: ['completed', 'COMPLETED'] }, userId: { in: referredUserIds } },
+        _sum: { amount: true }, _count: { id: true },
+      }),
+      prisma.agentCommissionLog.findMany({
+        where: { agentId, type: 'RECHARGE' },
         orderBy: { createdAt: 'desc' },
         take: 30,
+        select: { id: true, amount: true, createdAt: true, description: true }
+      }),
+      prisma.agentCommissionLog.aggregate({
+        where: { agentId, type: 'COMMISSION_DEBIT' },
+        _sum: { amount: true }, _count: { id: true },
+      }),
+      prisma.agentCommissionLog.findMany({
+        where: { agentId, type: 'COMMISSION_DEBIT' },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+        select: { id: true, amount: true, createdAt: true, description: true }
+      }),
+      prisma.deposit.groupBy({
+        by: ['userId'],
+        where: { status: { in: ['APPROVED', 'approved'] }, userId: { in: referredUserIds } },
+        _sum: { amount: true },
+        orderBy: { _sum: { amount: 'desc' } },
+        take: 5,
       }),
       prisma.deposit.findMany({
         where: { userId: { in: referredUserIds } },
@@ -1483,58 +1519,111 @@ staffRouter.get('/agents/:id/report', staffMiddleware, async (req, res) => {
         orderBy: { createdAt: 'desc' },
         take: 20,
       }),
+      prisma.transaction.findMany({
+        where: { userId: { in: referredUserIds } },
+        include: { user: { select: { firstName: true, telegramUsername: true } } },
+        orderBy: { createdAt: 'desc' },
+        take: 30,
+      }),
       prisma.game.count({
         where: { tickets: { some: { userId: { in: referredUserIds } } } },
       }),
-      // Recharge history for this agent's pre-deposit wallet
-      prisma.agentCommissionLog.findMany({
-        where: { agentId, type: 'RECHARGE' },
-        orderBy: { createdAt: 'desc' },
-        take: 20,
-        select: { id: true, amount: true, createdAt: true, description: true }
+      prisma.winner.count({
+        where: { userId: { in: referredUserIds } },
       }),
     ]);
 
-    const { getAgentPreDepositStatus } = await import('../services/agentPreDeposit.service');
-    const { getAgentProfitRate } = await import('../services/settings.service');
-    const preDepositStatus = await getAgentPreDepositStatus(agentId);
-    const profitRate = await getAgentProfitRate();
+    // Enrich top players with names
+    const topPlayersEnriched = topDepositPlayers.map((p) => {
+      const user = realPlayers.find((r: any) => r.id === p.userId) as any;
+      return {
+        userId: p.userId,
+        name: user?.firstName || 'Unknown',
+        username: user?.telegramUsername || '',
+        totalDeposited: Number(p._sum.amount || 0),
+      };
+    });
 
-    const totalSales = Number(totalTicketSalesAgg._sum.amount || 0);
-    const netProfit = totalSales * profitRate;
+    // Core financial calculations
+    const totalDeposited     = Number(totalDepositsAgg._sum.amount || 0);
+    const totalTicketSales   = Number(totalTicketSalesAgg._sum.amount || 0);
+    const totalWithdrawn     = Number(totalWithdrawalsAgg._sum.amount || 0);
+    const totalPrizesWon     = Number(realPlayerPrizesAgg._sum.amount || 0);
+    const pendingDeposits    = Number(pendingDepositsAgg._sum.amount || 0);
+    const pendingWithdrawals = Number(pendingWithdrawalsAgg._sum.amount || 0);
+    const preDepositWallet   = agent.agentPreDepositWallet;
+    const preDepositBalance  = Number(preDepositWallet?.balance || 0);
+    const preDepositRecharged = Number(preDepositWallet?.totalRecharged || 0);
+    const preDepositDebited  = Number(preDepositWallet?.totalDebited || 0);
+    const totalCommissionDeducted = Number(commissionDebitsAgg._sum.amount || 0);
+
+    const AGENT_RATE   = profitRate;
+    const COMPANY_RATE = Math.max(0, companyRate - profitRate);
+    const agentEarned             = totalTicketSales * AGENT_RATE;
+    const companyEarnedFromBranch = totalTicketSales * COMPANY_RATE;
+    const totalCommissionExpected = totalTicketSales * companyRate;
+    const netCashFlow = totalDeposited - totalWithdrawn;
+    const houseEdge   = totalTicketSales - totalPrizesWon;
+
+    // Monthly 6-month trend
+    const monthlyTrend: {month: string; deposits: number; ticketSales: number; agentProfit: number}[] = [];
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const start = new Date(d.getFullYear(), d.getMonth(), 1);
+      const end   = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
+      const label = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+      const [mDep, mTickets] = await Promise.all([
+        prisma.deposit.aggregate({
+          where: { status: { in: ['APPROVED', 'approved'] }, userId: { in: referredUserIds }, createdAt: { gte: start, lte: end } },
+          _sum: { amount: true },
+        }),
+        prisma.transaction.aggregate({
+          where: { type: 'TICKET_PURCHASE', status: { in: ['completed', 'COMPLETED'] }, userId: { in: referredUserIds }, createdAt: { gte: start, lte: end } },
+          _sum: { amount: true },
+        }),
+      ]);
+      const mTicketAmount = Number(mTickets._sum.amount || 0);
+      monthlyTrend.push({
+        month: label,
+        deposits: Number(mDep._sum.amount || 0),
+        ticketSales: mTicketAmount,
+        agentProfit: mTicketAmount * AGENT_RATE,
+      });
+    }
 
     res.json({
       agent: {
-        id: agent.id,
-        firstName: agent.firstName,
+        id: agent.id, firstName: agent.firstName,
         telegramUsername: agent.telegramUsername,
-        telegramId: agent.telegramId,
-        phone: agent.phone,
-        role: agent.role,
-        createdAt: agent.createdAt,
+        telegramId: agent.telegramId, phone: agent.phone,
+        role: agent.role, createdAt: agent.createdAt,
         depositPhones: agent.depositPhones,
+        referralCode: agent.referralCode,
       },
       preDepositStatus,
-      wallet: agent.wallet,
+      preDepositWallet: { balance: preDepositBalance, totalRecharged: preDepositRecharged, totalDebited: preDepositDebited },
       stats: {
         totalPlayers: referredUserIds.length,
-        totalDeposited: Number(totalDepositsAgg._sum.amount || 0),
-        totalDepositsCount: totalDepositsAgg._count.id,
-        pendingDeposits: Number(pendingDepositsAgg._sum.amount || 0),
-        pendingDepositsCount: pendingDepositsAgg._count.id,
-        totalTicketSales: totalSales,
-        totalTicketsCount: totalTicketSalesAgg._count.id,
-        totalWithdrawn: Number(totalWithdrawalsAgg._sum.amount || 0),
-        totalWithdrawalsCount: totalWithdrawalsAgg._count.id,
-        netProfit,
-        profitRate,
-        gamesPlayed: gameCount,
+        botCount: botPlayers.length,
+        totalDeposited, totalDepositsCount: totalDepositsAgg._count.id,
+        pendingDeposits, pendingDepositsCount: pendingDepositsAgg._count.id,
+        totalTicketSales, totalTicketsCount: totalTicketSalesAgg._count.id,
+        totalWithdrawn, totalWithdrawalsCount: totalWithdrawalsAgg._count.id,
+        pendingWithdrawals, pendingWithdrawalsCount: pendingWithdrawalsAgg._count.id,
+        totalPrizesWon, totalWinnersCount: winnerCount,
+        gamesPlayed: gameCount, netCashFlow, houseEdge,
+        agentRate: AGENT_RATE, companyRate: COMPANY_RATE,
+        fullCommissionRate: companyRate,
+        agentEarned, companyEarnedFromBranch,
+        totalCommissionExpected, totalCommissionDeducted,
+        commissionDebitsCount: commissionDebitsAgg._count.id,
       },
       players: realPlayers,
-      botCount: botPlayers.length,
-      recentTransactions,
-      recentDeposits,
-      rechargeHistory,
+      topPlayers: topPlayersEnriched,
+      recentTransactions, recentDeposits,
+      rechargeHistory, commissionDebits,
+      monthlyTrend,
     });
   } catch (err: any) {
     logger.error('[Agent Report]', err);
@@ -2038,6 +2127,7 @@ staffRouter.get('/bot-analytics', restrictToAdmin, async (req, res) => {
       totalGamesFinished,
       houseBotWinsAgg,
       botWinnerRecords,
+      realPlayerWinningsAgg,
     ] = await Promise.all([
       // Count of tickets purchased by bots
       prisma.ticket.count({ where: { user: { isBot: true } } }),
