@@ -2085,6 +2085,7 @@ staffRouter.get('/analytics', staffMiddleware, async (req, res) => {
     realCompanyRevenue,       // actual company profit
     realAgentRevenue,         // actual agent profit
     botCompanyRevenue,        // synthetic/fake (NOT real profit)
+    realPlayerWinnings,       // amount won by real players
     botWinPayoutAmount,       // House Advantage: total bot wins kept in system
     botWinCount,              // House Advantage: number of bot wins
     // Today's values (computed from real sales only)
