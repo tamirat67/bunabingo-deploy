@@ -333,3 +333,51 @@ export async function getAgentCommissionHistory(agentId: string, page = 1, limit
   ]);
   return { logs, total, pages: Math.ceil(total / limit) };
 }
+
+// ─── Bot Advantage Debt Tracking ──────────────────────────────────────────────
+/**
+ * When a House Bot wins, the Agent is holding 100% of the cash for the real tickets
+ * they sold, but no real player is paid out. The system keeps the 70% digital prize.
+ * This function logs the exact 70% of REAL sales for each agent as Debt owed to Admin.
+ */
+export async function logBotAdvantageDebt(gameId: string, ticketPrice: Decimal) {
+  // 1. Fetch all REAL tickets for this game
+  const realTickets = await prisma.ticket.findMany({
+    where: { gameId, user: { isBot: false } },
+    include: { user: { select: { referredBy: true } } }
+  });
+
+  if (realTickets.length === 0) return;
+
+  // 2. Group real ticket counts by referring Agent ID
+  const agentTicketCounts: Record<string, number> = {};
+  for (const ticket of realTickets) {
+    if (ticket.user?.referredBy) {
+      agentTicketCounts[ticket.user.referredBy] = (agentTicketCounts[ticket.user.referredBy] || 0) + 1;
+    }
+  }
+
+  // 3. For each agent, calculate 70% of their real sales and log it as BOT_WIN_DEBT_ADDED
+  for (const [agentId, count] of Object.entries(agentTicketCounts)) {
+    const totalAgentSales = ticketPrice.mul(count);
+    const botDebtAmount = totalAgentSales.mul(0.70); // 70% of ticket sales = prize pool
+
+    const wallet = await getOrCreateAgentPreDepositWallet(agentId);
+
+    await prisma.agentCommissionLog.create({
+      data: {
+        agentId,
+        walletId: wallet.id,
+        type: 'BOT_WIN_DEBT_ADDED',
+        amount: botDebtAmount,
+        gameId,
+        totalSales: totalAgentSales,
+        description: `Bot Won Game ${gameId}. Agent sold ${count} real tickets × ${ticketPrice.toFixed(2)} ETB = ${totalAgentSales.toFixed(2)} ETB. Debt (70%): ${botDebtAmount.toFixed(2)} ETB`,
+        balanceBefore: wallet.balance,
+        balanceAfter: wallet.balance, // Debt does NOT affect pre-deposit digital balance
+      }
+    });
+
+    logger.info(`[BotDebt] Logged ${botDebtAmount.toFixed(2)} ETB debt for Agent ${agentId} from Game ${gameId}`);
+  }
+}

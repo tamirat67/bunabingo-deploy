@@ -1047,6 +1047,14 @@ async function processWinner(
        // for bot tickets in runGame when they were charged). Record the cycle result.
        await recordCycleResult(game.room.type, true);
        logger.info(`[SystemWallet] House bot won Game ${gameId} — prize retained in reserve`);
+
+       // ─── Bot Debt Tracking ───
+       try {
+         const { logBotAdvantageDebt } = await import('../services/agentPreDeposit.service');
+         await logBotAdvantageDebt(gameId, new Decimal(game.room.ticketPrice.toString()));
+       } catch (err) {
+         logger.error(`[BotDebt] Failed to assign bot debt for Game ${gameId}:`, err);
+       }
     }
   }
 

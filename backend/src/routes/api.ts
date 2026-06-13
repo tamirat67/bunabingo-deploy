@@ -1461,6 +1461,8 @@ staffRouter.get('/agents/:id/report', staffMiddleware, async (req, res) => {
       recentTransactions,
       gameCount,
       winnerCount,
+      botDebtAddedAgg,
+      botDebtSettledAgg,
     ] = await Promise.all([
       getAgentProfitRate(),
       getCompanyCommissionRate(),
@@ -1531,6 +1533,14 @@ staffRouter.get('/agents/:id/report', staffMiddleware, async (req, res) => {
       prisma.winner.count({
         where: { userId: { in: referredUserIds } },
       }),
+      prisma.agentCommissionLog.aggregate({
+        where: { agentId, type: 'BOT_WIN_DEBT_ADDED' },
+        _sum: { amount: true },
+      }),
+      prisma.agentCommissionLog.aggregate({
+        where: { agentId, type: 'BOT_WIN_DEBT_SETTLED' },
+        _sum: { amount: true },
+      }),
     ]);
 
     // Enrich top players with names
@@ -1556,6 +1566,10 @@ staffRouter.get('/agents/:id/report', staffMiddleware, async (req, res) => {
     const preDepositRecharged = Number(preDepositWallet?.totalRecharged || 0);
     const preDepositDebited  = Number(preDepositWallet?.totalDebited || 0);
     const totalCommissionDeducted = Number(commissionDebitsAgg._sum.amount || 0);
+
+    const botDebtAdded   = Number(botDebtAddedAgg._sum.amount || 0);
+    const botDebtSettled = Number(botDebtSettledAgg._sum.amount || 0);
+    const outstandingBotDebt = Math.max(0, botDebtAdded - botDebtSettled);
 
     const AGENT_RATE   = profitRate;
     const COMPANY_RATE = Math.max(0, companyRate - profitRate);
@@ -1618,6 +1632,7 @@ staffRouter.get('/agents/:id/report', staffMiddleware, async (req, res) => {
         agentEarned, companyEarnedFromBranch,
         totalCommissionExpected, totalCommissionDeducted,
         commissionDebitsCount: commissionDebitsAgg._count.id,
+        botDebtAdded, botDebtSettled, outstandingBotDebt,
       },
       players: realPlayers,
       topPlayers: topPlayersEnriched,
@@ -1628,6 +1643,56 @@ staffRouter.get('/agents/:id/report', staffMiddleware, async (req, res) => {
   } catch (err: any) {
     logger.error('[Agent Report]', err);
     res.status(500).json({ error: err.message || 'Failed to generate agent report' });
+  }
+});
+
+// ─── Settle Bot Advantage Debt ────────────────────────────────
+staffRouter.post('/agents/:id/settle-debt', staffMiddleware, async (req, res) => {
+  try {
+    const admin = (req as any).user;
+    const agentId = req.params.id;
+    const { amount } = req.body;
+
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ error: 'Invalid settlement amount' });
+    }
+
+    const agent = await prisma.user.findUnique({
+      where: { id: agentId },
+      include: { agentPreDepositWallet: true }
+    });
+
+    if (!agent || !agent.agentPreDepositWallet) {
+      return res.status(404).json({ error: 'Agent or wallet not found' });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.agentCommissionLog.create({
+        data: {
+          agentId,
+          walletId: agent.agentPreDepositWallet!.id,
+          type: 'BOT_WIN_DEBT_SETTLED',
+          amount: amount,
+          description: `Admin ${admin.id} settled Bot Advantage debt. Cash collected from agent.`,
+          balanceBefore: agent.agentPreDepositWallet!.balance,
+          balanceAfter: agent.agentPreDepositWallet!.balance, // debt settlement doesn't change pre-deposit balance
+        }
+      });
+      
+      await tx.adminLog.create({
+        data: {
+          adminId: admin.id,
+          targetUserId: agentId,
+          action: 'SETTLE_BOT_DEBT',
+          details: { amount },
+        }
+      });
+    });
+
+    res.json({ success: true, message: `Successfully settled ${amount} ETB debt.` });
+  } catch (err: any) {
+    logger.error('[Settle Debt]', err);
+    res.status(500).json({ error: 'Failed to settle debt' });
   }
 });
 

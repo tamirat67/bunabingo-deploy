@@ -447,6 +447,34 @@ function AgentDashboardContent() {
         </div>
       </div>
 
+      {/* ── Debt Owed to Company (Bot Winnings) ── */}
+      {stats.outstandingBotDebt > 0 && (
+        <div style={{
+          background: '#fff', border: '1px solid #ef4444', borderRadius: '20px', padding: '22px', marginBottom: '24px',
+          boxShadow: '0 4px 12px rgba(239,68,68,0.1)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+            <FiAlertTriangle size={18} style={{ color: '#ef4444' }} />
+            <h3 style={{ fontSize: '16px', fontWeight: '900', color: '#ef4444', margin: 0 }}>Debt Owed to Company</h3>
+          </div>
+          <p style={{ fontSize: '13px', color: '#5c554b', marginBottom: '16px', lineHeight: '1.5' }}>
+            You are physically holding cash from ticket sales for games where the House Bot won. This money belongs to the company and must be settled.
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(239,68,68,0.05)', padding: '16px', borderRadius: '12px' }}>
+            <div>
+              <div style={{ fontSize: '11px', fontWeight: '800', color: '#ef4444', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Outstanding Balance</div>
+              <div style={{ fontSize: '24px', fontWeight: '900', color: '#b91c1c' }}>{stats.outstandingBotDebt.toLocaleString()} ETB</div>
+            </div>
+            <button
+              onClick={() => alert('Please contact the Administrator to transfer this cash and clear your debt.')}
+              style={{ background: '#ef4444', color: '#fff', border: 'none', borderRadius: '10px', padding: '10px 18px', fontWeight: '800', cursor: 'pointer', fontSize: '12px' }}
+            >
+              HOW TO PAY
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── Pending Withdrawals ── */}
       <div style={{
         background: '#fff',

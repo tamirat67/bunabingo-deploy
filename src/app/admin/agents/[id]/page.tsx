@@ -19,10 +19,10 @@ export default function AgentReportPage() {
   const [error, setError] = useState<string | null>(null);
   const [report, setReport] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'transactions' | 'players' | 'wallet'>('overview');
+  const [settleAmount, setSettleAmount] = useState('');
+  const [isSettling, setIsSettling] = useState(false);
 
-  useEffect(() => { fetchReport(); }, [agentId]);
-
-  const fetchReport = async () => {
+  const fetchReport = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -32,6 +32,29 @@ export default function AgentReportPage() {
       setError(err?.response?.data?.error || 'Failed to load agent report');
     } finally {
       setLoading(false);
+    }
+  }, [agentId]);
+
+  useEffect(() => { fetchReport(); }, [fetchReport]);
+
+  const handleSettleDebt = async () => {
+    const amount = Number(settleAmount);
+    const outstanding = report?.stats?.outstandingBotDebt || 0;
+    if (!amount || amount <= 0 || amount > outstanding) {
+      return alert('Please enter a valid amount up to the outstanding debt.');
+    }
+    if (!confirm(`Are you sure you received ${amount} ETB in cash from this agent?`)) return;
+
+    setIsSettling(true);
+    try {
+      await api.post(`/admin/agents/${agentId}/settle-debt`, { amount });
+      setSettleAmount('');
+      fetchReport();
+      alert('Debt successfully settled!');
+    } catch (e: any) {
+      alert(e?.response?.data?.error || 'Failed to settle debt.');
+    } finally {
+      setIsSettling(false);
     }
   };
 
@@ -459,6 +482,59 @@ export default function AgentReportPage() {
               <div className="card-value" style={{ color: stateColor }}>{fmt(preDepositWallet?.balance)} ETB</div>
               <div className="card-subtext">{preDepositStatus.state === 'GREEN' ? 'Healthy reserve' : preDepositStatus.state === 'YELLOW' ? 'Running low — refill soon' : '⚠️ Critical — refill now!'}</div>
             </div>
+          </div>
+
+          {/* ── Bot Advantage Debt Collection ── */}
+          <div className="premium-card" style={{ border: '1px solid #ef4444', background: '#fffcfc' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+              <FiAlertTriangle size={18} style={{ color: '#ef4444' }} />
+              <h3 className="premium-card-title" style={{ color: '#ef4444', margin: 0 }}>Bot Advantage Debt Collection</h3>
+            </div>
+            <p style={{ fontSize: '13px', color: '#5c554b', marginBottom: '16px', lineHeight: '1.5' }}>
+              When a House Bot wins, the Agent holds the cash from real ticket sales. This cash belongs to the company and must be collected from the agent in real life.
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '20px' }}>
+              <div style={{ background: '#faf8f5', padding: '12px', borderRadius: '10px' }}>
+                <div style={{ fontSize: '10px', fontWeight: '800', color: '#8c857b', textTransform: 'uppercase' }}>Total Bot Winnings</div>
+                <div style={{ fontSize: '18px', fontWeight: '900', color: '#3d2b1f' }}>{fmt(stats.botDebtAdded)} ETB</div>
+              </div>
+              <div style={{ background: '#f0fdf4', padding: '12px', borderRadius: '10px' }}>
+                <div style={{ fontSize: '10px', fontWeight: '800', color: '#166534', textTransform: 'uppercase' }}>Total Settled</div>
+                <div style={{ fontSize: '18px', fontWeight: '900', color: '#15803d' }}>{fmt(stats.botDebtSettled)} ETB</div>
+              </div>
+              <div style={{ background: 'rgba(239,68,68,0.05)', padding: '12px', borderRadius: '10px' }}>
+                <div style={{ fontSize: '10px', fontWeight: '800', color: '#ef4444', textTransform: 'uppercase' }}>Outstanding Debt</div>
+                <div style={{ fontSize: '20px', fontWeight: '900', color: '#b91c1c' }}>{fmt(stats.outstandingBotDebt)} ETB</div>
+              </div>
+            </div>
+
+            {stats.outstandingBotDebt > 0 && (
+              <div style={{ background: '#fff', border: '1px solid #e5e5e5', borderRadius: '12px', padding: '16px', display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: '800', color: '#78716c', marginBottom: '6px' }}>SETTLE AMOUNT (CASH RECEIVED)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max={stats.outstandingBotDebt}
+                    value={settleAmount}
+                    onChange={(e) => setSettleAmount(e.target.value)}
+                    placeholder={`e.g. ${stats.outstandingBotDebt}`}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #d4d4d8', fontSize: '14px', fontWeight: '700', outline: 'none' }}
+                  />
+                </div>
+                <button
+                  onClick={handleSettleDebt}
+                  disabled={isSettling || !settleAmount || Number(settleAmount) <= 0}
+                  style={{
+                    background: '#ef4444', color: '#fff', border: 'none', borderRadius: '8px', padding: '10px 20px',
+                    fontWeight: '800', cursor: 'pointer', transition: 'background 0.2s', opacity: (isSettling || !settleAmount) ? 0.6 : 1
+                  }}
+                >
+                  {isSettling ? 'Settling...' : 'Mark as Received'}
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Commission Audit */}

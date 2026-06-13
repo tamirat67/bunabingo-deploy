@@ -38,7 +38,9 @@ router.get('/stats', async (req: Request, res: Response) => {
       preDepositStatus,
       wallet,
       activePlayersToday,
-      activeGames
+      activeGames,
+      botDebtAddedAgg,
+      botDebtSettledAgg
     ] = await Promise.all([
       prisma.user.count({ where: { referredBy: agent.id, isBot: false } }),
       prisma.deposit.aggregate({
@@ -79,8 +81,22 @@ router.get('/stats', async (req: Request, res: Response) => {
       // Global active games
       prisma.game.count({
         where: { status: { in: ['RUNNING', 'COUNTDOWN', 'WAITING'] } }
+      }),
+      // Outstanding Bot Debt tracking
+      prisma.agentCommissionLog.aggregate({
+        where: { agentId: agent.id, type: 'BOT_WIN_DEBT_ADDED' },
+        _sum: { amount: true }
+      }),
+      prisma.agentCommissionLog.aggregate({
+        where: { agentId: agent.id, type: 'BOT_WIN_DEBT_SETTLED' },
+        _sum: { amount: true }
       })
     ]);
+
+    const botDebtAdded = botDebtAddedAgg._sum.amount || new Decimal(0);
+    const botDebtSettled = botDebtSettledAgg._sum.amount || new Decimal(0);
+    const outstandingBotDebt = Decimal.max(0, botDebtAdded.sub(botDebtSettled));
+
 
     const totalSales = totalSalesAgg._sum.amount || new Decimal(0);
     const netCommissionPaid = totalCommissionPaidAgg._sum.amount || new Decimal(0);
@@ -103,6 +119,7 @@ router.get('/stats', async (req: Request, res: Response) => {
       agentRatePct,
       activePlayers: activePlayersToday.length,
       activeGames,
+      outstandingBotDebt: Number(outstandingBotDebt),
       preDeposit: {
         balance: walletBalance,
         totalAdded: walletAdded,
