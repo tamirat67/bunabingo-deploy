@@ -40,20 +40,19 @@ function GameContent() {
   const { socket, isConnected } = useSocket();
 
   const [game,      setGame]      = useState<any>(null);
-  const [tickets,   setTickets]   = useState<any[]>([]);
-
-  // Hydrate from cache only on client to avoid Next.js SSR mismatch
-  useEffect(() => {
+  const [tickets, setTickets] = useState<any[]>(() => {
+    // ── Sync hydration: instantly load tickets on first render to prevent "Fetching cards..." flash
     if (typeof window !== 'undefined' && gameId) {
       try {
         const cached = sessionStorage.getItem(`game_tickets_${gameId}`);
         if (cached) {
           const parsed = JSON.parse(cached);
-          setTickets(parsed.sort((a: any, b: any) => (a.card?.id || 0) - (b.card?.id || 0)));
+          return parsed.sort((a: any, b: any) => (a.card?.id || 0) - (b.card?.id || 0));
         }
       } catch (e) {}
     }
-  }, [gameId]);
+    return [];
+  });
 
   const spType  = sp.get('type') || '';
   const spPrice = sp.get('price');
@@ -85,7 +84,6 @@ function GameContent() {
   const redirectCountdownRef = useRef<any>(null);
   const [toast,     setToast]     = useState<string | null>(null);
   const [mounted,   setMounted]   = useState(false);
-  const [authChecked, setAuthChecked] = useState(false);
   const [endTime,   setEndTime]   = useState<number | null>(null);
   const [serverOff, setServerOff] = useState(0);
   const [marked,    setMarked]    = useState<Set<number>>(new Set());
@@ -124,18 +122,17 @@ function GameContent() {
     ticketsRef.current = tickets;
   }, [tickets]);
 
-  // ─── Auth guard — redirect to home if not authenticated ──────────────────────
+  // ─── Non-blocking auth guard ─────────────────────────────────────────────────
+  // Replaced blocking 'authChecked' state with an async background check.
+  // This allows the page to load instantly while validating auth silently.
   useEffect(() => {
     getMe().then((user) => {
-      if (!user) {
-        router.replace('/');
-      } else {
-        setAuthChecked(true);
-      }
+      if (!user) router.replace('/');
     }).catch(() => router.replace('/'));
   }, []);
 
   // ─── Audio helpers ────────────────────────────────────────────────────────────
+
   // ballAudioRef: single persistent element for B1-O75 ball calls.
   //   Must be unlocked by a user gesture before socket/polling can trigger it.
   // start.mp3 / stop.mp3: use new Audio() — works in Telegram WebApp trusted
@@ -1031,8 +1028,6 @@ function GameContent() {
   };
 
   const hasBingo = checkAnyBingo();
-
-  if (!authChecked) return <LoadingScreen />;
 
   return (
     <motion.div 
