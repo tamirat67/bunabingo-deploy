@@ -287,7 +287,10 @@ export default function AgentReportPage() {
                     </td>
                   </tr>
                   <tr>
-                    <td style={{ color: '#8c857b' }}>Prizes Won by Players</td>
+                    <td style={{ color: '#8c857b' }}>
+                      Prizes Won by Players
+                      <span style={{ marginLeft: '6px', background: 'rgba(34,197,94,0.1)', color: '#16a34a', fontSize: '9px', fontWeight: '800', padding: '1px 5px', borderRadius: '4px' }}>REAL ONLY</span>
+                    </td>
                     <td className="text-right" style={{ fontWeight: '800', color: '#ef4444' }}>-{fmt(stats.totalPrizesWon)} ETB</td>
                   </tr>
                   <tr style={{ background: '#f0fdf4' }}>
@@ -301,7 +304,7 @@ export default function AgentReportPage() {
               <div style={{ marginTop: '12px', padding: '10px 14px', borderRadius: '10px', background: '#fefce8', border: '1px solid #fde68a', display: 'flex', gap: '8px' }}>
                 <FiInfo size={14} style={{ color: '#ca8a04', marginTop: '2px', flexShrink: 0 }} />
                 <span style={{ fontSize: '12px', color: '#713f12', lineHeight: '1.5' }}>
-                  Agent profit = <strong>{fmtPct(stats.agentRate)}</strong> × ticket sales. No bot ticket sales are included — only real players.
+                  <strong>Prizes Won by Players</strong> = <em>REAL player prize payouts only</em>. Bot wins are <strong>never</strong> recorded as PRIZE_WIN transactions — when a bot wins, the money stays in the company system wallet. Bot prizes are tracked separately in the Bot Advantage Debt section below.
                 </span>
               </div>
             </div>
