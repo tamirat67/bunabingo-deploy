@@ -158,7 +158,7 @@ export function initSocket(server: HttpServer) {
           gameId: runningGame.id,
           gameStartedAt: runningGame.startedAt.getTime(),
           serverTime: Date.now(),
-          cycleSeconds: 20,
+          cycleSeconds: 50,
         });
         logger.info(`[Socket] Sent game-running-sync to ${socket.id} (joined via ${gameOrRoom}), runningGameId=${runningGame.id}, startedAt=${runningGame.startedAt.toISOString()}`);
       }

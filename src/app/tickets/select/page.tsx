@@ -168,8 +168,8 @@ function SelectionContent() {
           // Cycle expired — poll server to check if game finished
           getOccupiedCards(roomType, activeGameId).then(res => {
             if (!res) {
-              // Fallback: reset a fresh 20s cycle
-              const next = Date.now() + 20000;
+              // Fallback: reset a fresh 50s cycle
+              const next = Date.now() + 50000;
               liveGameEndTimeRef.current = next;
               setLiveGameEndTime(next);
               return;
@@ -191,21 +191,21 @@ function SelectionContent() {
                 if (res.realPlayerCount !== undefined) setRealPlayerCount(res.realPlayerCount);
               }
             } else {
-              // Still running — start the next 20s cycle, anchored to server's gameStartedAt if available
+              // Still running — start the next 50s cycle, anchored to server's gameStartedAt if available
               let next: number;
               if (res.gameStartedAt) {
-                const cycleMs = 20000;
+                const cycleMs = 50000;
                 const elapsed = (Date.now() - res.gameStartedAt) % cycleMs;
                 next = Date.now() + (cycleMs - elapsed);
               } else {
-                next = Date.now() + 20000;
+                next = Date.now() + 50000;
               }
               liveGameEndTimeRef.current = next;
               setLiveGameEndTime(next);
             }
           }).catch(() => {
             // On error reset a fresh cycle so the timer doesn't stay at 0
-            const next = Date.now() + 20000;
+            const next = Date.now() + 50000;
             liveGameEndTimeRef.current = next;
             setLiveGameEndTime(next);
           });
@@ -545,8 +545,8 @@ function SelectionContent() {
         isGameRunningRef.current = true;
         lastGameRunningChangeTimeRef.current = Date.now();
         setIsGameRunning(true);
-        // Anchor the 20s NEXT CHECK cycle to the real server timestamp
-        const endTime = (d.serverTime || Date.now()) + 20000;
+        // Anchor the 50s NEXT CHECK cycle to the real server timestamp
+        const endTime = (d.serverTime || Date.now()) + 50000;
         liveGameEndTimeRef.current = endTime;
         setLiveGameEndTime(endTime);
         // Redirect ONLY users who bought tickets for this game
@@ -562,7 +562,7 @@ function SelectionContent() {
 
       // ── Late-join sync: server tells us when the running game started ──────
       // Allows a client that (re)loads mid-game to immediately show the correct
-      // remaining seconds instead of starting a fresh independent 20s clock.
+      // remaining seconds instead of starting a fresh independent 50s clock.
       // The server now also sends the runningGameId so we can join its socket
       // room and receive number-drawn / game-finished events in real-time.
       socket.on('game-running-sync', (d: any) => {
@@ -570,7 +570,7 @@ function SelectionContent() {
         lastGameRunningChangeTimeRef.current = Date.now();
         setIsGameRunning(true);
         setLiveGameDismissed(false);
-        const cycleMs = (d.cycleSeconds || 20) * 1000;
+        const cycleMs = (d.cycleSeconds || 50) * 1000;
         const elapsed = (Date.now() - (d.gameStartedAt || Date.now())) % cycleMs;
         const endTime = Date.now() + (cycleMs - elapsed);
         liveGameEndTimeRef.current = endTime;
@@ -839,9 +839,9 @@ function SelectionContent() {
             announcedSelectRef.current.clear();
           }
           if (nowRunning && !wasRunning) {
-            // Game just detected as running (page-refresh path) — anchor the 20s cycle
+            // Game just detected as running (page-refresh path) — anchor the 50s cycle
             setLiveGameDismissed(false);
-            const cycleMs = 20000;
+            const cycleMs = 50000;
             const startedAt = (res as any).gameStartedAt;
             let next: number;
             if (startedAt) {
