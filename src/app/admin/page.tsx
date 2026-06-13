@@ -334,9 +334,9 @@ function DashboardContent() {
             <span className="card-pill" style={{ color: '#0ea5e9', background: 'rgba(14, 165, 233, 0.1)' }}>Today</span>
           </div>
           <div className="card-body">
-            <div className="card-label">TOTAL STAKE</div>
+            <div className="card-label">TOTAL TURNOVER (STAKE)</div>
             <div className="card-value">{globalSales.toLocaleString()} ETB</div>
-            <div className="card-subtext">All Bets Placed</div>
+            <div className="card-subtext">Includes Re-betted Winnings</div>
           </div>
         </div>
 
@@ -624,7 +624,7 @@ function DashboardContent() {
               </thead>
               <tbody>
                 <tr>
-                  <td>Total Stake (Gross)</td>
+                  <td>Total Turnover (Gross Stake)</td>
                   <td className="text-right" style={{ fontWeight: '700' }}>{globalSales.toLocaleString()} ETB</td>
                 </tr>
                 <tr>
