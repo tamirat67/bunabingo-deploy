@@ -1908,19 +1908,33 @@ staffRouter.get('/analytics', staffMiddleware, async (req, res) => {
     _sum: { amount: true }
   });
 
-  // House Bot Advantage: bot wins kept in system
+  // House Bot Advantage: TRUE real money kept by house from bot wins.
+  // Formula: (Real Sales * 70%) - Total Prizes Won by Real Players
+  const realPlayerWinningsAgg = await prisma.transaction.aggregate({
+    where: {
+      type: 'PRIZE_WIN',
+      status: { in: ['completed', 'COMPLETED'] },
+      user: { isBot: false },
+      ...(agentIds ? { user: { referredBy: { in: agentIds }, isBot: false } } : {})
+    },
+    _sum: { amount: true }
+  });
+
   const botWinnerRecords = await prisma.winner.aggregate({
     where: {
       user: { isBot: true },
       ...(agentIds ? { user: { referredBy: { in: agentIds }, isBot: true } } : {})
     },
-    _sum: { prizeAmount: true },
     _count: { id: true },
   });
 
   const realGrossSales = Number(realSalesAgg._sum.amount || 0);
   const botGrossSales  = Number(botSalesAgg._sum.amount || 0);
-  const botWinPayoutAmount = Number(botWinnerRecords._sum?.prizeAmount || 0);
+  
+  const realPlayerWinnings = Number(realPlayerWinningsAgg._sum.amount || 0);
+  // Real prize pool theoretically available from real player stakes is 70%
+  // Whatever was NOT won by real players was kept by the house when bots won.
+  const botWinPayoutAmount = Math.max(0, (realGrossSales * 0.70) - realPlayerWinnings);
   const botWinCount = Number(botWinnerRecords._count?.id || 0);
 
   // Dynamic Revenue Split Settings
@@ -2050,13 +2064,15 @@ staffRouter.get('/bot-analytics', restrictToAdmin, async (req, res) => {
       prisma.game.count({ where: { status: 'FINISHED' } }),
       // Count of house bot wins from gameCycle tracker
       prisma.gameCycle.aggregate({ _sum: { houseWins: true } }),
-      // Bot winner records: the engine NEVER credits bots a WIN transaction.
-      // Instead we query the Winner table for rows where winner user isBot=true
-      // and sum prizeAmount — this is the prize that STAYED in the system reserve.
+      // Bot winner records: just count the wins.
       prisma.winner.aggregate({
         where: { user: { isBot: true } },
-        _sum: { prizeAmount: true },
         _count: { id: true },
+      }),
+      // Real player winnings (to calculate TRUE house advantage)
+      prisma.transaction.aggregate({
+        where: { type: 'PRIZE_WIN', status: 'COMPLETED', user: { isBot: false } },
+        _sum: { amount: true }
       }),
     ]);
 
@@ -2065,10 +2081,12 @@ staffRouter.get('/bot-analytics', restrictToAdmin, async (req, res) => {
     const totalAllSales = Number(totalAllSalesAgg._sum.amount || 0);
     // House bot win COUNT from gameCycle tracker
     const botWinPayouts = Number(houseBotWinsAgg._sum.houseWins || 0);
-    // House bot win PRIZE AMOUNT: from Winner table where user.isBot=true.
-    // NOTE: The game engine deliberately skips crediting the bot wallet (see engine.ts line 988).
-    // So this prizeAmount is the money that STAYED in the system reserve — it is the house advantage.
-    const botWinPayoutAmount = Number(botWinnerRecords._sum?.prizeAmount || 0);
+    
+    // House bot win PRIZE AMOUNT (TRUE Real Money): 
+    // The prize pool allocated to players is 70% of real ticket sales.
+    // The money that actually stayed in the system is that 70% minus the money ACTUALLY WON by real players.
+    const realPlayerWinnings = Number(realPlayerWinningsAgg._sum.amount || 0);
+    const botWinPayoutAmount = Math.max(0, (totalRealSales * 0.70) - realPlayerWinnings);
     const botWinCount = Number(botWinnerRecords._count?.id || 0);
 
     // Dynamic Revenue Split Settings
