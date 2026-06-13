@@ -1233,12 +1233,19 @@ staffRouter.get('/transactions/summary', async (req, res) => {
     userFilter = { referredBy: user.id };
   }
 
+  const txUserFilter = Object.keys(userFilter).length > 0 ? { user: userFilter } : {};
+
   try {
     const [
       pendingDeps,
       pendingWds,
       approvedDepsAgg,
-      completedWdsAgg
+      completedWdsAgg,
+      bonusCreditsAgg,
+      prizeWinningsAgg,
+      referralBonusAgg,
+      ticketPurchasesAgg,
+      totalWalletAgg,
     ] = await Promise.all([
       prisma.deposit.aggregate({
         where: { status: { in: ['pending', 'PENDING'] }, user: userFilter },
@@ -1257,16 +1264,57 @@ staffRouter.get('/transactions/summary', async (req, res) => {
       prisma.withdrawal.aggregate({
         where: { status: { in: ['approved', 'completed', 'APPROVED', 'COMPLETED'] }, user: userFilter },
         _sum: { amount: true }
-      })
+      }),
+      // Bonus credits (deposit bonus — DEPOSIT type but description contains 'bonus')
+      prisma.transaction.aggregate({
+        where: { type: 'DEPOSIT', description: { contains: 'bonus' }, ...txUserFilter },
+        _sum: { amount: true }
+      }),
+      // Real prize wins
+      prisma.transaction.aggregate({
+        where: { type: 'PRIZE_WIN', status: { in: ['completed', 'COMPLETED'] }, ...txUserFilter },
+        _sum: { amount: true }
+      }),
+      // Referral bonuses
+      prisma.transaction.aggregate({
+        where: { type: 'REFERRAL_BONUS', ...txUserFilter },
+        _sum: { amount: true }
+      }),
+      // Ticket purchases (money spent on tickets)
+      prisma.transaction.aggregate({
+        where: { type: 'TICKET_PURCHASE', status: { in: ['completed', 'COMPLETED'] }, ...txUserFilter },
+        _sum: { amount: true }
+      }),
+      // Current total wallet balances across all real players
+      prisma.wallet.aggregate({
+        where: Object.keys(userFilter).length > 0 ? { user: userFilter } : {},
+        _sum: { balance: true }
+      }),
     ]);
+
+    const totalDeposited    = Number(approvedDepsAgg._sum.amount || 0);
+    const totalWithdrawn    = Number(completedWdsAgg._sum.amount || 0);
+    const bonusCredits      = Number(bonusCreditsAgg._sum.amount || 0);
+    const prizeWinnings     = Number(prizeWinningsAgg._sum.amount || 0);
+    const referralBonuses   = Number(referralBonusAgg._sum.amount || 0);
+    const ticketsPurchased  = Number(ticketPurchasesAgg._sum.amount || 0);
+    const totalWalletBalance = Number(totalWalletAgg._sum.balance || 0);
 
     res.json({
       pendingDepositsCount: pendingDeps._count.id || 0,
       pendingDepositsSum: Number(pendingDeps._sum.amount || 0),
       pendingWithdrawalsCount: pendingWds._count.id || 0,
       pendingWithdrawalsSum: Number(pendingWds._sum.amount || 0),
-      totalDeposited: Number(approvedDepsAgg._sum.amount || 0),
-      totalWithdrawn: Number(completedWdsAgg._sum.amount || 0)
+      // Cash flow
+      totalDeposited,
+      totalWithdrawn,
+      // Wallet credits breakdown
+      bonusCredits,
+      prizeWinnings,
+      referralBonuses,
+      ticketsPurchased,
+      totalWalletBalance,
+      // Formula: Deposit + Bonus + Prizes + Referral - Tickets - Withdrawals = Balance
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message });

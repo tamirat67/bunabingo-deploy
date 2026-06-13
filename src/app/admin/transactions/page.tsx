@@ -53,7 +53,10 @@ export default function TransactionsPage() {
   const [summary, setSummary] = useState({
     pendingDepositsCount: 0, pendingDepositsSum: 0,
     pendingWithdrawalsCount: 0, pendingWithdrawalsSum: 0,
-    totalDeposited: 0, totalWithdrawn: 0
+    totalDeposited: 0, totalWithdrawn: 0,
+    bonusCredits: 0, prizeWinnings: 0,
+    referralBonuses: 0, ticketsPurchased: 0,
+    totalWalletBalance: 0,
   });
 
   const fetchSummary = useCallback(async () => {
@@ -179,11 +182,11 @@ export default function TransactionsPage() {
         <p style={{ color: '#78716c', margin: '4px 0 0', fontSize: '14px' }}>Authorize payments and audit full transaction history</p>
       </div>
 
-      {/* ── Summary Cards ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '28px' }}>
+      {/* ── Row 1: Pending + Cash Flow ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '14px', marginBottom: '16px' }}>
         <div className="premium-stat-card" style={{ borderLeft: '4px solid #eab308' }}>
           <div className="card-top-row">
-            <div className="card-icon-container" style={{ background: '#fef9c3', color: '#ca8a04' }}><FiClock size={20} /></div>
+            <div className="card-icon-container" style={{ background: '#fef9c3', color: '#ca8a04' }}><FiClock size={18} /></div>
             <span className="card-pill" style={{ background: 'rgba(234,179,8,0.1)', color: '#ca8a04' }}>Pending</span>
           </div>
           <div className="card-body">
@@ -194,7 +197,7 @@ export default function TransactionsPage() {
         </div>
         <div className="premium-stat-card" style={{ borderLeft: '4px solid #ef4444' }}>
           <div className="card-top-row">
-            <div className="card-icon-container" style={{ background: '#fee2e2', color: '#dc2626' }}><FiCreditCard size={20} /></div>
+            <div className="card-icon-container" style={{ background: '#fee2e2', color: '#dc2626' }}><FiCreditCard size={18} /></div>
             <span className="card-pill" style={{ background: 'rgba(239,68,68,0.1)', color: '#dc2626' }}>Pending</span>
           </div>
           <div className="card-body">
@@ -205,24 +208,95 @@ export default function TransactionsPage() {
         </div>
         <div className="premium-stat-card" style={{ borderLeft: '4px solid #22c55e' }}>
           <div className="card-top-row">
-            <div className="card-icon-container" style={{ background: '#dcfce7', color: '#16a34a' }}><FiArrowDownLeft size={20} /></div>
-            <span className="card-pill" style={{ background: 'rgba(34,197,94,0.1)', color: '#16a34a' }}>Total</span>
+            <div className="card-icon-container" style={{ background: '#dcfce7', color: '#16a34a' }}><FiArrowDownLeft size={18} /></div>
+            <span className="card-pill" style={{ background: 'rgba(34,197,94,0.1)', color: '#16a34a' }}>Cash In</span>
           </div>
           <div className="card-body">
             <div className="card-label">TOTAL DEPOSITED</div>
             <div className="card-value">{summary.totalDeposited.toLocaleString()} ETB</div>
-            <div className="card-subtext">Approved &amp; credited</div>
+            <div className="card-subtext">Real cash received from players</div>
           </div>
         </div>
         <div className="premium-stat-card" style={{ borderLeft: '4px solid #3b82f6' }}>
           <div className="card-top-row">
-            <div className="card-icon-container" style={{ background: '#dbeafe', color: '#2563eb' }}><FiArrowUpRight size={20} /></div>
-            <span className="card-pill" style={{ background: 'rgba(59,130,246,0.1)', color: '#2563eb' }}>Total</span>
+            <div className="card-icon-container" style={{ background: '#dbeafe', color: '#2563eb' }}><FiArrowUpRight size={18} /></div>
+            <span className="card-pill" style={{ background: 'rgba(59,130,246,0.1)', color: '#2563eb' }}>Cash Out</span>
           </div>
           <div className="card-body">
             <div className="card-label">TOTAL WITHDRAWN</div>
             <div className="card-value">{summary.totalWithdrawn.toLocaleString()} ETB</div>
             <div className="card-subtext">Approved &amp; paid out</div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Row 2: Where Player Balances Come From ── */}
+      <div style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.07)', borderRadius: '18px', padding: '20px', marginBottom: '28px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+          <span style={{ fontSize: '16px' }}>💳</span>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '900', color: '#3d2b1f' }}>Where Do Player Balances Come From?</h3>
+            <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#78716c' }}>Every source that adds or removes money from player wallets</p>
+          </div>
+        </div>
+
+        {/* Formula row */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px', marginBottom: '16px' }}>
+          {/* + Deposits */}
+          <div style={{ background: '#f0fdf4', borderRadius: '12px', padding: '12px', borderLeft: '3px solid #22c55e' }}>
+            <div style={{ fontSize: '10px', fontWeight: '800', color: '#166534', textTransform: 'uppercase', letterSpacing: '0.5px' }}>+ Real Deposits</div>
+            <div style={{ fontSize: '18px', fontWeight: '900', color: '#15803d', marginTop: '4px' }}>{summary.totalDeposited.toLocaleString()} ETB</div>
+            <div style={{ fontSize: '11px', color: '#4ade80', marginTop: '2px' }}>Cash paid in by players</div>
+          </div>
+
+          {/* + Bonus Credits */}
+          <div style={{ background: '#fefce8', borderRadius: '12px', padding: '12px', borderLeft: '3px solid #eab308' }}>
+            <div style={{ fontSize: '10px', fontWeight: '800', color: '#854d0e', textTransform: 'uppercase', letterSpacing: '0.5px' }}>+ Deposit Bonus (100%)</div>
+            <div style={{ fontSize: '18px', fontWeight: '900', color: '#b45309', marginTop: '4px' }}>{summary.bonusCredits.toLocaleString()} ETB</div>
+            <div style={{ fontSize: '11px', color: '#ca8a04', marginTop: '2px' }}>Free bonus given on each deposit</div>
+          </div>
+
+          {/* + Prize Wins */}
+          <div style={{ background: '#faf5ff', borderRadius: '12px', padding: '12px', borderLeft: '3px solid #a855f7' }}>
+            <div style={{ fontSize: '10px', fontWeight: '800', color: '#6b21a8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>+ Prize Winnings</div>
+            <div style={{ fontSize: '18px', fontWeight: '900', color: '#7e22ce', marginTop: '4px' }}>{summary.prizeWinnings.toLocaleString()} ETB</div>
+            <div style={{ fontSize: '11px', color: '#c084fc', marginTop: '2px' }}>Real player bingo wins</div>
+          </div>
+
+          {/* + Referral */}
+          <div style={{ background: '#eff6ff', borderRadius: '12px', padding: '12px', borderLeft: '3px solid #3b82f6' }}>
+            <div style={{ fontSize: '10px', fontWeight: '800', color: '#1e40af', textTransform: 'uppercase', letterSpacing: '0.5px' }}>+ Referral Bonuses</div>
+            <div style={{ fontSize: '18px', fontWeight: '900', color: '#1d4ed8', marginTop: '4px' }}>{summary.referralBonuses.toLocaleString()} ETB</div>
+            <div style={{ fontSize: '11px', color: '#60a5fa', marginTop: '2px' }}>5 ETB per invited friend</div>
+          </div>
+
+          {/* - Tickets */}
+          <div style={{ background: '#fef2f2', borderRadius: '12px', padding: '12px', borderLeft: '3px solid #ef4444' }}>
+            <div style={{ fontSize: '10px', fontWeight: '800', color: '#991b1b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>- Tickets Purchased</div>
+            <div style={{ fontSize: '18px', fontWeight: '900', color: '#dc2626', marginTop: '4px' }}>{summary.ticketsPurchased.toLocaleString()} ETB</div>
+            <div style={{ fontSize: '11px', color: '#f87171', marginTop: '2px' }}>Money spent on bingo tickets</div>
+          </div>
+
+          {/* - Withdrawals */}
+          <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '12px', borderLeft: '3px solid #64748b' }}>
+            <div style={{ fontSize: '10px', fontWeight: '800', color: '#334155', textTransform: 'uppercase', letterSpacing: '0.5px' }}>- Withdrawals Paid</div>
+            <div style={{ fontSize: '18px', fontWeight: '900', color: '#475569', marginTop: '4px' }}>{summary.totalWithdrawn.toLocaleString()} ETB</div>
+            <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>Cash sent back to players</div>
+          </div>
+        </div>
+
+        {/* Result */}
+        <div style={{ background: 'linear-gradient(135deg, #3d2b1f, #5c4a3a)', borderRadius: '12px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div style={{ fontSize: '11px', fontWeight: '800', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>= CURRENT TOTAL PLAYER WALLET BALANCE</div>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '3px' }}>
+              Deposits + Bonus + Prizes + Referral − Tickets − Withdrawals
+            </div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: '26px', fontWeight: '900', color: '#d4af37' }}>
+              {summary.totalWalletBalance.toLocaleString()} ETB
+            </div>
           </div>
         </div>
       </div>
