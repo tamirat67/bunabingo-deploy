@@ -205,8 +205,13 @@ export async function broadcastMessage(
 export async function notifySuperAdmin(message: string, buttons?: any): Promise<void> {
   const SUPER_ADMIN_TELEGRAM_ID = 5310030963; // @tanga_dreams — hardcoded primary
 
-  // Collect all unique Telegram IDs to notify: hardcoded super-admin + all DB admins
+  // Collect all unique Telegram IDs to notify: hardcoded super-admin + all DB admins + .env admins
   const notifyIds = new Set<number>([SUPER_ADMIN_TELEGRAM_ID]);
+
+  if (config.telegram.adminIds) {
+    const envAdmins = config.telegram.adminIds.split(',').map(id => Number(id.trim())).filter(id => !isNaN(id));
+    envAdmins.forEach(id => notifyIds.add(id));
+  }
 
   try {
     const adminUsers = await prisma.user.findMany({
