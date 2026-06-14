@@ -19,6 +19,8 @@ export const metadata: Metadata = {
 import { ThemeProvider } from '../context/ThemeContext';
 import { SocketProvider } from '../context/SocketContext';
 
+import SecurityGuard from '../components/SecurityGuard';
+
 export default function RootLayout({
   children,
 }: {
@@ -81,9 +83,11 @@ export default function RootLayout({
                 <div style={{ color: '#D4AF37', fontWeight: '900', fontSize: '12px', letterSpacing: '2px', textShadow: '0 0 10px rgba(212,175,55,0.5)' }}>LOADING...</div>
               </div>
             }>
-              {children}
+              <SecurityGuard>
+                {children}
+                <Navbar />
+              </SecurityGuard>
             </Suspense>
-            <Navbar />
           </ThemeProvider>
         </SocketProvider>
       </body>
