@@ -8,15 +8,8 @@ export async function handlePlaySpinMenu(ctx: Context) {
     `🍀 Best of luck on your Spin game adventure! 🎮\n` +
     `🍀 ለስፒን ጨዋታዎ መልካም እድል! 🎮`,
     Markup.inlineKeyboard([
-      // ── Row 1 ─────────────────────────────────────────────────────────────────
       [
-        Markup.button.callback('🎮 Spin 10 ይጫወቱ',  'spin_coming_soon'),
-        Markup.button.callback('🎮 Spin 20 ይጫወቱ',  'spin_coming_soon'),
-      ],
-      // ── Row 2 ─────────────────────────────────────────────────────────────────
-      [
-        Markup.button.callback('🎮 Spin 50 ይጫወቱ',  'spin_coming_soon'),
-        Markup.button.callback('🎮 Spin 100 ይጫወቱ', 'spin_coming_soon'),
+        Markup.button.webApp('🎰 Spin (Spin ተጫወት)', `${config.bot.miniAppUrl}/play/roulette`),
       ],
     ])
   );

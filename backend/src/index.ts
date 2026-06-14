@@ -90,6 +90,15 @@ async function main() {
     logger.error('❌ Failed to resume countdowns/games:', resumeErr);
   }
 
+  // ─── Start Roulette Engine ───────────────────────────────
+  try {
+    const { rouletteEngine } = await import('./game/roulette.engine');
+    rouletteEngine.start();
+    logger.info('✅ Global Roulette Engine started');
+  } catch (err) {
+    logger.error('❌ Failed to start Roulette Engine:', err);
+  }
+
   // ─── Background Jobs ─────────────────────────────────────
   startJobs(bot);
 

@@ -343,59 +343,36 @@ export default function LobbyPage() {
 
         </div>
 
-        {/* ── SPIN GAMES ── */}
+        {/* ── ROULETTE / SPIN GAMES ── */}
         <div style={{ padding: '20px 15px 0' }}>
           <div style={{ color: T.header, fontSize: '14px', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', textTransform: 'uppercase', opacity: 0.8 }}>
-            <Dices size={18} color={T.gold} /> SPIN GAMES
+            <Dices size={18} color={T.gold} /> ROULETTE
           </div>
           
-          <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr 120px', fontSize: '10px', fontWeight: '900', color: T.header, padding: '0 10px 8px', opacity: 0.4 }}>
-             <span>BET</span>
-             <span style={{ textAlign: 'center' }}>WIN/PLAYER</span>
-             <span style={{ textAlign: 'right' }}>STATUS & JOIN</span>
-          </div>
-
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          {spinRooms.map((room) => (
-              <React.Fragment key={room.type}>
-                <div onClick={() => handleJoinRoom(room)} style={{ background: T.cardLobby, padding: '15px 10px', display: 'grid', gridTemplateColumns: '70px 1fr 120px', alignItems: 'center', borderRadius: '4px', cursor: 'pointer' }}>
+            <div onClick={() => router.push('/play/roulette')} style={{ background: T.cardLobby, padding: '15px 10px', display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'center', borderRadius: '8px', cursor: 'pointer', border: `1px solid ${T.gold}44` }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                    <div style={{ width: '40px', height: '40px', background: T.gold, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Dices size={24} color={T.header} />
+                    </div>
                     <div>
-                        <div style={{ fontSize: '24px', fontWeight: '900', color: T.gold, lineHeight: '1' }}>{room.price}</div>
-                        <div style={{ fontSize: '9px', fontWeight: '900', color: T.textL, opacity: 0.4 }}>ETB</div>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-                        <Trophy size={20} color={T.gold} />
-                        <div style={{ textAlign: 'left' }}>
-                            <div style={{ fontSize: '20px', fontWeight: '900', color: T.textL, lineHeight: '1' }}>{room.win}</div>
-                            <div style={{ fontSize: '9px', color: T.textL, opacity: 0.4, fontWeight: 'bold' }}>{room.players} players</div>
-                        </div>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '5px' }}>
-                        <div style={{ background: '#4A90E2', color: 'white', fontSize: '8px', padding: '1px 6px', borderRadius: '4px', fontWeight: '900' }}>ACTIVE {room.active}</div>
-                        <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
-                            <div style={{ border: '1px solid #4CAF50', color: '#4CAF50', fontSize: '9px', padding: '2px 6px', borderRadius: '4px', fontWeight: '900' }}>READY</div>
-                            <div style={{ position: 'relative' }}>
-                                <button style={{ 
-                                  background: 'transparent', 
-                                  color: '#E67E22', 
-                                  border: '2px solid #E67E22', 
-                                  padding: '7px 14px', 
-                                  borderRadius: '6px', 
-                                  fontWeight: '900', 
-                                  fontSize: '11px',
-                                  opacity: 0.7
-                                }}>SOON</button>
-                                {room.isBonus && (
-                                    <div style={{ position: 'absolute', top: '-10px', right: '-5px', background: T.gold, color: T.header, fontSize: '7px', padding: '1px 4px', borderRadius: '4px', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '2px', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
-                                        BONUS
-                                    </div>
-                                )}
-                            </div>
-                        </div>
+                        <div style={{ fontSize: '20px', fontWeight: '900', color: T.gold, lineHeight: '1.2' }}>Spin (Spin ተጫወት)</div>
+                        <div style={{ fontSize: '11px', color: T.textL, opacity: 0.7, fontWeight: 'bold' }}>Multiplayer European Roulette</div>
                     </div>
                 </div>
-              </React.Fragment>
-            ))}
+                <div>
+                    <button style={{ 
+                      background: '#27AE60', 
+                      color: 'white', 
+                      border: 'none', 
+                      padding: '8px 16px', 
+                      borderRadius: '6px', 
+                      fontWeight: '900', 
+                      fontSize: '13px',
+                      boxShadow: '0 3px 0 #1E8449',
+                    }}>PLAY</button>
+                </div>
+            </div>
           </div>
         </div>
       </div>
