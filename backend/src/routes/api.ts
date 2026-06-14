@@ -1389,7 +1389,7 @@ staffRouter.get('/agents/:id/report', staffMiddleware, async (req, res) => {
       getAgentPreDepositStatus(agentId),
 
       prisma.deposit.aggregate({
-        where: { status: { in: ['APPROVED', 'approved'] }, userId: { in: referredUserIds }, ...dateFilter },
+        where: { status: { in: ['APPROVED', 'approved', 'COMPLETED', 'completed'] }, userId: { in: referredUserIds }, ...dateFilter },
         _sum: { amount: true }, _count: { id: true },
       }),
       prisma.deposit.aggregate({
@@ -1430,7 +1430,7 @@ staffRouter.get('/agents/:id/report', staffMiddleware, async (req, res) => {
       }),
       prisma.deposit.groupBy({
         by: ['userId'],
-        where: { status: { in: ['APPROVED', 'approved'] }, userId: { in: referredUserIds }, ...dateFilter },
+        where: { status: { in: ['APPROVED', 'approved', 'COMPLETED', 'completed'] }, userId: { in: referredUserIds }, ...dateFilter },
         _sum: { amount: true },
         orderBy: { _sum: { amount: 'desc' } },
         take: 5,
@@ -1509,7 +1509,7 @@ staffRouter.get('/agents/:id/report', staffMiddleware, async (req, res) => {
       const label = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
       const [mDep, mTickets] = await Promise.all([
         prisma.deposit.aggregate({
-          where: { status: { in: ['APPROVED', 'approved'] }, userId: { in: referredUserIds }, createdAt: { gte: start, lte: end } },
+          where: { status: { in: ['APPROVED', 'approved', 'COMPLETED', 'completed'] }, userId: { in: referredUserIds }, createdAt: { gte: start, lte: end } },
           _sum: { amount: true },
         }),
         prisma.transaction.aggregate({
