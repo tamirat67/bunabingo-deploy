@@ -40,8 +40,35 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="cmd-body">
-      <div className="cmd-login-card">
+    <div className="cmd-body" style={{ position: 'relative', overflow: 'hidden' }}>
+      {/* Brand Corner Stripes */}
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none', zIndex: 0 }}>
+        {/* Top Left - Blue */}
+        <div style={{ position: 'absolute', top: '20px', left: '-100px', width: '300px', transform: 'rotate(-45deg)', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ height: '32px', backgroundColor: '#0284c7', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+        </div>
+
+        {/* Bottom Left - Blue */}
+        <div style={{ position: 'absolute', bottom: '20px', left: '-100px', width: '300px', transform: 'rotate(45deg)', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ height: '32px', backgroundColor: '#0284c7', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+        </div>
+
+        {/* Top Right - Brand Colors (Red, Green, Yellow) */}
+        <div style={{ position: 'absolute', top: '20px', right: '-100px', width: '300px', transform: 'rotate(45deg)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ height: '16px', backgroundColor: '#dc2626', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} /> 
+          <div style={{ height: '16px', backgroundColor: '#16a34a', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} /> 
+          <div style={{ height: '16px', backgroundColor: '#eab308', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} /> 
+        </div>
+
+        {/* Bottom Right - Brand Colors (Red, Green, Yellow) */}
+        <div style={{ position: 'absolute', bottom: '20px', right: '-100px', width: '300px', transform: 'rotate(-45deg)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ height: '16px', backgroundColor: '#dc2626', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} /> 
+          <div style={{ height: '16px', backgroundColor: '#16a34a', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} /> 
+          <div style={{ height: '16px', backgroundColor: '#eab308', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} /> 
+        </div>
+      </div>
+
+      <div className="cmd-login-card" style={{ position: 'relative', zIndex: 10 }}>
         {/* Logo */}
         <div className="cmd-logo-wrapper">
           <img src="/logo.png" alt="Buna Bingo Brand" className="cmd-logo-img" style={{ borderRadius: '50%' }} />
