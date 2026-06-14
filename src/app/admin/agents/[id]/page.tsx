@@ -180,12 +180,12 @@ export default function AgentReportPage() {
         </div>
 
         {/* Massive Expected Profit Sum */}
-        <div style={{ marginBottom: '28px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '28px' }}>
+        <div style={{ marginBottom: '28px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '28px', wordBreak: 'break-word' }}>
           <div style={{ fontSize: '11px', fontWeight: '800', color: 'rgba(255,255,255,0.6)', letterSpacing: '1.5px', marginBottom: '8px', textTransform: 'uppercase' }}>
             TOTAL EXPECTED CASH FROM {agent.firstName?.toUpperCase()}
           </div>
-          <div style={{ fontSize: '46px', fontWeight: '900', color: '#fbbf24', lineHeight: 1, marginBottom: '10px' }}>
-            {fmt(stats.companyEarnedFromBranch + (stats.botDebtAdded || 0))} <span style={{ fontSize: '20px', color: 'rgba(255,255,255,0.5)' }}>ETB</span>
+          <div style={{ fontSize: 'clamp(32px, 8vw, 46px)', fontWeight: '900', color: '#fbbf24', lineHeight: 1.1, marginBottom: '10px' }}>
+            {fmt(stats.companyEarnedFromBranch + (stats.botDebtAdded || 0))} <span style={{ fontSize: 'clamp(16px, 4vw, 20px)', color: 'rgba(255,255,255,0.5)' }}>ETB</span>
           </div>
           <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
             <span><strong style={{ color: 'white' }}>{fmt(stats.companyEarnedFromBranch)}</strong> ETB (Company Share {fmtPct(stats.companyRate)})</span>

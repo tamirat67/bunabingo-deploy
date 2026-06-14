@@ -116,8 +116,8 @@ export default function CompanyProfitPage() {
         <div style={{ fontSize: '12px', fontWeight: '800', color: '#d4af37', letterSpacing: '2px', marginBottom: '8px', textTransform: 'uppercase' }}>
           🏆 Total Company Profit — {rangLabel}
         </div>
-        <div style={{ fontSize: '48px', fontWeight: '900', color: '#d4af37', marginBottom: '4px', lineHeight: 1.1 }}>
-          {fmt(totalCompanyProfit)} <span style={{ fontSize: '20px', color: 'rgba(212,175,55,0.7)' }}>ETB</span>
+        <div style={{ fontSize: 'clamp(32px, 8vw, 48px)', fontWeight: '900', color: '#d4af37', marginBottom: '4px', lineHeight: 1.1 }}>
+          {fmt(totalCompanyProfit)} <span style={{ fontSize: 'clamp(16px, 4vw, 20px)', color: 'rgba(212,175,55,0.7)' }}>ETB</span>
         </div>
         <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', marginBottom: '28px' }}>
           Company Share + Outstanding Bot Debt from all agents
