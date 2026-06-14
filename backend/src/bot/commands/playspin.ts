@@ -18,10 +18,6 @@ export async function handlePlaySpinMenu(ctx: Context) {
         Markup.button.callback('🎮 Spin 50 ይጫወቱ',  'spin_coming_soon'),
         Markup.button.callback('🎮 Spin 100 ይጫወቱ', 'spin_coming_soon'),
       ],
-      // ── Row 3: Demo (full-width, still works) ─────────────────────────────────
-      [
-        Markup.button.webApp('🎮 በነጻ ይሞክሩ (Demo)', `${config.bot.miniAppUrl}/tickets/select?type=DEMO&price=0`),
-      ],
     ])
   );
 }

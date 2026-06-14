@@ -341,24 +341,6 @@ export default function LobbyPage() {
             ))}
           </div>
 
-          {/* ── Practice Mode (Espresso) ── */}
-          <div onClick={() => router.push('/tickets/select?type=DEMO&price=0')} style={{ background: '#4B3621', padding: '15px 10px', display: 'grid', gridTemplateColumns: '80px 1fr 120px', alignItems: 'center', marginTop: '2px', borderRadius: '4px', cursor: 'pointer' }}>
-              <div>
-                  <div style={{ fontSize: '20px', fontWeight: '900', color: T.gold, lineHeight: '1' }}>FREE</div>
-                  <div style={{ fontSize: '9px', fontWeight: '900', color: 'rgba(255,255,255,0.4)' }}>DEMO</div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <Play size={20} fill={T.gold} color={T.gold} />
-                  <div>
-                      <div style={{ fontWeight: '900', fontSize: '13px', color: 'white' }}>Practice Mode</div>
-                      <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.4)' }}>No real money</div>
-                  </div>
-              </div>
-              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                  <button style={{ background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.1)', padding: '5px 10px', borderRadius: '4px', fontSize: '10px', fontWeight: '900' }}>OPEN</button>
-                  <button style={{ background: T.gold, border: 'none', color: T.header, padding: '5px 10px', borderRadius: '4px', fontSize: '10px', fontWeight: '900' }}>TRY</button>
-              </div>
-          </div>
         </div>
 
         {/* ── SPIN GAMES ── */}

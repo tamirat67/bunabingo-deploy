@@ -12,10 +12,9 @@ export async function handlePlayBingoMenu(ctx: Context) {
         Markup.button.webApp('🎮 Bingo 10 ይጫወቱ', `${config.bot.miniAppUrl}/tickets/select?type=CASUAL&price=10`),
         Markup.button.webApp('🎮 Bingo 20 ይጫወቱ', `${config.bot.miniAppUrl}/tickets/select?type=STANDARD&price=20`),
       ],
-      // ── Row 2: Mid-Stakes & Practice ──────────────────────────────────────────
+      // ── Row 2: Mid-Stakes ──────────────────────────────────────────
       [
         Markup.button.webApp('🎮 Bingo 50 ይጫወቱ', `${config.bot.miniAppUrl}/tickets/select?type=PRO&price=50`),
-        Markup.button.webApp('🎮 በነጻ ይሞክሩ (Demo)', `${config.bot.miniAppUrl}/tickets/select?type=DEMO&price=0`),
       ],
       // ── Row 3: VIP Room ───────────────────────────────────────────────────────
       [
