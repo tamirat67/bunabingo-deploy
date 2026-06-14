@@ -199,7 +199,7 @@ export default function AgentReportPage() {
       {/* ── KPI Grid ────────────────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px', marginBottom: '28px' }}>
         <StatCard icon={<FiUsers />} label="Branch Players" value={fmtInt(stats.totalPlayers)} sub={`+${stats.botCount} bots excluded`} color="#3b82f6" />
-        <StatCard icon={<FiArrowDownLeft />} label="Total Deposited" value={`${fmt(stats.totalDeposited)} ETB`} sub={`${fmtInt(stats.totalDepositsCount)} transactions`} color="#10b981" />
+        <StatCard icon={<FiArrowDownLeft />} label="Real Money Deposited" value={`${fmt(stats.totalDeposited)} ETB`} sub={`${fmtInt(stats.totalDepositsCount)} real player txs`} color="#10b981" />
         <StatCard icon={<FiArrowUpRight />} label="Total Withdrawn" value={`${fmt(stats.totalWithdrawn)} ETB`} sub={`${fmtInt(stats.totalWithdrawalsCount)} payments`} color="#ef4444" />
         <StatCard icon={<FiClock />} label="Pending Deposits" value={`${fmt(stats.pendingDeposits)} ETB`} sub={`${fmtInt(stats.pendingDepositsCount)} awaiting`} color="#f59e0b" />
         <StatCard icon={<FiClock />} label="Pending Withdrawals" value={`${fmt(stats.pendingWithdrawals)} ETB`} sub={`${fmtInt(stats.pendingWithdrawalsCount)} awaiting`} color="#f59e0b" />
@@ -311,7 +311,7 @@ export default function AgentReportPage() {
 
             {/* Top Players */}
             <div className="premium-card">
-              <h3 className="premium-card-title">🏆 Top Depositors in Branch</h3>
+              <h3 className="premium-card-title">🏆 Top Real Money Depositors</h3>
               <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {topPlayers && topPlayers.length > 0 ? topPlayers.map((p: any, i: number) => (
                   <div key={p.userId} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', background: i === 0 ? '#fffbeb' : '#fafaf9', borderRadius: '10px', border: i === 0 ? '1px solid #fde68a' : '1px solid #f5f5f4' }}>
@@ -340,7 +340,7 @@ export default function AgentReportPage() {
           <div className="data-table-container" style={{ overflow: 'hidden' }}>
             <div style={{ padding: '16px 20px', borderBottom: '1px solid #f5f5f4', background: '#fafaf9' }}>
               <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <FiCheckCircle color="#10b981" /> Recent Branch Deposits
+                <FiCheckCircle color="#10b981" /> Recent Real Player Deposits
               </h3>
             </div>
             <div style={{ maxHeight: '480px', overflowY: 'auto' }}>
