@@ -81,8 +81,8 @@ export default function LoginPage() {
         </div>
 
         {/* Title Section */}
-        <h1 className="cmd-title">
-          <span className="buna">BUNA</span> <span className="bingo">TECH</span>
+        <h1 className="cmd-title" style={{ fontWeight: '900' }}>
+          <span className="buna" style={{ fontWeight: '900' }}>BUNA</span> <span className="bingo" style={{ fontWeight: '900' }}>TECH</span>
         </h1>
         <p className="cmd-subtitle">The Command Center</p>
 
