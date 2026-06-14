@@ -37,7 +37,7 @@ function getSectorColor(index: number, num: number): string {
 
 // ── SVG Roulette Wheel (image2 style) ───────────────────────────────────────
 function RouletteWheel({ rotation, isSpinning }: { rotation: number; isSpinning: boolean }) {
-  const SIZE = 300;
+  const SIZE = 320;
   const cx = SIZE / 2;
   const cy = SIZE / 2;
   const outerR = 146;
