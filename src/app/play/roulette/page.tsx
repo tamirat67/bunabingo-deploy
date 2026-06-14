@@ -570,20 +570,7 @@ function RouletteContent() {
         </div>
       </div>
 
-      {/* ── Wheel area ── */}
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '14px 0 8px', position: 'relative', background: T.bg }}>
-        {/* Fixed pointer */}
-        <div style={{
-          position: 'absolute', top: 2, left: '50%', transform: 'translateX(-50%)',
-          width: 0, height: 0,
-          borderLeft: '13px solid transparent', borderRight: '13px solid transparent',
-          borderTop: `26px solid ${T.gold}`,
-          zIndex: 10, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))',
-        }} />
-        <div style={{ borderRadius: '50%', boxShadow: `0 0 50px ${T.gold}33, 0 16px 48px rgba(0,0,0,0.35)` }}>
-          <RouletteWheel rotation={wheelRotation} isSpinning={isSpinning} />
-        </div>
-      </div>
+      {/* ── Removed static wheel — now in modal below ── */}
 
       {/* ── Betting Board ── */}
       <div style={{ flex: 1, padding: '10px 8px 6px', background: T.header, borderTopLeftRadius: '20px', borderTopRightRadius: '20px', boxShadow: `0 -6px 24px rgba(0,0,0,0.3)` }}>
@@ -731,8 +718,45 @@ function RouletteContent() {
         </div>
       </div>
 
-      {/* Result overlay */}
+      {/* Modals overlay */}
       <AnimatePresence>
+        {(status === 'SPINNING' || isSpinning) && !showResult && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: 'fixed', inset: 0,
+              background: 'rgba(61,43,31,0.85)',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+              zIndex: 9997, backdropFilter: 'blur(6px)',
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.5, opacity: 0 }}
+              transition={{ type: 'spring', damping: 15 }}
+              style={{ position: 'relative' }}
+            >
+              {/* Pointer */}
+              <div style={{
+                position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)',
+                width: 0, height: 0,
+                borderLeft: '16px solid transparent', borderRight: '16px solid transparent',
+                borderTop: `32px solid ${T.gold}`,
+                zIndex: 10, filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.6))',
+              }} />
+              <div style={{ borderRadius: '50%', boxShadow: `0 0 80px ${T.gold}55, 0 24px 64px rgba(0,0,0,0.7)` }}>
+                <RouletteWheel rotation={wheelRotation} isSpinning={isSpinning} />
+              </div>
+            </motion.div>
+            <div style={{ marginTop: '36px', fontSize: '18px', fontWeight: '900', color: T.gold, letterSpacing: '4px' }}>
+              SPINNING...
+            </div>
+          </motion.div>
+        )}
+
         {showResult && currentResult !== null && (
           <ResultModal result={currentResult} winAmount={winAmount} onClose={() => setShowResult(false)} />
         )}
