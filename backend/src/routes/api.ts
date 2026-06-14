@@ -1448,10 +1448,10 @@ staffRouter.get('/agents/:id/report', staffMiddleware, async (req, res) => {
         take: 30,
       }),
       prisma.game.count({
-        where: { tickets: { some: { userId: { in: referredUserIds }, ...dateFilter } } },
+        where: { tickets: { some: { userId: { in: referredUserIds }, ...(dateFilter.createdAt ? { purchasedAt: dateFilter.createdAt } : {}) } } },
       }),
       prisma.winner.count({
-        where: { userId: { in: referredUserIds }, ...dateFilter },
+        where: { userId: { in: referredUserIds }, ...(dateFilter.createdAt ? { paidAt: dateFilter.createdAt } : {}) },
       }),
       prisma.agentCommissionLog.aggregate({
         where: { agentId, type: 'BOT_WIN_DEBT_ADDED', ...dateFilter },
