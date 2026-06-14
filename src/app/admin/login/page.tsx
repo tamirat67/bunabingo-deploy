@@ -41,30 +41,36 @@ export default function LoginPage() {
 
   return (
     <div className="cmd-body" style={{ position: 'relative', overflow: 'hidden' }}>
-      {/* Brand Corner Stripes */}
+      {/* Brand Floating Stripes */}
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none', zIndex: 0 }}>
-        {/* Top Left - Blue */}
-        <div style={{ position: 'absolute', top: '20px', left: '-100px', width: '300px', transform: 'rotate(-45deg)', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ height: '32px', backgroundColor: '#0284c7', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
-        </div>
-
+        
         {/* Bottom Left - Blue */}
-        <div style={{ position: 'absolute', bottom: '20px', left: '-100px', width: '300px', transform: 'rotate(45deg)', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ height: '32px', backgroundColor: '#0284c7', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
-        </div>
-
-        {/* Top Right - Brand Colors (Red, Green, Yellow) */}
-        <div style={{ position: 'absolute', top: '20px', right: '-100px', width: '300px', transform: 'rotate(45deg)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <div style={{ height: '16px', backgroundColor: '#dc2626', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} /> 
-          <div style={{ height: '16px', backgroundColor: '#16a34a', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} /> 
-          <div style={{ height: '16px', backgroundColor: '#eab308', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} /> 
-        </div>
+        <div style={{ 
+          position: 'absolute', 
+          bottom: '5%', 
+          left: '-5%', 
+          width: '350px', 
+          height: '36px', 
+          backgroundColor: '#00AEEF', 
+          borderRadius: '999px',
+          transform: 'rotate(-45deg)',
+          boxShadow: '0 8px 24px rgba(0, 174, 239, 0.2)'
+        }} />
 
         {/* Bottom Right - Brand Colors (Red, Green, Yellow) */}
-        <div style={{ position: 'absolute', bottom: '20px', right: '-100px', width: '300px', transform: 'rotate(-45deg)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <div style={{ height: '16px', backgroundColor: '#dc2626', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} /> 
-          <div style={{ height: '16px', backgroundColor: '#16a34a', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} /> 
-          <div style={{ height: '16px', backgroundColor: '#eab308', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} /> 
+        <div style={{ 
+          position: 'absolute', 
+          bottom: '10%', 
+          right: '-5%', 
+          transform: 'rotate(-45deg)', 
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: '20px',
+          alignItems: 'center'
+        }}>
+          <div style={{ width: '450px', height: '28px', backgroundColor: '#dc2626', borderRadius: '999px', boxShadow: '0 8px 24px rgba(220, 38, 38, 0.2)' }} /> 
+          <div style={{ width: '300px', height: '28px', backgroundColor: '#16a34a', borderRadius: '999px', boxShadow: '0 8px 24px rgba(22, 163, 74, 0.2)' }} /> 
+          <div style={{ width: '150px', height: '28px', backgroundColor: '#eab308', borderRadius: '999px', boxShadow: '0 8px 24px rgba(234, 179, 8, 0.2)' }} /> 
         </div>
       </div>
 
