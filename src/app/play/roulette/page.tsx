@@ -736,6 +736,9 @@ function RouletteContent() {
         {showResult && currentResult !== null && (
           <ResultModal result={currentResult} winAmount={winAmount} onClose={() => setShowResult(false)} />
         )}
+        {showHelp && (
+          <HowToPlayModal onClose={() => setShowHelp(false)} gold={T.gold} header={T.header} />
+        )}
       </AnimatePresence>
 
       <BunaModal
