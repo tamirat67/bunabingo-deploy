@@ -5,7 +5,7 @@ import { useSocket } from '../../../context/SocketContext';
 import { useTheme } from '../../../context/ThemeContext';
 import BunaModal from '../../../components/BunaModal';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Wallet as WalletIcon, X } from 'lucide-react';
+import { ArrowLeft, Wallet as WalletIcon, X, HelpCircle } from 'lucide-react';
 import { getMe } from '../../../lib/api';
 
 const CHIP_VALUES = [5, 10, 50, 100, 500, 1000];
@@ -221,6 +221,131 @@ function ResultModal({ result, winAmount, onClose }: { result: number; winAmount
   );
 }
 
+// ── How To Play Modal ───────────────────────────────────────────────────────
+function HowToPlayModal({ onClose, gold, header }: { onClose: () => void; gold: string; header: string }) {
+  const BET_ROWS = [
+    { bet: 'Straight Up (ቀጥታ ቁጥር)', desc: 'Pick any single number 0–36', pay: '35:1 🔥', chance: '2.7%' },
+    { bet: 'Red / Black (ቀይ / ጥቁር)',  desc: 'Ball color (0 loses)',        pay: '1:1',   chance: '48.6%' },
+    { bet: 'Even / Odd (ዝቅ / ጎደሎ)',   desc: 'Even or odd (0 loses)',        pay: '1:1',   chance: '48.6%' },
+    { bet: '1–18 / 19–36 (ዝቅ/ከፍ)',   desc: 'Low or high half (0 loses)',   pay: '1:1',   chance: '48.6%' },
+    { bet: '1st/2nd/3rd 12 (አስራ ሁለቱ)', desc: 'One of three dozens',       pay: '2:1',   chance: '32.4%' },
+    { bet: 'Column 2:1 (አምድ)',         desc: 'One of three columns',        pay: '2:1',   chance: '32.4%' },
+  ];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      style={{ position: 'fixed', inset: 0, background: 'rgba(61,43,31,0.88)', zIndex: 9998, backdropFilter: 'blur(6px)', overflowY: 'auto', padding: '20px 12px 40px' }}
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ y: 60, opacity: 0 }}
+        animate={{ y: 0,  opacity: 1 }}
+        exit={{ y: 60,    opacity: 0 }}
+        transition={{ type: 'spring', damping: 18 }}
+        onClick={e => e.stopPropagation()}
+        style={{ background: `linear-gradient(160deg, ${header} 0%, #2C1A0E 100%)`, borderRadius: '24px', border: `2px solid ${gold}`, maxWidth: '420px', margin: '0 auto', overflow: 'hidden' }}
+      >
+        {/* Modal Header */}
+        <div style={{ padding: '18px 20px 14px', borderBottom: `1px solid ${gold}33`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ fontSize: '17px', fontWeight: '900', color: gold, letterSpacing: '1px' }}>🎰 How to Play</div>
+            <div style={{ fontSize: '11px', color: `${gold}88`, marginTop: '2px' }}>እንዴት መጫወት ይቻላል</div>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: gold, cursor: 'pointer' }}><X size={22} /></button>
+        </div>
+
+        <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+          {/* Round flow */}
+          <div style={{ background: `${gold}12`, borderRadius: '12px', padding: '14px', border: `1px solid ${gold}33` }}>
+            <div style={{ fontSize: '11px', fontWeight: '900', color: gold, letterSpacing: '2px', marginBottom: '10px' }}>ROUND FLOW • ዙር ሂደት</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+              {[
+                { icon: '⏳', label: 'BET', sub: '30s', color: '#27AE60' },
+                { icon: '→', label: '', sub: '', color: gold },
+                { icon: '🎰', label: 'SPIN', sub: '10s', color: gold },
+                { icon: '→', label: '', sub: '', color: gold },
+                { icon: '✅', label: 'PAYOUT', sub: '5s', color: '#078930' },
+                { icon: '→', label: '', sub: '', color: gold },
+                { icon: '🔄', label: 'REPEAT', sub: '', color: '#0097A7' },
+              ].map((step, i) => step.label ? (
+                <div key={i} style={{ textAlign: 'center', flex: '0 0 auto' }}>
+                  <div style={{ fontSize: '18px' }}>{step.icon}</div>
+                  <div style={{ fontSize: '8px', fontWeight: '900', color: step.color, letterSpacing: '0.5px' }}>{step.label}</div>
+                  {step.sub && <div style={{ fontSize: '7px', color: `${gold}66` }}>{step.sub}</div>}
+                </div>
+              ) : (
+                <div key={i} style={{ color: gold, fontSize: '14px', opacity: 0.4 }}>{step.icon}</div>
+              ))}
+            </div>
+          </div>
+
+          {/* Bet types table */}
+          <div>
+            <div style={{ fontSize: '11px', fontWeight: '900', color: gold, letterSpacing: '2px', marginBottom: '8px' }}>BET TYPES & PAYOUTS • ዓይነቶችና ክፍያ</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              {/* Header row */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 60px 50px', gap: '4px', padding: '4px 8px' }}>
+                <div style={{ fontSize: '9px', color: `${gold}66`, fontWeight: '900', textTransform: 'uppercase' }}>BET</div>
+                <div style={{ fontSize: '9px', color: `${gold}66`, fontWeight: '900', textAlign: 'center' }}>PAYOUT</div>
+                <div style={{ fontSize: '9px', color: `${gold}66`, fontWeight: '900', textAlign: 'right' }}>ODDS</div>
+              </div>
+              {BET_ROWS.map((row, i) => (
+                <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 60px 50px', gap: '4px', background: i % 2 === 0 ? `${gold}08` : 'transparent', padding: '8px', borderRadius: '6px' }}>
+                  <div>
+                    <div style={{ fontSize: '11px', fontWeight: '900', color: '#F5E6BE' }}>{row.bet}</div>
+                    <div style={{ fontSize: '9px', color: `${gold}77`, marginTop: '1px' }}>{row.desc}</div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ background: `${gold}22`, border: `1px solid ${gold}55`, borderRadius: '6px', padding: '3px 7px', fontSize: '11px', fontWeight: '900', color: gold, textAlign: 'center' }}>{row.pay}</div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', fontSize: '10px', color: `${gold}88`, fontWeight: '700' }}>{row.chance}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Zero rule */}
+          <div style={{ background: '#07893022', border: '1px solid #07893066', borderRadius: '10px', padding: '12px 14px', display: 'flex', gap: '10px' }}>
+            <div style={{ fontSize: '24px', lineHeight: 1 }}>🟢</div>
+            <div>
+              <div style={{ fontSize: '12px', fontWeight: '900', color: '#4CAF50', marginBottom: '3px' }}>Zero Rule • ዜሮ ደንብ</div>
+              <div style={{ fontSize: '10px', color: '#F5E6BE', lineHeight: 1.5 }}>
+                When <strong style={{ color: '#4CAF50' }}>0</strong> lands, all outside bets (Red/Black, Even/Odd, High/Low, Dozens, Columns) <strong style={{ color: '#DA121A' }}>lose</strong>. Only a Straight Up on 0 wins at 35:1.
+              </div>
+              <div style={{ fontSize: '10px', color: `${gold}88`, marginTop: '4px' }}>0 ሲወድቅ የውጪ ሁሉም ጥቅሎች ያጣሉ</div>
+            </div>
+          </div>
+
+          {/* Quick tips */}
+          <div style={{ background: `${gold}10`, borderRadius: '10px', padding: '12px 14px', border: `1px solid ${gold}22` }}>
+            <div style={{ fontSize: '11px', fontWeight: '900', color: gold, letterSpacing: '2px', marginBottom: '8px' }}>💡 QUICK TIPS • ጠቃሚ ምክሮች</div>
+            {[
+              { emoji: '🛡️', tip: 'Safe: Red/Black or Even/Odd — ~49% win chance' },
+              { emoji: '⚖️', tip: 'Balanced: Dozen (2:1) + one outside bet' },
+              { emoji: '🔥', tip: 'Big win: Straight Up pays 35:1 (low chance)' },
+              { emoji: '💰', tip: 'Bonus balance is used first automatically' },
+            ].map((t, i) => (
+              <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', marginBottom: '6px' }}>
+                <span style={{ fontSize: '14px' }}>{t.emoji}</span>
+                <span style={{ fontSize: '10px', color: '#F5E6BE', lineHeight: 1.5 }}>{t.tip}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Close button */}
+          <button onClick={onClose} style={{ padding: '14px', background: `linear-gradient(90deg, ${gold}, #B8860B)`, color: '#3D2B1F', border: 'none', borderRadius: '12px', fontWeight: '900', fontSize: '15px', cursor: 'pointer', boxShadow: '0 4px 0 #8B6B1D' }}>
+            Got it! ገባኝ ✓
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 // ── Chip bubble badge ────────────────────────────────────────────────────────
 function Chip({ val, small }: { val: number; small?: boolean }) {
   const s = small ? 14 : 18;
@@ -247,7 +372,7 @@ function NumCell({ num, bet, onClick, gold, header }: { num: number; bet?: numbe
     <div onClick={onClick}
       style={{ background: bg, color: '#F5E6BE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: '900', borderRadius: '3px', position: 'relative', cursor: 'pointer', border: `1px solid ${border}`, minHeight: '28px', userSelect: 'none' }}>
       {num}
-      {bet > 0 && <Chip val={bet} small />}
+      {(bet ?? 0) > 0 && <Chip val={bet!} small />}
     </div>
   );
 }
@@ -279,6 +404,7 @@ function RouletteContent() {
   const [betConfirmed,  setBetConfirmed]  = useState(false);
 
   const [modal, setModal] = useState({ isOpen: false, title: '', message: '' });
+  const [showHelp, setShowHelp] = useState(false);
 
   // Refresh balance
   const refreshBalance = () =>
@@ -409,8 +535,12 @@ function RouletteContent() {
             ROULETTE <span style={{ color: '#FCDD09', fontSize: '11px', fontWeight: '700' }}>ሩሌት</span>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: `${T.gold}18`, border: `1px solid ${T.gold}44`, borderRadius: '20px', padding: '5px 12px', color: '#4CAF50', fontSize: '13px', fontWeight: '900' }}>
-          <WalletIcon size={14} /> {(balance + bonusBalance).toFixed(2)}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <button onClick={() => setShowHelp(true)} style={{ background: 'none', border: 'none', color: T.gold, cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }} title="How to Play">
+            <HelpCircle size={22} />
+          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: `${T.gold}18`, border: `1px solid ${T.gold}44`, borderRadius: '20px', padding: '5px 12px', color: '#4CAF50', fontSize: '13px', fontWeight: '900' }}>
+            <WalletIcon size={14} /> {(balance + bonusBalance).toFixed(2)}
         </div>
       </div>
 
