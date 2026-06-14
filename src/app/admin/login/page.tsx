@@ -44,20 +44,20 @@ export default function LoginPage() {
       {/* Full Page Brand Footer Stripes */}
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none', zIndex: 0, overflow: 'hidden' }}>
         
-        {/* Bottom Left - Blue */}
+        {/* Bottom Left - Gold (App Brand Color) */}
         <div style={{ 
           position: 'absolute', 
           bottom: '5%', 
           left: '-5%', 
           width: '350px', 
           height: '36px', 
-          backgroundColor: '#00AEEF', 
+          backgroundColor: '#d4af37', 
           borderRadius: '999px',
           transform: 'rotate(-45deg)',
-          boxShadow: '0 8px 24px rgba(0, 174, 239, 0.2)'
+          boxShadow: '0 8px 24px rgba(212, 175, 55, 0.2)'
         }} />
 
-        {/* Bottom Right - Brand Colors (Red, Green, Yellow) */}
+        {/* Bottom Right - App Colors (Red, Green, Yellow) */}
         <div style={{ 
           position: 'absolute', 
           bottom: '10%', 
@@ -66,11 +66,11 @@ export default function LoginPage() {
           display: 'flex', 
           flexDirection: 'column', 
           gap: '20px',
-          alignItems: 'center'
+          alignItems: 'flex-start'
         }}>
-          <div style={{ width: '450px', height: '28px', backgroundColor: '#dc2626', borderRadius: '999px', boxShadow: '0 8px 24px rgba(220, 38, 38, 0.2)' }} /> 
-          <div style={{ width: '300px', height: '28px', backgroundColor: '#16a34a', borderRadius: '999px', boxShadow: '0 8px 24px rgba(22, 163, 74, 0.2)' }} /> 
-          <div style={{ width: '150px', height: '28px', backgroundColor: '#eab308', borderRadius: '999px', boxShadow: '0 8px 24px rgba(234, 179, 8, 0.2)' }} /> 
+          <div style={{ width: '450px', height: '28px', backgroundColor: '#D32F2F', borderRadius: '999px', boxShadow: '0 8px 24px rgba(211, 47, 47, 0.2)' }} /> 
+          <div style={{ width: '350px', height: '28px', backgroundColor: '#4CAF50', borderRadius: '999px', boxShadow: '0 8px 24px rgba(76, 175, 80, 0.2)' }} /> 
+          <div style={{ width: '250px', height: '28px', backgroundColor: '#FFC107', borderRadius: '999px', boxShadow: '0 8px 24px rgba(255, 193, 7, 0.2)' }} /> 
         </div>
       </div>
 
