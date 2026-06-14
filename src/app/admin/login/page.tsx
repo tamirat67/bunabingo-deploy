@@ -82,7 +82,7 @@ export default function LoginPage() {
 
         {/* Title Section */}
         <h1 className="cmd-title">
-          <span className="buna">BUNA</span> <span className="bingo">Tech</span>
+          <span className="buna">BUNA</span> <span className="bingo">TECH</span>
         </h1>
         <p className="cmd-subtitle">The Command Center</p>
 
