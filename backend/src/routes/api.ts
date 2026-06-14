@@ -933,9 +933,15 @@ router.get('/games/:gameId', async (req: Request, res: Response) => {
       
       const realName = w.user?.firstName || w.user?.telegramUsername;
       const ETHIOPIAN_NAMES = [
-        'Abebe', 'Kebede', 'Selam', 'Tesfaye', 'Dawit', 'Yonas', 'Tigist', 'Almaz',
-        'Meron', 'Hiwot', 'Tizita', 'Biruk', 'Nahom', 'Eyob', 'Liya', 'Saron',
-        'Kalkidan', 'Robel', 'Bethel', 'Henok', 'Rahel', 'Tsion', 'Abel', 'Eden',
+        'Abebe', 'Kebede', 'Tommy', 'Tesfaye', 'Girma', 'Tadesse', 'Haile',
+        'Dawit', 'Bereket', 'Solomon', 'Yonas', 'Fitsum', 'Ermias', 'Mulugeta',
+        'Getachew', 'Mekonnen', 'Amanuel', 'Henok', 'Natnael', 'Biniam',
+        'Teklay', 'Yohannes', 'Tewodros', 'Feleke', 'Bekele', 'Alemayehu',
+        'Getu', 'Degu', 'Bura', 'Tigistu', 'Gadisa', 'Tolosa', 'Dereje',
+        'Hussein', 'Abel', 'Challa', 'Gemechu', 'Tilahun', 'Ephrem', 'Surafel',
+        'Kidus', 'Robel', 'Eyob', 'Berhane', 'Tsegay', 'Kibrom', 'Hagos',
+        'Bisrat', 'Semere', 'Aman', 'Zelalem', 'Matias', 'Mikias', 'Nahom',
+        'Samuel', 'Elias', 'Kaleb', 'Abdi', 'Fikru', 'Sirak', 'Leul',
       ];
       let nameHash = 0;
       // MUST match engine.ts exactly: String(game.id) + String(w.ticketId)
@@ -1056,9 +1062,15 @@ router.get('/leaderboard', async (req: Request, res: Response) => {
       if (user?.isBot) {
         // MUST match the 24-name array in backend/src/game/engine.ts
         const ETHIOPIAN_NAMES = [
-          'Abebe', 'Kebede', 'Selam', 'Tesfaye', 'Dawit', 'Yonas', 'Tigist', 'Almaz',
-          'Meron', 'Hiwot', 'Tizita', 'Biruk', 'Nahom', 'Eyob', 'Liya', 'Saron',
-          'Kalkidan', 'Robel', 'Bethel', 'Henok', 'Rahel', 'Tsion', 'Abel', 'Eden',
+          'Abebe', 'Kebede', 'Tommy', 'Tesfaye', 'Girma', 'Tadesse', 'Haile',
+          'Dawit', 'Bereket', 'Solomon', 'Yonas', 'Fitsum', 'Ermias', 'Mulugeta',
+          'Getachew', 'Mekonnen', 'Amanuel', 'Henok', 'Natnael', 'Biniam',
+          'Teklay', 'Yohannes', 'Tewodros', 'Feleke', 'Bekele', 'Alemayehu',
+          'Getu', 'Degu', 'Bura', 'Tigistu', 'Gadisa', 'Tolosa', 'Dereje',
+          'Hussein', 'Abel', 'Challa', 'Gemechu', 'Tilahun', 'Ephrem', 'Surafel',
+          'Kidus', 'Robel', 'Eyob', 'Berhane', 'Tsegay', 'Kibrom', 'Hagos',
+          'Bisrat', 'Semere', 'Aman', 'Zelalem', 'Matias', 'Mikias', 'Nahom',
+          'Samuel', 'Elias', 'Kaleb', 'Abdi', 'Fikru', 'Sirak', 'Leul',
         ];
         let nameHash = 0;
         const nameSeed = String(w.userId);

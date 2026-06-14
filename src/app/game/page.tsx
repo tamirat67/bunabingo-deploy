@@ -317,7 +317,12 @@ function GameContent() {
     if (!gameId) return;
     Promise.all([
       getGame(gameId), 
-      getMyCard(gameId).catch(() => ({ tickets: [] }))
+      // ── Retry once on failure to handle DB write timing races ─────────────────
+      // (tickets may not be committed yet when this fires immediately after redirect)
+      getMyCard(gameId).catch(async () => {
+        await new Promise(r => setTimeout(r, 1500));
+        return getMyCard(gameId).catch(() => ({ tickets: [] }));
+      })
     ]).then(([g, t]) => {
       setGame(g);
 
@@ -472,6 +477,24 @@ function GameContent() {
     }
 
     if (!gameId) return;
+
+    // ── Safety net: detect if URL has the WRONG gameId ───────────────────────
+    // When the select page redirects, activeGameIdRef can drift to the NEXT game.
+    // joinedGameIdRef saves the correct game at purchase and writes to sessionStorage.
+    // If they differ, redirect to the correct game immediately before loading.
+    try {
+      const correctId = sessionStorage.getItem('joined_game_id');
+      if (correctId && correctId !== gameId) {
+        // Wrong gameId in URL — redirect to the one the player actually joined
+        sessionStorage.removeItem('joined_game_id');
+        router.replace(`/game?id=${correctId}&type=${spType}&price=${spPrice || ''}`);
+        return;
+      }
+      // Clear after successful match so it doesn't interfere with future games
+      if (correctId && correctId === gameId) {
+        sessionStorage.removeItem('joined_game_id');
+      }
+    } catch(e) {}
 
     loadData();
     // One retry at 1.5s to catch any state that was mid-update on first load

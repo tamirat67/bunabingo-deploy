@@ -63,6 +63,11 @@ function SelectionContent() {
   const activeGameIdRef = useRef<string | undefined>(gameId);
   const lastJoinedRunningGameIdRef = useRef<string | null>(null);
   const redirectedRef = useRef(false);
+  // ── Tracks the exact gameId the player joined at purchase time ──────────────
+  // activeGameIdRef drifts to the NEXT WAITING game after a poll update.
+  // Using it for the redirect sends the player to the WRONG game and causes
+  // "Fetching cards..." forever. This ref is set once in joinGame() and never changes.
+  const joinedGameIdRef = useRef<string | null>(null);
   const [liveGameDismissed, setLiveGameDismissed] = useState(false);
   const [currentBallSelect, setCurrentBallSelect] = useState<number | null>(null);
   // ── Server-time-anchored countdown for the LIVE GAME "NEXT CHECK" banner ──
@@ -437,6 +442,13 @@ function SelectionContent() {
           setOwnedCardIds(res.tickets.map((t: any) => t.card.id));
           setSelected([]);
         }
+        // ── Save the exact gameId the player was placed in ─────────────────────
+        // This MUST be saved here (at purchase time) before activeGameIdRef drifts
+        // to the next WAITING game. All redirects below prefer this over activeGameIdRef.
+        if (res?.gameId) {
+          joinedGameIdRef.current = res.gameId;
+          try { sessionStorage.setItem('joined_game_id', res.gameId); } catch(e) {}
+        }
       }).catch(() => {}).finally(() => {
         // Only release joining lock if we are still on the page, but let it stay true during transition
         setTimeout(() => setJoining(false), 2000);
@@ -550,12 +562,16 @@ function SelectionContent() {
         liveGameEndTimeRef.current = endTime;
         setLiveGameEndTime(endTime);
         // Redirect ONLY users who bought tickets for this game
+        // ── CRITICAL: prefer joinedGameIdRef (set at purchase) over activeGameIdRef ──
+        // activeGameIdRef may have drifted to the NEXT WAITING game by this point.
+        // d.gameId from the socket is the actual RUNNING game ID and is also reliable.
         if (!redirectedRef.current && ownedRef.current.length > 0) {
           redirectedRef.current = true;
+          const destId = joinedGameIdRef.current || d.gameId || activeGameIdRef.current;
           if (roomType.startsWith('SPIN_')) {
-            router.push(`/play/spin?id=${d.gameId || activeGameIdRef.current}&stake=${stake}`);
+            router.push(`/play/spin?id=${destId}&stake=${stake}`);
           } else {
-            router.push(`/game?id=${d.gameId || activeGameIdRef.current}&type=${roomType}&price=${stake}`);
+            router.push(`/game?id=${destId}&type=${roomType}&price=${stake}`);
           }
         }
       });
@@ -775,10 +791,12 @@ function SelectionContent() {
     // Redirect ONLY users who bought tickets when the game status becomes RUNNING
     if (game?.status === 'RUNNING' && activeGameId && !redirectedRef.current && ownedCardIds.length > 0) {
       redirectedRef.current = true;
+      // ── Prefer the gameId saved at purchase time (most reliable) ─────────────
+      const destId = joinedGameIdRef.current || activeGameId;
       if (roomType.startsWith('SPIN_')) {
-        router.push(`/play/spin?id=${activeGameId}&stake=${stake}`);
+        router.push(`/play/spin?id=${destId}&stake=${stake}`);
       } else {
-        router.push(`/game?id=${activeGameId}&type=${roomType}&price=${stake}`);
+        router.push(`/game?id=${destId}&type=${roomType}&price=${stake}`);
       }
     }
   }, [game?.status, activeGameId, roomType, stake, router, ownedCardIds.length]);
