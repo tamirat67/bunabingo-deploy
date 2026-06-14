@@ -41,22 +41,40 @@ export default function LoginPage() {
 
   return (
     <div className="cmd-body" style={{ position: 'relative', overflow: 'hidden' }}>
-      <div className="cmd-login-card" style={{ position: 'relative', zIndex: 10 }}>
-        {/* Brand Corner Stripes (Footer Part) */}
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '150px', pointerEvents: 'none', zIndex: 0, overflow: 'hidden', borderRadius: '0 0 32px 32px' }}>
-          
-          {/* Bottom Left - Blue */}
-          <div style={{ position: 'absolute', bottom: '10px', left: '-80px', width: '250px', transform: 'rotate(45deg)', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ height: '24px', backgroundColor: '#00AEEF' }} />
-          </div>
+      {/* Full Page Brand Footer Stripes */}
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none', zIndex: 0, overflow: 'hidden' }}>
+        
+        {/* Bottom Left - Blue */}
+        <div style={{ 
+          position: 'absolute', 
+          bottom: '5%', 
+          left: '-5%', 
+          width: '350px', 
+          height: '36px', 
+          backgroundColor: '#00AEEF', 
+          borderRadius: '999px',
+          transform: 'rotate(-45deg)',
+          boxShadow: '0 8px 24px rgba(0, 174, 239, 0.2)'
+        }} />
 
-          {/* Bottom Right - Brand Colors */}
-          <div style={{ position: 'absolute', bottom: '10px', right: '-80px', width: '250px', transform: 'rotate(-45deg)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <div style={{ height: '12px', backgroundColor: '#dc2626' }} /> 
-            <div style={{ height: '12px', backgroundColor: '#16a34a' }} /> 
-            <div style={{ height: '12px', backgroundColor: '#eab308' }} /> 
-          </div>
+        {/* Bottom Right - Brand Colors (Red, Green, Yellow) */}
+        <div style={{ 
+          position: 'absolute', 
+          bottom: '10%', 
+          right: '-5%', 
+          transform: 'rotate(-45deg)', 
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: '20px',
+          alignItems: 'center'
+        }}>
+          <div style={{ width: '450px', height: '28px', backgroundColor: '#dc2626', borderRadius: '999px', boxShadow: '0 8px 24px rgba(220, 38, 38, 0.2)' }} /> 
+          <div style={{ width: '300px', height: '28px', backgroundColor: '#16a34a', borderRadius: '999px', boxShadow: '0 8px 24px rgba(22, 163, 74, 0.2)' }} /> 
+          <div style={{ width: '150px', height: '28px', backgroundColor: '#eab308', borderRadius: '999px', boxShadow: '0 8px 24px rgba(234, 179, 8, 0.2)' }} /> 
         </div>
+      </div>
+
+      <div className="cmd-login-card" style={{ position: 'relative', zIndex: 10 }}>
         {/* Logo */}
         <div className="cmd-logo-wrapper">
           <img src="/logo.png" alt="Buna Bingo Brand" className="cmd-logo-img" style={{ borderRadius: '50%' }} />
