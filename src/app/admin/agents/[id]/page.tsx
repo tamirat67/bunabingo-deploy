@@ -175,8 +175,23 @@ export default function AgentReportPage() {
         <div style={{ fontSize: '12px', fontWeight: '800', color: '#d4af37', letterSpacing: '2px', marginBottom: '6px', textTransform: 'uppercase' }}>
           💰 Branch Profit Breakdown — {timeRange === 'all' ? 'All Time' : timeRange === 'today' ? 'Today' : timeRange === 'week' ? 'Last 7 Days' : 'Last 30 Days'}
         </div>
-        <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.55)', marginBottom: '24px' }}>
+        <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.55)', marginBottom: '28px' }}>
           Agent earns <strong style={{ color: '#d4af37' }}>{fmtPct(stats.agentRate)}</strong> of all real ticket sales · Company earns <strong style={{ color: '#fbbf24' }}>{fmtPct(stats.companyRate)}</strong>
+        </div>
+
+        {/* Massive Expected Profit Sum */}
+        <div style={{ marginBottom: '28px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '28px' }}>
+          <div style={{ fontSize: '11px', fontWeight: '800', color: 'rgba(255,255,255,0.6)', letterSpacing: '1.5px', marginBottom: '8px', textTransform: 'uppercase' }}>
+            TOTAL EXPECTED CASH FROM {agent.firstName?.toUpperCase()}
+          </div>
+          <div style={{ fontSize: '46px', fontWeight: '900', color: '#fbbf24', lineHeight: 1, marginBottom: '10px' }}>
+            {fmt(stats.companyEarnedFromBranch + (stats.botDebtAdded || 0))} <span style={{ fontSize: '20px', color: 'rgba(255,255,255,0.5)' }}>ETB</span>
+          </div>
+          <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+            <span><strong style={{ color: 'white' }}>{fmt(stats.companyEarnedFromBranch)}</strong> ETB (Company Share {fmtPct(stats.companyRate)})</span>
+            <span style={{ color: 'rgba(255,255,255,0.3)' }}>+</span>
+            <span><strong style={{ color: 'white' }}>{fmt(stats.botDebtAdded || 0)}</strong> ETB (Total Bot Winnings)</span>
+          </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '16px' }}>
