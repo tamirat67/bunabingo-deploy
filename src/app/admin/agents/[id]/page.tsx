@@ -209,13 +209,6 @@ export default function AgentReportPage() {
             </div>
             <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', marginTop: '4px' }}>Deposits − Withdrawals</div>
           </div>
-
-          {/* House Edge */}
-          <div style={{ background: 'rgba(255,255,255,0.07)', borderRadius: '14px', padding: '16px', border: '1px solid rgba(255,255,255,0.1)' }}>
-            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', fontWeight: '800', letterSpacing: '1px', marginBottom: '6px' }}>HOUSE EDGE</div>
-            <div style={{ fontSize: '24px', fontWeight: '900', color: stats.houseEdge >= 0 ? '#4ade80' : '#f87171' }}>{fmt(stats.houseEdge)}</div>
-            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', marginTop: '4px' }}>Sales − Prizes Paid</div>
-          </div>
         </div>
       </div>
 
@@ -226,8 +219,6 @@ export default function AgentReportPage() {
         <StatCard icon={<FiArrowUpRight />} label="Total Withdrawn" value={`${fmt(stats.totalWithdrawn)} ETB`} sub={`${fmtInt(stats.totalWithdrawalsCount)} payments`} color="#ef4444" />
         <StatCard icon={<FiClock />} label="Pending Deposits" value={`${fmt(stats.pendingDeposits)} ETB`} sub={`${fmtInt(stats.pendingDepositsCount)} awaiting`} color="#f59e0b" />
         <StatCard icon={<FiClock />} label="Pending Withdrawals" value={`${fmt(stats.pendingWithdrawals)} ETB`} sub={`${fmtInt(stats.pendingWithdrawalsCount)} awaiting`} color="#f59e0b" />
-        <StatCard icon={<FiAward />} label="Prizes Paid Out" value={`${fmt(stats.totalPrizesWon)} ETB`} sub={`${fmtInt(stats.totalWinnersCount)} winners`} color="#8b5cf6" />
-        <StatCard icon={<FiActivity />} label="Games Played" value={fmtInt(stats.gamesPlayed)} sub="by branch players" color="#06b6d4" />
       </div>
 
       {/* ── Tabs ────────────────────────────────────────────── */}

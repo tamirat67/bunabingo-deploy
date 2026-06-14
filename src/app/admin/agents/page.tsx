@@ -302,8 +302,8 @@ export default function AgentsPage() {
               <th>Referral Code / Link</th>
               <th>Branch Players</th>
               <th>Pre-Deposit Balance</th>
-              <th>Real Profit</th>
-              <th>Bot Exposure</th>
+              <th style={{ textAlign: 'right' }}>Net Cash Flow</th>
+              <th style={{ textAlign: 'right' }}>Outstanding Debt</th>
               <th style={{ textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
@@ -353,29 +353,21 @@ export default function AgentsPage() {
                      )}
                    </div>
                 </td>
-                 <td>
-                    {/* Real Net Profit: earnings from real (non-bot) players → positive green */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                      <div style={{ color: '#10b981', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '14px' }}>
-                        <FiTrendingUp size={13} />
-                        +{Number(agent.realNetProfit ?? agent.wallet?.referralBalance ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
+                 <td style={{ textAlign: 'right' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'flex-end' }}>
+                      <div style={{ fontWeight: '800', color: (agent.wallet?.referralBalance ?? 0) >= 0 ? '#10b981' : '#ef4444', fontSize: '14px' }}>
+                        {(agent.wallet?.referralBalance ?? 0) >= 0 ? '+' : ''}{Number(agent.wallet?.referralBalance ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
                       </div>
-                      <span style={{ fontSize: '10px', color: '#059669', fontWeight: '700', textTransform: 'uppercase' }}>Real Money</span>
+                      <span style={{ fontSize: '10px', color: '#8c857b', fontWeight: '700', textTransform: 'uppercase' }}>Deposits - W/D</span>
                     </div>
                  </td>
-                 <td>
-                    {/* Bot Exposure: earnings attributed to house bots → shown as NEGATIVE (fake) */}
-                    {Number(agent.botNetProfit ?? 0) > 0 ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                        <div style={{ color: '#ef4444', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '14px' }}>
-                          <FiTrendingDown size={13} />
-                          -{Number(agent.botNetProfit ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
-                        </div>
-                        <span style={{ fontSize: '10px', color: '#dc2626', fontWeight: '700', textTransform: 'uppercase' }}>Fake Balance</span>
+                 <td style={{ textAlign: 'right' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'flex-end' }}>
+                      <div style={{ fontWeight: '800', color: '#ef4444', fontSize: '14px' }}>
+                        {Number(agent.botNetProfit ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
                       </div>
-                    ) : (
-                      <span style={{ color: 'var(--admin-text-muted)', fontSize: '13px' }}>—</span>
-                    )}
+                      <span style={{ fontSize: '10px', color: '#8c857b', fontWeight: '700', textTransform: 'uppercase' }}>To Collect</span>
+                    </div>
                  </td>
                 <td style={{ textAlign: 'right' }}>
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '4px', flexWrap: 'wrap' }}>

@@ -454,39 +454,7 @@ function DashboardContent() {
         </div>
       )}
 
-      {/* ── Player Winnings & House Bot Advantage Card ── */}
-      {isAdmin && (
-        <div style={{
-          background: '#ffffff',
-          borderRadius: '20px',
-          border: '1px solid rgba(0,0,0,0.06)',
-          padding: '24px 28px',
-          marginBottom: '32px',
-          boxShadow: '0 2px 12px rgba(0,0,0,0.04)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-            <span style={{ fontSize: '13px', fontWeight: '900', color: '#3d2b1f', textTransform: 'uppercase', letterSpacing: '1px' }}>
-              🏆 Winnings & House Advantage
-            </span>
-          </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
-            {/* Real Player Winnings */}
-            <div style={{ background: '#f5f3ff', borderRadius: '14px', padding: '16px', border: '1px solid #ddd6fe' }}>
-              <div style={{ fontSize: '10px', fontWeight: '900', color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>🎉 Real Player Winnings</div>
-              <div style={{ fontSize: '22px', fontWeight: '900', color: '#5b21b6' }}>{realPlayerWinnings.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-              <div style={{ fontSize: '11px', color: '#7c3aed', marginTop: '4px' }}>ETB — Won by real players</div>
-            </div>
-
-            {/* House Bot Advantage */}
-            <div style={{ background: '#fefce8', borderRadius: '14px', padding: '16px', border: '1px solid #fde047' }}>
-              <div style={{ fontSize: '10px', fontWeight: '900', color: '#ca8a04', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>🤖 House Bot Advantage</div>
-              <div style={{ fontSize: '22px', fontWeight: '900', color: '#854d0e' }}>{botWinPayoutAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-              <div style={{ fontSize: '11px', color: '#ca8a04', marginTop: '4px' }}>ETB — Kept by system from {botWinCount.toLocaleString()} bot wins</div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Two Column Layout */}
       <div className="dashboard-grid">
@@ -536,44 +504,7 @@ function DashboardContent() {
             </div>
           </div>
 
-          {/* How Commission Works Card */}
-          <div className="premium-card">
-            <h3 className="premium-card-title" style={{ fontSize: '14px', fontWeight: '900', borderBottom: 'none', paddingBottom: 0, marginBottom: '8px' }}>
-              HOW COMMISSION WORKS ({companyCommissionRate}% ON REAL STAKE)
-            </h3>
-            <p style={{ fontSize: '13px', color: '#8c857b', marginBottom: '20px', lineHeight: '1.5' }}>
-              For every bet placed by a <b>REAL PLAYER</b>, {companyCommissionRate}% of the stake goes to commission and {100 - companyCommissionRate}% goes to the prize pool. Bot stakes are not charged commission and go 100% to winners.
-            </p>
-            
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', background: '#faf8f5', borderRadius: '16px', padding: '16px 12px', border: '1px solid rgba(0,0,0,0.03)', margin: '16px 0' }}>
-              <div style={{ textAlign: 'center', flex: 1 }}>
-                <div style={{ fontSize: '10px', fontWeight: '800', color: '#8c857b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Real Stake</div>
-                <div style={{ fontSize: '14px', fontWeight: '900', color: '#3d2b1f', marginTop: '4px' }}>100 ETB</div>
-              </div>
-              
-              <div style={{ color: '#d4cbbd', display: 'flex', alignItems: 'center' }}>
-                <FiArrowRight size={18} />
-              </div>
-              
-              <div style={{ textAlign: 'center', flex: 1 }}>
-                <div style={{ fontSize: '10px', fontWeight: '800', color: '#8c857b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Commission ({companyCommissionRate}%)</div>
-                <div style={{ fontSize: '14px', fontWeight: '900', color: '#3d2b1f', marginTop: '4px' }}>{companyCommissionRate} ETB</div>
-              </div>
-              
-              <div style={{ color: '#d4cbbd', display: 'flex', alignItems: 'center' }}>
-                <FiArrowRight size={18} />
-              </div>
-              
-              <div style={{ textAlign: 'center', flex: 1 }}>
-                <div style={{ fontSize: '10px', fontWeight: '800', color: '#8c857b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Winners ({100 - companyCommissionRate}%)</div>
-                <div style={{ fontSize: '14px', fontWeight: '900', color: '#3d2b1f', marginTop: '4px' }}>{100 - companyCommissionRate} ETB</div>
-              </div>
-            </div>
-            
-            <p style={{ fontSize: '12px', color: '#8c857b', fontStyle: 'italic', margin: 0 }}>
-              Of the {companyCommissionRate} ETB commission: {companyRevenueRate} ETB to Company, {agentRevenueRate} ETB to Agent.
-            </p>
-          </div>
+
 
           {/* Service Fee Breakdown Table (Only for Global Admin view) */}
           {isAdmin && (
