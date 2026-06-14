@@ -18,8 +18,10 @@ export const metadata: Metadata = {
 
 import { ThemeProvider } from '../context/ThemeContext';
 import { SocketProvider } from '../context/SocketContext';
-
 import SecurityGuard from '../components/SecurityGuard';
+import { Inter } from 'next/font/google';
+
+const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '700', '800', '900'] });
 
 export default function RootLayout({
   children,
@@ -31,7 +33,7 @@ export default function RootLayout({
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
       </head>
-      <body>
+      <body className={inter.className}>
         <Script
           src="https://telegram.org/js/telegram-web-app.js"
           strategy="beforeInteractive"
