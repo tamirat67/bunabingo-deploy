@@ -541,6 +541,7 @@ function RouletteContent() {
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: `${T.gold}18`, border: `1px solid ${T.gold}44`, borderRadius: '20px', padding: '5px 12px', color: '#4CAF50', fontSize: '13px', fontWeight: '900' }}>
             <WalletIcon size={14} /> {(balance + bonusBalance).toFixed(2)}
+          </div>
         </div>
       </div>
 
