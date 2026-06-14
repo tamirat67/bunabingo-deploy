@@ -1300,6 +1300,139 @@ staffRouter.get('/agents', staffMiddleware, async (req, res) => {
   res.json(await getAgents(page, 20, agentIds));
 });
 
+// ─── Company Profit Summary (All Agents) ────────────────────
+staffRouter.get('/company-profit', staffMiddleware, async (req, res) => {
+  try {
+    const { getAgentProfitRate, getCompanyCommissionRate } = await import('../services/settings.service');
+    const [profitRate, companyRate] = await Promise.all([getAgentProfitRate(), getCompanyCommissionRate()]);
+
+    // Date filter
+    let dateFilter: any = {};
+    const range = req.query.range as string;
+    if (range === 'today') {
+      const start = new Date(); start.setHours(0,0,0,0);
+      dateFilter = { createdAt: { gte: start } };
+    } else if (range === 'week') {
+      const start = new Date(); start.setDate(start.getDate() - 7); start.setHours(0,0,0,0);
+      dateFilter = { createdAt: { gte: start } };
+    } else if (range === 'month') {
+      const start = new Date(); start.setDate(start.getDate() - 30); start.setHours(0,0,0,0);
+      dateFilter = { createdAt: { gte: start } };
+    }
+
+    // Get all agents
+    const agents = await prisma.user.findMany({
+      where: { role: { in: ['AGENT', 'ADMIN'] } },
+      include: {
+        referrals: { select: { id: true, isBot: true } },
+        agentPreDepositWallet: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const COMPANY_RATE = Math.max(0, companyRate - profitRate);
+    const AGENT_RATE = profitRate;
+
+    const agentRows = await Promise.all(agents.map(async (agent) => {
+      const realPlayerIds = agent.referrals.filter((r: any) => !r.isBot).map((r: any) => r.id);
+      if (realPlayerIds.length === 0) {
+        return {
+          agentId: agent.id,
+          agentName: agent.firstName || 'Unknown',
+          agentUsername: agent.telegramUsername || '',
+          referralCode: agent.referralCode || '',
+          totalTicketSales: 0,
+          companyShare: 0,
+          agentEarned: 0,
+          botDebtAdded: 0,
+          botDebtSettled: 0,
+          outstandingBotDebt: 0,
+          totalDeposited: 0,
+          totalWithdrawn: 0,
+          netCashFlow: 0,
+          preDepositBalance: Number(agent.agentPreDepositWallet?.balance || 0),
+          realPlayersCount: 0,
+        };
+      }
+
+      const [ticketSalesAgg, depositsAgg, withdrawalsAgg, botDebtAddedAgg, botDebtSettledAgg] = await Promise.all([
+        prisma.transaction.aggregate({
+          where: { type: 'TICKET_PURCHASE', status: { in: ['completed', 'COMPLETED'] }, userId: { in: realPlayerIds }, ...dateFilter },
+          _sum: { amount: true },
+        }),
+        prisma.deposit.aggregate({
+          where: { status: { in: ['APPROVED', 'approved', 'COMPLETED', 'completed'] }, userId: { in: realPlayerIds }, ...dateFilter },
+          _sum: { amount: true },
+        }),
+        prisma.withdrawal.aggregate({
+          where: { status: { in: ['APPROVED', 'COMPLETED', 'approved', 'completed'] }, userId: { in: realPlayerIds }, ...dateFilter },
+          _sum: { amount: true },
+        }),
+        prisma.agentCommissionLog.aggregate({
+          where: { agentId: agent.id, type: 'BOT_WIN_DEBT_ADDED', ...dateFilter },
+          _sum: { amount: true },
+        }),
+        prisma.agentCommissionLog.aggregate({
+          where: { agentId: agent.id, type: 'BOT_WIN_DEBT_SETTLED', ...dateFilter },
+          _sum: { amount: true },
+        }),
+      ]);
+
+      const totalTicketSales = Number(ticketSalesAgg._sum.amount || 0);
+      const totalDeposited = Number(depositsAgg._sum.amount || 0);
+      const totalWithdrawn = Number(withdrawalsAgg._sum.amount || 0);
+      const botDebtAdded = Number(botDebtAddedAgg._sum.amount || 0);
+      const botDebtSettled = Number(botDebtSettledAgg._sum.amount || 0);
+
+      return {
+        agentId: agent.id,
+        agentName: agent.firstName || 'Unknown',
+        agentUsername: agent.telegramUsername || '',
+        referralCode: agent.referralCode || '',
+        totalTicketSales,
+        companyShare: totalTicketSales * COMPANY_RATE,
+        agentEarned: totalTicketSales * AGENT_RATE,
+        botDebtAdded,
+        botDebtSettled,
+        outstandingBotDebt: Math.max(0, botDebtAdded - botDebtSettled),
+        totalDeposited,
+        totalWithdrawn,
+        netCashFlow: totalDeposited - totalWithdrawn,
+        preDepositBalance: Number(agent.agentPreDepositWallet?.balance || 0),
+        realPlayersCount: realPlayerIds.length,
+      };
+    }));
+
+    // Totals
+    const totals = agentRows.reduce((acc, row) => ({
+      totalTicketSales: acc.totalTicketSales + row.totalTicketSales,
+      companyShare: acc.companyShare + row.companyShare,
+      agentEarned: acc.agentEarned + row.agentEarned,
+      botDebtAdded: acc.botDebtAdded + row.botDebtAdded,
+      botDebtSettled: acc.botDebtSettled + row.botDebtSettled,
+      outstandingBotDebt: acc.outstandingBotDebt + row.outstandingBotDebt,
+      totalDeposited: acc.totalDeposited + row.totalDeposited,
+      totalWithdrawn: acc.totalWithdrawn + row.totalWithdrawn,
+      netCashFlow: acc.netCashFlow + row.netCashFlow,
+    }), {
+      totalTicketSales: 0, companyShare: 0, agentEarned: 0,
+      botDebtAdded: 0, botDebtSettled: 0, outstandingBotDebt: 0,
+      totalDeposited: 0, totalWithdrawn: 0, netCashFlow: 0,
+    });
+
+    res.json({
+      range: range || 'all',
+      companyRate: COMPANY_RATE,
+      agentRate: AGENT_RATE,
+      totals,
+      agents: agentRows.filter(r => r.totalTicketSales > 0 || r.totalDeposited > 0).sort((a, b) => b.companyShare - a.companyShare),
+    });
+  } catch (err: any) {
+    logger.error('[Company Profit]', err);
+    res.status(500).json({ error: err.message || 'Failed to load company profit summary' });
+  }
+});
+
 // ─── Single Agent Detailed Report ───────────────────────────
 staffRouter.get('/agents/:id/report', staffMiddleware, async (req, res) => {
   try {

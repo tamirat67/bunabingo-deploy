@@ -138,6 +138,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <NavLink href="/admin/agents" icon={<FiShield />} label="All Agents" />
               <NavLink href="/admin/transactions" icon={<FiCreditCard />} label="Transactions" />
               <NavLink href="/admin/revenue" icon={<FiTrendingUp />} label="Revenue" />
+              {isAdmin && <NavLink href="/admin/company-profit" icon={<FiDollarSign />} label="Company Profit" />}
               {isAdmin && <NavLink href="/admin/audit" icon={<FiPieChart />} label="System Audit" />}
               {isAdmin && <NavLink href="/admin/logs" icon={<FiFileText />} label="System Logs" />}
               {isAdmin && <NavLink href="/admin/settings" icon={<FiSettings />} label="Settings" />}
