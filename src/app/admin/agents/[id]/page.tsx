@@ -19,6 +19,7 @@ export default function AgentReportPage() {
   const [error, setError] = useState<string | null>(null);
   const [report, setReport] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'transactions' | 'players' | 'wallet'>('overview');
+  const [timeRange, setTimeRange] = useState('all');
   const [settleAmount, setSettleAmount] = useState('');
   const [isSettling, setIsSettling] = useState(false);
 
@@ -26,14 +27,14 @@ export default function AgentReportPage() {
     try {
       setLoading(true);
       setError(null);
-      const res = await api.get(`/admin/agents/${agentId}/report`);
+      const res = await api.get(`/admin/agents/${agentId}/report?range=${timeRange}`);
       setReport(res.data);
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Failed to load agent report');
     } finally {
       setLoading(false);
     }
-  }, [agentId]);
+  }, [agentId, timeRange]);
 
   useEffect(() => { fetchReport(); }, [fetchReport]);
 
@@ -129,12 +130,34 @@ export default function AgentReportPage() {
             </div>
           </div>
 
-          {/* Pre-deposit status badge */}
-          <div style={{ background: stateBg, border: `1px solid ${stateBorder}`, padding: '16px 20px', borderRadius: '16px', textAlign: 'right', minWidth: '200px' }}>
-            <div style={{ fontSize: '11px', fontWeight: '800', color: stateColor, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Pre-Deposit Liquidity</div>
-            <div style={{ fontSize: '26px', fontWeight: '900', color: stateColor }}>{fmt(preDepositWallet?.balance)} <span style={{ fontSize: '13px' }}>ETB</span></div>
-            <div style={{ fontSize: '11px', color: stateColor, marginTop: '4px', fontWeight: '700' }}>
-              {preDepositStatus.state === 'RED' ? '🔴 CRITICAL — Refill Now' : preDepositStatus.state === 'YELLOW' ? '🟡 LOW — Running Low' : '🟢 HEALTHY'}
+          {/* Controls Right Side */}
+          <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+            {/* Time Filter */}
+            <div style={{ position: 'relative' }}>
+              <select
+                value={timeRange}
+                onChange={(e) => setTimeRange(e.target.value)}
+                style={{
+                  appearance: 'none', background: '#ffffff', border: '1px solid rgba(0,0,0,0.06)',
+                  borderRadius: '16px', padding: '16px 36px 16px 20px', boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+                  cursor: 'pointer', fontWeight: '800', color: '#3d2b1f', fontSize: '14px', outline: 'none', height: '100%'
+                }}
+              >
+                <option value="all">All Time</option>
+                <option value="today">Today</option>
+                <option value="week">Last 7 Days (Weekly)</option>
+                <option value="month">Last 30 Days (Monthly)</option>
+              </select>
+              <FiCalendar size={16} style={{ color: '#8c857b', position: 'absolute', right: '14px', top: '18px', pointerEvents: 'none' }} />
+            </div>
+
+            {/* Pre-deposit status badge */}
+            <div style={{ background: stateBg, border: `1px solid ${stateBorder}`, padding: '16px 20px', borderRadius: '16px', textAlign: 'right', minWidth: '200px' }}>
+              <div style={{ fontSize: '11px', fontWeight: '800', color: stateColor, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Pre-Deposit Liquidity</div>
+              <div style={{ fontSize: '26px', fontWeight: '900', color: stateColor }}>{fmt(preDepositWallet?.balance)} <span style={{ fontSize: '13px' }}>ETB</span></div>
+              <div style={{ fontSize: '11px', color: stateColor, marginTop: '4px', fontWeight: '700' }}>
+                {preDepositStatus.state === 'RED' ? '🔴 CRITICAL — Refill Now' : preDepositStatus.state === 'YELLOW' ? '🟡 LOW — Running Low' : '🟢 HEALTHY'}
+              </div>
             </div>
           </div>
         </div>
@@ -150,7 +173,7 @@ export default function AgentReportPage() {
         <div style={{ position: 'absolute', bottom: '-60px', right: '80px', width: '160px', height: '160px', background: 'rgba(212,175,55,0.05)', borderRadius: '50%' }} />
 
         <div style={{ fontSize: '12px', fontWeight: '800', color: '#d4af37', letterSpacing: '2px', marginBottom: '6px', textTransform: 'uppercase' }}>
-          💰 Branch Profit Breakdown — All Time
+          💰 Branch Profit Breakdown — {timeRange === 'all' ? 'All Time' : timeRange === 'today' ? 'Today' : timeRange === 'week' ? 'Last 7 Days' : 'Last 30 Days'}
         </div>
         <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.55)', marginBottom: '24px' }}>
           Agent earns <strong style={{ color: '#d4af37' }}>{fmtPct(stats.agentRate)}</strong> of all real ticket sales · Company earns <strong style={{ color: '#fbbf24' }}>{fmtPct(stats.companyRate)}</strong>

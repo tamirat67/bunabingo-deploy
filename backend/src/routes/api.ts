@@ -1350,6 +1350,18 @@ staffRouter.get('/agents/:id/report', staffMiddleware, async (req, res) => {
     const { getAgentProfitRate, getCompanyCommissionRate } = await import('../services/settings.service');
     const { getAgentPreDepositStatus } = await import('../services/agentPreDeposit.service');
 
+    let dateFilter: any = {};
+    const range = req.query.range as string;
+    if (range === 'today') {
+      const start = new Date(); start.setHours(0,0,0,0);
+      dateFilter = { createdAt: { gte: start } };
+    } else if (range === 'week') {
+      const start = new Date(); start.setDate(start.getDate() - 7); start.setHours(0,0,0,0);
+      dateFilter = { createdAt: { gte: start } };
+    } else if (range === 'month') {
+      const start = new Date(); start.setDate(start.getDate() - 30); start.setHours(0,0,0,0);
+      dateFilter = { createdAt: { gte: start } };
+    }
 
     const [
       profitRate,
@@ -1377,76 +1389,76 @@ staffRouter.get('/agents/:id/report', staffMiddleware, async (req, res) => {
       getAgentPreDepositStatus(agentId),
 
       prisma.deposit.aggregate({
-        where: { status: { in: ['APPROVED', 'approved'] }, userId: { in: referredUserIds } },
+        where: { status: { in: ['APPROVED', 'approved'] }, userId: { in: referredUserIds }, ...dateFilter },
         _sum: { amount: true }, _count: { id: true },
       }),
       prisma.deposit.aggregate({
-        where: { status: { in: ['PENDING', 'pending'] }, userId: { in: referredUserIds } },
+        where: { status: { in: ['PENDING', 'pending'] }, userId: { in: referredUserIds }, ...dateFilter },
         _sum: { amount: true }, _count: { id: true },
       }),
       prisma.transaction.aggregate({
-        where: { type: 'TICKET_PURCHASE', status: { in: ['completed', 'COMPLETED'] }, userId: { in: referredUserIds } },
+        where: { type: 'TICKET_PURCHASE', status: { in: ['completed', 'COMPLETED'] }, userId: { in: referredUserIds }, ...dateFilter },
         _sum: { amount: true }, _count: { id: true },
       }),
       prisma.withdrawal.aggregate({
-        where: { status: { in: ['APPROVED', 'COMPLETED', 'approved', 'completed'] }, userId: { in: referredUserIds } },
+        where: { status: { in: ['APPROVED', 'COMPLETED', 'approved', 'completed'] }, userId: { in: referredUserIds }, ...dateFilter },
         _sum: { amount: true }, _count: { id: true },
       }),
       prisma.withdrawal.aggregate({
-        where: { status: { in: ['PENDING', 'pending'] }, userId: { in: referredUserIds } },
+        where: { status: { in: ['PENDING', 'pending'] }, userId: { in: referredUserIds }, ...dateFilter },
         _sum: { amount: true }, _count: { id: true },
       }),
       prisma.transaction.aggregate({
-        where: { type: 'PRIZE_WIN', status: { in: ['completed', 'COMPLETED'] }, userId: { in: referredUserIds } },
+        where: { type: 'PRIZE_WIN', status: { in: ['completed', 'COMPLETED'] }, userId: { in: referredUserIds }, ...dateFilter },
         _sum: { amount: true }, _count: { id: true },
       }),
       prisma.agentCommissionLog.findMany({
-        where: { agentId, type: 'RECHARGE' },
+        where: { agentId, type: 'RECHARGE', ...dateFilter },
         orderBy: { createdAt: 'desc' },
         take: 30,
         select: { id: true, amount: true, createdAt: true, description: true }
       }),
       prisma.agentCommissionLog.aggregate({
-        where: { agentId, type: 'COMMISSION_DEBIT' },
+        where: { agentId, type: 'COMMISSION_DEBIT', ...dateFilter },
         _sum: { amount: true }, _count: { id: true },
       }),
       prisma.agentCommissionLog.findMany({
-        where: { agentId, type: 'COMMISSION_DEBIT' },
+        where: { agentId, type: 'COMMISSION_DEBIT', ...dateFilter },
         orderBy: { createdAt: 'desc' },
         take: 20,
         select: { id: true, amount: true, createdAt: true, description: true }
       }),
       prisma.deposit.groupBy({
         by: ['userId'],
-        where: { status: { in: ['APPROVED', 'approved'] }, userId: { in: referredUserIds } },
+        where: { status: { in: ['APPROVED', 'approved'] }, userId: { in: referredUserIds }, ...dateFilter },
         _sum: { amount: true },
         orderBy: { _sum: { amount: 'desc' } },
         take: 5,
       }),
       prisma.deposit.findMany({
-        where: { userId: { in: referredUserIds } },
+        where: { userId: { in: referredUserIds }, ...dateFilter },
         include: { user: { select: { firstName: true, telegramUsername: true } } },
         orderBy: { createdAt: 'desc' },
         take: 20,
       }),
       prisma.transaction.findMany({
-        where: { userId: { in: referredUserIds } },
+        where: { userId: { in: referredUserIds }, ...dateFilter },
         include: { user: { select: { firstName: true, telegramUsername: true } } },
         orderBy: { createdAt: 'desc' },
         take: 30,
       }),
       prisma.game.count({
-        where: { tickets: { some: { userId: { in: referredUserIds } } } },
+        where: { tickets: { some: { userId: { in: referredUserIds }, ...dateFilter } } },
       }),
       prisma.winner.count({
-        where: { userId: { in: referredUserIds } },
+        where: { userId: { in: referredUserIds }, ...dateFilter },
       }),
       prisma.agentCommissionLog.aggregate({
-        where: { agentId, type: 'BOT_WIN_DEBT_ADDED' },
+        where: { agentId, type: 'BOT_WIN_DEBT_ADDED', ...dateFilter },
         _sum: { amount: true },
       }),
       prisma.agentCommissionLog.aggregate({
-        where: { agentId, type: 'BOT_WIN_DEBT_SETTLED' },
+        where: { agentId, type: 'BOT_WIN_DEBT_SETTLED', ...dateFilter },
         _sum: { amount: true },
       }),
     ]);
