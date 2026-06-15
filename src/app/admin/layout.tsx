@@ -6,13 +6,14 @@ import { usePathname, useRouter } from 'next/navigation';
 import { 
   FiPieChart, FiUsers, FiUserCheck, FiDollarSign, 
   FiSettings, FiLogOut, FiMenu, FiX, FiAward,
-  FiActivity, FiShield, FiCreditCard, FiCalendar, FiChevronDown, FiTrendingUp, FiGrid, FiFileText
+  FiActivity, FiShield, FiCreditCard, FiCalendar, FiChevronDown, FiChevronRight, FiTrendingUp, FiGrid, FiFileText
 } from 'react-icons/fi';
 import api from '@/lib/api';
 import '@/app/admin.css';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
+  const [expanded, setExpanded] = useState({ network: true, finance: true, system: true });
   const [user, setUser] = useState<any>(null);
   const pathname = usePathname();
   const router = useRouter();
@@ -130,34 +131,73 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {isStaff ? (
             // Staff-only nav
             <>
-              <div style={{ fontSize: '10px', fontWeight: '800', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '12px', marginBottom: '8px', paddingLeft: '14px' }}>Main</div>
+              {isSidebarOpen ? <div style={{ fontSize: '10px', fontWeight: '800', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '12px', marginBottom: '8px', paddingLeft: '14px' }}>Main</div> : <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)', margin: '12px 14px 8px 14px' }} />}
               <NavLink href="/admin/staff-dashboard" icon={<FiGrid />} label="My Dashboard" />
-              <div style={{ fontSize: '10px', fontWeight: '800', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '16px', marginBottom: '8px', paddingLeft: '14px' }}>Network</div>
+              {isSidebarOpen ? <div style={{ fontSize: '10px', fontWeight: '800', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '16px', marginBottom: '8px', paddingLeft: '14px' }}>Network</div> : <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)', margin: '16px 14px 8px 14px' }} />}
               <NavLink href="/admin/agents" icon={<FiShield />} label="Assigned Agents" />
-              <div style={{ fontSize: '10px', fontWeight: '800', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '16px', marginBottom: '8px', paddingLeft: '14px' }}>Finance</div>
+              {isSidebarOpen ? <div style={{ fontSize: '10px', fontWeight: '800', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '16px', marginBottom: '8px', paddingLeft: '14px' }}>Finance</div> : <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)', margin: '16px 14px 8px 14px' }} />}
               <NavLink href="/admin/transactions" icon={<FiCreditCard />} label="Transactions" />
             </>
           ) : (
             // Admin / Agent nav
             <>
-              <div style={{ fontSize: '10px', fontWeight: '800', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '4px', marginBottom: '8px', paddingLeft: '14px' }}>Main</div>
+              {isSidebarOpen ? <div style={{ fontSize: '10px', fontWeight: '800', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '4px', marginBottom: '8px', paddingLeft: '14px' }}>Main</div> : <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)', margin: '4px 14px 8px 14px' }} />}
               <NavLink href="/admin" icon={<FiActivity />} label="Overview" />
               
-              <div style={{ fontSize: '10px', fontWeight: '800', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '16px', marginBottom: '8px', paddingLeft: '14px' }}>Network</div>
-              <NavLink href="/admin/users" icon={<FiUsers />} label={isAdmin ? "All Players" : "My Players"} />
-              <NavLink href="/admin/agents" icon={<FiShield />} label="All Agents" />
+              {isSidebarOpen ? (
+                <button 
+                  onClick={() => setExpanded(p => ({...p, network: !p.network}))}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'none', border: 'none', cursor: 'pointer', fontSize: '10px', fontWeight: '800', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '16px', marginBottom: '8px', paddingLeft: '14px', paddingRight: '14px' }}
+                >
+                  <span>Network</span>
+                  {expanded.network ? <FiChevronDown size={14} /> : <FiChevronRight size={14} />}
+                </button>
+              ) : <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)', margin: '16px 14px 8px 14px' }} />}
               
-              <div style={{ fontSize: '10px', fontWeight: '800', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '16px', marginBottom: '8px', paddingLeft: '14px' }}>Finance & Analytics</div>
-              <NavLink href="/admin/transactions" icon={<FiCreditCard />} label="Transactions" />
-              <NavLink href="/admin/revenue" icon={<FiTrendingUp />} label="Platform Revenue" />
-              {isAdmin && <NavLink href="/admin/company-profit" icon={<FiDollarSign />} label="Agent Profit & Debt" />}
+              {(expanded.network || !isSidebarOpen) && (
+                <>
+                  <NavLink href="/admin/users" icon={<FiUsers />} label={isAdmin ? "All Players" : "My Players"} />
+                  <NavLink href="/admin/agents" icon={<FiShield />} label="All Agents" />
+                </>
+              )}
+              
+              {isSidebarOpen ? (
+                <button 
+                  onClick={() => setExpanded(p => ({...p, finance: !p.finance}))}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'none', border: 'none', cursor: 'pointer', fontSize: '10px', fontWeight: '800', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '16px', marginBottom: '8px', paddingLeft: '14px', paddingRight: '14px' }}
+                >
+                  <span>Finance & Analytics</span>
+                  {expanded.finance ? <FiChevronDown size={14} /> : <FiChevronRight size={14} />}
+                </button>
+              ) : <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)', margin: '16px 14px 8px 14px' }} />}
+              
+              {(expanded.finance || !isSidebarOpen) && (
+                <>
+                  <NavLink href="/admin/transactions" icon={<FiCreditCard />} label="Transactions" />
+                  <NavLink href="/admin/revenue" icon={<FiTrendingUp />} label="Platform Revenue" />
+                  {isAdmin && <NavLink href="/admin/company-profit" icon={<FiDollarSign />} label="Agent Profit & Debt" />}
+                </>
+              )}
               
               {isAdmin && (
                 <>
-                  <div style={{ fontSize: '10px', fontWeight: '800', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '16px', marginBottom: '8px', paddingLeft: '14px' }}>System Administration</div>
-                  <NavLink href="/admin/audit" icon={<FiPieChart />} label="Financial Audit" />
-                  <NavLink href="/admin/logs" icon={<FiFileText />} label="System Logs" />
-                  <NavLink href="/admin/settings" icon={<FiSettings />} label="Settings" />
+                  {isSidebarOpen ? (
+                    <button 
+                      onClick={() => setExpanded(p => ({...p, system: !p.system}))}
+                      style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'none', border: 'none', cursor: 'pointer', fontSize: '10px', fontWeight: '800', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '16px', marginBottom: '8px', paddingLeft: '14px', paddingRight: '14px' }}
+                    >
+                      <span>System Administration</span>
+                      {expanded.system ? <FiChevronDown size={14} /> : <FiChevronRight size={14} />}
+                    </button>
+                  ) : <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)', margin: '16px 14px 8px 14px' }} />}
+                  
+                  {(expanded.system || !isSidebarOpen) && (
+                    <>
+                      <NavLink href="/admin/audit" icon={<FiPieChart />} label="Financial Audit" />
+                      <NavLink href="/admin/logs" icon={<FiFileText />} label="System Logs" />
+                      <NavLink href="/admin/settings" icon={<FiSettings />} label="Settings" />
+                    </>
+                  )}
                 </>
               )}
             </>
