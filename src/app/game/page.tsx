@@ -668,6 +668,7 @@ function GameContent() {
           });
         }, 1000);
         redirectTimerRef.current = setTimeout(() => {
+          try { sessionStorage.setItem('bypass_select_loader', '1'); } catch(e) {}
           router.push(`/tickets/select?type=${game?.room?.type || spType}&price=${stake}`);
         }, 4000);
       });
@@ -839,6 +840,7 @@ function GameContent() {
           });
         }, 1000);
         redirectTimerRef.current = setTimeout(() => {
+          try { sessionStorage.setItem('bypass_select_loader', '1'); } catch(e) {}
           router.push(`/tickets/select?type=${game?.room?.type || spType}&price=${stake}`);
         }, 8000);
       }
@@ -1800,6 +1802,7 @@ function GameContent() {
                     onClick={() => {
                       clearInterval(redirectCountdownRef.current);
                       clearTimeout(redirectTimerRef.current);
+                      try { sessionStorage.setItem('bypass_select_loader', '1'); } catch(e) {}
                       router.push(`/tickets/select?type=${game?.room?.type || spType}&price=${stake}`);
                     }}
                     style={{

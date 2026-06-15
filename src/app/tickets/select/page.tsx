@@ -45,7 +45,16 @@ function SelectionContent() {
   const [simulatedBotCount, setSimulatedBotCount] = useState(0);
   // isInitializing: true until the very first getOccupiedCards call resolves.
   // While true the grid stays covered so there's no flash of unlocked UI on refresh.
-  const [isInitializing, setIsInitializing] = useState(true);
+  const [isInitializing, setIsInitializing] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const bypass = sessionStorage.getItem('bypass_select_loader') === '1';
+      if (bypass) {
+        try { sessionStorage.removeItem('bypass_select_loader'); } catch(e) {}
+        return false;
+      }
+    }
+    return true;
+  });
   // Persist isGameRunning across refresh via sessionStorage so the mask shows instantly
   const [initialGameRunning, setInitialGameRunning] = useState(false);
   const [initialDrawnNumbers, setInitialDrawnNumbers] = useState<number[]>([]);
