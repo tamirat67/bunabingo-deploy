@@ -12,11 +12,15 @@ import api from '@/lib/api';
 import '@/app/admin.css';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const [isSidebarOpen, setSidebarOpen] = useState(true);
-  const [expanded, setExpanded] = useState({ network: true, finance: true, system: true });
-  const [user, setUser] = useState<any>(null);
   const pathname = usePathname();
   const router = useRouter();
+  const [isSidebarOpen, setSidebarOpen] = useState(true);
+  const [expanded, setExpanded] = useState({ 
+    network: pathname.startsWith('/admin/users') || pathname.startsWith('/admin/agents') || pathname.startsWith('/admin/players'), 
+    finance: pathname.startsWith('/admin/transactions') || pathname.startsWith('/admin/revenue') || pathname.startsWith('/admin/company-profit'), 
+    system: pathname.startsWith('/admin/audit') || pathname.startsWith('/admin/logs') || pathname.startsWith('/admin/settings') 
+  });
+  const [user, setUser] = useState<any>(null);
 
   const [selectedDate, setSelectedDate] = useState(() => {
     if (typeof window !== 'undefined') {
