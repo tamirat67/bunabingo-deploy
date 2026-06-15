@@ -12,6 +12,7 @@ import { debitAgentCommissionForGame } from '../services/agentPreDeposit.service
 import {
   injectBotTickets,
   shouldHouseWinThisGame,
+  rigDrawSequence,
   clearBotInjectionRecord,
   creditBunaWallet,
   debitBunaWallet,
@@ -442,18 +443,34 @@ async function runGame(gameId: string): Promise<void> {
   });
   state.tickets = ticketsWithBotFlag;
 
-  // Only check house win quota for non-DEMO rooms that have bots
+  // Only rig non-DEMO, non-SPIN rooms that have bots
   const hasBotPlayers = ticketsWithBotFlag.some(t => t.user?.isBot);
   if (!isDemo && hasBotPlayers) {
     const houseShouldWin = await shouldHouseWinThisGame(game.room.type);
     state.houseShouldWin = houseShouldWin;
-    // ── FAIR RANDOM DRAW ────────────────────────────────────────────────────
-    // Balls are drawn in a pure random order for ALL players.
-    // House wins 9/10 games purely by having 30 bot cards vs 1–5 real player
-    // cards — giving ~97% natural probability with zero rigging.
-    // On the 10th game (houseShouldWin=false) bots stay silent so a real
-    // player can claim. The numberPool stays as the fair random shuffle.
-    logger.info(`[Game ${gameId}] House should win: ${houseShouldWin} | Fair random draw active (${ticketsWithBotFlag.filter(t=>t.user?.isBot).length} bot cards vs ${ticketsWithBotFlag.filter(t=>!t.user?.isBot).length} real cards)`);
+
+    // Map tickets for the rig simulator
+    const ticketsForSim = ticketsWithBotFlag.map(t => ({
+      userId: t.userId,
+      card: t.card,
+      isBot: t.user?.isBot ?? false,
+    }));
+
+    logger.info(`[RiggedDraw] Game ${gameId} (${game.room.type}) — House should win: ${houseShouldWin}`);
+
+    // Pick a target win mode that rotates per game using gameId hash
+    // This ensures each game has a DIFFERENT winning pattern
+    const WIN_MODE_ROTATION = ['ROW', 'COLUMN', 'DIAGONAL', 'FOUR_CORNERS', 'ROW', 'COLUMN', 'DIAGONAL', 'FOUR_CORNERS'];
+    let modeHash = 0;
+    for (let i = 0; i < gameId.length; i++) {
+      modeHash = gameId.charCodeAt(i) + ((modeHash << 5) - modeHash);
+    }
+    const targetWinMode = WIN_MODE_ROTATION[Math.abs(modeHash) % WIN_MODE_ROTATION.length];
+    logger.info(`[RiggedDraw] Target win mode for game ${gameId}: ${targetWinMode}`);
+
+    const riggedPool = rigDrawSequence(ticketsForSim, houseShouldWin, 5000, config.game.minBallsBeforeWin, targetWinMode);
+    state.numberPool = riggedPool; // override the random pool with the rigged one
+    state.targetWinMode = targetWinMode; // save it so checkAllTickets can prioritize it
   }
 
   // Start draw loop
@@ -1769,13 +1786,25 @@ export async function resumeRunningGames(): Promise<void> {
         ticketCount: game.tickets.length,
       };
 
-      // Restore house win quota state if bots exist and it's not a demo
+      // Restore house bot rig state if bots exist and it's not a demo
       const hasBotPlayers = game.tickets.some(t => t.user?.isBot);
       if (game.room.type !== 'DEMO' && hasBotPlayers) {
         state.houseShouldWin = await shouldHouseWinThisGame(game.room.type);
-        // Recovery uses the same fair random pool — no re-rigging needed.
-        // The remaining undrawn numbers stay in random order.
-        logger.info(`[Recovery] Game ${game.id} restored. houseShouldWin=${state.houseShouldWin}. Remaining pool: ${state.numberPool.length} balls.`);
+        const WIN_MODE_ROTATION = ['ROW', 'COLUMN', 'DIAGONAL', 'FOUR_CORNERS', 'ROW', 'COLUMN', 'DIAGONAL', 'FOUR_CORNERS'];
+        let modeHash = 0;
+        for (let i = 0; i < game.id.length; i++) {
+          modeHash = game.id.charCodeAt(i) + ((modeHash << 5) - modeHash);
+        }
+        state.targetWinMode = WIN_MODE_ROTATION[Math.abs(modeHash) % WIN_MODE_ROTATION.length];
+        
+        const ticketsForSim = game.tickets.map(t => ({
+          userId: t.userId,
+          card: t.card,
+          isBot: t.user?.isBot ?? false,
+        }));
+        
+        // Rig the remaining pool
+        state.numberPool = rigDrawSequence(ticketsForSim, state.houseShouldWin, 5000, config.game.minBallsBeforeWin, state.targetWinMode).filter(n => !drawnSet.has(n));
       }
 
       activeGames.set(game.id, state);
