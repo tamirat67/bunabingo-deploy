@@ -573,7 +573,7 @@ function RouletteContent() {
       {/* ── Removed static wheel — now in modal below ── */}
 
       {/* ── Betting Board ── */}
-      <div style={{ flex: 1, padding: '10px 8px 6px', background: T.header, borderTopLeftRadius: '20px', borderTopRightRadius: '20px', boxShadow: `0 -6px 24px rgba(0,0,0,0.3)` }}>
+      <div style={{ flex: 1, padding: '10px 8px 6px', background: 'linear-gradient(160deg, #C8962A 0%, #D4AF37 35%, #E8C840 60%, #C8962A 100%)', borderTopLeftRadius: '20px', borderTopRightRadius: '20px', boxShadow: `0 -6px 24px rgba(0,0,0,0.3)` }}>
 
         {/* Numbers: 0 | 3×12 grid | 2:1 */}
         <div style={{ display: 'grid', gridTemplateColumns: '28px 1fr 28px', gap: '3px', marginBottom: '3px' }}>
@@ -663,7 +663,7 @@ function RouletteContent() {
       </div>
 
       {/* ── Chips & Actions ── */}
-      <div style={{ background: T.header, padding: '12px 10px 16px', borderTop: `1px solid ${T.gold}22` }}>
+      <div style={{ background: 'linear-gradient(160deg, #B8860B 0%, #C8962A 50%, #B8860B 100%)', padding: '12px 10px 16px', borderTop: `2px solid ${T.gold}55` }}>
 
         {/* Chip selector */}
         <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '12px' }}>
@@ -672,13 +672,13 @@ function RouletteContent() {
               style={{
                 width: '40px', height: '40px', borderRadius: '50%',
                 background: selectedChip === val
-                  ? `linear-gradient(135deg, ${T.gold}, ${T.goldDk})`
-                  : `${T.gold}22`,
-                color: selectedChip === val ? T.header : T.gold,
+                  ? 'linear-gradient(135deg, #3D2B1F, #2C1A0E)'
+                  : 'rgba(61,43,31,0.25)',
+                color: selectedChip === val ? '#D4AF37' : '#3D2B1F',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: '11px', fontWeight: '900',
-                border: `2px solid ${selectedChip === val ? T.gold : `${T.gold}44`}`,
-                boxShadow: selectedChip === val ? `0 0 12px ${T.gold}88` : 'none',
+                border: `2px solid ${selectedChip === val ? '#3D2B1F' : 'rgba(61,43,31,0.5)'}`,
+                boxShadow: selectedChip === val ? '0 0 14px rgba(61,43,31,0.6), 0 4px 8px rgba(0,0,0,0.3)' : '0 2px 4px rgba(0,0,0,0.15)',
                 cursor: 'pointer',
                 transform: selectedChip === val ? 'scale(1.12)' : 'scale(1)',
                 transition: 'all 0.15s',
@@ -693,7 +693,7 @@ function RouletteContent() {
         <div style={{ display: 'flex', gap: '8px' }}>
           <button onClick={clearBets}
             disabled={status !== 'BETTING' || totalBet === 0}
-            style={{ flex: 1, padding: '13px', background: 'transparent', color: T.gold, border: `2px solid ${T.gold}`, borderRadius: '10px', fontWeight: '900', fontSize: '13px', cursor: 'pointer', opacity: status !== 'BETTING' || totalBet === 0 ? 0.35 : 1 }}>
+            style={{ flex: 1, padding: '13px', background: 'rgba(61,43,31,0.15)', color: '#3D2B1F', border: `2px solid rgba(61,43,31,0.6)`, borderRadius: '10px', fontWeight: '900', fontSize: '13px', cursor: 'pointer', opacity: status !== 'BETTING' || totalBet === 0 ? 0.35 : 1 }}>
             CLEAR
           </button>
           <button onClick={handlePlaceBet}
@@ -702,12 +702,12 @@ function RouletteContent() {
               flex: 3, padding: '13px',
               background: betConfirmed
                 ? '#27AE60'
-                : `linear-gradient(90deg, ${T.gold}, ${T.goldDk})`,
-              color: betConfirmed ? 'white' : T.header,
+                : 'linear-gradient(90deg, #3D2B1F, #2C1A0E)',
+              color: betConfirmed ? 'white' : '#D4AF37',
               border: 'none', borderRadius: '10px', fontWeight: '900', fontSize: '13px',
               cursor: 'pointer',
               opacity: status !== 'BETTING' || totalBet === 0 || isPlacing ? 0.45 : 1,
-              boxShadow: betConfirmed ? '0 3px 0 #1a5e20' : `0 3px 0 ${T.goldDk}`,
+              boxShadow: betConfirmed ? '0 3px 0 #1a5e20' : '0 3px 0 #1a0e05',
             }}>
             {betConfirmed
               ? `✅ BET PLACED (${totalBet} ETB)`
