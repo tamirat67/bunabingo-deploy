@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { FiSearch, FiUserPlus, FiTrendingUp, FiTrendingDown, FiUserX, FiX, FiLock, FiPhone, FiUser, FiAlertCircle, FiTrash2, FiPlus, FiEdit2, FiDollarSign, FiBarChart2 } from 'react-icons/fi';
+import { FiSearch, FiUserPlus, FiUserX, FiX, FiLock, FiPhone, FiUser, FiAlertCircle, FiTrash2, FiPlus, FiEdit2, FiDollarSign, FiBarChart2, FiDownload } from 'react-icons/fi';
 import api from '@/lib/api';
 import { Pagination } from '@/components/Pagination';
 import BunaModal from '@/components/BunaModal';
@@ -221,22 +221,189 @@ export default function AgentsPage() {
     agent.telegramUsername?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const generateAllAgentsPDF = async () => {
+    const jsPDFModule = await import('jspdf');
+    const autoTableModule = await import('jspdf-autotable');
+    const jsPDF = jsPDFModule.default;
+    const autoTable = autoTableModule.default;
+
+    let profitData: any = null;
+    try {
+      const res = await api.get('/admin/company-profit?range=all');
+      profitData = res.data;
+    } catch (e) {
+      alert('Failed to load profit data for PDF.');
+      return;
+    }
+
+    const doc = new jsPDF({ orientation: 'landscape' });
+    const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
+    const fmt = (n: number) => Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const fmtPct = (r: number) => (r * 100).toFixed(1) + '%';
+
+    // ── HEADER ──────────────────────────────────────────────
+    doc.setFillColor(61, 43, 31);
+    doc.rect(0, 0, pageWidth, 22, 'F');
+
+    // Logo circle
+    try {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      await new Promise<void>((resolve) => {
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = 60; canvas.height = 60;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.beginPath(); ctx.arc(30, 30, 30, 0, Math.PI * 2); ctx.closePath(); ctx.clip();
+            ctx.drawImage(img, 0, 0, 60, 60);
+            doc.addImage(canvas.toDataURL('image/png'), 'PNG', 6, 3, 16, 16);
+          }
+          resolve();
+        };
+        img.onerror = () => resolve();
+        img.src = '/logo.png';
+      });
+    } catch (e) {}
+
+    doc.setFontSize(16);
+    doc.setTextColor(212, 175, 55);
+    doc.text('BUNA BINGO', 26, 11);
+    doc.setFontSize(9);
+    doc.setTextColor(180, 160, 120);
+    doc.text('BUNA TECH', 26, 17);
+
+    doc.setFontSize(16);
+    doc.setTextColor(255, 255, 255);
+    doc.text('ALL AGENTS — FINANCIAL SUMMARY REPORT', pageWidth / 2, 13, { align: 'center' });
+    doc.setFontSize(9);
+    doc.setTextColor(180, 160, 120);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth - 14, 18, { align: 'right' });
+
+    // ── HERO TOTALS CARD ────────────────────────────────────
+    const totals = profitData?.totals || {};
+    const totalExpected = (totals.companyShare || 0) + (totals.botDebtAdded || 0);
+
+    doc.setFillColor(253, 251, 247);
+    doc.setDrawColor(212, 175, 55);
+    doc.setLineWidth(0.5);
+    doc.roundedRect(10, 26, pageWidth - 20, 30, 4, 4, 'FD');
+
+    // Hero label
+    doc.setFontSize(9);
+    doc.setTextColor(120, 113, 108);
+    doc.text('TOTAL EXPECTED CASH FROM ALL BRANCHES', 18, 35);
+
+    // Hero amount
+    doc.setFontSize(22);
+    doc.setTextColor(61, 43, 31);
+    doc.text(`${fmt(totalExpected)} ETB`, 18, 48);
+
+    // Hero breakdown pill
+    doc.setFontSize(9);
+    doc.setTextColor(120, 113, 108);
+    const formula = `Company Share (${fmtPct(profitData?.companyRate || 0)}): ${fmt(totals.companyShare || 0)} ETB   +   Total Bot Winnings: ${fmt(totals.botDebtAdded || 0)} ETB`;
+    doc.text(formula, pageWidth / 2, 48, { align: 'center' });
+
+    // 4 summary boxes (top right)
+    const boxData = [
+      { label: 'TOTAL TICKET SALES', value: fmt(totals.totalTicketSales || 0) + ' ETB' },
+      { label: 'COMPANY SHARE', value: fmt(totals.companyShare || 0) + ' ETB' },
+      { label: 'AGENT EARNED (Total)', value: fmt(totals.agentEarned || 0) + ' ETB' },
+      { label: 'BOT WINNINGS (Total)', value: fmt(totals.botDebtAdded || 0) + ' ETB' },
+    ];
+    const bw = 38, bh = 14, bx0 = pageWidth - 10 - 4 * bw - 3 * 3, by0 = 28;
+    boxData.forEach((b, i) => {
+      const bx = bx0 + i * (bw + 3);
+      doc.setFillColor(61, 43, 31);
+      doc.setDrawColor(212, 175, 55);
+      doc.roundedRect(bx, by0, bw, bh, 2, 2, 'FD');
+      doc.setFontSize(6);
+      doc.setTextColor(180, 160, 120);
+      doc.text(b.label, bx + bw / 2, by0 + 4.5, { align: 'center' });
+      doc.setFontSize(8);
+      doc.setTextColor(212, 175, 55);
+      doc.text(b.value, bx + bw / 2, by0 + 10, { align: 'center' });
+    });
+
+    // ── PER-AGENT TABLE ─────────────────────────────────────
+    const agentRows = (profitData?.agents || []).map((a: any, i: number) => [
+      i + 1,
+      a.agentName,
+      a.agentUsername ? `@${a.agentUsername}` : '—',
+      fmt(a.totalTicketSales) + ' ETB',
+      `${fmt(a.companyShare)} ETB  (${fmtPct(profitData?.companyRate || 0)})`,
+      fmt(a.botDebtAdded) + ' ETB',
+      { content: fmt(a.companyShare + a.botDebtAdded) + ' ETB', styles: { fontStyle: 'bold', textColor: [21, 128, 61] } },
+      fmt(a.agentEarned) + ' ETB',
+    ]);
+
+    autoTable(doc, {
+      startY: 61,
+      head: [['#', 'Agent Name', 'Username', 'Ticket Sales', 'Company Share', 'Bot Winnings', 'Expected Cash ▶', 'Agent Earned']],
+      body: agentRows,
+      theme: 'grid',
+      headStyles: { fillColor: [61, 43, 31], textColor: [255, 255, 255], fontSize: 9, fontStyle: 'bold', halign: 'left' },
+      bodyStyles: { fontSize: 9, cellPadding: 4, textColor: [55, 55, 55] },
+      alternateRowStyles: { fillColor: [252, 250, 248] },
+      columnStyles: {
+        0: { cellWidth: 8, halign: 'center', textColor: [120, 113, 108] },
+        1: { fontStyle: 'bold', textColor: [61, 43, 31], cellWidth: 28 },
+        2: { cellWidth: 25, textColor: [120, 113, 108] },
+        3: { cellWidth: 32 },
+        4: { cellWidth: 40 },
+        5: { cellWidth: 30 },
+        6: { cellWidth: 38, fillColor: [240, 253, 244] },
+        7: { cellWidth: 28, textColor: [180, 120, 0] },
+      },
+      margin: { left: 10, right: 10, bottom: 18 },
+    });
+
+    // ── FOOTER ──────────────────────────────────────────────
+    const finalY2 = (doc as any).lastAutoTable?.finalY || pageHeight - 20;
+    if (finalY2 < pageHeight - 20) {
+      doc.setDrawColor(212, 175, 55);
+      doc.setLineWidth(0.4);
+      doc.line(10, pageHeight - 15, pageWidth - 10, pageHeight - 15);
+      doc.setFontSize(7.5);
+      doc.setTextColor(120, 113, 108);
+      doc.text('BUNA TECH | info@bunatech.com | @BunaBingoBot | @BunaTechHub', pageWidth / 2, pageHeight - 9, { align: 'center' });
+    }
+
+    doc.save(`AllAgents_Summary_Report_${new Date().toISOString().slice(0, 10)}.pdf`);
+  };
+
   return (
     <div className="admin-page">
-      <div style={{ marginBottom: '40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ marginBottom: '40px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <h1 style={{ fontSize: '36px', fontWeight: '900', margin: 0, color: '#3d2b1f' }}>Agent Network</h1>
           <p style={{ color: 'var(--admin-text-muted)', marginTop: '4px' }}>Manage your branch managers and refill their pre-deposit liquidity.</p>
         </div>
-        {isAdmin && (
-          <button 
-            className="login-button" 
-            onClick={() => setShowCreateModal(true)}
-            style={{ width: 'auto', padding: '12px 24px', display: 'flex', alignItems: 'center', gap: '8px' }}
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <button
+            onClick={generateAllAgentsPDF}
+            style={{
+              background: 'linear-gradient(135deg, #d4af37, #b8922a)',
+              color: 'white', border: 'none', borderRadius: '14px',
+              padding: '12px 22px', fontWeight: '800', fontSize: '14px',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
+              boxShadow: '0 4px 14px rgba(212,175,55,0.35)'
+            }}
           >
-            <FiUserPlus /> Create Agent / Admin
+            <FiDownload size={16} /> Export All Agents PDF
           </button>
-        )}
+          {isAdmin && (
+            <button 
+              className="login-button" 
+              onClick={() => setShowCreateModal(true)}
+              style={{ width: 'auto', padding: '12px 24px', display: 'flex', alignItems: 'center', gap: '8px' }}
+            >
+              <FiUserPlus /> Create Agent / Admin
+            </button>
+          )}
+        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '32px' }}>
