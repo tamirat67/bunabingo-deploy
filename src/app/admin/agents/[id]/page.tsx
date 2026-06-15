@@ -238,44 +238,25 @@ export default function AgentReportPage() {
       doc.line(14, 32, pageWidth - 14, 32);
 
       // --- FOOTER ---
-      // Light gray separating line above footer
-      doc.setDrawColor(220, 220, 220);
-      doc.line(14, pageHeight - 20, pageWidth - 14, pageHeight - 20);
-      
-      doc.setFontSize(9);
-      doc.setTextColor(120, 113, 108); // #78716c
-      
-      const footerText1 = "BUNA TECH  |  info@bunatech.com  |  Addis Ababa, Ethiopia  |  bunatech.net";
-      const footerText2 = "@Buna_BingoBot (Telegram)  |  @BunaTechHub";
-      
-      const textWidth1 = doc.getTextWidth(footerText1);
-      const textWidth2 = doc.getTextWidth(footerText2);
-      
-      doc.text(footerText1, (pageWidth - textWidth1) / 2, pageHeight - 14);
-      doc.text(footerText2, (pageWidth - textWidth2) / 2, pageHeight - 9);
-      
-      // Page Number
-      const pageNumStr = `Page ${i} of ${pageCount}`;
-      doc.text(pageNumStr, pageWidth - 14 - doc.getTextWidth(pageNumStr), pageHeight - 9);
-
-      // ── DECORATIVE STRIPES (Footer) ─────────────────────────
-      doc.setLineWidth(8);
-      doc.setLineCap('round');
+      // ── DECORATIVE STRIPES (Background) ─────────────────────────
+      // Draw these first so they sit behind the text
+      doc.setLineWidth(5);
+      doc.setLineCap(1); // 1 = round
       
       // Bottom Left (Gold stripe)
       doc.setDrawColor(212, 175, 55);
-      doc.line(15, pageHeight - 15, 35, pageHeight - 35);
+      doc.line(14, pageHeight - 10, 26, pageHeight - 22);
       
       // Bottom Right (Ethiopian flag colors)
       // Red
       doc.setDrawColor(205, 45, 45);
-      doc.line(pageWidth - 70, pageHeight - 15, pageWidth - 15, pageHeight - 70);
+      doc.line(pageWidth - 36, pageHeight - 10, pageWidth - 14, pageHeight - 32);
       // Green
       doc.setDrawColor(50, 160, 70);
-      doc.line(pageWidth - 55, pageHeight - 15, pageWidth - 15, pageHeight - 55);
+      doc.line(pageWidth - 28, pageHeight - 10, pageWidth - 14, pageHeight - 24);
       // Yellow
       doc.setDrawColor(235, 175, 20);
-      doc.line(pageWidth - 40, pageHeight - 15, pageWidth - 15, pageHeight - 40);
+      doc.line(pageWidth - 20, pageHeight - 10, pageWidth - 14, pageHeight - 16);
     }
 
     doc.save(`Agent_Report_${agent.firstName}_${timeRange}.pdf`);

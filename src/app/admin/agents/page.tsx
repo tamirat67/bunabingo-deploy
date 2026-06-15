@@ -389,16 +389,9 @@ export default function AgentsPage() {
 
     // ── FOOTER ──────────────────────────────────────────────
     const finalY2 = (doc as any).lastAutoTable?.finalY || pageHeight - 38;
-    if (finalY2 < pageHeight - 35) {
-      doc.setDrawColor(212, 175, 55);
-      doc.setLineWidth(0.4);
-      doc.line(10, pageHeight - 20, pageWidth - 10, pageHeight - 20);
-      doc.setFontSize(7.5);
-      doc.setTextColor(120, 113, 108);
-      doc.text('BUNA TECH | info@bunatech.com | @Buna_BingoBot | @BunaTechHub | bunatech.net', pageWidth / 2, pageHeight - 12, { align: 'center' });
-    }
 
-    // ── DECORATIVE STRIPES (Footer) ─────────────────────────
+    // ── DECORATIVE STRIPES (Background) ─────────────────────
+    // Draw these first so they sit behind the text
     doc.setLineWidth(5);
     doc.setLineCap(1); // 1 = round
     
@@ -416,6 +409,16 @@ export default function AgentsPage() {
     // Yellow
     doc.setDrawColor(235, 175, 20);
     doc.line(pageWidth - 20, pageHeight - 10, pageWidth - 14, pageHeight - 16);
+
+    // ── FOOTER TEXT & LINE ──────────────────────────────────
+    if (finalY2 < pageHeight - 35) {
+      doc.setDrawColor(212, 175, 55);
+      doc.setLineWidth(0.4);
+      doc.line(10, pageHeight - 20, pageWidth - 10, pageHeight - 20);
+      doc.setFontSize(7.5);
+      doc.setTextColor(120, 113, 108);
+      doc.text('BUNA TECH | info@bunatech.com | @Buna_BingoBot | @BunaTechHub | bunatech.net', pageWidth / 2, pageHeight - 12, { align: 'center' });
+    }
 
     doc.save(`AllAgents_Summary_Report_${new Date().toISOString().slice(0, 10)}.pdf`);
   };
