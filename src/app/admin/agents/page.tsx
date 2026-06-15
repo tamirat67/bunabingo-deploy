@@ -290,12 +290,12 @@ export default function AgentsPage() {
     doc.setTextColor(180, 160, 120);
     doc.text('BUNA TECH', 26, 17);
 
-    doc.setFontSize(16);
+    doc.setFontSize(13);
     doc.setTextColor(255, 255, 255);
-    doc.text('ALL AGENTS — FINANCIAL SUMMARY REPORT', pageWidth / 2, 13, { align: 'center' });
-    doc.setFontSize(9);
+    doc.text('ALL AGENTS — FINANCIAL SUMMARY REPORT', pageWidth - 10, 11, { align: 'right' });
+    doc.setFontSize(8);
     doc.setTextColor(180, 160, 120);
-    doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth - 14, 18, { align: 'right' });
+    doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth - 10, 17, { align: 'right' });
 
     // ── HERO TOTALS CARD ────────────────────────────────────
     const totals = profitData?.totals || {};
@@ -384,38 +384,38 @@ export default function AgentsPage() {
         6: { cellWidth: 32, fillColor: [240, 253, 244] },
         7: { cellWidth: 24, textColor: [180, 120, 0] },
       },
-      margin: { left: 10, right: 10, bottom: 18 },
+      margin: { left: 10, right: 10, bottom: 38 },
     });
 
     // ── FOOTER ──────────────────────────────────────────────
-    const finalY2 = (doc as any).lastAutoTable?.finalY || pageHeight - 20;
-    if (finalY2 < pageHeight - 20) {
+    const finalY2 = (doc as any).lastAutoTable?.finalY || pageHeight - 38;
+    if (finalY2 < pageHeight - 35) {
       doc.setDrawColor(212, 175, 55);
       doc.setLineWidth(0.4);
-      doc.line(10, pageHeight - 15, pageWidth - 10, pageHeight - 15);
+      doc.line(10, pageHeight - 20, pageWidth - 10, pageHeight - 20);
       doc.setFontSize(7.5);
       doc.setTextColor(120, 113, 108);
-      doc.text('BUNA TECH | info@bunatech.com | @Buna_BingoBot | @BunaTechHub | bunatech.net', pageWidth / 2, pageHeight - 9, { align: 'center' });
+      doc.text('BUNA TECH | info@bunatech.com | @Buna_BingoBot | @BunaTechHub | bunatech.net', pageWidth / 2, pageHeight - 12, { align: 'center' });
     }
 
     // ── DECORATIVE STRIPES (Footer) ─────────────────────────
-    doc.setLineWidth(8);
-    doc.setLineCap('round');
+    doc.setLineWidth(5);
+    doc.setLineCap(1); // 1 = round
     
     // Bottom Left (Gold stripe)
     doc.setDrawColor(212, 175, 55);
-    doc.line(15, pageHeight - 15, 35, pageHeight - 35);
+    doc.line(14, pageHeight - 10, 26, pageHeight - 22);
     
     // Bottom Right (Ethiopian flag colors)
     // Red
     doc.setDrawColor(205, 45, 45);
-    doc.line(pageWidth - 70, pageHeight - 15, pageWidth - 15, pageHeight - 70);
+    doc.line(pageWidth - 36, pageHeight - 10, pageWidth - 14, pageHeight - 32);
     // Green
     doc.setDrawColor(50, 160, 70);
-    doc.line(pageWidth - 55, pageHeight - 15, pageWidth - 15, pageHeight - 55);
+    doc.line(pageWidth - 28, pageHeight - 10, pageWidth - 14, pageHeight - 24);
     // Yellow
     doc.setDrawColor(235, 175, 20);
-    doc.line(pageWidth - 40, pageHeight - 15, pageWidth - 15, pageHeight - 40);
+    doc.line(pageWidth - 20, pageHeight - 10, pageWidth - 14, pageHeight - 16);
 
     doc.save(`AllAgents_Summary_Report_${new Date().toISOString().slice(0, 10)}.pdf`);
   };
