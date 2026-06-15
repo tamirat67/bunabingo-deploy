@@ -949,9 +949,9 @@ function GameContent() {
 
     setClaiming(true);
 
-    // SMART GUARD: If drawn balls < 35, the backend will reject this claim.
+    // SMART GUARD: If drawn balls < 45, the backend will reject this claim.
     // We absorb silently — the player just tapped too early. No message leaks house logic.
-    if (drawn.length < 35) {
+    if (drawn.length < 45) {
       setClaiming(false);
       return;
     }
