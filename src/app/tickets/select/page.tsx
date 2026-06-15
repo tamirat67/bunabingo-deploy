@@ -406,13 +406,15 @@ function SelectionContent() {
       // loadGameData fetches the NEXT WAITING game when a game is running, so its
       // status would be 'WAITING' — clearing isGameRunning here would be wrong.
       if (g.serverTime) {
-        setServerOff(g.serverTime - Date.now());
+        setServerOff(new Date(g.serverTime).getTime() - Date.now());
       }
       if (g.endTime && g.serverTime) {
-        const offset = g.serverTime - Date.now();
+        const st = new Date(g.serverTime).getTime();
+        const et = new Date(g.endTime).getTime();
+        const offset = st - Date.now();
         if (g.status === 'COUNTDOWN') {
-          setEndTime(g.endTime);
-          const rem = Math.max(0, Math.ceil((g.endTime - Date.now() - offset) / 1000));
+          setEndTime(et);
+          const rem = Math.max(0, Math.ceil((et - Date.now() - offset) / 1000));
           if (rem >= 0) setCountdown(rem);
         } else if (g.status === 'WAITING') {
           setCountdown(prev => (prev !== null && prev >= 0) ? prev : null);
@@ -442,6 +444,7 @@ function SelectionContent() {
     const timer = setInterval(() => {
       const now = Date.now() + serverOff;
       const rem = Math.max(0, Math.ceil((endTime - now) / 1000));
+      if (isNaN(rem)) return;
       setCountdown((prev) => (prev === rem ? prev : rem));
       if (rem <= 0) {
         clearInterval(timer);
@@ -599,10 +602,12 @@ function SelectionContent() {
 
       socket.on('countdown-start', (d: any) => {
         if (d.endTime && d.serverTime) {
-          const offset = d.serverTime - Date.now();
+          const st = new Date(d.serverTime).getTime();
+          const et = new Date(d.endTime).getTime();
+          const offset = st - Date.now();
           setServerOff(offset);
-          setEndTime(d.endTime);
-          const rem = Math.max(0, Math.ceil((d.endTime - Date.now() - offset) / 1000));
+          setEndTime(et);
+          const rem = Math.max(0, Math.ceil((et - Date.now() - offset) / 1000));
           setCountdown(rem >= 0 ? rem : null);
         } else {
           setCountdown(d.seconds);
@@ -668,10 +673,12 @@ function SelectionContent() {
       socket.on('countdown-tick', (d: any) => {
         let currentRem = 0;
         if (d.endTime && d.serverTime) {
-          const offset = d.serverTime - Date.now();
+          const st = new Date(d.serverTime).getTime();
+          const et = new Date(d.endTime).getTime();
+          const offset = st - Date.now();
           setServerOff(offset);
-          setEndTime(d.endTime);
-          const rem = Math.max(0, Math.ceil((d.endTime - Date.now() - offset) / 1000));
+          setEndTime(et);
+          const rem = Math.max(0, Math.ceil((et - Date.now() - offset) / 1000));
           setCountdown(rem >= 0 ? rem : null);
           currentRem = rem;
         } else {
