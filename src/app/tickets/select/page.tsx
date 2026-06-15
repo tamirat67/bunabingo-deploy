@@ -424,7 +424,8 @@ function SelectionContent() {
 
   // ── Local countdown display ────────────────────────────────────────────────
   // Ticks every 100ms from the server-anchored endTime epoch for a smooth display.
-  // Does NOT trigger game launch — game-started socket does that.
+  // The game-started socket normally triggers the redirect, but we add an
+  // absolute fail-safe here to ensure players never get stuck on 0s.
   const launchedRef = useRef(false);
   useEffect(() => {
     if (endTime === null) return;
@@ -436,6 +437,23 @@ function SelectionContent() {
       if (rem <= 0) {
         clearInterval(timer);
         setEndTime(null);
+        
+        // ── ULTIMATE FAIL-SAFE REDIRECT ──
+        // If the socket fails to arrive within 3 seconds of hitting 0s,
+        // and the player owns tickets, FORCE the redirect anyway!
+        setTimeout(() => {
+          if (!redirectedRef.current && ownedRef.current.length > 0) {
+            redirectedRef.current = true;
+            const destId = joinedGameIdRef.current || activeGameIdRef.current;
+            if (destId) {
+              if (roomType.startsWith('SPIN_')) {
+                router.push(`/play/spin?id=${destId}&stake=${stake}`);
+              } else {
+                router.push(`/game?id=${destId}&type=${roomType}&price=${stake}`);
+              }
+            }
+          }
+        }, 3000);
       }
     }, 100);
     return () => clearInterval(timer);
