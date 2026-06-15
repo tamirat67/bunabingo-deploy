@@ -394,6 +394,25 @@ export default function AgentsPage() {
       doc.text('BUNA TECH | info@bunatech.com | @Buna_BingoBot | @BunaTechHub | bunatech.net', pageWidth / 2, pageHeight - 9, { align: 'center' });
     }
 
+    // ── DECORATIVE STRIPES (Footer) ─────────────────────────
+    doc.setLineWidth(8);
+    doc.setLineCap('round');
+    
+    // Bottom Left (Gold stripe)
+    doc.setDrawColor(212, 175, 55);
+    doc.line(15, pageHeight - 15, 35, pageHeight - 35);
+    
+    // Bottom Right (Ethiopian flag colors)
+    // Red
+    doc.setDrawColor(205, 45, 45);
+    doc.line(pageWidth - 70, pageHeight - 15, pageWidth - 15, pageHeight - 70);
+    // Green
+    doc.setDrawColor(50, 160, 70);
+    doc.line(pageWidth - 55, pageHeight - 15, pageWidth - 15, pageHeight - 55);
+    // Yellow
+    doc.setDrawColor(235, 175, 20);
+    doc.line(pageWidth - 40, pageHeight - 15, pageWidth - 15, pageHeight - 40);
+
     doc.save(`AllAgents_Summary_Report_${new Date().toISOString().slice(0, 10)}.pdf`);
   };
 
