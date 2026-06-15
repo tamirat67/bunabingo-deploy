@@ -202,11 +202,11 @@ export default function AgentReportPage() {
         doc.addImage(logoImg, 'PNG', 14, 10, 20, 20);
         doc.setFontSize(22);
         doc.setTextColor(61, 43, 31); // #3d2b1f
-        doc.text('BUNA BINGO', 38, 24);
+        doc.text('BUNA TECH', 38, 24);
       } else {
         doc.setFontSize(22);
         doc.setTextColor(61, 43, 31);
-        doc.text('BUNA BINGO', 14, 24);
+        doc.text('BUNA TECH', 14, 24);
       }
       
       // Gold separating line below header
@@ -223,7 +223,7 @@ export default function AgentReportPage() {
       doc.setTextColor(120, 113, 108); // #78716c
       
       const footerText1 = "Email: info@bunatech.com   |   Address: Addis Ababa, Ethiopia";
-      const footerText2 = "Social Media: @BunaBingo (Telegram, Facebook, Instagram)";
+      const footerText2 = "Social Media: @buna_bingobot (Telegram)";
       
       const textWidth1 = doc.getTextWidth(footerText1);
       const textWidth2 = doc.getTextWidth(footerText2);
