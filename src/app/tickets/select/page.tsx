@@ -422,85 +422,36 @@ function SelectionContent() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // stable — reads activeGameIdRef.current so no activeGameId dep needed
 
-  // ── Server-anchored zero-latency countdown + instant launch ───────────────
-  // Ticks every 100ms using the fixed server endTime epoch.
-  // When the timer reaches 0, we IMMEDIATELY join + redirect — no waiting for
-  // the game-started socket event (which arrives 1-3s late due to DB operations).
+  // ── Local countdown display ────────────────────────────────────────────────
+  // Ticks every 100ms from the server-anchored endTime epoch for a smooth display.
+  // Does NOT trigger game launch — game-started socket does that.
   const launchedRef = useRef(false);
   useEffect(() => {
     if (endTime === null) return;
-    launchedRef.current = false; // reset when a new countdown starts
-
+    launchedRef.current = false; // reset for new countdown
     const timer = setInterval(() => {
       const now = Date.now() + serverOff;
       const rem = Math.max(0, Math.ceil((endTime - now) / 1000));
-      setCountdown((prev) => {
-        if (prev === rem) return prev;
-        return rem;
-      });
-
-      // ── INSTANT LAUNCH at countdown = 0 ─────────────────────────────────
-      if (rem <= 0 && !launchedRef.current) {
-        launchedRef.current = true;
+      setCountdown((prev) => (prev === rem ? prev : rem));
+      if (rem <= 0) {
         clearInterval(timer);
         setEndTime(null);
-        setCountdown(null);
-
-        // Fire join immediately (if cards selected and not already joining)
-        const hasSelected = selectedRef.current.length > 0;
-        const hasOwned   = ownedRef.current.length > 0;
-
-        if (hasSelected && !joining) {
-          setJoining(true);
-          pendingJoinRef.current = true;
-          joinGame(roomType, selectedRef.current).then(res => {
-            if (res?.tickets) {
-              ownedRef.current = res.tickets.map((t: any) => t.card.id);
-              setOwnedCardIds(ownedRef.current);
-              setSelected([]);
-            }
-            if (res?.gameId) {
-              joinedGameIdRef.current = res.gameId;
-              try { sessionStorage.setItem('joined_game_id', res.gameId); } catch(e) {}
-            }
-            // Redirect immediately after join resolves
-            if (!redirectedRef.current) {
-              redirectedRef.current = true;
-              const destId = joinedGameIdRef.current || res?.gameId || activeGameIdRef.current;
-              if (destId) {
-                if (roomType.startsWith('SPIN_')) {
-                  router.push(`/play/spin?id=${destId}&stake=${stake}`);
-                } else {
-                  router.push(`/game?id=${destId}&type=${roomType}&price=${stake}`);
-                }
-              }
-            }
-          }).catch(() => {}).finally(() => {
-            pendingJoinRef.current = false;
-            setTimeout(() => setJoining(false), 3000);
-          });
-        } else if (hasOwned && !redirectedRef.current) {
-          // Player already has tickets (bought earlier) — redirect immediately
-          redirectedRef.current = true;
-          const destId = joinedGameIdRef.current || activeGameIdRef.current;
-          if (destId) {
-            if (roomType.startsWith('SPIN_')) {
-              router.push(`/play/spin?id=${destId}&stake=${stake}`);
-            } else {
-              router.push(`/game?id=${destId}&type=${roomType}&price=${stake}`);
-            }
-          }
-        }
       }
     }, 100);
     return () => clearInterval(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [endTime, serverOff]);
 
-  // Secondary safety auto-buy: fires at countdown <= 1 in case endTime was not set
-  // (e.g. server sent only secondsRemaining without endTime)
+  // ── Auto-buy: fire joinGame() at countdown=1 so the request is already ───
+  // in-flight by the time the backend emits game-started (~1-3s later).
+  // The redirect itself happens in the game-started handler or in joinGame().then()
+  // depending on which resolves first — bridged by gameStartedRef.
+  // gameStartedRef: set true when game-started arrives from server.
+  const gameStartedRef = useRef(false);
+  const gameStartedDataRef = useRef<any>(null);
   useEffect(() => {
-    if (countdown !== null && countdown <= 1 && countdown >= 0 && selectedRef.current.length > 0 && !joining && !launchedRef.current) {
+    if (countdown !== null && countdown <= 1 && countdown >= 0 &&
+        selectedRef.current.length > 0 && !joining && !launchedRef.current) {
       launchedRef.current = true;
       setJoining(true);
       pendingJoinRef.current = true;
@@ -514,9 +465,12 @@ function SelectionContent() {
           joinedGameIdRef.current = res.gameId;
           try { sessionStorage.setItem('joined_game_id', res.gameId); } catch(e) {}
         }
-        if (!redirectedRef.current && (res?.tickets?.length > 0 || ownedRef.current.length > 0)) {
+        // If game-started already fired before this resolved, redirect now
+        if (gameStartedRef.current && !redirectedRef.current &&
+            (ownedRef.current.length > 0 || res?.tickets?.length > 0)) {
           redirectedRef.current = true;
-          const destId = joinedGameIdRef.current || res?.gameId || activeGameIdRef.current;
+          const d = gameStartedDataRef.current;
+          const destId = joinedGameIdRef.current || res?.gameId || d?.gameId || activeGameIdRef.current;
           if (destId) {
             if (roomType.startsWith('SPIN_')) {
               router.push(`/play/spin?id=${destId}&stake=${stake}`);
@@ -639,6 +593,11 @@ function SelectionContent() {
         const endTime = (d.serverTime || Date.now()) + 50000;
         liveGameEndTimeRef.current = endTime;
         setLiveGameEndTime(endTime);
+        
+        // Save state for joinGame().then() to pick up if it's still joining
+        gameStartedRef.current = true;
+        gameStartedDataRef.current = d;
+
         // Redirect users who have tickets OR are in the middle of joining
         const hasTickets = ownedRef.current.length > 0;
         const isJoining = pendingJoinRef.current;
