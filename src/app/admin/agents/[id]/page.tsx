@@ -256,7 +256,6 @@ export default function AgentReportPage() {
 
   const tabs = [
     { key: 'overview', label: '📊 Overview' },
-    { key: 'transactions', label: '💳 Transactions' },
     { key: 'players', label: '👥 Players' },
     { key: 'wallet', label: '💰 Wallet & Commission' },
   ] as const;
@@ -407,13 +406,7 @@ export default function AgentReportPage() {
       </div>
 
       {/* ── KPI Grid ────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px', marginBottom: '28px' }}>
-        <StatCard icon={<FiUsers />} label="Branch Players" value={fmtInt(stats.totalPlayers)} sub={`+${stats.botCount} bots excluded`} color="#3b82f6" />
-        <StatCard icon={<FiArrowDownLeft />} label="Real Money Deposited" value={`${fmt(stats.totalDeposited)} ETB`} sub={`${fmtInt(stats.totalDepositsCount)} real player txs`} color="#10b981" />
-        <StatCard icon={<FiArrowUpRight />} label="Total Withdrawn" value={`${fmt(stats.totalWithdrawn)} ETB`} sub={`${fmtInt(stats.totalWithdrawalsCount)} payments`} color="#ef4444" />
-        <StatCard icon={<FiClock />} label="Pending Deposits" value={`${fmt(stats.pendingDeposits)} ETB`} sub={`${fmtInt(stats.pendingDepositsCount)} awaiting`} color="#f59e0b" />
-        <StatCard icon={<FiClock />} label="Pending Withdrawals" value={`${fmt(stats.pendingWithdrawals)} ETB`} sub={`${fmtInt(stats.pendingWithdrawalsCount)} awaiting`} color="#f59e0b" />
-      </div>
+      {/* Removed per user request */}
 
       {/* ── Tabs ────────────────────────────────────────────── */}
       <div style={{ display: 'flex', gap: '4px', borderBottom: '2px solid #f0ece8', marginBottom: '24px', overflowX: 'auto' }}>
@@ -541,86 +534,7 @@ export default function AgentReportPage() {
         </div>
       )}
 
-      {/* ── TRANSACTIONS TAB ─────────────────────────────────── */}
-      {activeTab === 'transactions' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-          {/* Recent Deposits */}
-          <div className="data-table-container" style={{ overflow: 'hidden' }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid #f5f5f4', background: '#fafaf9' }}>
-              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <FiCheckCircle color="#10b981" /> Recent Real Player Deposits
-              </h3>
-            </div>
-            <div style={{ maxHeight: '480px', overflowY: 'auto' }}>
-              <table className="data-table">
-                <thead>
-                  <tr><th>Player</th><th>Amount</th><th>Status</th><th>Date</th></tr>
-                </thead>
-                <tbody>
-                  {recentDeposits.length === 0 ? (
-                    <tr><td colSpan={4} style={{ textAlign: 'center', padding: '32px', color: '#a8a29e' }}>No deposits yet.</td></tr>
-                  ) : recentDeposits.map((dep: any) => (
-                    <tr key={dep.id}>
-                      <td style={{ fontWeight: '700' }}>{dep.user?.firstName || '—'}</td>
-                      <td style={{ fontWeight: '900', color: '#10b981' }}>+{fmt(dep.amount)} ETB</td>
-                      <td>
-                        <span style={{
-                          fontSize: '10px', fontWeight: '800', padding: '2px 8px', borderRadius: '999px',
-                          background: dep.status === 'approved' || dep.status === 'APPROVED' ? '#f0fdf4' : dep.status === 'pending' ? '#fefce8' : '#fef2f2',
-                          color: dep.status === 'approved' || dep.status === 'APPROVED' ? '#15803d' : dep.status === 'pending' ? '#ca8a04' : '#dc2626',
-                        }}>
-                          {String(dep.status).toUpperCase()}
-                        </span>
-                      </td>
-                      <td style={{ fontSize: '12px', color: '#78716c' }}>{new Date(dep.createdAt).toLocaleDateString()}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Recent Transactions */}
-          <div className="data-table-container" style={{ overflow: 'hidden' }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid #f5f5f4', background: '#fafaf9' }}>
-              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <FiActivity color="#8b5cf6" /> Recent Branch Activity
-              </h3>
-            </div>
-            <div style={{ maxHeight: '480px', overflowY: 'auto' }}>
-              <table className="data-table">
-                <thead>
-                  <tr><th>Player</th><th>Type</th><th>Amount</th><th>Date</th></tr>
-                </thead>
-                <tbody>
-                  {recentTransactions.length === 0 ? (
-                    <tr><td colSpan={4} style={{ textAlign: 'center', padding: '32px', color: '#a8a29e' }}>No activity yet.</td></tr>
-                  ) : recentTransactions.map((tx: any) => {
-                    const isCredit = ['PRIZE_WIN', 'DEPOSIT', 'REFUND', 'REFERRAL_BONUS'].includes(tx.type);
-                    const typeLabel: Record<string, string> = {
-                      TICKET_PURCHASE: '🎫 Ticket',
-                      PRIZE_WIN: '🏆 Prize Win',
-                      DEPOSIT: '💵 Deposit',
-                      WITHDRAWAL: '🏦 Withdrawal',
-                      REFUND: '↩️ Refund',
-                    };
-                    return (
-                      <tr key={tx.id}>
-                        <td style={{ fontWeight: '700' }}>{tx.user?.firstName || '—'}</td>
-                        <td style={{ fontSize: '12px' }}>{typeLabel[tx.type] || tx.type}</td>
-                        <td style={{ fontWeight: '900', color: isCredit ? '#10b981' : '#78716c' }}>
-                          {isCredit ? '+' : '-'}{fmt(Math.abs(tx.amount))} ETB
-                        </td>
-                        <td style={{ fontSize: '12px', color: '#78716c' }}>{new Date(tx.createdAt).toLocaleDateString()}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* ── TRANSACTIONS TAB REMOVED ─────────────────────────── */}
 
       {/* ── PLAYERS TAB ─────────────────────────────────────── */}
       {activeTab === 'players' && (
