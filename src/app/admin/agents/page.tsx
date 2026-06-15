@@ -236,7 +236,7 @@ export default function AgentsPage() {
       return;
     }
 
-    const doc = new jsPDF({ orientation: 'landscape' });
+    const doc = new jsPDF(); // Defaults to portrait
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
     const fmt = (n: number) => Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -305,39 +305,43 @@ export default function AgentsPage() {
     doc.setFillColor(253, 251, 247);
     doc.setDrawColor(212, 175, 55);
     doc.setLineWidth(0.5);
-    doc.roundedRect(10, 26, pageWidth - 20, 30, 4, 4, 'FD');
+    doc.roundedRect(10, 26, pageWidth - 20, 58, 4, 4, 'FD');
 
     // Hero label (bilingual)
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(120, 113, 108);
-    doc.text('TOTAL EXPECTED CASH FROM ALL BRANCHES', 18, 33);
+    doc.text('TOTAL EXPECTED CASH FROM ALL BRANCHES', pageWidth / 2, 33, { align: 'center' });
     if (hasAmharic) {
       doc.setFont('NotoSansEthiopic', 'normal');
       doc.setFontSize(9);
-      doc.text('ከሁሉም ቅርንጫፎች ሊሰበሰብ የሚገባ ጠቅላላ ገንዘብ', 18, 40);
+      doc.text('ከሁሉም ቅርንጫፎች ሊሰበሰብ የሚገባ ጠቅላላ ገንዘብ', pageWidth / 2, 40, { align: 'center' });
       doc.setFont('helvetica', 'normal');
     }
 
     // Hero amount
     doc.setFontSize(22);
     doc.setTextColor(61, 43, 31);
-    doc.text(`${fmt(totalExpected)} ETB`, 18, 50);
+    doc.text(`${fmt(totalExpected)} ETB`, pageWidth / 2, 50, { align: 'center' });
 
     // Hero breakdown pill
     doc.setFontSize(9);
     doc.setTextColor(120, 113, 108);
     const formula = `Company Share (${fmtPct(profitData?.companyRate || 0)}): ${fmt(totals.companyShare || 0)} ETB   +   Bot Winnings / የቦት ሽልማቶች: ${fmt(totals.botDebtAdded || 0)} ETB`;
-    doc.text(formula, pageWidth / 2, 50, { align: 'center' });
+    doc.text(formula, pageWidth / 2, 58, { align: 'center' });
 
-    // 4 summary boxes (top right)
+    // 4 summary boxes (centered below formula)
     const boxData = [
       { label: 'TOTAL TICKET SALES', value: fmt(totals.totalTicketSales || 0) + ' ETB' },
       { label: 'COMPANY SHARE', value: fmt(totals.companyShare || 0) + ' ETB' },
       { label: 'AGENT EARNED (Total)', value: fmt(totals.agentEarned || 0) + ' ETB' },
       { label: 'BOT WINNINGS (Total)', value: fmt(totals.botDebtAdded || 0) + ' ETB' },
     ];
-    const bw = 38, bh = 14, bx0 = pageWidth - 10 - 4 * bw - 3 * 3, by0 = 28;
+    const bw = 40, bh = 14;
+    const totalBoxesWidth = 4 * bw + 3 * 3;
+    const bx0 = 10 + (pageWidth - 20 - totalBoxesWidth) / 2;
+    const by0 = 64;
+    
     boxData.forEach((b, i) => {
       const bx = bx0 + i * (bw + 3);
       doc.setFillColor(61, 43, 31);
@@ -357,29 +361,29 @@ export default function AgentsPage() {
       a.agentName,
       a.agentUsername ? `@${a.agentUsername}` : '—',
       fmt(a.totalTicketSales) + ' ETB',
-      `${fmt(a.companyShare)} ETB  (${fmtPct(profitData?.companyRate || 0)})`,
+      `${fmt(a.companyShare)} ETB\n(${fmtPct(profitData?.companyRate || 0)})`,
       fmt(a.botDebtAdded) + ' ETB',
       { content: fmt(a.companyShare + a.botDebtAdded) + ' ETB', styles: { fontStyle: 'bold', textColor: [21, 128, 61] } },
       fmt(a.agentEarned) + ' ETB',
     ]);
 
     autoTable(doc, {
-      startY: 61,
-      head: [['#', 'Agent / ወኪል', 'Username', 'Ticket Sales / ቲኬት ሽያጭ', 'Company Share / የኩባንያ ድርሻ', 'Bot Winnings / የቦት ሽልማቶች', 'Expected Cash ▶ / ሊሰበሰብ', 'Agent Earned / ወኪሉ ያገኘው']],
+      startY: 89,
+      head: [['#', 'Agent\nወኪል', 'Username', 'Ticket Sales\nቲኬት ሽያጭ', 'Company Share\nየኩባንያ ድርሻ', 'Bot Winnings\nየቦት ሽልማቶች', 'Expected Cash ▶\nሊሰበሰብ', 'Agent Earned\nያገኘው']],
       body: agentRows,
       theme: 'grid',
-      headStyles: { fillColor: [61, 43, 31], textColor: [255, 255, 255], fontSize: 8, fontStyle: 'bold', halign: 'left', font: hasAmharic ? 'NotoSansEthiopic' : 'helvetica' },
-      bodyStyles: { fontSize: 9, cellPadding: 4, textColor: [55, 55, 55] },
+      headStyles: { fillColor: [61, 43, 31], textColor: [255, 255, 255], fontSize: 7.5, fontStyle: 'bold', halign: 'left', font: hasAmharic ? 'NotoSansEthiopic' : 'helvetica' },
+      bodyStyles: { fontSize: 8, cellPadding: 3, textColor: [55, 55, 55] },
       alternateRowStyles: { fillColor: [252, 250, 248] },
       columnStyles: {
-        0: { cellWidth: 8, halign: 'center', textColor: [120, 113, 108] },
-        1: { fontStyle: 'bold', textColor: [61, 43, 31], cellWidth: 28 },
-        2: { cellWidth: 22, textColor: [120, 113, 108] },
-        3: { cellWidth: 30 },
-        4: { cellWidth: 38 },
-        5: { cellWidth: 30 },
-        6: { cellWidth: 36, fillColor: [240, 253, 244] },
-        7: { cellWidth: 28, textColor: [180, 120, 0] },
+        0: { cellWidth: 7, halign: 'center', textColor: [120, 113, 108] },
+        1: { fontStyle: 'bold', textColor: [61, 43, 31], cellWidth: 24 },
+        2: { cellWidth: 20, textColor: [120, 113, 108] },
+        3: { cellWidth: 25 },
+        4: { cellWidth: 32 },
+        5: { cellWidth: 26 },
+        6: { cellWidth: 32, fillColor: [240, 253, 244] },
+        7: { cellWidth: 24, textColor: [180, 120, 0] },
       },
       margin: { left: 10, right: 10, bottom: 18 },
     });
