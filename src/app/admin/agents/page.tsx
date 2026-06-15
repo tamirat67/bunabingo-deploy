@@ -597,12 +597,38 @@ export default function AgentsPage() {
                      )}
                    </div>
                 </td>
-                 <td style={{ textAlign: 'right' }}>
-                        {Number(agent.botNetProfit ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
-                      </div>
-                      <span style={{ fontSize: '10px', color: '#8c857b', fontWeight: '700', textTransform: 'uppercase' }}>To Collect</span>
-                    </div>
-                 </td>
+                  <td style={{ textAlign: 'right' }}>
+                    {/* Net Cash Flow = branch deposits − branch withdrawals */}
+                    {(() => {
+                      const deps = Number(agent.wallet?.totalDeposited ?? 0);
+                      const wds  = Number(agent.wallet?.totalWithdrawn ?? 0);
+                      const net  = deps - wds;
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'flex-end' }}>
+                          <div style={{ fontWeight: '800', color: net >= 0 ? '#10b981' : '#ef4444', fontSize: '14px' }}>
+                            {net >= 0 ? '+' : ''}{net.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
+                          </div>
+                          <span style={{ fontSize: '10px', color: '#8c857b', fontWeight: '700', textTransform: 'uppercase' }}>Deposits – W/D</span>
+                        </div>
+                      );
+                    })()}
+                  </td>
+                  <td style={{ textAlign: 'right' }}>
+                    {/* Outstanding Debt = pending withdrawals from branch players */}
+                    {(() => {
+                      const debt = Number(agent.outstandingDebt ?? 0);
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'flex-end' }}>
+                          <div style={{ fontWeight: '800', color: debt > 0 ? '#ef4444' : '#10b981', fontSize: '14px' }}>
+                            {debt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
+                          </div>
+                          <span style={{ fontSize: '10px', color: '#8c857b', fontWeight: '700', textTransform: 'uppercase' }}>
+                            {debt > 0 ? 'Pending W/D' : 'All Settled'}
+                          </span>
+                        </div>
+                      );
+                    })()}
+                  </td>
                 <td style={{ textAlign: 'right' }}>
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '4px', flexWrap: 'wrap' }}>
                     <Link href={`/admin/agents/${agent.id}`}>
