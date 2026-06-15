@@ -101,6 +101,25 @@ export default function AgentReportPage() {
       console.warn("Could not load logo image for PDF", err);
     }
 
+    // ── Load Amharic font ────────────────────────────────────
+    let hasAmharic = false;
+    try {
+      const fontRes = await fetch('/fonts/NotoSansEthiopic.ttf');
+      const fontBuf = await fontRes.arrayBuffer();
+      const uint8 = new Uint8Array(fontBuf);
+      let binary = '';
+      for (let i = 0; i < uint8.length; i++) binary += String.fromCharCode(uint8[i]);
+      const fontB64 = btoa(binary);
+      doc.addFileToVFS('NotoSansEthiopic.ttf', fontB64);
+      doc.addFont('NotoSansEthiopic.ttf', 'NotoSansEthiopic', 'normal');
+      hasAmharic = true;
+    } catch (e) {
+      console.warn('Could not load Amharic font', e);
+    }
+
+    const setAmharic = () => { if (hasAmharic) doc.setFont('NotoSansEthiopic', 'normal'); };
+    const setLatin   = () => doc.setFont('helvetica', 'normal');
+
     const fmt = (n: number) => Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const fmtInt = (n: number) => Number(n || 0).toLocaleString();
     const fmtPct = (r: number) => (r * 100).toFixed(1) + '%';
@@ -110,6 +129,7 @@ export default function AgentReportPage() {
     
     // Basic Info Section
     doc.setFontSize(16);
+    setLatin();
     doc.setTextColor(61, 43, 31);
     doc.text(`Agent Report: ${agent.firstName}`, 14, finalY);
     
@@ -122,61 +142,72 @@ export default function AgentReportPage() {
     // Section: Expected Cash Collection (Hero Card)
     const totalExpected = stats.companyEarnedFromBranch + (stats.botDebtAdded || 0);
 
-    // Draw Hero Card Background
-    doc.setFillColor(253, 251, 247); // Very light warm background
-    doc.setDrawColor(212, 175, 55);   // Gold border
+    doc.setFillColor(253, 251, 247);
+    doc.setDrawColor(212, 175, 55);
     doc.setLineWidth(0.5);
-    doc.roundedRect(14, finalY + 26, doc.internal.pageSize.width - 28, 38, 4, 4, 'FD');
+    doc.roundedRect(14, finalY + 26, doc.internal.pageSize.width - 28, 44, 4, 4, 'FD');
 
-    // Hero Subtitle
-    doc.setFontSize(11);
-    doc.setTextColor(120, 113, 108); // Grayish brown
-    doc.text(`TOTAL EXPECTED CASH FROM ${agent.firstName?.toUpperCase()}`, 22, finalY + 38);
+    // English hero label
+    setLatin();
+    doc.setFontSize(10);
+    doc.setTextColor(120, 113, 108);
+    doc.text(`TOTAL EXPECTED CASH FROM ${agent.firstName?.toUpperCase()}`, 22, finalY + 37);
+
+    // Amharic hero label
+    if (hasAmharic) {
+      setAmharic();
+      doc.setFontSize(10);
+      doc.setTextColor(120, 113, 108);
+      doc.text(`ከ ${agent.firstName} ሊሰበሰብ የሚገባ ጠቅላላ ገንዘብ`, 22, finalY + 45);
+      setLatin();
+    }
     
-    // Hero Main Text
+    // Hero Amount
     doc.setFontSize(26);
-    doc.setTextColor(61, 43, 31); // Dark brown
-    doc.text(`${fmt(totalExpected)} ETB`, 22, finalY + 52);
+    doc.setTextColor(61, 43, 31);
+    doc.text(`${fmt(totalExpected)} ETB`, 22, finalY + 60);
 
-    // Section: Profit Breakdown Table
-    autoTable(doc, {
-      startY: finalY + 75,
-      head: [['Financial Metric', 'Amount', 'Description']],
-      body: [
-        [
-          'COMPANY SHARE (Commission)', 
-          `${fmt(stats.companyEarnedFromBranch)} ETB`, 
-          `${fmtPct(stats.companyRate)} of total ticket sales`
-        ],
-        [
-          'TOTAL BOT WINNINGS', 
-          `${fmt(stats.botDebtAdded || 0)} ETB`, 
-          `Prizes won by house bots`
-        ],
-        [
-          'OUTSTANDING BOT DEBT', 
-          `${fmt(stats.outstandingBotDebt || 0)} ETB`, 
-          `Unsettled bot winnings`
-        ],
-        [
-          'AGENT EARNED', 
-          `${fmt(stats.agentEarned)} ETB`, 
-          `Agent's ${fmtPct(stats.agentRate)} commission share`
-        ],
-        [
-          'REAL TICKET SALES', 
-          `${fmt(stats.totalTicketSales)} ETB`, 
-          `Total base sales from real players`
-        ],
+    // Section: Bilingual Profit Breakdown Table
+    const tableBody = [
+      [
+        'COMPANY SHARE\nየኩባንያ ድርሻ (ኮሚሽን)',
+        `${fmt(stats.companyEarnedFromBranch)} ETB`,
+        `${fmtPct(stats.companyRate)} of ticket sales\nከቲኬት ሽያጭ ${fmtPct(stats.companyRate)}`
       ],
+      [
+        'TOTAL BOT WINNINGS\nጠቅላላ የቦት ሽልማቶች',
+        `${fmt(stats.botDebtAdded || 0)} ETB`,
+        `Prizes won by house bots\nበቤቱ ቦቶች የተሸለሙ ሽልማቶች`
+      ],
+      [
+        'OUTSTANDING BOT DEBT\nያልተወራረደ የቦት እዳ',
+        `${fmt(stats.outstandingBotDebt || 0)} ETB`,
+        `Unsettled bot winnings\nያልተከፈሉ የቦት ሽልማቶች`
+      ],
+      [
+        'AGENT EARNED\nወኪሉ ያገኘው',
+        `${fmt(stats.agentEarned)} ETB`,
+        `Agent's ${fmtPct(stats.agentRate)} share\nየወኪሉ ${fmtPct(stats.agentRate)} ድርሻ`
+      ],
+      [
+        'REAL TICKET SALES\nትክክለኛ የቲኬት ሽያጭ',
+        `${fmt(stats.totalTicketSales)} ETB`,
+        `Total cash from real players\nከትክክለኛ ተጫዋቾች የተሰበሰበ`
+      ],
+    ];
+
+    autoTable(doc, {
+      startY: finalY + 80,
+      head: [['Financial Metric / የፋይናንስ መለኪያ', 'Amount / መጠን', 'Description / ዝርዝር']],
+      body: tableBody,
       theme: 'grid',
-      headStyles: { fillColor: [61, 43, 31], textColor: [255, 255, 255], fontSize: 11, fontStyle: 'bold', halign: 'left' },
-      bodyStyles: { fontSize: 11, cellPadding: 8, textColor: [60, 60, 60] },
+      headStyles: { fillColor: [61, 43, 31], textColor: [255, 255, 255], fontSize: 10, fontStyle: 'bold', halign: 'left' },
+      bodyStyles: { fontSize: hasAmharic ? 10 : 11, cellPadding: 6, textColor: [60, 60, 60], font: hasAmharic ? 'NotoSansEthiopic' : 'helvetica' },
       alternateRowStyles: { fillColor: [252, 250, 248] },
       columnStyles: {
-        0: { fontStyle: 'bold', textColor: [61, 43, 31], cellWidth: 65 },
-        1: { fontStyle: 'bold', textColor: [21, 128, 61], cellWidth: 45 }, // Greenish for amounts
-        2: { textColor: [120, 113, 108], fontStyle: 'italic' }
+        0: { fontStyle: 'bold', textColor: [61, 43, 31], cellWidth: 68 },
+        1: { fontStyle: 'bold', textColor: [21, 128, 61], cellWidth: 42 },
+        2: { textColor: [120, 113, 108] }
       },
       margin: { top: 40, bottom: 30, left: 14, right: 14 }
     });

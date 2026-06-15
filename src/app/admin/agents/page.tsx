@@ -242,6 +242,22 @@ export default function AgentsPage() {
     const fmt = (n: number) => Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const fmtPct = (r: number) => (r * 100).toFixed(1) + '%';
 
+    // ── Load Amharic font ──────────────────────────────────────
+    let hasAmharic = false;
+    try {
+      const fontRes = await fetch('/fonts/NotoSansEthiopic.ttf');
+      const fontBuf = await fontRes.arrayBuffer();
+      const uint8 = new Uint8Array(fontBuf);
+      let binary = '';
+      for (let i = 0; i < uint8.length; i++) binary += String.fromCharCode(uint8[i]);
+      const fontB64 = btoa(binary);
+      doc.addFileToVFS('NotoSansEthiopic.ttf', fontB64);
+      doc.addFont('NotoSansEthiopic.ttf', 'NotoSansEthiopic', 'normal');
+      hasAmharic = true;
+    } catch (e) {
+      console.warn('Could not load Amharic font', e);
+    }
+
     // ── HEADER ──────────────────────────────────────────────
     doc.setFillColor(61, 43, 31);
     doc.rect(0, 0, pageWidth, 22, 'F');
@@ -290,21 +306,28 @@ export default function AgentsPage() {
     doc.setLineWidth(0.5);
     doc.roundedRect(10, 26, pageWidth - 20, 30, 4, 4, 'FD');
 
-    // Hero label
+    // Hero label (bilingual)
     doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
     doc.setTextColor(120, 113, 108);
-    doc.text('TOTAL EXPECTED CASH FROM ALL BRANCHES', 18, 35);
+    doc.text('TOTAL EXPECTED CASH FROM ALL BRANCHES', 18, 33);
+    if (hasAmharic) {
+      doc.setFont('NotoSansEthiopic', 'normal');
+      doc.setFontSize(9);
+      doc.text('ከሁሉም ቅርንጫፎች ሊሰበሰብ የሚገባ ጠቅላላ ገንዘብ', 18, 40);
+      doc.setFont('helvetica', 'normal');
+    }
 
     // Hero amount
     doc.setFontSize(22);
     doc.setTextColor(61, 43, 31);
-    doc.text(`${fmt(totalExpected)} ETB`, 18, 48);
+    doc.text(`${fmt(totalExpected)} ETB`, 18, 50);
 
     // Hero breakdown pill
     doc.setFontSize(9);
     doc.setTextColor(120, 113, 108);
-    const formula = `Company Share (${fmtPct(profitData?.companyRate || 0)}): ${fmt(totals.companyShare || 0)} ETB   +   Total Bot Winnings: ${fmt(totals.botDebtAdded || 0)} ETB`;
-    doc.text(formula, pageWidth / 2, 48, { align: 'center' });
+    const formula = `Company Share (${fmtPct(profitData?.companyRate || 0)}): ${fmt(totals.companyShare || 0)} ETB   +   Bot Winnings / የቦት ሽልማቶች: ${fmt(totals.botDebtAdded || 0)} ETB`;
+    doc.text(formula, pageWidth / 2, 50, { align: 'center' });
 
     // 4 summary boxes (top right)
     const boxData = [
@@ -341,20 +364,20 @@ export default function AgentsPage() {
 
     autoTable(doc, {
       startY: 61,
-      head: [['#', 'Agent Name', 'Username', 'Ticket Sales', 'Company Share', 'Bot Winnings', 'Expected Cash ▶', 'Agent Earned']],
+      head: [['#', 'Agent / ወኪል', 'Username', 'Ticket Sales / ቲኬት ሽያጭ', 'Company Share / የኩባንያ ድርሻ', 'Bot Winnings / የቦት ሽልማቶች', 'Expected Cash ▶ / ሊሰበሰብ', 'Agent Earned / ወኪሉ ያገኘው']],
       body: agentRows,
       theme: 'grid',
-      headStyles: { fillColor: [61, 43, 31], textColor: [255, 255, 255], fontSize: 9, fontStyle: 'bold', halign: 'left' },
+      headStyles: { fillColor: [61, 43, 31], textColor: [255, 255, 255], fontSize: 8, fontStyle: 'bold', halign: 'left', font: hasAmharic ? 'NotoSansEthiopic' : 'helvetica' },
       bodyStyles: { fontSize: 9, cellPadding: 4, textColor: [55, 55, 55] },
       alternateRowStyles: { fillColor: [252, 250, 248] },
       columnStyles: {
         0: { cellWidth: 8, halign: 'center', textColor: [120, 113, 108] },
         1: { fontStyle: 'bold', textColor: [61, 43, 31], cellWidth: 28 },
-        2: { cellWidth: 25, textColor: [120, 113, 108] },
-        3: { cellWidth: 32 },
-        4: { cellWidth: 40 },
+        2: { cellWidth: 22, textColor: [120, 113, 108] },
+        3: { cellWidth: 30 },
+        4: { cellWidth: 38 },
         5: { cellWidth: 30 },
-        6: { cellWidth: 38, fillColor: [240, 253, 244] },
+        6: { cellWidth: 36, fillColor: [240, 253, 244] },
         7: { cellWidth: 28, textColor: [180, 120, 0] },
       },
       margin: { left: 10, right: 10, bottom: 18 },
