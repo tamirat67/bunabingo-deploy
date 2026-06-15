@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { 
   FiUsers, FiTrendingUp, FiDollarSign, FiActivity,
   FiPieChart, FiUserCheck, FiArrowDown, FiArrowUp, 
-  FiCreditCard, FiPlay, FiInfo, FiCalendar, FiChevronDown, FiArrowRight, FiDownload, FiUpload
+  FiCreditCard, FiPlay, FiInfo, FiChevronDown, FiArrowRight, FiDownload, FiUpload
 } from 'react-icons/fi';
 import api from '@/lib/api';
 
@@ -13,27 +13,31 @@ function DashboardContent() {
   const [stats, setStats] = useState<any>(null);
   const [user, setUser] = useState<any>(null);
   const [agents, setAgents] = useState<any[]>([]);
-  const [selectedAgent, setSelectedAgent] = useState<string>('');
   const [loading, setLoading] = useState(true);
-  const [showRangePicker, setShowRangePicker] = useState(false);
-  const [customDays, setCustomDays] = useState<string>('');
   const searchParams = useSearchParams();
   const router = useRouter();
-  // Date range params
-  const daysParam  = searchParams.get('days') || '0';       // 0 = today only
-  const startParam = searchParams.get('startDate') || '';
-  const endParam   = searchParams.get('endDate')   || '';
-  const dateParam  = searchParams.get('date') || '';         // legacy fallback
 
-  // Derive display label before data loads
-  const quickLabel = (() => {
-    const d = Number(daysParam);
-    if (startParam && endParam && d === 0) return `${startParam} – ${endParam}`;
-    if (d === 1)  return 'Yesterday';
-    if (d === 7)  return 'Last 7 Days';
-    if (d === 14) return 'Last 14 Days';
-    if (d === 30) return 'Last 30 Days';
-    if (d > 1)    return `Last ${d} Days`;
+  // Filter state — local (only applied on button click)
+  const [minDate, setMinDate] = useState<string>(searchParams.get('startDate') || '');
+  const [maxDate, setMaxDate] = useState<string>(searchParams.get('endDate') || '');
+  const [filterAgent, setFilterAgent] = useState<string>(searchParams.get('agentId') || '');
+
+  // Applied (URL-sourced) values that drive the actual API call
+  const startParam   = searchParams.get('startDate') || '';
+  const endParam     = searchParams.get('endDate')   || '';
+  const agentParam   = searchParams.get('agentId')   || '';
+  const dateParam    = searchParams.get('date') || '';   // legacy
+
+  // Derive display label for header
+  const formattedDateLabel = (() => {
+    if (startParam && endParam) {
+      const fmt = (s: string) => new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      return startParam === endParam ? fmt(startParam) : `${fmt(startParam)} – ${fmt(endParam)}`;
+    }
+    if (dateParam) {
+      try { return new Date(dateParam).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
+      catch { return 'Today'; }
+    }
     return 'Today';
   })();
 
@@ -64,25 +68,13 @@ function DashboardContent() {
         const endpoint = isAdmin ? '/admin/analytics' : '/agent/stats';
         const params = new URLSearchParams();
 
-        // Build date range params
-        const d = Number(daysParam);
-        if (startParam && endParam && d === 0) {
+        if (startParam && endParam) {
           params.set('startDate', startParam);
           params.set('endDate', endParam);
-        } else if (d > 0) {
-          const end = new Date();
-          const start = new Date();
-          start.setDate(start.getDate() - (d - 1));
-          params.set('startDate', start.toISOString().split('T')[0]);
-          params.set('endDate', end.toISOString().split('T')[0]);
         } else if (dateParam) {
           params.set('date', dateParam);
         }
-        // else: no params = today (backend default)
-
-        if (isAdmin && selectedAgent) {
-          params.set('agentId', selectedAgent);
-        }
+        if (isAdmin && agentParam) params.set('agentId', agentParam);
 
         const url = params.toString() ? `${endpoint}?${params.toString()}` : endpoint;
         const statsResponse = await api.get(url);
@@ -94,7 +86,23 @@ function DashboardContent() {
       }
     }
     fetchData();
-  }, [daysParam, startParam, endParam, dateParam, selectedAgent]);
+  }, [startParam, endParam, dateParam, agentParam]);
+
+  // Apply filter: push URL params and trigger re-fetch
+  const applyFilter = () => {
+    const p = new URLSearchParams();
+    if (minDate) p.set('startDate', minDate);
+    if (maxDate) p.set('endDate', maxDate);
+    if (filterAgent) p.set('agentId', filterAgent);
+    router.push(`/admin${p.toString() ? '?' + p.toString() : ''}`);
+  };
+
+  const clearFilter = () => {
+    setMinDate('');
+    setMaxDate('');
+    setFilterAgent('');
+    router.push('/admin');
+  };
 
   if (loading || !stats) {
     return (
@@ -108,8 +116,8 @@ function DashboardContent() {
 
   const isAdmin = user.role === 'ADMIN' || user.isAdmin;
 
-  // Formatting date label — use the range label returned from API, or the quick label
-  const formattedDateLabel = stats?.dateRangeLabel || quickLabel;
+  // Formatting date label — use the range label returned from API, or the derived label
+  const displayDateLabel = stats?.dateRangeLabel || formattedDateLabel;
 
   // Extract variables based on role — NO fake fallbacks, only real data
   // globalSales = today's total gross (all cards including bots)
@@ -189,176 +197,169 @@ function DashboardContent() {
 
   return (
     <div className="admin-page">
-      {/* Premium Sub-Header Row */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
-        <div>
-          <h1 style={{ fontSize: '32px', fontWeight: '900', margin: 0, color: '#3d2b1f', fontFamily: 'Inter, sans-serif' }}>
-            👋 Welcome back, {user.firstName || 'Admin'}
-          </h1>
-          <p style={{ color: '#8c857b', marginTop: '4px', fontSize: '14px', fontWeight: '500' }}>
-            {isAdmin && !selectedAgent ? 'Platform-wide overview' : 'Branch performance overview'} • {formattedDateLabel}
-          </p>
-        </div>
+      {/* Welcome Row */}
+      <div style={{ marginBottom: '24px' }}>
+        <h1 style={{ fontSize: '32px', fontWeight: '900', margin: 0, color: '#3d2b1f', fontFamily: 'Inter, sans-serif' }}>
+          👋 Welcome back, {user.firstName || 'Admin'}
+        </h1>
+        <p style={{ color: '#8c857b', marginTop: '4px', fontSize: '14px', fontWeight: '500' }}>
+          {isAdmin && !agentParam ? 'Platform-wide overview' : 'Branch performance overview'} • {displayDateLabel}
+        </p>
+      </div>
 
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-          {/* Agent Selector Dropdown */}
-          {isAdmin && (
+      {/* ── Filter Bar ── */}
+      {isAdmin && (
+        <div style={{
+          background: '#ffffff',
+          border: '1px solid rgba(0,0,0,0.07)',
+          borderRadius: '16px',
+          padding: '18px 24px',
+          marginBottom: '28px',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
+          display: 'flex',
+          alignItems: 'flex-end',
+          gap: '20px',
+          flexWrap: 'wrap',
+        }}>
+
+          {/* Min Date */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <label style={{ fontSize: '12px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.6px' }}>Min Date</label>
+            <input
+              type="date"
+              value={minDate}
+              onChange={e => setMinDate(e.target.value)}
+              style={{
+                padding: '9px 12px',
+                borderRadius: '10px',
+                border: '1.5px solid rgba(0,0,0,0.12)',
+                fontSize: '13px',
+                fontFamily: 'inherit',
+                color: '#3d2b1f',
+                outline: 'none',
+                background: '#fafafa',
+                cursor: 'pointer',
+                minWidth: '145px',
+              }}
+            />
+          </div>
+
+          {/* Max Date */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <label style={{ fontSize: '12px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.6px' }}>Max Date</label>
+            <input
+              type="date"
+              value={maxDate}
+              onChange={e => setMaxDate(e.target.value)}
+              style={{
+                padding: '9px 12px',
+                borderRadius: '10px',
+                border: '1.5px solid rgba(0,0,0,0.12)',
+                fontSize: '13px',
+                fontFamily: 'inherit',
+                color: '#3d2b1f',
+                outline: 'none',
+                background: '#fafafa',
+                cursor: 'pointer',
+                minWidth: '145px',
+              }}
+            />
+          </div>
+
+          {/* Agent Selector */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <label style={{ fontSize: '12px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.6px' }}>Agent</label>
             <div style={{ position: 'relative' }}>
-              <select 
-                value={selectedAgent}
-                onChange={(e) => setSelectedAgent(e.target.value)}
+              <select
+                value={filterAgent}
+                onChange={e => setFilterAgent(e.target.value)}
                 style={{
                   appearance: 'none',
-                  background: '#ffffff',
-                  border: '1px solid rgba(0, 0, 0, 0.06)',
-                  borderRadius: '12px',
-                  padding: '10px 36px 10px 16px',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
-                  cursor: 'pointer',
-                  fontWeight: '600',
+                  padding: '9px 36px 9px 12px',
+                  borderRadius: '10px',
+                  border: '1.5px solid rgba(0,0,0,0.12)',
+                  fontSize: '13px',
+                  fontFamily: 'inherit',
                   color: '#3d2b1f',
-                  fontSize: '14px',
+                  fontWeight: '600',
                   outline: 'none',
+                  background: '#fafafa',
+                  cursor: 'pointer',
                   minWidth: '160px',
                 }}
               >
-                <option value="">🌐 All Agents (Global)</option>
+                <option value="">All Agents</option>
                 {agents.map((ag: any) => (
                   <option key={ag.id} value={ag.id}>
-                    👤 {ag.firstName || ag.telegramUsername || `Agent ${ag.id.slice(0,6)}`}
+                    {ag.firstName || ag.telegramUsername || `Agent ${ag.id.slice(0, 6)}`}
                   </option>
                 ))}
               </select>
-              <FiChevronDown size={16} style={{ color: '#8c857b', position: 'absolute', right: '14px', top: '12px', pointerEvents: 'none' }} />
+              <FiChevronDown size={14} style={{ position: 'absolute', right: '10px', top: '11px', color: '#8c857b', pointerEvents: 'none' }} />
             </div>
-          )}
+          </div>
 
-          {/* Date Range Selector */}
-          <div style={{ position: 'relative' }}>
+          {/* Filter Button */}
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <button
-              onClick={() => setShowRangePicker(!showRangePicker)}
+              onClick={applyFilter}
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                background: '#ffffff',
-                border: '1px solid rgba(0,0,0,0.08)',
-                borderRadius: '12px',
-                padding: '10px 16px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                padding: '9px 22px',
+                borderRadius: '10px',
+                border: '2px solid #8B5A2B',
+                background: 'linear-gradient(135deg, #8B5A2B 0%, #a0522d 100%)',
+                color: '#ffffff',
+                fontWeight: '800',
+                fontSize: '13px',
                 cursor: 'pointer',
-                fontWeight: '600',
-                color: '#3d2b1f',
-                fontSize: '14px',
                 fontFamily: 'inherit',
-                whiteSpace: 'nowrap',
+                letterSpacing: '0.5px',
+                boxShadow: '0 4px 12px rgba(139,90,43,0.25)',
+                transition: 'opacity 0.15s',
               }}
             >
-              <FiCalendar size={15} style={{ color: '#8c857b' }} />
-              <span>{formattedDateLabel}</span>
-              <FiChevronDown size={14} style={{ color: '#8c857b', transform: showRangePicker ? 'rotate(180deg)' : 'none', transition: '0.2s' }} />
+              FILTER
             </button>
-
-            {showRangePicker && (
-              <div style={{
-                position: 'absolute',
-                top: 'calc(100% + 8px)',
-                right: 0,
-                background: '#ffffff',
-                border: '1px solid rgba(0,0,0,0.08)',
-                borderRadius: '16px',
-                boxShadow: '0 12px 40px rgba(0,0,0,0.12)',
-                padding: '16px',
-                zIndex: 100,
-                minWidth: '220px',
-              }}>
-                <div style={{ fontSize: '11px', fontWeight: '800', color: '#8c857b', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>Quick Range</div>
-                {[
-                  { label: '📅 Today',        days: 0 },
-                  { label: '⏪ Yesterday',    days: 1 },
-                  { label: '📆 Last 7 Days',  days: 7 },
-                  { label: '📆 Last 14 Days', days: 14 },
-                  { label: '📆 Last 30 Days', days: 30 },
-                ].map(opt => (
-                  <button
-                    key={opt.days}
-                    onClick={() => {
-                      const p = new URLSearchParams();
-                      if (opt.days > 0) p.set('days', String(opt.days));
-                      router.push(`/admin${p.toString() ? '?' + p.toString() : ''}`);
-                      setShowRangePicker(false);
-                      setCustomDays('');
-                    }}
-                    style={{
-                      display: 'block',
-                      width: '100%',
-                      textAlign: 'left',
-                      padding: '9px 12px',
-                      borderRadius: '10px',
-                      border: 'none',
-                      background: Number(daysParam) === opt.days ? 'rgba(139, 90, 43, 0.08)' : 'transparent',
-                      color: Number(daysParam) === opt.days ? '#8B5A2B' : '#3d2b1f',
-                      fontWeight: Number(daysParam) === opt.days ? '800' : '500',
-                      fontSize: '13px',
-                      cursor: 'pointer',
-                      fontFamily: 'inherit',
-                      marginBottom: '2px',
-                    }}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-
-                <div style={{ borderTop: '1px solid rgba(0,0,0,0.06)', marginTop: '10px', paddingTop: '10px' }}>
-                  <div style={{ fontSize: '11px', fontWeight: '800', color: '#8c857b', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Custom (1–30 days)</div>
-                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                    <input
-                      type="number"
-                      min="1"
-                      max="30"
-                      value={customDays}
-                      placeholder="e.g. 10"
-                      onChange={(e) => setCustomDays(e.target.value)}
-                      style={{
-                        flex: 1,
-                        padding: '8px 10px',
-                        borderRadius: '8px',
-                        border: '1px solid rgba(0,0,0,0.12)',
-                        fontSize: '13px',
-                        fontFamily: 'inherit',
-                        outline: 'none',
-                      }}
-                    />
-                    <button
-                      onClick={() => {
-                        const n = Math.min(30, Math.max(1, Number(customDays)));
-                        if (!isNaN(n) && n > 0) {
-                          router.push(`/admin?days=${n}`);
-                          setShowRangePicker(false);
-                        }
-                      }}
-                      style={{
-                        padding: '8px 12px',
-                        borderRadius: '8px',
-                        border: 'none',
-                        background: 'linear-gradient(135deg, #8B5A2B, #a0522d)',
-                        color: '#fff',
-                        fontWeight: '700',
-                        fontSize: '12px',
-                        cursor: 'pointer',
-                        fontFamily: 'inherit',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      Apply
-                    </button>
-                  </div>
-                </div>
-              </div>
+            {(startParam || endParam || agentParam) && (
+              <button
+                onClick={clearFilter}
+                style={{
+                  padding: '9px 16px',
+                  borderRadius: '10px',
+                  border: '1.5px solid rgba(0,0,0,0.1)',
+                  background: '#f9f9f9',
+                  color: '#6b7280',
+                  fontWeight: '600',
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                Clear
+              </button>
             )}
           </div>
+
+          {/* Active filter badge */}
+          {(startParam || endParam || agentParam) && (
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{
+                background: 'rgba(139,90,43,0.08)',
+                color: '#8B5A2B',
+                border: '1px solid rgba(139,90,43,0.2)',
+                borderRadius: '999px',
+                padding: '4px 12px',
+                fontSize: '12px',
+                fontWeight: '700',
+              }}>
+                📅 {displayDateLabel}{agentParam && agents.length ? ` • ${agents.find(a => a.id === agentParam)?.firstName || 'Agent'}` : ''}
+              </span>
+            </div>
+          )}
         </div>
-      </div>
+      )}
+
+
 
       {/* Prize Reserve Wallet Banner */}
       {isAdmin && (
