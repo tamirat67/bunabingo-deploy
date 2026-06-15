@@ -57,6 +57,15 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
     { name: 'Settings', icon: FiSettings, path: '/agent/settings' },
   ];
 
+  const handleLogout = () => {
+    localStorage.removeItem('admin_token'); // Agent uses same token key in this app
+    if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.initData) {
+      (window as any).Telegram.WebApp.close();
+    } else {
+      router.push('/admin/login');
+    }
+  };
+
   return (
     <div className={`admin-layout admin-body ${!isSidebarOpen ? 'sidebar-collapsed' : ''}`}>
       {/* Sidebar */}
@@ -105,10 +114,7 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
 
           {/* Logout button */}
           <button
-            onClick={() => {
-              localStorage.removeItem('admin_token');
-              router.push('/admin/login');
-            }}
+            onClick={handleLogout}
             title="Logout"
             style={{
               marginTop: '10px',

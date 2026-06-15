@@ -55,7 +55,11 @@ export default function SettingsPage() {
 
   const handleLogout = () => {
     localStorage.removeItem('admin_token');
-    router.push('/admin/login');
+    if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.initData) {
+      (window as any).Telegram.WebApp.close();
+    } else {
+      router.push('/admin/login');
+    }
   };
 
   const handleSaveProfile = async () => {
