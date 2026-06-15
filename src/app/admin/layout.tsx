@@ -126,22 +126,36 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {isStaff ? (
             // Staff-only nav
             <>
+              <div style={{ fontSize: '10px', fontWeight: '800', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '12px', marginBottom: '8px', paddingLeft: '14px' }}>Main</div>
               <NavLink href="/admin/staff-dashboard" icon={<FiGrid />} label="My Dashboard" />
+              <div style={{ fontSize: '10px', fontWeight: '800', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '16px', marginBottom: '8px', paddingLeft: '14px' }}>Network</div>
               <NavLink href="/admin/agents" icon={<FiShield />} label="Assigned Agents" />
+              <div style={{ fontSize: '10px', fontWeight: '800', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '16px', marginBottom: '8px', paddingLeft: '14px' }}>Finance</div>
               <NavLink href="/admin/transactions" icon={<FiCreditCard />} label="Transactions" />
             </>
           ) : (
             // Admin / Agent nav
             <>
-              <NavLink href="/admin" icon={<FiActivity />} label="Dashboard" />
-              <NavLink href="/admin/users" icon={<FiUsers />} label="All Users" />
+              <div style={{ fontSize: '10px', fontWeight: '800', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '4px', marginBottom: '8px', paddingLeft: '14px' }}>Main</div>
+              <NavLink href="/admin" icon={<FiActivity />} label="Overview" />
+              
+              <div style={{ fontSize: '10px', fontWeight: '800', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '16px', marginBottom: '8px', paddingLeft: '14px' }}>Network</div>
+              <NavLink href="/admin/users" icon={<FiUsers />} label={isAdmin ? "All Players" : "My Players"} />
               <NavLink href="/admin/agents" icon={<FiShield />} label="All Agents" />
+              
+              <div style={{ fontSize: '10px', fontWeight: '800', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '16px', marginBottom: '8px', paddingLeft: '14px' }}>Finance & Analytics</div>
               <NavLink href="/admin/transactions" icon={<FiCreditCard />} label="Transactions" />
-              <NavLink href="/admin/revenue" icon={<FiTrendingUp />} label="Revenue" />
-              {isAdmin && <NavLink href="/admin/company-profit" icon={<FiDollarSign />} label="Company Profit" />}
-              {isAdmin && <NavLink href="/admin/audit" icon={<FiPieChart />} label="System Audit" />}
-              {isAdmin && <NavLink href="/admin/logs" icon={<FiFileText />} label="System Logs" />}
-              {isAdmin && <NavLink href="/admin/settings" icon={<FiSettings />} label="Settings" />}
+              <NavLink href="/admin/revenue" icon={<FiTrendingUp />} label="Platform Revenue" />
+              {isAdmin && <NavLink href="/admin/company-profit" icon={<FiDollarSign />} label="Agent Profit & Debt" />}
+              
+              {isAdmin && (
+                <>
+                  <div style={{ fontSize: '10px', fontWeight: '800', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '16px', marginBottom: '8px', paddingLeft: '14px' }}>System Administration</div>
+                  <NavLink href="/admin/audit" icon={<FiPieChart />} label="Financial Audit" />
+                  <NavLink href="/admin/logs" icon={<FiFileText />} label="System Logs" />
+                  <NavLink href="/admin/settings" icon={<FiSettings />} label="Settings" />
+                </>
+              )}
             </>
           )}
         </nav>
