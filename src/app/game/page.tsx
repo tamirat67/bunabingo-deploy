@@ -948,13 +948,6 @@ function GameContent() {
 
     setClaiming(true);
 
-    // If tapped before 20 balls, we still quietly return on the frontend to avoid spamming the backend,
-    // but without the 2-second fake loading state.
-    if (drawn.length < 20) {
-      setClaiming(false);
-      return;
-    }
-
     // Fast socket claim ("clicke boom")
     if (socket && socket.connected) {
       socket.emit('claim-bingo', { gameId });
