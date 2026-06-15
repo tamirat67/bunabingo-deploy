@@ -439,36 +439,32 @@ function SelectionContent() {
         setEndTime(null);
         
         // ── ULTIMATE FAIL-SAFE REDIRECT ──
-        // If the socket fails to arrive within 3 seconds of hitting 0s,
-        // and the player owns tickets, FORCE the redirect anyway!
-        setTimeout(() => {
-          if (!redirectedRef.current && ownedRef.current.length > 0) {
-            redirectedRef.current = true;
-            const destId = joinedGameIdRef.current || activeGameIdRef.current;
-            if (destId) {
-              if (roomType.startsWith('SPIN_')) {
-                router.push(`/play/spin?id=${destId}&stake=${stake}`);
-              } else {
-                router.push(`/game?id=${destId}&type=${roomType}&price=${stake}`);
-              }
+        // Because auto-buy now fires at 3s, tickets are guaranteed to be
+        // purchased by the time we hit 0s. We can force the redirect instantly!
+        if (!redirectedRef.current && ownedRef.current.length > 0) {
+          redirectedRef.current = true;
+          const destId = joinedGameIdRef.current || activeGameIdRef.current;
+          if (destId) {
+            if (roomType.startsWith('SPIN_')) {
+              router.push(`/play/spin?id=${destId}&stake=${stake}`);
+            } else {
+              router.push(`/game?id=${destId}&type=${roomType}&price=${stake}`);
             }
           }
-        }, 3000);
+        }
       }
     }, 100);
     return () => clearInterval(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [endTime, serverOff]);
 
-  // ── Auto-buy: fire joinGame() at countdown=1 so the request is already ───
-  // in-flight by the time the backend emits game-started (~1-3s later).
-  // The redirect itself happens in the game-started handler or in joinGame().then()
-  // depending on which resolves first — bridged by gameStartedRef.
-  // gameStartedRef: set true when game-started arrives from server.
+  // ── Auto-buy: fire joinGame() at countdown=3 so the request has 3 full ───
+  // seconds to complete. By the time the clock hits 0s, the player already owns
+  // the tickets and can be redirected instantly.
   const gameStartedRef = useRef(false);
   const gameStartedDataRef = useRef<any>(null);
   useEffect(() => {
-    if (countdown !== null && countdown <= 1 && countdown >= 0 &&
+    if (countdown !== null && countdown <= 3 && countdown >= 0 &&
         selectedRef.current.length > 0 && !joining && !launchedRef.current) {
       launchedRef.current = true;
       setJoining(true);
