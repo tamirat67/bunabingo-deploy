@@ -5,10 +5,12 @@ import { useParams, useRouter } from 'next/navigation';
 import {
   FiArrowLeft, FiUser, FiCalendar, FiDollarSign, FiTrendingUp, FiTrendingDown,
   FiActivity, FiUsers, FiCheckCircle, FiAlertTriangle, FiInfo, FiArrowDownLeft,
-  FiArrowUpRight, FiClock, FiAward, FiBarChart2, FiPercent
+  FiArrowUpRight, FiClock, FiAward, FiBarChart2, FiPercent, FiDownload
 } from 'react-icons/fi';
 import api from '@/lib/api';
 import '@/app/admin.css';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export default function AgentReportPage() {
   const params = useParams();
@@ -57,6 +59,116 @@ export default function AgentReportPage() {
     } finally {
       setIsSettling(false);
     }
+  };
+
+  const generatePDF = () => {
+    if (!report) return;
+    const { agent, stats, recentDeposits, recentTransactions } = report;
+
+    const doc = new jsPDF();
+    
+    // Header
+    doc.setFontSize(22);
+    doc.setTextColor(61, 43, 31);
+    doc.text(`Agent Report: ${agent.firstName}`, 14, 22);
+    
+    doc.setFontSize(11);
+    doc.setTextColor(120, 113, 108);
+    doc.text(`Username: @${agent.telegramUsername || 'N/A'} | ID: ${agent.telegramId}`, 14, 30);
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 36);
+    doc.text(`Time Range: ${timeRange.toUpperCase()}`, 14, 42);
+
+    const fmt = (n: number) => Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const fmtInt = (n: number) => Number(n || 0).toLocaleString();
+    const fmtPct = (r: number) => (r * 100).toFixed(1) + '%';
+
+    // Section: Profit Breakdown
+    doc.setFontSize(16);
+    doc.setTextColor(61, 43, 31);
+    doc.text('Profit Breakdown (Real Money)', 14, 55);
+
+    autoTable(doc, {
+      startY: 60,
+      head: [['Metric', 'Value']],
+      body: [
+        ['Real Ticket Sales (Base)', `${fmt(stats.totalTicketSales)} ETB`],
+        ['Agent Earned', `${fmt(stats.agentEarned)} ETB (${fmtPct(stats.agentRate)})`],
+        ['Company Earned From Branch', `${fmt(stats.companyEarnedFromBranch)} ETB (${fmtPct(stats.companyRate)})`],
+        ['Net Cash Flow', `${stats.netCashFlow >= 0 ? '+' : ''}${fmt(stats.netCashFlow)} ETB`],
+      ],
+      theme: 'grid',
+      headStyles: { fillColor: [212, 175, 55] },
+    });
+
+    // Section: Key KPIs
+    let finalY = (doc as any).lastAutoTable.finalY || 60;
+    doc.setFontSize(16);
+    doc.setTextColor(61, 43, 31);
+    doc.text('Key Performance Indicators', 14, finalY + 15);
+
+    autoTable(doc, {
+      startY: finalY + 20,
+      head: [['KPI', 'Value', 'Details']],
+      body: [
+        ['Branch Players', fmtInt(stats.totalPlayers), `+${stats.botCount} bots excluded`],
+        ['Real Money Deposited', `${fmt(stats.totalDeposited)} ETB`, `${fmtInt(stats.totalDepositsCount)} real player txs`],
+        ['Total Withdrawn', `${fmt(stats.totalWithdrawn)} ETB`, `${fmtInt(stats.totalWithdrawalsCount)} payments`],
+        ['Pending Deposits', `${fmt(stats.pendingDeposits)} ETB`, `${fmtInt(stats.pendingDepositsCount)} awaiting`],
+      ],
+      theme: 'grid',
+      headStyles: { fillColor: [61, 43, 31] },
+    });
+
+    // Section: Recent Real Deposits
+    finalY = (doc as any).lastAutoTable.finalY || 120;
+    if (finalY > 220) { doc.addPage(); finalY = 20; } else { finalY += 15; }
+
+    doc.setFontSize(16);
+    doc.setTextColor(61, 43, 31);
+    doc.text('Recent Real Player Deposits', 14, finalY);
+
+    const depositRows = recentDeposits.slice(0, 15).map((dep: any) => [
+      dep.user?.firstName || '—',
+      `+${fmt(dep.amount)} ETB`,
+      String(dep.status).toUpperCase(),
+      new Date(dep.createdAt).toLocaleDateString()
+    ]);
+
+    autoTable(doc, {
+      startY: finalY + 5,
+      head: [['Player', 'Amount', 'Status', 'Date']],
+      body: depositRows.length ? depositRows : [['No deposits', '-', '-', '-']],
+      theme: 'striped',
+      headStyles: { fillColor: [16, 185, 129] },
+    });
+
+    // Section: Recent Transactions
+    finalY = (doc as any).lastAutoTable.finalY || 120;
+    if (finalY > 220) { doc.addPage(); finalY = 20; } else { finalY += 15; }
+
+    doc.setFontSize(16);
+    doc.setTextColor(61, 43, 31);
+    doc.text('Recent Transactions Activity', 14, finalY);
+
+    const txRows = recentTransactions.slice(0, 15).map((tx: any) => {
+      const isCredit = ['PRIZE_WIN', 'DEPOSIT', 'REFUND', 'REFERRAL_BONUS'].includes(tx.type);
+      return [
+        tx.user?.firstName || '—',
+        tx.type,
+        `${isCredit ? '+' : '-'}${fmt(Math.abs(tx.amount))} ETB`,
+        new Date(tx.createdAt).toLocaleDateString()
+      ];
+    });
+
+    autoTable(doc, {
+      startY: finalY + 5,
+      head: [['Player', 'Type', 'Amount', 'Date']],
+      body: txRows.length ? txRows : [['No activity', '-', '-', '-']],
+      theme: 'striped',
+      headStyles: { fillColor: [139, 92, 246] },
+    });
+
+    doc.save(`Agent_Report_${agent.firstName}_${timeRange}.pdf`);
   };
 
   if (loading) {
@@ -133,22 +245,44 @@ export default function AgentReportPage() {
           {/* Controls Right Side */}
           <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
             {/* Time Filter */}
-            <div style={{ position: 'relative' }}>
-              <select
-                value={timeRange}
-                onChange={(e) => setTimeRange(e.target.value)}
+            <div style={{ position: 'relative', display: 'flex', gap: '8px' }}>
+              <div style={{ position: 'relative' }}>
+                <select
+                  value={timeRange}
+                  onChange={(e) => setTimeRange(e.target.value)}
+                  style={{
+                    appearance: 'none', background: '#ffffff', border: '1px solid rgba(0,0,0,0.06)',
+                    borderRadius: '16px', padding: '16px 36px 16px 20px', boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+                    cursor: 'pointer', fontWeight: '800', color: '#3d2b1f', fontSize: '14px', outline: 'none', height: '100%'
+                  }}
+                >
+                  <option value="all">All Time</option>
+                  <option value="today">Today</option>
+                  <option value="week">Last 7 Days (Weekly)</option>
+                  <option value="month">Last 30 Days (Monthly)</option>
+                </select>
+                <FiCalendar size={16} style={{ color: '#8c857b', position: 'absolute', right: '14px', top: '18px', pointerEvents: 'none' }} />
+              </div>
+
+              <button
+                onClick={generatePDF}
                 style={{
-                  appearance: 'none', background: '#ffffff', border: '1px solid rgba(0,0,0,0.06)',
-                  borderRadius: '16px', padding: '16px 36px 16px 20px', boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
-                  cursor: 'pointer', fontWeight: '800', color: '#3d2b1f', fontSize: '14px', outline: 'none', height: '100%'
+                  background: '#d4af37',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '16px',
+                  padding: '0 20px',
+                  fontWeight: '800',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  boxShadow: '0 4px 12px rgba(212,175,55,0.2)'
                 }}
               >
-                <option value="all">All Time</option>
-                <option value="today">Today</option>
-                <option value="week">Last 7 Days (Weekly)</option>
-                <option value="month">Last 30 Days (Monthly)</option>
-              </select>
-              <FiCalendar size={16} style={{ color: '#8c857b', position: 'absolute', right: '14px', top: '18px', pointerEvents: 'none' }} />
+                <FiDownload size={18} /> Export PDF
+              </button>
             </div>
 
             {/* Pre-deposit status badge */}
