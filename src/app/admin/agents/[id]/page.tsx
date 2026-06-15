@@ -61,34 +61,51 @@ export default function AgentReportPage() {
     }
   };
 
-  const generatePDF = () => {
+  const generatePDF = async () => {
     if (!report) return;
     const { agent, stats, recentDeposits, recentTransactions } = report;
 
     const doc = new jsPDF();
     
-    // Header
-    doc.setFontSize(22);
-    doc.setTextColor(61, 43, 31);
-    doc.text(`Agent Report: ${agent.firstName}`, 14, 22);
-    
-    doc.setFontSize(11);
-    doc.setTextColor(120, 113, 108);
-    doc.text(`Username: @${agent.telegramUsername || 'N/A'} | ID: ${agent.telegramId}`, 14, 30);
-    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 36);
-    doc.text(`Time Range: ${timeRange.toUpperCase()}`, 14, 42);
+    // Attempt to load logo image
+    let logoImg: HTMLImageElement | null = null;
+    try {
+      logoImg = await new Promise((resolve, reject) => {
+        const img = new window.Image();
+        img.crossOrigin = 'Anonymous';
+        img.src = '/logo.png';
+        img.onload = () => resolve(img);
+        img.onerror = (e) => reject(e);
+      });
+    } catch (err) {
+      console.warn("Could not load logo image for PDF", err);
+    }
 
     const fmt = (n: number) => Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const fmtInt = (n: number) => Number(n || 0).toLocaleString();
     const fmtPct = (r: number) => (r * 100).toFixed(1) + '%';
 
-    // Section: Profit Breakdown
+    // Start content below header
+    let finalY = 40; 
+    
+    // Basic Info Section
     doc.setFontSize(16);
     doc.setTextColor(61, 43, 31);
-    doc.text('Profit Breakdown (Real Money)', 14, 55);
+    doc.text(`Agent Report: ${agent.firstName}`, 14, finalY);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(120, 113, 108);
+    doc.text(`Username: @${agent.telegramUsername || 'N/A'} | ID: ${agent.telegramId}`, 14, finalY + 6);
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, finalY + 12);
+    doc.text(`Time Range: ${timeRange.toUpperCase()}`, 14, finalY + 18);
+
+    // Section: Profit Breakdown
+    doc.setFontSize(14);
+    doc.setTextColor(61, 43, 31);
+    doc.text('Profit Breakdown (Real Money)', 14, finalY + 30);
 
     autoTable(doc, {
-      startY: 60,
+      startY: finalY + 34,
       head: [['Metric', 'Value']],
       body: [
         ['Real Ticket Sales (Base)', `${fmt(stats.totalTicketSales)} ETB`],
@@ -98,11 +115,12 @@ export default function AgentReportPage() {
       ],
       theme: 'grid',
       headStyles: { fillColor: [212, 175, 55] },
+      margin: { top: 40, bottom: 30 }
     });
 
     // Section: Key KPIs
-    let finalY = (doc as any).lastAutoTable.finalY || 60;
-    doc.setFontSize(16);
+    finalY = (doc as any).lastAutoTable.finalY || 60;
+    doc.setFontSize(14);
     doc.setTextColor(61, 43, 31);
     doc.text('Key Performance Indicators', 14, finalY + 15);
 
@@ -117,13 +135,14 @@ export default function AgentReportPage() {
       ],
       theme: 'grid',
       headStyles: { fillColor: [61, 43, 31] },
+      margin: { top: 40, bottom: 30 }
     });
 
     // Section: Recent Real Deposits
     finalY = (doc as any).lastAutoTable.finalY || 120;
-    if (finalY > 220) { doc.addPage(); finalY = 20; } else { finalY += 15; }
+    if (finalY > (doc.internal.pageSize.height - 50)) { doc.addPage(); finalY = 40; } else { finalY += 15; }
 
-    doc.setFontSize(16);
+    doc.setFontSize(14);
     doc.setTextColor(61, 43, 31);
     doc.text('Recent Real Player Deposits', 14, finalY);
 
@@ -140,13 +159,14 @@ export default function AgentReportPage() {
       body: depositRows.length ? depositRows : [['No deposits', '-', '-', '-']],
       theme: 'striped',
       headStyles: { fillColor: [16, 185, 129] },
+      margin: { top: 40, bottom: 30 }
     });
 
     // Section: Recent Transactions
     finalY = (doc as any).lastAutoTable.finalY || 120;
-    if (finalY > 220) { doc.addPage(); finalY = 20; } else { finalY += 15; }
+    if (finalY > (doc.internal.pageSize.height - 50)) { doc.addPage(); finalY = 40; } else { finalY += 15; }
 
-    doc.setFontSize(16);
+    doc.setFontSize(14);
     doc.setTextColor(61, 43, 31);
     doc.text('Recent Transactions Activity', 14, finalY);
 
@@ -166,7 +186,55 @@ export default function AgentReportPage() {
       body: txRows.length ? txRows : [['No activity', '-', '-', '-']],
       theme: 'striped',
       headStyles: { fillColor: [139, 92, 246] },
+      margin: { top: 40, bottom: 30 }
     });
+
+    // Add Header and Footer to all pages
+    const pageCount = (doc as any).internal.getNumberOfPages();
+    const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
+
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      
+      // --- HEADER ---
+      if (logoImg) {
+        doc.addImage(logoImg, 'PNG', 14, 10, 20, 20);
+        doc.setFontSize(22);
+        doc.setTextColor(61, 43, 31); // #3d2b1f
+        doc.text('BUNA BINGO', 38, 24);
+      } else {
+        doc.setFontSize(22);
+        doc.setTextColor(61, 43, 31);
+        doc.text('BUNA BINGO', 14, 24);
+      }
+      
+      // Gold separating line below header
+      doc.setDrawColor(212, 175, 55); // #d4af37
+      doc.setLineWidth(0.5);
+      doc.line(14, 32, pageWidth - 14, 32);
+
+      // --- FOOTER ---
+      // Light gray separating line above footer
+      doc.setDrawColor(220, 220, 220);
+      doc.line(14, pageHeight - 20, pageWidth - 14, pageHeight - 20);
+      
+      doc.setFontSize(9);
+      doc.setTextColor(120, 113, 108); // #78716c
+      
+      const footerText1 = "Email: info@bunatech.com   |   Address: Addis Ababa, Ethiopia";
+      const footerText2 = "Social Media: @BunaBingo (Telegram, Facebook, Instagram)";
+      
+      const textWidth1 = doc.getTextWidth(footerText1);
+      const textWidth2 = doc.getTextWidth(footerText2);
+      
+      doc.text(footerText1, (pageWidth - textWidth1) / 2, pageHeight - 14);
+      doc.text(footerText2, (pageWidth - textWidth2) / 2, pageHeight - 9);
+      
+      // Page Number
+      const pageNumStr = `Page ${i} of ${pageCount}`;
+      doc.text(pageNumStr, pageWidth - 14 - doc.getTextWidth(pageNumStr), pageHeight - 9);
+    }
 
     doc.save(`Agent_Report_${agent.firstName}_${timeRange}.pdf`);
   };
