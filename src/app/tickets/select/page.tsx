@@ -401,22 +401,22 @@ function SelectionContent() {
       }
       if (g.endTime && g.serverTime) {
         const offset = g.serverTime - Date.now();
-        setEndTime(g.endTime);
         if (g.status === 'COUNTDOWN') {
+          setEndTime(g.endTime);
           const rem = Math.max(0, Math.ceil((g.endTime - Date.now() - offset) / 1000));
-          if (rem > 0) setCountdown(rem);
+          if (rem >= 0) setCountdown(rem);
         } else {
-          setCountdown(null);
-          setEndTime(null);
+          setCountdown(prev => (prev !== null && prev >= 0 && g.status === 'WAITING') ? prev : null);
+          setEndTime(prev => (prev !== null && g.status === 'WAITING') ? prev : null);
         }
-      } else if (g.status === 'COUNTDOWN' && g.countdownSeconds) {
+      } else if (g.status === 'COUNTDOWN' && g.countdownSeconds !== undefined) {
         setCountdown((prev) => {
           if (prev !== null && prev >= 0) return prev;
           return g.countdownSeconds;
         });
       } else {
-        setCountdown(null);
-        setEndTime(null);
+        setCountdown(prev => (prev !== null && prev >= 0 && g.status === 'WAITING') ? prev : null);
+        setEndTime(prev => (prev !== null && g.status === 'WAITING') ? prev : null);
       }
     }).catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -474,6 +474,9 @@ function SelectionContent() {
           ownedRef.current = res.tickets.map((t: any) => t.card.id);
           setOwnedCardIds(ownedRef.current);
           setSelected([]);
+          if (res.gameId && typeof window !== 'undefined') {
+            try { sessionStorage.setItem(`game_tickets_${res.gameId}`, JSON.stringify(res.tickets)); } catch(e) {}
+          }
         }
         if (res?.gameId) {
           joinedGameIdRef.current = res.gameId;
@@ -591,7 +594,7 @@ function SelectionContent() {
           setServerOff(offset);
           setEndTime(d.endTime);
           const rem = Math.max(0, Math.ceil((d.endTime - Date.now() - offset) / 1000));
-          setCountdown(rem > 0 ? rem : null);
+          setCountdown(rem >= 0 ? rem : null);
         } else {
           setCountdown(d.seconds);
         }
@@ -660,7 +663,7 @@ function SelectionContent() {
           setServerOff(offset);
           setEndTime(d.endTime);
           const rem = Math.max(0, Math.ceil((d.endTime - Date.now() - offset) / 1000));
-          setCountdown(rem > 0 ? rem : null);
+          setCountdown(rem >= 0 ? rem : null);
           currentRem = rem;
         } else {
           setCountdown(d.secondsRemaining);
@@ -1166,7 +1169,7 @@ const balance = Number(user?.wallet?.balance || 0);
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   };
 
-  const isLive = countdown !== null && countdown > 0;
+  const isLive = countdown !== null && countdown >= 0;
   const urgencyColor = countdown !== null && countdown <= 5 ? '#E74C3C' : T.gold;
 
   // Effective game-running state: true if confirmed by server OR if we have sessionStorage
@@ -1467,7 +1470,7 @@ const balance = Number(user?.wallet?.balance || 0);
           <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: '9px', fontWeight: '900', letterSpacing: '1.5px', marginBottom: '4px', textTransform: 'uppercase' }}>
             {effectiveGameRunning
               ? 'LIVE GAME'
-              : countdown !== null && countdown > 0
+              : countdown !== null && countdown >= 0
               ? 'STARTS IN'
               : 'NEXT GAME'}
           </div>
@@ -1475,7 +1478,7 @@ const balance = Number(user?.wallet?.balance || 0);
             <div style={{ fontSize: '22px', fontWeight: '900', color: '#E74C3C', textShadow: '0 0 14px rgba(231,76,60,0.7)', letterSpacing: '-1px' }}>
               🔴 LIVE
             </div>
-          ) : countdown !== null && countdown > 0 ? (
+          ) : countdown !== null && countdown >= 0 ? (
             <div
               style={{
                 fontSize: countdown <= 5 ? '38px' : '32px',
