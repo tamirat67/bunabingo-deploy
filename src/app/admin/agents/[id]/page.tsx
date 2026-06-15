@@ -119,93 +119,50 @@ export default function AgentReportPage() {
     doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, finalY + 12);
     doc.text(`Time Range: ${timeRange.toUpperCase()}`, 14, finalY + 18);
 
-    // Section: Profit Breakdown
-    doc.setFontSize(14);
+    // Section: Expected Cash Collection (The massive hero stat)
+    doc.setFontSize(18);
     doc.setTextColor(61, 43, 31);
-    doc.text('Profit Breakdown (Real Money)', 14, finalY + 30);
+    doc.text(`TOTAL EXPECTED CASH FROM ${agent.firstName?.toUpperCase()}`, 14, finalY + 30);
+    
+    doc.setFontSize(26);
+    doc.setTextColor(212, 175, 55); // Gold
+    const totalExpected = stats.companyEarnedFromBranch + (stats.botDebtAdded || 0);
+    doc.text(`${fmt(totalExpected)} ETB`, 14, finalY + 42);
 
+    // Section: Profit Breakdown Table
     autoTable(doc, {
-      startY: finalY + 34,
-      head: [['Metric', 'Value']],
+      startY: finalY + 50,
+      head: [['Metric', 'Amount', 'Details']],
       body: [
-        ['Real Ticket Sales (Base)', `${fmt(stats.totalTicketSales)} ETB`],
-        ['Agent Earned', `${fmt(stats.agentEarned)} ETB (${fmtPct(stats.agentRate)})`],
-        ['Company Earned From Branch', `${fmt(stats.companyEarnedFromBranch)} ETB (${fmtPct(stats.companyRate)})`],
-        ['Net Cash Flow', `${stats.netCashFlow >= 0 ? '+' : ''}${fmt(stats.netCashFlow)} ETB`],
+        [
+          'COMPANY SHARE (Commission)', 
+          `${fmt(stats.companyEarnedFromBranch)} ETB`, 
+          `${fmtPct(stats.companyRate)} of total ticket sales`
+        ],
+        [
+          'TOTAL BOT WINNINGS', 
+          `${fmt(stats.botDebtAdded || 0)} ETB`, 
+          `Prizes won by house bots`
+        ],
+        [
+          'OUTSTANDING BOT DEBT', 
+          `${fmt(stats.outstandingBotDebt || 0)} ETB`, 
+          `Unsettled bot winnings`
+        ],
+        [
+          'AGENT EARNED', 
+          `${fmt(stats.agentEarned)} ETB`, 
+          `Agent's ${fmtPct(stats.agentRate)} commission share`
+        ],
+        [
+          'REAL TICKET SALES', 
+          `${fmt(stats.totalTicketSales)} ETB`, 
+          `Total base sales from real players`
+        ],
       ],
       theme: 'grid',
-      headStyles: { fillColor: [212, 175, 55] },
-      margin: { top: 40, bottom: 30 }
-    });
-
-    // Section: Key KPIs
-    finalY = (doc as any).lastAutoTable.finalY || 60;
-    doc.setFontSize(14);
-    doc.setTextColor(61, 43, 31);
-    doc.text('Key Performance Indicators', 14, finalY + 15);
-
-    autoTable(doc, {
-      startY: finalY + 20,
-      head: [['KPI', 'Value', 'Details']],
-      body: [
-        ['Branch Players', fmtInt(stats.totalPlayers), `+${stats.botCount} bots excluded`],
-        ['Real Money Deposited', `${fmt(stats.totalDeposited)} ETB`, `${fmtInt(stats.totalDepositsCount)} real player txs`],
-        ['Total Withdrawn', `${fmt(stats.totalWithdrawn)} ETB`, `${fmtInt(stats.totalWithdrawalsCount)} payments`],
-        ['Pending Deposits', `${fmt(stats.pendingDeposits)} ETB`, `${fmtInt(stats.pendingDepositsCount)} awaiting`],
-      ],
-      theme: 'grid',
-      headStyles: { fillColor: [61, 43, 31] },
-      margin: { top: 40, bottom: 30 }
-    });
-
-    // Section: Recent Real Deposits
-    finalY = (doc as any).lastAutoTable.finalY || 120;
-    if (finalY > (doc.internal.pageSize.height - 50)) { doc.addPage(); finalY = 40; } else { finalY += 15; }
-
-    doc.setFontSize(14);
-    doc.setTextColor(61, 43, 31);
-    doc.text('Recent Real Player Deposits', 14, finalY);
-
-    const depositRows = recentDeposits.slice(0, 15).map((dep: any) => [
-      dep.user?.firstName || '—',
-      `+${fmt(dep.amount)} ETB`,
-      String(dep.status).toUpperCase(),
-      new Date(dep.createdAt).toLocaleDateString()
-    ]);
-
-    autoTable(doc, {
-      startY: finalY + 5,
-      head: [['Player', 'Amount', 'Status', 'Date']],
-      body: depositRows.length ? depositRows : [['No deposits', '-', '-', '-']],
-      theme: 'striped',
-      headStyles: { fillColor: [16, 185, 129] },
-      margin: { top: 40, bottom: 30 }
-    });
-
-    // Section: Recent Transactions
-    finalY = (doc as any).lastAutoTable.finalY || 120;
-    if (finalY > (doc.internal.pageSize.height - 50)) { doc.addPage(); finalY = 40; } else { finalY += 15; }
-
-    doc.setFontSize(14);
-    doc.setTextColor(61, 43, 31);
-    doc.text('Recent Transactions Activity', 14, finalY);
-
-    const txRows = recentTransactions.slice(0, 15).map((tx: any) => {
-      const isCredit = ['PRIZE_WIN', 'DEPOSIT', 'REFUND', 'REFERRAL_BONUS'].includes(tx.type);
-      return [
-        tx.user?.firstName || '—',
-        tx.type,
-        `${isCredit ? '+' : '-'}${fmt(Math.abs(tx.amount))} ETB`,
-        new Date(tx.createdAt).toLocaleDateString()
-      ];
-    });
-
-    autoTable(doc, {
-      startY: finalY + 5,
-      head: [['Player', 'Type', 'Amount', 'Date']],
-      body: txRows.length ? txRows : [['No activity', '-', '-', '-']],
-      theme: 'striped',
-      headStyles: { fillColor: [139, 92, 246] },
+      headStyles: { fillColor: [61, 43, 31], fontSize: 12 },
+      bodyStyles: { fontSize: 12, cellPadding: 6 },
       margin: { top: 40, bottom: 30 }
     });
 
