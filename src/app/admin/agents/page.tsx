@@ -253,6 +253,7 @@ export default function AgentsPage() {
       const fontB64 = btoa(binary);
       doc.addFileToVFS('NotoSansEthiopic.ttf', fontB64);
       doc.addFont('NotoSansEthiopic.ttf', 'NotoSansEthiopic', 'normal');
+      doc.addFont('NotoSansEthiopic.ttf', 'NotoSansEthiopic', 'bold');
       hasAmharic = true;
     } catch (e) {
       console.warn('Could not load Amharic font', e);
