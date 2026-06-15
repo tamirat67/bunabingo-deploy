@@ -257,6 +257,27 @@ export default function AgentReportPage() {
       // Yellow
       doc.setDrawColor(235, 175, 20);
       doc.line(pageWidth - 20, pageHeight - 10, pageWidth - 14, pageHeight - 16);
+
+      // Light gray separating line above footer
+      doc.setDrawColor(220, 220, 220);
+      doc.setLineWidth(0.5);
+      doc.line(14, pageHeight - 20, pageWidth - 14, pageHeight - 20);
+      
+      doc.setFontSize(9);
+      doc.setTextColor(120, 113, 108); // #78716c
+      
+      const footerText1 = "BUNA TECH  |  info@bunatech.com  |  Addis Ababa, Ethiopia  |  bunatech.net";
+      const footerText2 = "@Buna_BingoBot (Telegram)  |  @BunaTechHub";
+      
+      const textWidth1 = doc.getTextWidth(footerText1);
+      const textWidth2 = doc.getTextWidth(footerText2);
+      
+      doc.text(footerText1, (pageWidth - textWidth1) / 2, pageHeight - 14);
+      doc.text(footerText2, (pageWidth - textWidth2) / 2, pageHeight - 9);
+      
+      // Page Number
+      const pageNumStr = `Page ${i} of ${pageCount}`;
+      doc.text(pageNumStr, pageWidth - 14 - doc.getTextWidth(pageNumStr), pageHeight - 9);
     }
 
     doc.save(`Agent_Report_${agent.firstName}_${timeRange}.pdf`);
