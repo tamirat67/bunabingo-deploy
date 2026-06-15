@@ -711,11 +711,10 @@ function GameContent() {
     socket.on('claim-error', (err: any) => {
       setClaiming(false);
       const isTooEarlyMsg = err.message?.toLowerCase().includes('wait') || err.message?.toLowerCase().includes('minimum');
-      if (isTooEarlyMsg) {
-        showAlert('⏳ ገና ነው', 'ቢንጎ ለማለት ቢያንስ 20 ኳሶች መውጣት አለባቸው! እባክዎ ጥቂት ይጠብቁ።', 'info');
-      } else {
+      if (!isTooEarlyMsg) {
         showAlert('ቢንጎ ጥያቄ', err.message || 'ገና ቢንጎ አልተገኘም! እባክዎ ካርቴላዎን ያረጋግጡ።', 'info');
       }
+      // If too early: absorb silently — revealing the minimum is a house secret
     });
 
     // Re-join and reload after reconnect (handles VPS socket drops)
@@ -950,6 +949,13 @@ function GameContent() {
 
     setClaiming(true);
 
+    // SMART GUARD: If drawn balls < 20, the backend will reject this claim.
+    // We absorb silently — the player just tapped too early. No message leaks house logic.
+    if (drawn.length < 20) {
+      setClaiming(false);
+      return;
+    }
+
     // Fast socket claim ("clicke boom")
     if (socket && socket.connected) {
       socket.emit('claim-bingo', { gameId });
@@ -965,11 +971,9 @@ function GameContent() {
         if (toastTimer.current) clearTimeout(toastTimer.current);
         toastTimer.current = setTimeout(() => setToast(null), 4000);
       } else {
-        // Show the "wait for more balls" message so players know why they can't claim yet
+        // Silently absorb early-tap backend rejections — never reveal the minimum rule
         const isTooEarlyMsg = res.error?.toLowerCase().includes('wait') || res.error?.toLowerCase().includes('minimum');
-        if (isTooEarlyMsg) {
-          showAlert('⏳ ገና ነው', 'ቢንጎ ለማለት ቢያንስ 20 ኳሶች መውጣት አለባቸው! እባክዎ ጥቂት ይጠብቁ።', 'info');
-        } else {
+        if (!isTooEarlyMsg) {
           showAlert('ቢንጎ ጥያቄ', res.error || 'ገና ቢንጎ አልተገኘም! እባክዎ ካርቴላዎን ያረጋግጡ።', 'info');
         }
       }
@@ -1472,6 +1476,10 @@ function GameContent() {
                   <motion.button
                     whileHover={game?.status === 'RUNNING' && !claiming ? { scale: 1.02 } : {}}
                     whileTap={game?.status === 'RUNNING' && !claiming ? { scale: 0.94 } : {}}
+                    animate={hasBingo && game?.status === 'RUNNING' && !claiming
+                      ? { boxShadow: ['0 0 0px #F39C12', '0 0 18px #F39C12', '0 0 0px #F39C12'] }
+                      : {}}
+                    transition={hasBingo ? { duration: 1.2, repeat: Infinity } : {}}
                     onClick={(e) => {
                       e.stopPropagation();
                       if (game?.status === 'RUNNING' && !claiming) handleBingo();
@@ -1482,12 +1490,16 @@ function GameContent() {
                       background: game?.status === 'RUNNING'
                         ? (claiming
                             ? '#7F8C8D'
-                            : (isVip ? 'linear-gradient(135deg, #FFD700, #C471ED)' : 'linear-gradient(135deg, #F39C12, #E67E22)'))
+                            : (hasBingo
+                                ? (isVip ? 'linear-gradient(135deg, #FFD700, #C471ED)' : 'linear-gradient(135deg, #27AE60, #F39C12)')
+                                : (isVip ? 'linear-gradient(135deg, #FFD700, #C471ED)' : 'linear-gradient(135deg, #F39C12, #E67E22)')))
                         : (isVip ? 'rgba(255,255,255,0.05)' : 'rgba(150,150,150,0.1)'),
                       color: game?.status === 'RUNNING'
                         ? (isVip ? '#1C0A35' : 'white')
                         : (isVip ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.3)'),
-                      border: isVip && game?.status === 'RUNNING' && !claiming ? '2px solid #FFFFFF' : 'none',
+                      border: hasBingo && game?.status === 'RUNNING' && !claiming
+                        ? '2px solid #2ECC71'
+                        : (isVip && game?.status === 'RUNNING' && !claiming ? '2px solid #FFFFFF' : 'none'),
                       borderRadius: '12px',
                       height: '36px',
                       fontWeight: '900',
