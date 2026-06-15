@@ -707,77 +707,8 @@ function SelectionContent() {
           ballAudioRefSelect.current.currentTime = 0;
         }
 
-        // ── Show winner modal to ALL guests on the selection page ────────────
-        // Backend sends: { winners: [{user:{firstName}, winMode, prizeAmount, card:{id,rows}, cardId, ...}], drawnNumbers, gamePrize }
-        const winners = d?.winners || [];
-        const w = winners[0]; // first (and usually only) winner
-        if (w) {
-          // Parse name — use backend's displayName directly, NEVER recompute locally.
-          // engine.ts sets w.displayName as the canonical name for all devices.
-          const winnerName = w.displayName || w.user?.firstName || w.user?.telegramUsername || 'Player';
-          // Parse card rows
-          let rawCard = w.card || w.ticket?.card;
-          if (typeof rawCard === 'string') { try { rawCard = JSON.parse(rawCard); } catch(e) {} }
-          let cardRows = rawCard ? (Array.isArray(rawCard) ? rawCard : (rawCard.rows ?? null)) : null;
-          if (typeof cardRows === 'string') { try { cardRows = JSON.parse(cardRows); } catch(e) {} }
-          if (cardRows && (!Array.isArray(cardRows[0]) || cardRows.length !== 5)) cardRows = null;
-          let cardNo: number | undefined = rawCard?.id ?? w.cardId ?? undefined;
-
-          // GUARANTEED FALLBACK: Compute deterministic card ID for bots if missing
-          if (!cardNo || !cardRows) {
-            let cardHash = 0;
-            const cardSeed = String(d.gameId || activeGameIdRef.current) + String(w?.ticketId || w?.id || '123');
-            for (let i = 0; i < cardSeed.length; i++) {
-              cardHash = cardSeed.charCodeAt(i) + ((cardHash << 5) - cardHash);
-            }
-            cardNo = cardNo && cardNo > 0 ? cardNo : (Math.abs(cardHash) % 250) + 1;
-            // Note: selection page doesn't need to rebuild cardRows with PREDEFINED_CARDS 
-            // since WinnerModal handles rows display dynamically or falls back gracefully.
-          }
-
-          const showModal = () => {
-            setGameFinishedData({
-              winnerName,
-              prize: parseFloat(String(w.prizeAmount ?? 0)) || parseFloat(String(d.gamePrize ?? 0)) || 0,
-              mode: w.winMode || 'ROW',
-              card: cardRows,
-              cardNo,
-              isBot: w.isBot ?? w.user?.isBot ?? false,
-              drawnNumbers: d.drawnNumbers || [],
-              isCurrentUserWinner: false,
-            });
-            setWinnerRedirectSecs(4);
-            if (winnerRedirectRef.current) clearInterval(winnerRedirectRef.current);
-            winnerRedirectRef.current = setInterval(() => {
-              setWinnerRedirectSecs(prev => {
-                if (prev <= 1) {
-                  clearInterval(winnerRedirectRef.current);
-                  setGameFinishedData(null);
-                  return 0;
-                }
-                return prev - 1;
-              });
-            }, 1000);
-          };
-
-          // To ensure ALL devices see the modal at exactly the same time, we must
-          // wait for stop.mp3 to finish just like the active game page does.
-          if (soundOnSelectRef.current) {
-            try {
-              const el = new Audio('/audio/stop.mp3');
-              let completed = false;
-              const safeShow = () => { if (!completed) { completed = true; showModal(); } };
-              el.onended = safeShow;
-              el.onerror = safeShow;
-              el.play().catch(safeShow);
-              setTimeout(safeShow, 4000); // safety fallback
-            } catch (e) {
-              showModal();
-            }
-          } else {
-            showModal();
-          }
-        }
+        // Winner modal logic has been removed from the selection page per user request.
+        // It now only displays inside the active game page.
 
         getOccupiedCards(roomType, activeGameIdRef.current).then(res => {
           if (res.gameId) {
