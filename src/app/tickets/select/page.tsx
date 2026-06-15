@@ -601,6 +601,7 @@ function SelectionContent() {
       });
 
       socket.on('countdown-start', (d: any) => {
+        if (d.gameId && activeGameIdRef.current && d.gameId !== activeGameIdRef.current) return;
         if (d.endTime && d.serverTime) {
           const st = new Date(d.serverTime).getTime();
           const et = new Date(d.endTime).getTime();
@@ -615,6 +616,7 @@ function SelectionContent() {
       });
 
       socket.on('game-started', (d: any) => {
+        if (d.gameId && activeGameIdRef.current && d.gameId !== activeGameIdRef.current) return;
         setGame((prev: any) => prev ? { ...prev, status: 'RUNNING' } : { status: 'RUNNING' });
         isGameRunningRef.current = true;
         lastGameRunningChangeTimeRef.current = Date.now();
@@ -655,6 +657,7 @@ function SelectionContent() {
       // The server now also sends the runningGameId so we can join its socket
       // room and receive number-drawn / game-finished events in real-time.
       socket.on('game-running-sync', (d: any) => {
+        if (d.gameId && activeGameIdRef.current && d.gameId !== activeGameIdRef.current) return;
         isGameRunningRef.current = true;
         lastGameRunningChangeTimeRef.current = Date.now();
         setIsGameRunning(true);
@@ -671,6 +674,7 @@ function SelectionContent() {
       });
 
       socket.on('countdown-tick', (d: any) => {
+        if (d.gameId && activeGameIdRef.current && d.gameId !== activeGameIdRef.current) return;
         let currentRem = 0;
         if (d.endTime && d.serverTime) {
           const st = new Date(d.serverTime).getTime();
@@ -694,6 +698,7 @@ function SelectionContent() {
       });
 
       socket.on('number-drawn', (d: any) => {
+        if (d.gameId && activeGameIdRef.current && d.gameId !== activeGameIdRef.current) return;
         if (d.number !== undefined) {
           // Update drawn history list immediately for display
           setDrawnNumbers(prev => {
@@ -707,6 +712,7 @@ function SelectionContent() {
 
       // ── When the RUNNING game finishes, this lobby wakes up as next game ──
       socket.on('game-finished', (d: any) => {
+        if (d.gameId && activeGameIdRef.current && d.gameId !== activeGameIdRef.current) return;
         isGameRunningRef.current = false;
         lastGameRunningChangeTimeRef.current = Date.now();
         setIsGameRunning(false);
