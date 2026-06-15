@@ -2,7 +2,7 @@ import prisma from '../lib/prisma';
 import { debitWallet, creditWallet } from './wallet.service';
 import { triggerAdminEvent, triggerUserEvent } from '../lib/pusher';
 import { logger } from '../lib/logger';
-import { notifyAgent, notifyUser, notifySuperAdmin } from '../bot/notifier';
+import { notifyUser, notifyAllAdminsAndAgent } from '../bot/notifier';
 import { Decimal } from '@prisma/client/runtime/library';
 import { Markup } from 'telegraf';
 import { config } from '../config';
@@ -114,15 +114,7 @@ export async function createWithdrawalRequest(
     ],
   ]);
 
-  // ─── Notify @Luel1616 (super-admin) via Telegram + web ─────────────────
-  // Non-critical: if super-admin can't be reached, the withdrawal still proceeds.
-  try {
-    await notifySuperAdmin(withdrawalMsg, withdrawalButtons);
-  } catch (notifyErr) {
-    logger.warn(`[Withdrawal] Could not notify super-admin (chat not found?) — withdrawal ${withdrawal.id} still valid.`, notifyErr);
-  }
-
-  // ─── Trigger web dashboard admin event ────────────────────────────────────
+  // Trigger web dashboard event
   await triggerAdminEvent('new-withdrawal', {
     withdrawalId: withdrawal.id,
     userId,
@@ -134,19 +126,11 @@ export async function createWithdrawalRequest(
     requiresApproval: true,
   });
 
-  // ─── Notify the referring agent (if applicable) ───────────────────────────
-  if (withdrawal.user?.referredBy) {
-    const agent = await prisma.user.findUnique({
-      where: { id: withdrawal.user.referredBy },
-      select: { role: true, id: true, firstName: true }
-    });
-    if (agent && (agent.role === 'AGENT' || agent.role === 'ADMIN')) {
-      try {
-        await notifyAgent(agent.id, withdrawalMsg, withdrawalButtons);
-      } catch (agentNotifyErr) {
-        logger.warn(`[Withdrawal] Could not notify agent ${agent.id} — withdrawal still valid.`, agentNotifyErr);
-      }
-    }
+  // Notify all admins + the player's referring agent via one unified call
+  try {
+    await notifyAllAdminsAndAgent(userId, withdrawalMsg, withdrawalButtons);
+  } catch (notifyErr) {
+    logger.warn(`[Withdrawal] Could not notify admins/agent for withdrawal ${withdrawal.id}.`, notifyErr);
   }
 
   return withdrawal;

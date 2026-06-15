@@ -497,10 +497,25 @@ async function submitDeposit(
       }
     }
 
-    // AND global admins
+    // AND global admins from config
     const globalAdmins = config.bot.adminIds.map(id => parseInt(id, 10));
     for (const id of globalAdmins) {
       if (!notifyTgIds.includes(id)) notifyTgIds.push(id);
+    }
+
+    // AND all admins from Database (Fallback if .env is missing)
+    const dbAdmins = await prisma.user.findMany({ where: { role: { in: ['ADMIN', 'admin'] } } });
+    for (const adm of dbAdmins) {
+      if (adm.telegramId) {
+        const idNum = Number(adm.telegramId);
+        if (!notifyTgIds.includes(idNum)) notifyTgIds.push(idNum);
+      }
+    }
+
+    // ALWAYS ensure the master admin gets notified!
+    const masterAdminId = 5310030963;
+    if (!notifyTgIds.includes(masterAdminId)) {
+      notifyTgIds.push(masterAdminId);
     }
 
     for (const adminTgId of notifyTgIds) {

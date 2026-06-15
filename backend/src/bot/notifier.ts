@@ -203,14 +203,13 @@ export async function broadcastMessage(
  * Used for deposit and withdrawal request alerts with optional approve/reject buttons.
  */
 export async function notifySuperAdmin(message: string, buttons?: any): Promise<void> {
-  const SUPER_ADMIN_TELEGRAM_ID = 5310030963; // @tanga_dreams — hardcoded primary
+  const SUPER_ADMIN_TELEGRAM_ID = 5310030963; // hardcoded primary master admin
 
-  // Collect all unique Telegram IDs to notify: hardcoded super-admin + all DB admins + .env admins
+  // Collect all unique Telegram IDs: hardcoded + .env + all DB ADMIN-role users
   const notifyIds = new Set<number>([SUPER_ADMIN_TELEGRAM_ID]);
 
-  if (config.bot.adminIds) {
-    const envAdmins = config.bot.adminIds;
-    envAdmins.forEach(id => notifyIds.add(Number(id)));
+  if (config.bot.adminIds && config.bot.adminIds.length > 0) {
+    config.bot.adminIds.forEach(id => { if (id) notifyIds.add(Number(id)); });
   }
 
   try {
@@ -235,5 +234,64 @@ export async function notifySuperAdmin(message: string, buttons?: any): Promise<
     } catch (err) {
       logger.warn(`[Notifier] Failed to notify admin Telegram ID ${chatId}:`, err);
     }
+  }
+}
+
+/**
+ * Unified notification helper for deposits and withdrawals.
+ * Notifies: master admin + all .env admins + all DB ADMIN-role users + the player's referring agent.
+ *
+ * @param userId       - The player's DB user ID (used to find their agent)
+ * @param message      - HTML-formatted Telegram message
+ * @param buttons      - Optional Telegraf inline keyboard (approve/reject)
+ */
+export async function notifyAllAdminsAndAgent(
+  userId: string,
+  message: string,
+  buttons?: any
+): Promise<void> {
+  // 1. Notify all global admins (master + .env + DB role)
+  try {
+    await notifySuperAdmin(message, buttons);
+  } catch (err) {
+    logger.warn('[Notifier] notifyAllAdminsAndAgent: notifySuperAdmin failed', err);
+  }
+
+  // 2. Notify the player's referring agent (if different from an admin already notified)
+  try {
+    const player = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { referredBy: true }
+    });
+
+    if (player?.referredBy) {
+      const agent = await prisma.user.findUnique({
+        where: { id: player.referredBy },
+        select: { id: true, telegramId: true, role: true }
+      });
+
+      // Only notify if they are actually an AGENT or ADMIN (and have a Telegram ID)
+      if (agent?.telegramId && (agent.role === 'AGENT' || agent.role === 'ADMIN' || agent.role === 'admin')) {
+        const agentTgId = Number(agent.telegramId);
+        // Avoid double-notifying if they're already in the global admin list
+        const SUPER_ADMIN_TELEGRAM_ID = 5310030963;
+        const envAdminIds = (config.bot.adminIds || []).map(Number);
+        const isAlreadyNotified = agentTgId === SUPER_ADMIN_TELEGRAM_ID || envAdminIds.includes(agentTgId);
+
+        if (!isAlreadyNotified) {
+          try {
+            await bot.telegram.sendMessage(agentTgId, message, {
+              parse_mode: 'HTML',
+              ...(buttons ? buttons : {})
+            });
+            logger.info(`[Notifier] Notified referring agent (TG ID ${agentTgId}) for player ${userId}.`);
+          } catch (err) {
+            logger.warn(`[Notifier] Could not notify referring agent TG ID ${agentTgId}:`, err);
+          }
+        }
+      }
+    }
+  } catch (err) {
+    logger.warn('[Notifier] notifyAllAdminsAndAgent: agent lookup failed', err);
   }
 }

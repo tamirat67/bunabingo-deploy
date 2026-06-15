@@ -2,7 +2,7 @@ import prisma from '../lib/prisma';
 import { creditWallet } from './wallet.service';
 import { triggerAdminEvent, triggerUserEvent } from '../lib/pusher';
 import { logger } from '../lib/logger';
-import { notifyAgent, notifyUser, notifySuperAdmin } from '../bot/notifier';
+import { notifyUser, notifyAllAdminsAndAgent } from '../bot/notifier';
 import { Markup } from 'telegraf';
 
 export async function createDepositRequest(
@@ -54,31 +54,21 @@ export async function createDepositRequest(
     ],
   ]);
 
-  // Notify the super-admin / all admins on Telegram
+  // Notify all admins + the player's referring agent (one unified call)
   try {
-    await notifySuperAdmin(depositMsg, depositButtons);
+    await notifyAllAdminsAndAgent(userId, depositMsg, depositButtons);
   } catch (e) {
-    logger.warn(`[Deposit] Could not notify super-admin about deposit ${deposit.id}.`, e);
+    logger.warn(`[Deposit] Could not send admin/agent notifications for deposit ${deposit.id}.`, e);
   }
 
-  // If user has an agent (referredBy), notify that specific agent channel too
+  // Also trigger web dashboard event for the referring agent
   if (deposit.user?.referredBy) {
-    const referrer = await prisma.user.findUnique({ where: { id: deposit.user.referredBy }, select: { role: true } });
-    if (referrer && (referrer.role === 'AGENT' || referrer.role === 'ADMIN' || referrer.role === 'admin')) {
-      await triggerUserEvent(deposit.user.referredBy, 'agent-new-deposit', {
-        depositId: deposit.id,
-        userId,
-        amount,
-        userName: deposit.user?.username || 'User',
-      });
-
-      // Notify agent on Telegram with approve/reject buttons + receipt link
-      try {
-        await notifyAgent(deposit.user.referredBy, depositMsg, depositButtons);
-      } catch (e) {
-        logger.warn(`[Deposit] Could not notify agent ${deposit.user.referredBy} about deposit ${deposit.id}.`, e);
-      }
-    }
+    await triggerUserEvent(deposit.user.referredBy, 'agent-new-deposit', {
+      depositId: deposit.id,
+      userId,
+      amount,
+      userName: deposit.user?.username || 'User',
+    });
   }
 
   logger.info(`Deposit request: user ${userId}, amount ${amount}, ref ${reference}`);
