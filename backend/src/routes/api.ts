@@ -1228,7 +1228,7 @@ staffRouter.get('/users', async (req, res) => {
   const page = parseInt(req.query.page as string) || 1;
   const search = (req.query.search as string) || '';
   const referredByFilter = (req.query.referredBy as string) || '';
-  const limit = 20;
+  const limit = parseInt(req.query.limit as string) || 20;
 
   try {
     if (user.isAdmin || user.role === 'ADMIN') {

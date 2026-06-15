@@ -61,7 +61,7 @@ export default function AgentsPage() {
     setPlayersModal(true);
     setPlayersLoading(true);
     try {
-      const res = await api.get(`/admin/users?referredBy=${agent.id}&limit=100`);
+      const res = await api.get(`/admin/users?referredBy=${agent.id}&limit=1000`);
       setAgentPlayers(res.data.users || []);
     } catch {
       setAgentPlayers([]);
