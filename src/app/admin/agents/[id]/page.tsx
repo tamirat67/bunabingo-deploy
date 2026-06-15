@@ -119,20 +119,29 @@ export default function AgentReportPage() {
     doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, finalY + 12);
     doc.text(`Time Range: ${timeRange.toUpperCase()}`, 14, finalY + 18);
 
-    // Section: Expected Cash Collection (The massive hero stat)
-    doc.setFontSize(18);
-    doc.setTextColor(61, 43, 31);
-    doc.text(`TOTAL EXPECTED CASH FROM ${agent.firstName?.toUpperCase()}`, 14, finalY + 30);
-    
-    doc.setFontSize(26);
-    doc.setTextColor(212, 175, 55); // Gold
+    // Section: Expected Cash Collection (Hero Card)
     const totalExpected = stats.companyEarnedFromBranch + (stats.botDebtAdded || 0);
-    doc.text(`${fmt(totalExpected)} ETB`, 14, finalY + 42);
+
+    // Draw Hero Card Background
+    doc.setFillColor(253, 251, 247); // Very light warm background
+    doc.setDrawColor(212, 175, 55);   // Gold border
+    doc.setLineWidth(0.5);
+    doc.roundedRect(14, finalY + 26, doc.internal.pageSize.width - 28, 38, 4, 4, 'FD');
+
+    // Hero Subtitle
+    doc.setFontSize(11);
+    doc.setTextColor(120, 113, 108); // Grayish brown
+    doc.text(`TOTAL EXPECTED CASH FROM ${agent.firstName?.toUpperCase()}`, 22, finalY + 38);
+    
+    // Hero Main Text
+    doc.setFontSize(26);
+    doc.setTextColor(61, 43, 31); // Dark brown
+    doc.text(`${fmt(totalExpected)} ETB`, 22, finalY + 52);
 
     // Section: Profit Breakdown Table
     autoTable(doc, {
-      startY: finalY + 50,
-      head: [['Metric', 'Amount', 'Details']],
+      startY: finalY + 75,
+      head: [['Financial Metric', 'Amount', 'Description']],
       body: [
         [
           'COMPANY SHARE (Commission)', 
@@ -161,9 +170,15 @@ export default function AgentReportPage() {
         ],
       ],
       theme: 'grid',
-      headStyles: { fillColor: [61, 43, 31], fontSize: 12 },
-      bodyStyles: { fontSize: 12, cellPadding: 6 },
-      margin: { top: 40, bottom: 30 }
+      headStyles: { fillColor: [61, 43, 31], textColor: [255, 255, 255], fontSize: 11, fontStyle: 'bold', halign: 'left' },
+      bodyStyles: { fontSize: 11, cellPadding: 8, textColor: [60, 60, 60] },
+      alternateRowStyles: { fillColor: [252, 250, 248] },
+      columnStyles: {
+        0: { fontStyle: 'bold', textColor: [61, 43, 31], cellWidth: 65 },
+        1: { fontStyle: 'bold', textColor: [21, 128, 61], cellWidth: 45 }, // Greenish for amounts
+        2: { textColor: [120, 113, 108], fontStyle: 'italic' }
+      },
+      margin: { top: 40, bottom: 30, left: 14, right: 14 }
     });
 
     // Add Header and Footer to all pages
