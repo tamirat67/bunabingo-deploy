@@ -68,13 +68,33 @@ export default function AgentReportPage() {
     const doc = new jsPDF();
     
     // Attempt to load logo image
-    let logoImg: HTMLImageElement | null = null;
+    let logoImg: HTMLImageElement | string | null = null;
     try {
       logoImg = await new Promise((resolve, reject) => {
         const img = new window.Image();
         img.crossOrigin = 'Anonymous';
         img.src = '/logo.png';
-        img.onload = () => resolve(img);
+        img.onload = () => {
+          // Crop image to circle using canvas
+          const canvas = document.createElement('canvas');
+          const size = Math.min(img.width, img.height);
+          canvas.width = size;
+          canvas.height = size;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.beginPath();
+            ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2, true);
+            ctx.closePath();
+            ctx.clip();
+            // Center the image if it's not perfectly square
+            const dx = (size - img.width) / 2;
+            const dy = (size - img.height) / 2;
+            ctx.drawImage(img, dx, dy, img.width, img.height);
+            resolve(canvas.toDataURL('image/png'));
+          } else {
+            resolve(img); // Fallback to raw image if canvas fails
+          }
+        };
         img.onerror = (e) => reject(e);
       });
     } catch (err) {
