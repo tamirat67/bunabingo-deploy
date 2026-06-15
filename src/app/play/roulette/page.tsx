@@ -702,12 +702,13 @@ function RouletteContent() {
               flex: 3, padding: '13px',
               background: betConfirmed
                 ? '#27AE60'
-                : 'linear-gradient(90deg, #3D2B1F, #2C1A0E)',
-              color: betConfirmed ? 'white' : '#D4AF37',
+                : 'linear-gradient(90deg, #7B2FBE, #9C27B0, #6A1B9A)',
+              color: 'white',
               border: 'none', borderRadius: '10px', fontWeight: '900', fontSize: '13px',
               cursor: 'pointer',
               opacity: status !== 'BETTING' || totalBet === 0 || isPlacing ? 0.45 : 1,
-              boxShadow: betConfirmed ? '0 3px 0 #1a5e20' : '0 3px 0 #1a0e05',
+              boxShadow: betConfirmed ? '0 3px 0 #1a5e20' : '0 3px 0 #4A0E72, 0 0 16px rgba(123,47,190,0.5)',
+              letterSpacing: '0.5px',
             }}>
             {betConfirmed
               ? `✅ BET PLACED (${totalBet} ETB)`
