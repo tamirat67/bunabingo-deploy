@@ -949,13 +949,6 @@ function GameContent() {
 
     setClaiming(true);
 
-    // SMART GUARD: If drawn balls < 45, the backend will reject this claim.
-    // We absorb silently — the player just tapped too early. No message leaks house logic.
-    if (drawn.length < 45) {
-      setClaiming(false);
-      return;
-    }
-
     // Fast socket claim ("clicke boom")
     if (socket && socket.connected) {
       socket.emit('claim-bingo', { gameId });

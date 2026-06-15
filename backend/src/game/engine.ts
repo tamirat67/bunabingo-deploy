@@ -59,6 +59,18 @@ function buildNumberPool(): number[] {
   return pool;
 }
 
+/**
+ * Calculates the perfect mathematical minimum game length based on the total number of cards.
+ * With more cards, Bingos happen naturally faster. We scale down the forced duration
+ * to prevent the mathematical impossibility of avoiding an early Bingo at large scale.
+ */
+function getDynamicMinBalls(totalCards: number): number {
+  if (totalCards <= 40) return 30; // 90 seconds
+  if (totalCards <= 80) return 25; // 75 seconds
+  if (totalCards <= 150) return 22; // 66 seconds
+  return 20; // 60 seconds
+}
+
 // ─── Determine Countdown ──────────────────────────────────────
 function getCountdownSeconds(playerCount: number, roomType: string): number {
   const cdConfig = config.game.countdown as Record<string, number>;
@@ -468,7 +480,8 @@ async function runGame(gameId: string): Promise<void> {
     const targetWinMode = WIN_MODE_ROTATION[Math.abs(modeHash) % WIN_MODE_ROTATION.length];
     logger.info(`[RiggedDraw] Target win mode for game ${gameId}: ${targetWinMode}`);
 
-    const riggedPool = rigDrawSequence(ticketsForSim, houseShouldWin, 5000, config.game.minBallsBeforeWin, targetWinMode);
+    const dynamicMinBalls = getDynamicMinBalls(ticketsForSim.length);
+    const riggedPool = rigDrawSequence(ticketsForSim, houseShouldWin, 5000, dynamicMinBalls, targetWinMode);
     state.numberPool = riggedPool; // override the random pool with the rigged one
     state.targetWinMode = targetWinMode; // save it so checkAllTickets can prioritize it
   }
@@ -577,12 +590,6 @@ async function checkAllTickets(gameId: string, drawnNumbers: number[]): Promise<
     if (result.won) {
         logger.debug(`[Game ${gameId}] Ticket ${ticket.id} HAS ${result.modes.join(', ')}.`);
         
-        // Guard: don't allow any win before minimum balls drawn
-        if (drawnNumbers.length < config.game.minBallsBeforeWin) {
-          logger.info(`[Game ${gameId}] Win detected too early (ball #${drawnNumbers.length}/${config.game.minBallsBeforeWin} min) — skipping`);
-          continue;
-        }
-
         // Auto-claim for house bots
         if (ticket.user?.isBot === true) {
            // On the 10th player-win game, bots stay completely silent.
@@ -686,15 +693,6 @@ export async function claimBingoWin(gameId: string, userId: string): Promise<{ w
       return { won: false, error: 'Game is not running or already finished' };
     }
 
-    // Guard: minimum balls must be drawn before any real player can claim
-    const drawnCount = await prisma.drawHistory.count({ where: { gameId } });
-    if (drawnCount < config.game.minBallsBeforeWin) {
-      if (oldInterval && state && !state.drawInterval) {
-        state.drawInterval = setInterval(() => drawNumber(gameId), config.game.drawIntervalMs);
-      }
-      return { won: false, error: `Game just started — wait for more balls! (${drawnCount}/${config.game.minBallsBeforeWin} minimum)` };
-    }
-
     const tickets = await prisma.ticket.findMany({
       where: { gameId, userId },
       select: { id: true, card: true }
@@ -702,33 +700,6 @@ export async function claimBingoWin(gameId: string, userId: string): Promise<{ w
 
     const drawnNumbers = game.drawHistory.map(d => d.number);
     const existingWinModes = new Set(game.winners.map(w => w.winMode));
-
-    // ── SCALABLE HOUSE-WIN GUARD ─────────────────────────────────────────────
-    // Works at ANY player count (1 or 1,000,000).
-    // On house-win games (1–9 of 10): if any bot card already has a winning
-    // pattern, we silently reject this real-player claim and let the bot
-    // auto-claim within its scheduled 0.5–1.5s window instead.
-    // On the 10th game (houseShouldWin=false): this block is skipped entirely
-    // so real players can win freely.
-    if (state?.houseShouldWin === true) {
-      const botTickets = await prisma.ticket.findMany({
-        where: { gameId, user: { isBot: true } },
-        select: { id: true, card: true },
-      });
-      const botHasWinningPattern = botTickets.some(t => {
-        const rows = parseCardRows(t.card);
-        if (!rows) return false;
-        return checkWin(rows as BingoCard, drawnNumbers).won;
-      });
-      if (botHasWinningPattern) {
-        logger.info(`[Game ${gameId}] Real player ${userId} tried to claim but house bot has a pattern — rejecting silently.`);
-        // Resume draw so game doesn't freeze while bot's auto-claim fires
-        if (state && !state.drawInterval && oldInterval) {
-          state.drawInterval = setInterval(() => drawNumber(gameId), config.game.drawIntervalMs);
-        }
-        return { won: false, error: 'No valid Bingo detected yet! Check your patterns or wait for more balls.' };
-      }
-    }
 
     let eligibleClaim: { ticketId: string, mode: any } | null = null;
     const priority = ['FULL_HOUSE', 'FOUR_CORNERS', 'DIAGONAL', 'COLUMN', 'ROW'] as const;
@@ -1803,8 +1774,9 @@ export async function resumeRunningGames(): Promise<void> {
           isBot: t.user?.isBot ?? false,
         }));
         
-        // Rig the remaining pool
-        state.numberPool = rigDrawSequence(ticketsForSim, state.houseShouldWin, 5000, config.game.minBallsBeforeWin, state.targetWinMode).filter(n => !drawnSet.has(n));
+        // Rig the remaining pool using dynamic balls based on total tickets
+        const dynamicMinBalls = getDynamicMinBalls(ticketsForSim.length);
+        state.numberPool = rigDrawSequence(ticketsForSim, state.houseShouldWin, 5000, dynamicMinBalls, state.targetWinMode).filter(n => !drawnSet.has(n));
       }
 
       activeGames.set(game.id, state);
