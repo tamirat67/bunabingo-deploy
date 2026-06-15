@@ -1476,10 +1476,6 @@ function GameContent() {
                   <motion.button
                     whileHover={game?.status === 'RUNNING' && !claiming ? { scale: 1.02 } : {}}
                     whileTap={game?.status === 'RUNNING' && !claiming ? { scale: 0.94 } : {}}
-                    animate={hasBingo && game?.status === 'RUNNING' && !claiming
-                      ? { boxShadow: ['0 0 0px #F39C12', '0 0 18px #F39C12', '0 0 0px #F39C12'] }
-                      : {}}
-                    transition={hasBingo ? { duration: 1.2, repeat: Infinity } : {}}
                     onClick={(e) => {
                       e.stopPropagation();
                       if (game?.status === 'RUNNING' && !claiming) handleBingo();
@@ -1490,16 +1486,12 @@ function GameContent() {
                       background: game?.status === 'RUNNING'
                         ? (claiming
                             ? '#7F8C8D'
-                            : (hasBingo
-                                ? (isVip ? 'linear-gradient(135deg, #FFD700, #C471ED)' : 'linear-gradient(135deg, #27AE60, #F39C12)')
-                                : (isVip ? 'linear-gradient(135deg, #FFD700, #C471ED)' : 'linear-gradient(135deg, #F39C12, #E67E22)')))
+                            : (isVip ? 'linear-gradient(135deg, #FFD700, #C471ED)' : 'linear-gradient(135deg, #F39C12, #E67E22)'))
                         : (isVip ? 'rgba(255,255,255,0.05)' : 'rgba(150,150,150,0.1)'),
                       color: game?.status === 'RUNNING'
                         ? (isVip ? '#1C0A35' : 'white')
                         : (isVip ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.3)'),
-                      border: hasBingo && game?.status === 'RUNNING' && !claiming
-                        ? '2px solid #2ECC71'
-                        : (isVip && game?.status === 'RUNNING' && !claiming ? '2px solid #FFFFFF' : 'none'),
+                      border: isVip && game?.status === 'RUNNING' && !claiming ? '2px solid #FFFFFF' : 'none',
                       borderRadius: '12px',
                       height: '36px',
                       fontWeight: '900',
