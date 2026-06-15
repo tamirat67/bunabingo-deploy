@@ -422,9 +422,15 @@ function SelectionContent() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // stable — reads activeGameIdRef.current so no activeGameId dep needed
 
-  // Local countdown fallback
+  // ── Server-anchored zero-latency countdown + instant launch ───────────────
+  // Ticks every 100ms using the fixed server endTime epoch.
+  // When the timer reaches 0, we IMMEDIATELY join + redirect — no waiting for
+  // the game-started socket event (which arrives 1-3s late due to DB operations).
+  const launchedRef = useRef(false);
   useEffect(() => {
     if (endTime === null) return;
+    launchedRef.current = false; // reset when a new countdown starts
+
     const timer = setInterval(() => {
       const now = Date.now() + serverOff;
       const rem = Math.max(0, Math.ceil((endTime - now) / 1000));
@@ -432,30 +438,83 @@ function SelectionContent() {
         if (prev === rem) return prev;
         return rem;
       });
-      if (rem <= 0) setEndTime(null);
+
+      // ── INSTANT LAUNCH at countdown = 0 ─────────────────────────────────
+      if (rem <= 0 && !launchedRef.current) {
+        launchedRef.current = true;
+        clearInterval(timer);
+        setEndTime(null);
+        setCountdown(null);
+
+        // Fire join immediately (if cards selected and not already joining)
+        const hasSelected = selectedRef.current.length > 0;
+        const hasOwned   = ownedRef.current.length > 0;
+
+        if (hasSelected && !joining) {
+          setJoining(true);
+          pendingJoinRef.current = true;
+          joinGame(roomType, selectedRef.current).then(res => {
+            if (res?.tickets) {
+              ownedRef.current = res.tickets.map((t: any) => t.card.id);
+              setOwnedCardIds(ownedRef.current);
+              setSelected([]);
+            }
+            if (res?.gameId) {
+              joinedGameIdRef.current = res.gameId;
+              try { sessionStorage.setItem('joined_game_id', res.gameId); } catch(e) {}
+            }
+            // Redirect immediately after join resolves
+            if (!redirectedRef.current) {
+              redirectedRef.current = true;
+              const destId = joinedGameIdRef.current || res?.gameId || activeGameIdRef.current;
+              if (destId) {
+                if (roomType.startsWith('SPIN_')) {
+                  router.push(`/play/spin?id=${destId}&stake=${stake}`);
+                } else {
+                  router.push(`/game?id=${destId}&type=${roomType}&price=${stake}`);
+                }
+              }
+            }
+          }).catch(() => {}).finally(() => {
+            pendingJoinRef.current = false;
+            setTimeout(() => setJoining(false), 3000);
+          });
+        } else if (hasOwned && !redirectedRef.current) {
+          // Player already has tickets (bought earlier) — redirect immediately
+          redirectedRef.current = true;
+          const destId = joinedGameIdRef.current || activeGameIdRef.current;
+          if (destId) {
+            if (roomType.startsWith('SPIN_')) {
+              router.push(`/play/spin?id=${destId}&stake=${stake}`);
+            } else {
+              router.push(`/game?id=${destId}&type=${roomType}&price=${stake}`);
+            }
+          }
+        }
+      }
     }, 100);
     return () => clearInterval(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [endTime, serverOff]);
 
-  // Reliable Auto-buy Effect — fires at countdown <= 2 to absorb 1-2s network latency
+  // Secondary safety auto-buy: fires at countdown <= 1 in case endTime was not set
+  // (e.g. server sent only secondsRemaining without endTime)
   useEffect(() => {
-    if (countdown !== null && countdown <= 2 && countdown >= 0 && selected.length > 0 && !joining) {
+    if (countdown !== null && countdown <= 1 && countdown >= 0 && selectedRef.current.length > 0 && !joining && !launchedRef.current) {
+      launchedRef.current = true;
       setJoining(true);
       pendingJoinRef.current = true;
-      pendingJoinRoomRef.current = { roomType, stake };
-      joinGame(roomType, selected).then(res => {
-        if (res && res.tickets) {
-          setOwnedCardIds(res.tickets.map((t: any) => t.card.id));
+      joinGame(roomType, selectedRef.current).then(res => {
+        if (res?.tickets) {
           ownedRef.current = res.tickets.map((t: any) => t.card.id);
+          setOwnedCardIds(ownedRef.current);
           setSelected([]);
         }
-        // ── Save the exact gameId the player was placed in ─────────────────────
         if (res?.gameId) {
           joinedGameIdRef.current = res.gameId;
           try { sessionStorage.setItem('joined_game_id', res.gameId); } catch(e) {}
         }
-        // ── If game-started already fired while we were joining, redirect now ──
-        if (redirectedRef.current === false && (res?.tickets?.length > 0 || ownedRef.current.length > 0)) {
+        if (!redirectedRef.current && (res?.tickets?.length > 0 || ownedRef.current.length > 0)) {
           redirectedRef.current = true;
           const destId = joinedGameIdRef.current || res?.gameId || activeGameIdRef.current;
           if (destId) {
@@ -468,10 +527,11 @@ function SelectionContent() {
         }
       }).catch(() => {}).finally(() => {
         pendingJoinRef.current = false;
-        setTimeout(() => setJoining(false), 2000);
+        setTimeout(() => setJoining(false), 3000);
       });
     }
-  }, [countdown, selected, joining, roomType, stake, router]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [countdown]);
 
   useEffect(() => {
     if (roomType.toUpperCase().includes('SPIN')) {
