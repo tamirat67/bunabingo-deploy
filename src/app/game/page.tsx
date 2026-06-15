@@ -711,7 +711,9 @@ function GameContent() {
     socket.on('claim-error', (err: any) => {
       setClaiming(false);
       const isTooEarlyMsg = err.message?.toLowerCase().includes('wait') || err.message?.toLowerCase().includes('minimum');
-      if (!isTooEarlyMsg) {
+      if (isTooEarlyMsg) {
+        showAlert('⏳ ገና ነው', 'ቢንጎ ለማለት ቢያንስ 20 ኳሶች መውጣት አለባቸው! እባክዎ ጥቂት ይጠብቁ።', 'info');
+      } else {
         showAlert('ቢንጎ ጥያቄ', err.message || 'ገና ቢንጎ አልተገኘም! እባክዎ ካርቴላዎን ያረጋግጡ።', 'info');
       }
     });
@@ -963,9 +965,11 @@ function GameContent() {
         if (toastTimer.current) clearTimeout(toastTimer.current);
         toastTimer.current = setTimeout(() => setToast(null), 4000);
       } else {
-        // Suppress the "wait for more balls" backend message silently
+        // Show the "wait for more balls" message so players know why they can't claim yet
         const isTooEarlyMsg = res.error?.toLowerCase().includes('wait') || res.error?.toLowerCase().includes('minimum');
-        if (!isTooEarlyMsg) {
+        if (isTooEarlyMsg) {
+          showAlert('⏳ ገና ነው', 'ቢንጎ ለማለት ቢያንስ 20 ኳሶች መውጣት አለባቸው! እባክዎ ጥቂት ይጠብቁ።', 'info');
+        } else {
           showAlert('ቢንጎ ጥያቄ', res.error || 'ገና ቢንጎ አልተገኘም! እባክዎ ካርቴላዎን ያረጋግጡ።', 'info');
         }
       }
