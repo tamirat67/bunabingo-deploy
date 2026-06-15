@@ -15,9 +15,27 @@ function DashboardContent() {
   const [agents, setAgents] = useState<any[]>([]);
   const [selectedAgent, setSelectedAgent] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const [showRangePicker, setShowRangePicker] = useState(false);
+  const [customDays, setCustomDays] = useState<string>('');
   const searchParams = useSearchParams();
   const router = useRouter();
-  const dateParam = searchParams.get('date') || '';
+  // Date range params
+  const daysParam  = searchParams.get('days') || '0';       // 0 = today only
+  const startParam = searchParams.get('startDate') || '';
+  const endParam   = searchParams.get('endDate')   || '';
+  const dateParam  = searchParams.get('date') || '';         // legacy fallback
+
+  // Derive display label before data loads
+  const quickLabel = (() => {
+    const d = Number(daysParam);
+    if (startParam && endParam && d === 0) return `${startParam} – ${endParam}`;
+    if (d === 1)  return 'Yesterday';
+    if (d === 7)  return 'Last 7 Days';
+    if (d === 14) return 'Last 14 Days';
+    if (d === 30) return 'Last 30 Days';
+    if (d > 1)    return `Last ${d} Days`;
+    return 'Today';
+  })();
 
   useEffect(() => {
     async function fetchData() {
@@ -44,10 +62,29 @@ function DashboardContent() {
         }
 
         const endpoint = isAdmin ? '/admin/analytics' : '/agent/stats';
-        let url = dateParam ? `${endpoint}?date=${dateParam}` : endpoint;
-        if (isAdmin && selectedAgent) {
-          url += (url.includes('?') ? '&' : '?') + `agentId=${selectedAgent}`;
+        const params = new URLSearchParams();
+
+        // Build date range params
+        const d = Number(daysParam);
+        if (startParam && endParam && d === 0) {
+          params.set('startDate', startParam);
+          params.set('endDate', endParam);
+        } else if (d > 0) {
+          const end = new Date();
+          const start = new Date();
+          start.setDate(start.getDate() - (d - 1));
+          params.set('startDate', start.toISOString().split('T')[0]);
+          params.set('endDate', end.toISOString().split('T')[0]);
+        } else if (dateParam) {
+          params.set('date', dateParam);
         }
+        // else: no params = today (backend default)
+
+        if (isAdmin && selectedAgent) {
+          params.set('agentId', selectedAgent);
+        }
+
+        const url = params.toString() ? `${endpoint}?${params.toString()}` : endpoint;
         const statsResponse = await api.get(url);
         setStats(statsResponse.data);
       } catch (err) {
@@ -57,7 +94,7 @@ function DashboardContent() {
       }
     }
     fetchData();
-  }, [dateParam, selectedAgent]);
+  }, [daysParam, startParam, endParam, dateParam, selectedAgent]);
 
   if (loading || !stats) {
     return (
@@ -71,20 +108,8 @@ function DashboardContent() {
 
   const isAdmin = user.role === 'ADMIN' || user.isAdmin;
 
-  // Formatting date for displaying on sub-headers
-  const formattedDateLabel = (() => {
-    try {
-      const activeDateStr = dateParam || (() => {
-        const today = new Date();
-        return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-      })();
-      const [year, month, day] = activeDateStr.split('-');
-      const date = new Date(Number(year), Number(month) - 1, Number(day));
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    } catch (e) {
-      return 'TODAY';
-    }
-  })();
+  // Formatting date label — use the range label returned from API, or the quick label
+  const formattedDateLabel = stats?.dateRangeLabel || quickLabel;
 
   // Extract variables based on role — NO fake fallbacks, only real data
   // globalSales = today's total gross (all cards including bots)
@@ -175,7 +200,7 @@ function DashboardContent() {
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
           {/* Agent Selector Dropdown */}
           {isAdmin && (
             <div style={{ position: 'relative' }}>
@@ -194,12 +219,13 @@ function DashboardContent() {
                   color: '#3d2b1f',
                   fontSize: '14px',
                   outline: 'none',
+                  minWidth: '160px',
                 }}
               >
-                <option value="">All Agents (Global)</option>
+                <option value="">🌐 All Agents (Global)</option>
                 {agents.map((ag: any) => (
                   <option key={ag.id} value={ag.id}>
-                    {ag.firstName || ag.telegramUsername || ag.id.slice(0,8)}
+                    👤 {ag.firstName || ag.telegramUsername || `Agent ${ag.id.slice(0,6)}`}
                   </option>
                 ))}
               </select>
@@ -207,44 +233,130 @@ function DashboardContent() {
             </div>
           )}
 
-          {/* Date Selector Pill */}
-        <div style={{ position: 'relative' }}>
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '10px', 
-            background: '#ffffff', 
-            border: '1px solid rgba(0, 0, 0, 0.06)', 
-            borderRadius: '12px', 
-            padding: '10px 16px', 
-            boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
-            cursor: 'pointer',
-            fontWeight: '600',
-            color: '#3d2b1f',
-            fontSize: '14px'
-          }}>
-            <FiCalendar size={16} style={{ color: '#8c857b' }} />
-            <span>{formattedDateLabel}</span>
-            <FiChevronDown size={16} style={{ color: '#8c857b' }} />
-            <input 
-              type="date" 
-              value={dateParam || new Date().toISOString().split('T')[0]} 
-              onChange={(e) => {
-                const val = e.target.value;
-                router.push(val ? `/admin?date=${val}` : '/admin');
+          {/* Date Range Selector */}
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={() => setShowRangePicker(!showRangePicker)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                background: '#ffffff',
+                border: '1px solid rgba(0,0,0,0.08)',
+                borderRadius: '12px',
+                padding: '10px 16px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                cursor: 'pointer',
+                fontWeight: '600',
+                color: '#3d2b1f',
+                fontSize: '14px',
+                fontFamily: 'inherit',
+                whiteSpace: 'nowrap',
               }}
-              style={{ 
-                position: 'absolute', 
-                top: 0, 
-                left: 0, 
-                width: '100%', 
-                height: '100%', 
-                opacity: 0, 
-                cursor: 'pointer' 
-              }}
-            />
+            >
+              <FiCalendar size={15} style={{ color: '#8c857b' }} />
+              <span>{formattedDateLabel}</span>
+              <FiChevronDown size={14} style={{ color: '#8c857b', transform: showRangePicker ? 'rotate(180deg)' : 'none', transition: '0.2s' }} />
+            </button>
+
+            {showRangePicker && (
+              <div style={{
+                position: 'absolute',
+                top: 'calc(100% + 8px)',
+                right: 0,
+                background: '#ffffff',
+                border: '1px solid rgba(0,0,0,0.08)',
+                borderRadius: '16px',
+                boxShadow: '0 12px 40px rgba(0,0,0,0.12)',
+                padding: '16px',
+                zIndex: 100,
+                minWidth: '220px',
+              }}>
+                <div style={{ fontSize: '11px', fontWeight: '800', color: '#8c857b', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>Quick Range</div>
+                {[
+                  { label: '📅 Today',        days: 0 },
+                  { label: '⏪ Yesterday',    days: 1 },
+                  { label: '📆 Last 7 Days',  days: 7 },
+                  { label: '📆 Last 14 Days', days: 14 },
+                  { label: '📆 Last 30 Days', days: 30 },
+                ].map(opt => (
+                  <button
+                    key={opt.days}
+                    onClick={() => {
+                      const p = new URLSearchParams();
+                      if (opt.days > 0) p.set('days', String(opt.days));
+                      router.push(`/admin${p.toString() ? '?' + p.toString() : ''}`);
+                      setShowRangePicker(false);
+                      setCustomDays('');
+                    }}
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      textAlign: 'left',
+                      padding: '9px 12px',
+                      borderRadius: '10px',
+                      border: 'none',
+                      background: Number(daysParam) === opt.days ? 'rgba(139, 90, 43, 0.08)' : 'transparent',
+                      color: Number(daysParam) === opt.days ? '#8B5A2B' : '#3d2b1f',
+                      fontWeight: Number(daysParam) === opt.days ? '800' : '500',
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      marginBottom: '2px',
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+
+                <div style={{ borderTop: '1px solid rgba(0,0,0,0.06)', marginTop: '10px', paddingTop: '10px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: '800', color: '#8c857b', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Custom (1–30 days)</div>
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                    <input
+                      type="number"
+                      min="1"
+                      max="30"
+                      value={customDays}
+                      placeholder="e.g. 10"
+                      onChange={(e) => setCustomDays(e.target.value)}
+                      style={{
+                        flex: 1,
+                        padding: '8px 10px',
+                        borderRadius: '8px',
+                        border: '1px solid rgba(0,0,0,0.12)',
+                        fontSize: '13px',
+                        fontFamily: 'inherit',
+                        outline: 'none',
+                      }}
+                    />
+                    <button
+                      onClick={() => {
+                        const n = Math.min(30, Math.max(1, Number(customDays)));
+                        if (!isNaN(n) && n > 0) {
+                          router.push(`/admin?days=${n}`);
+                          setShowRangePicker(false);
+                        }
+                      }}
+                      style={{
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        background: 'linear-gradient(135deg, #8B5A2B, #a0522d)',
+                        color: '#fff',
+                        fontWeight: '700',
+                        fontSize: '12px',
+                        cursor: 'pointer',
+                        fontFamily: 'inherit',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      Apply
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
         </div>
       </div>
 
@@ -555,15 +667,15 @@ function DashboardContent() {
           {/* Daily Summary */}
           <div className="premium-card">
             <div className="summary-header-row" style={{ borderBottom: '1px solid rgba(0,0,0,0.05)', paddingBottom: '12px', marginBottom: '16px' }}>
-              <span className="summary-header-title">DAILY SUMMARY</span>
-              <span className="summary-header-date">TODAY ({formattedDateLabel})</span>
+              <span className="summary-header-title">PERIOD SUMMARY</span>
+              <span className="summary-header-date">{formattedDateLabel}</span>
             </div>
             
             <table className="premium-table">
               <thead>
                 <tr>
                   <th>METRIC</th>
-                  <th className="text-right">TODAY ({formattedDateLabel})</th>
+                  <th className="text-right">{formattedDateLabel}</th>
                 </tr>
               </thead>
               <tbody>

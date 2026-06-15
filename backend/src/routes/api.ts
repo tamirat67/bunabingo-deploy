@@ -1949,8 +1949,10 @@ staffRouter.patch('/agents/:id', restrictToAdmin, async (req, res) => {
 });
 
 staffRouter.get('/analytics', staffMiddleware, async (req, res) => {
-  const dateStr = req.query.date as string; // Optional date 'YYYY-MM-DD'
-  const agentIdQuery = req.query.agentId as string; // Optional agent filter
+  const dateStr = req.query.date as string;       // legacy: single date 'YYYY-MM-DD'
+  const startDateStr = req.query.startDate as string; // range start 'YYYY-MM-DD'
+  const endDateStr   = req.query.endDate   as string; // range end   'YYYY-MM-DD'
+  const agentIdQuery = req.query.agentId as string;   // Optional agent filter
   const admin = (req as any).user;
   
   let agentIds: string[] | undefined = undefined;
@@ -1969,14 +1971,28 @@ staffRouter.get('/analytics', staffMiddleware, async (req, res) => {
     }
   }
 
-  let todayStart = new Date();
-  if (dateStr) {
+  // Resolve the date window (range takes priority over legacy single-date)
+  let todayStart: Date;
+  let todayEnd: Date;
+
+  if (startDateStr && endDateStr) {
+    todayStart = new Date(startDateStr);
+    todayStart.setHours(0, 0, 0, 0);
+    todayEnd = new Date(endDateStr);
+    todayEnd.setHours(23, 59, 59, 999);
+  } else if (dateStr) {
+    // legacy single-date mode
     todayStart = new Date(dateStr);
+    todayStart.setHours(0, 0, 0, 0);
+    todayEnd = new Date(todayStart);
+    todayEnd.setHours(23, 59, 59, 999);
+  } else {
+    // Default: today only
+    todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    todayEnd = new Date(todayStart);
+    todayEnd.setHours(23, 59, 59, 999);
   }
-  todayStart.setHours(0,0,0,0);
-  
-  const todayEnd = new Date(todayStart);
-  todayEnd.setHours(23,59,59,999);
 
   const userFilter = agentIds ? { referredBy: { in: agentIds } } : {};
   const txFilter = agentIds ? { user: { referredBy: { in: agentIds } } } : {};
@@ -2180,6 +2196,12 @@ staffRouter.get('/analytics', staffMiddleware, async (req, res) => {
   const todayCompanyRevenue = todayRealSales * COMPANY_RATE;
   const todayAgentRevenue   = todayRealSales * AGENT_RATE;
 
+  // Build a human-readable date range label for the frontend
+  const fmtDate = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const dateRangeLabel = todayStart.toDateString() === todayEnd.toDateString()
+    ? fmtDate(todayStart)
+    : `${fmtDate(todayStart)} – ${fmtDate(todayEnd)}`;
+
   res.json({
     totalUsers,
     totalGames: totalGamesAllTime,
@@ -2197,6 +2219,10 @@ staffRouter.get('/analytics', staffMiddleware, async (req, res) => {
     companyRevenueRate: COMPANY_RATE * 100,
     agentRevenueRate: AGENT_RATE * 100,
     companyCommissionRate: companyRate * 100,
+    // Date range info
+    dateRangeLabel,
+    rangeStart: todayStart.toISOString().split('T')[0],
+    rangeEnd: todayEnd.toISOString().split('T')[0],
     // ── Real vs Bot breakdown (all-time, key for admin accounting) ──
     realGrossSales,           // real player ticket sales (real ETB)
     botGrossSales,            // house bot ticket sales (synthetic ETB)
@@ -2206,7 +2232,7 @@ staffRouter.get('/analytics', staffMiddleware, async (req, res) => {
     realPlayerWinnings,       // amount won by real players
     botWinPayoutAmount,       // House Advantage: total bot wins kept in system
     botWinCount,              // House Advantage: number of bot wins
-    // Today's values (computed from real sales only)
+    // Period's values (scoped to selected date range, from real sales only)
     today: {
       globalSales: todayGlobalSales,
       realSales: todayRealSales,
