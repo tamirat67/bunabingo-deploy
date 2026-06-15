@@ -70,6 +70,10 @@ function SelectionContent() {
   const joinedGameIdRef = useRef<string | null>(null);
   const [liveGameDismissed, setLiveGameDismissed] = useState(false);
   const [currentBallSelect, setCurrentBallSelect] = useState<number | null>(null);
+  // pendingJoinRef: set to true while joinGame() is in-flight.
+  // If game-started arrives before the join response, we redirect once join resolves.
+  const pendingJoinRef = useRef(false);
+  const pendingJoinRoomRef = useRef<{ roomType: string; stake: number } | null>(null);
   // ── Server-time-anchored countdown for the LIVE GAME "NEXT CHECK" banner ──
   // liveGameEndTime is the UTC epoch ms when the current 20s poll-cycle ends.
   // Every device derives the display counter from the same epoch, so all
@@ -433,28 +437,41 @@ function SelectionContent() {
     return () => clearInterval(timer);
   }, [endTime, serverOff]);
 
-  // Reliable Auto-buy Effect
+  // Reliable Auto-buy Effect — fires at countdown <= 2 to absorb 1-2s network latency
   useEffect(() => {
-    if (countdown === 1 && selected.length > 0 && !joining) {
+    if (countdown !== null && countdown <= 2 && countdown >= 0 && selected.length > 0 && !joining) {
       setJoining(true);
+      pendingJoinRef.current = true;
+      pendingJoinRoomRef.current = { roomType, stake };
       joinGame(roomType, selected).then(res => {
         if (res && res.tickets) {
           setOwnedCardIds(res.tickets.map((t: any) => t.card.id));
+          ownedRef.current = res.tickets.map((t: any) => t.card.id);
           setSelected([]);
         }
         // ── Save the exact gameId the player was placed in ─────────────────────
-        // This MUST be saved here (at purchase time) before activeGameIdRef drifts
-        // to the next WAITING game. All redirects below prefer this over activeGameIdRef.
         if (res?.gameId) {
           joinedGameIdRef.current = res.gameId;
           try { sessionStorage.setItem('joined_game_id', res.gameId); } catch(e) {}
         }
+        // ── If game-started already fired while we were joining, redirect now ──
+        if (redirectedRef.current === false && (res?.tickets?.length > 0 || ownedRef.current.length > 0)) {
+          redirectedRef.current = true;
+          const destId = joinedGameIdRef.current || res?.gameId || activeGameIdRef.current;
+          if (destId) {
+            if (roomType.startsWith('SPIN_')) {
+              router.push(`/play/spin?id=${destId}&stake=${stake}`);
+            } else {
+              router.push(`/game?id=${destId}&type=${roomType}&price=${stake}`);
+            }
+          }
+        }
       }).catch(() => {}).finally(() => {
-        // Only release joining lock if we are still on the page, but let it stay true during transition
+        pendingJoinRef.current = false;
         setTimeout(() => setJoining(false), 2000);
       });
     }
-  }, [countdown, selected, joining, roomType]);
+  }, [countdown, selected, joining, roomType, stake, router]);
 
   useEffect(() => {
     if (roomType.toUpperCase().includes('SPIN')) {
@@ -557,21 +574,27 @@ function SelectionContent() {
         isGameRunningRef.current = true;
         lastGameRunningChangeTimeRef.current = Date.now();
         setIsGameRunning(true);
+        setCountdown(null);
         // Anchor the 50s NEXT CHECK cycle to the real server timestamp
         const endTime = (d.serverTime || Date.now()) + 50000;
         liveGameEndTimeRef.current = endTime;
         setLiveGameEndTime(endTime);
-        // Redirect ONLY users who bought tickets for this game
-        // ── CRITICAL: prefer joinedGameIdRef (set at purchase) over activeGameIdRef ──
-        // activeGameIdRef may have drifted to the NEXT WAITING game by this point.
-        // d.gameId from the socket is the actual RUNNING game ID and is also reliable.
-        if (!redirectedRef.current && ownedRef.current.length > 0) {
-          redirectedRef.current = true;
-          const destId = joinedGameIdRef.current || d.gameId || activeGameIdRef.current;
-          if (roomType.startsWith('SPIN_')) {
-            router.push(`/play/spin?id=${destId}&stake=${stake}`);
-          } else {
-            router.push(`/game?id=${destId}&type=${roomType}&price=${stake}`);
+        // Redirect users who have tickets OR are in the middle of joining
+        const hasTickets = ownedRef.current.length > 0;
+        const isJoining = pendingJoinRef.current;
+        if (!redirectedRef.current && (hasTickets || isJoining)) {
+          // If still joining, the joinGame().then() handler will redirect when it resolves
+          if (hasTickets && !isJoining) {
+            redirectedRef.current = true;
+            const destId = joinedGameIdRef.current || d.gameId || activeGameIdRef.current;
+            if (roomType.startsWith('SPIN_')) {
+              router.push(`/play/spin?id=${destId}&stake=${stake}`);
+            } else {
+              router.push(`/game?id=${destId}&type=${roomType}&price=${stake}`);
+            }
+          } else if (isJoining) {
+            // Mark as "needs redirect" — the joinGame().then() will pick this up
+            redirectedRef.current = false; // keep false so join .then() can redirect
           }
         }
       });
