@@ -112,7 +112,6 @@ export default function AgentReportPage() {
       const fontB64 = btoa(binary);
       doc.addFileToVFS('NotoSansEthiopic.ttf', fontB64);
       doc.addFont('NotoSansEthiopic.ttf', 'NotoSansEthiopic', 'normal');
-      doc.addFont('NotoSansEthiopic.ttf', 'NotoSansEthiopic', 'bold');
       hasAmharic = true;
     } catch (e) {
       console.warn('Could not load Amharic font', e);
@@ -202,12 +201,12 @@ export default function AgentReportPage() {
       head: [['Financial Metric / የፋይናንስ መለኪያ', 'Amount / መጠን', 'Description / ዝርዝር']],
       body: tableBody,
       theme: 'grid',
-      headStyles: { fillColor: [61, 43, 31], textColor: [255, 255, 255], fontSize: 10, fontStyle: 'bold', halign: 'left' },
+      headStyles: { fillColor: [61, 43, 31], textColor: [255, 255, 255], fontSize: 10, fontStyle: 'normal', halign: 'left', font: hasAmharic ? 'NotoSansEthiopic' : 'helvetica' },
       bodyStyles: { fontSize: hasAmharic ? 10 : 11, cellPadding: 6, textColor: [60, 60, 60], font: hasAmharic ? 'NotoSansEthiopic' : 'helvetica' },
       alternateRowStyles: { fillColor: [252, 250, 248] },
       columnStyles: {
-        0: { fontStyle: 'bold', textColor: [61, 43, 31], cellWidth: 68 },
-        1: { fontStyle: 'bold', textColor: [21, 128, 61], cellWidth: 42 },
+        0: { fontStyle: 'normal', textColor: [61, 43, 31], cellWidth: 68 },
+        1: { fontStyle: 'normal', textColor: [21, 128, 61], cellWidth: 42 },
         2: { textColor: [120, 113, 108] }
       },
       margin: { top: 40, bottom: 30, left: 14, right: 14 }

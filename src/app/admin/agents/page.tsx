@@ -253,7 +253,6 @@ export default function AgentsPage() {
       const fontB64 = btoa(binary);
       doc.addFileToVFS('NotoSansEthiopic.ttf', fontB64);
       doc.addFont('NotoSansEthiopic.ttf', 'NotoSansEthiopic', 'normal');
-      doc.addFont('NotoSansEthiopic.ttf', 'NotoSansEthiopic', 'bold');
       hasAmharic = true;
     } catch (e) {
       console.warn('Could not load Amharic font', e);
@@ -372,12 +371,12 @@ export default function AgentsPage() {
       head: [['#', 'Agent\nወኪል', 'Username', 'Ticket Sales\nቲኬት ሽያጭ', 'Company Share\nየኩባንያ ድርሻ', 'Bot Winnings\nየቦት ሽልማቶች', 'Expected Cash ▶\nሊሰበሰብ', 'Agent Earned\nያገኘው']],
       body: agentRows,
       theme: 'grid',
-      headStyles: { fillColor: [61, 43, 31], textColor: [255, 255, 255], fontSize: 7.5, fontStyle: 'bold', halign: 'left', font: hasAmharic ? 'NotoSansEthiopic' : 'helvetica' },
-      bodyStyles: { fontSize: 8, cellPadding: 3, textColor: [55, 55, 55] },
+      headStyles: { fillColor: [61, 43, 31], textColor: [255, 255, 255], fontSize: 7.5, fontStyle: 'normal', halign: 'left', font: hasAmharic ? 'NotoSansEthiopic' : 'helvetica' },
+      bodyStyles: { fontSize: 8, cellPadding: 3, textColor: [55, 55, 55], font: hasAmharic ? 'NotoSansEthiopic' : 'helvetica' },
       alternateRowStyles: { fillColor: [252, 250, 248] },
       columnStyles: {
         0: { cellWidth: 7, halign: 'center', textColor: [120, 113, 108] },
-        1: { fontStyle: 'bold', textColor: [61, 43, 31], cellWidth: 24 },
+        1: { fontStyle: 'normal', textColor: [61, 43, 31], cellWidth: 24 },
         2: { cellWidth: 20, textColor: [120, 113, 108] },
         3: { cellWidth: 25 },
         4: { cellWidth: 32 },
