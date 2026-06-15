@@ -414,18 +414,18 @@ function SelectionContent() {
           setEndTime(g.endTime);
           const rem = Math.max(0, Math.ceil((g.endTime - Date.now() - offset) / 1000));
           if (rem >= 0) setCountdown(rem);
-        } else {
-          setCountdown(prev => (prev !== null && prev >= 0 && g.status === 'WAITING') ? prev : null);
-          setEndTime(prev => (prev !== null && g.status === 'WAITING') ? prev : null);
+        } else if (g.status === 'WAITING') {
+          setCountdown(prev => (prev !== null && prev >= 0) ? prev : null);
+          setEndTime(prev => (prev !== null) ? prev : null);
         }
       } else if (g.status === 'COUNTDOWN' && g.countdownSeconds !== undefined) {
         setCountdown((prev) => {
           if (prev !== null && prev >= 0) return prev;
           return g.countdownSeconds;
         });
-      } else {
-        setCountdown(prev => (prev !== null && prev >= 0 && g.status === 'WAITING') ? prev : null);
-        setEndTime(prev => (prev !== null && g.status === 'WAITING') ? prev : null);
+      } else if (g.status === 'WAITING') {
+        setCountdown(prev => (prev !== null && prev >= 0) ? prev : null);
+        setEndTime(prev => (prev !== null) ? prev : null);
       }
     }).catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
