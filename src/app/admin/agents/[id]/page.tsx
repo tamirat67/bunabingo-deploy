@@ -214,8 +214,8 @@ export default function AgentReportPage() {
       doc.setFontSize(9);
       doc.setTextColor(120, 113, 108); // #78716c
       
-      const footerText1 = "Email: info@bunatech.com   |   Address: Addis Ababa, Ethiopia";
-      const footerText2 = "Social Media: @buna_bingobot (Telegram)";
+      const footerText1 = "BUNA TECH  |  info@bunatech.com  |  Addis Ababa, Ethiopia  |  bunatech.net";
+      const footerText2 = "@Buna_BingoBot (Telegram)  |  @BunaTechHub";
       
       const textWidth1 = doc.getTextWidth(footerText1);
       const textWidth2 = doc.getTextWidth(footerText2);

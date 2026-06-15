@@ -368,7 +368,7 @@ export default function AgentsPage() {
       doc.line(10, pageHeight - 15, pageWidth - 10, pageHeight - 15);
       doc.setFontSize(7.5);
       doc.setTextColor(120, 113, 108);
-      doc.text('BUNA TECH | info@bunatech.com | @BunaBingoBot | @BunaTechHub', pageWidth / 2, pageHeight - 9, { align: 'center' });
+      doc.text('BUNA TECH | info@bunatech.com | @Buna_BingoBot | @BunaTechHub | bunatech.net', pageWidth / 2, pageHeight - 9, { align: 'center' });
     }
 
     doc.save(`AllAgents_Summary_Report_${new Date().toISOString().slice(0, 10)}.pdf`);
