@@ -346,7 +346,7 @@ export default function AgentsPage() {
     // Hero breakdown pill
     doc.setFontSize(9);
     doc.setTextColor(120, 113, 108);
-    const formula = `Company Share (80%): ${fmt(totals.companyShare || 0)} ETB   +   Bot Winnings / የቦት ሽልማቶች: ${fmt(totals.botDebtAdded || 0)} ETB`;
+    const formula = `Company Share (80%): ${fmt(totals.companyShare || 0)} ETB   +   Bot Winnings: ${fmt(totals.botDebtAdded || 0)} ETB`;
     doc.text(formula, pageWidth / 2, 58, { align: 'center' });
 
     // 4 summary boxes (centered below formula)
