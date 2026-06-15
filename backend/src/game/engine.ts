@@ -686,6 +686,33 @@ export async function claimBingoWin(gameId: string, userId: string): Promise<{ w
     const drawnNumbers = game.drawHistory.map(d => d.number);
     const existingWinModes = new Set(game.winners.map(w => w.winMode));
 
+    // ── SCALABLE HOUSE-WIN GUARD ─────────────────────────────────────────────
+    // Works at ANY player count (1 or 1,000,000).
+    // On house-win games (1–9 of 10): if any bot card already has a winning
+    // pattern, we silently reject this real-player claim and let the bot
+    // auto-claim within its scheduled 0.5–1.5s window instead.
+    // On the 10th game (houseShouldWin=false): this block is skipped entirely
+    // so real players can win freely.
+    if (state?.houseShouldWin === true) {
+      const botTickets = await prisma.ticket.findMany({
+        where: { gameId, user: { isBot: true } },
+        select: { id: true, card: true },
+      });
+      const botHasWinningPattern = botTickets.some(t => {
+        const rows = parseCardRows(t.card);
+        if (!rows) return false;
+        return checkWin(rows as BingoCard, drawnNumbers).won;
+      });
+      if (botHasWinningPattern) {
+        logger.info(`[Game ${gameId}] Real player ${userId} tried to claim but house bot has a pattern — rejecting silently.`);
+        // Resume draw so game doesn't freeze while bot's auto-claim fires
+        if (state && !state.drawInterval && oldInterval) {
+          state.drawInterval = setInterval(() => drawNumber(gameId), config.game.drawIntervalMs);
+        }
+        return { won: false, error: 'No valid Bingo detected yet! Check your patterns or wait for more balls.' };
+      }
+    }
+
     let eligibleClaim: { ticketId: string, mode: any } | null = null;
     const priority = ['FULL_HOUSE', 'FOUR_CORNERS', 'DIAGONAL', 'COLUMN', 'ROW'] as const;
 
