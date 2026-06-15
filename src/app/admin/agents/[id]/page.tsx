@@ -172,7 +172,7 @@ export default function AgentReportPage() {
       [
         'COMPANY SHARE\nየኩባንያ ድርሻ (ኮሚሽን)',
         `${fmt(stats.companyEarnedFromBranch)} ETB`,
-        `${fmtPct(stats.companyRate)} of ticket sales\nከቲኬት ሽያጭ ${fmtPct(stats.companyRate)}`
+        `80% of ticket sales\nከቲኬት ሽያጭ 80%`
       ],
       [
         'TOTAL BOT WINNINGS\nጠቅላላ የቦት ሽልማቶች',
@@ -187,7 +187,7 @@ export default function AgentReportPage() {
       [
         'AGENT EARNED\nወኪሉ ያገኘው',
         `${fmt(stats.agentEarned)} ETB`,
-        `Agent's ${fmtPct(stats.agentRate)} share\nየወኪሉ ${fmtPct(stats.agentRate)} ድርሻ`
+        `Agent's 20% share\nየወኪሉ 20% ድርሻ`
       ],
       [
         'REAL TICKET SALES\nትክክለኛ የቲኬት ሽያጭ',
@@ -421,7 +421,7 @@ export default function AgentReportPage() {
           💰 Branch Profit Breakdown — {timeRange === 'all' ? 'All Time' : timeRange === 'today' ? 'Today' : timeRange === 'week' ? 'Last 7 Days' : 'Last 30 Days'}
         </div>
         <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.55)', marginBottom: '28px' }}>
-          Agent earns <strong style={{ color: '#d4af37' }}>{fmtPct(stats.agentRate)}</strong> of all real ticket sales · Company earns <strong style={{ color: '#fbbf24' }}>{fmtPct(stats.companyRate)}</strong>
+          Agent earns <strong style={{ color: '#d4af37' }}>20%</strong> of all real ticket sales · Company earns <strong style={{ color: '#fbbf24' }}>80%</strong>
         </div>
 
         {/* Massive Expected Profit Sum */}
@@ -442,14 +442,14 @@ export default function AgentReportPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '16px' }}>
           {/* Agent Earned */}
           <div style={{ background: 'rgba(212,175,55,0.15)', borderRadius: '14px', padding: '16px', border: '1px solid rgba(212,175,55,0.3)' }}>
-            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', fontWeight: '800', letterSpacing: '1px', marginBottom: '6px' }}>AGENT EARNED ({fmtPct(stats.agentRate)})</div>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', fontWeight: '800', letterSpacing: '1px', marginBottom: '6px' }}>AGENT EARNED (20%)</div>
             <div style={{ fontSize: '24px', fontWeight: '900', color: '#d4af37' }}>{fmt(stats.agentEarned)}</div>
             <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', marginTop: '4px' }}>ETB of ticket sales</div>
           </div>
 
           {/* Company Earned From This Branch */}
           <div style={{ background: 'rgba(255,255,255,0.07)', borderRadius: '14px', padding: '16px', border: '1px solid rgba(255,255,255,0.1)' }}>
-            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', fontWeight: '800', letterSpacing: '1px', marginBottom: '6px' }}>COMPANY SHARE ({fmtPct(stats.companyRate)})</div>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', fontWeight: '800', letterSpacing: '1px', marginBottom: '6px' }}>COMPANY SHARE (80%)</div>
             <div style={{ fontSize: '24px', fontWeight: '900', color: '#fbbf24' }}>{fmt(stats.companyEarnedFromBranch)}</div>
             <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', marginTop: '4px' }}>ETB from branch</div>
           </div>
@@ -537,11 +537,11 @@ export default function AgentReportPage() {
                     <td className="text-right" style={{ fontWeight: '800' }}>{fmtPct(stats.fullCommissionRate)}</td>
                   </tr>
                   <tr style={{ background: 'rgba(212,175,55,0.06)' }}>
-                    <td style={{ fontWeight: '700', color: '#3d2b1f' }}>→ Agent Share ({fmtPct(stats.agentRate)})</td>
+                    <td style={{ fontWeight: '700', color: '#3d2b1f' }}>→ Agent Share (20%)</td>
                     <td className="text-right" style={{ fontWeight: '900', color: '#d4af37', fontSize: '15px' }}>{fmt(stats.agentEarned)} ETB</td>
                   </tr>
                   <tr>
-                    <td style={{ color: '#8c857b' }}>→ Company Share ({fmtPct(stats.companyRate)})</td>
+                    <td style={{ color: '#8c857b' }}>→ Company Share (80%)</td>
                     <td className="text-right" style={{ fontWeight: '800', color: '#78716c' }}>{fmt(stats.companyEarnedFromBranch)} ETB</td>
                   </tr>
                   <tr style={{ borderTop: '1px solid #f0ece8' }}>
