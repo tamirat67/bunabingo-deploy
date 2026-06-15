@@ -50,6 +50,26 @@ export default function AgentsPage() {
   const [alertModal, setAlertModal] = useState<{isOpen: boolean, title: string, message: string, type: 'info' | 'error' | 'success' | 'confirm' | 'balance'}>({ isOpen: false, title: '', message: '', type: 'info' });
   const [discountRate, setDiscountRate] = useState(0.20);
 
+  // Players Modal State
+  const [playersModal, setPlayersModal] = useState(false);
+  const [playersAgent, setPlayersAgent] = useState<any>(null);
+  const [agentPlayers, setAgentPlayers] = useState<any[]>([]);
+  const [playersLoading, setPlayersLoading] = useState(false);
+
+  const openPlayersModal = async (agent: any) => {
+    setPlayersAgent(agent);
+    setPlayersModal(true);
+    setPlayersLoading(true);
+    try {
+      const res = await api.get(`/admin/users?referredBy=${agent.id}&limit=100`);
+      setAgentPlayers(res.data.users || []);
+    } catch {
+      setAgentPlayers([]);
+    } finally {
+      setPlayersLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchAgents();
   }, [page]);
@@ -553,7 +573,15 @@ export default function AgentsPage() {
                   )}
                 </td>
                 <td>
-                   <span className="badge badge-blue">{agent.referrals?.length ?? agent._count?.referrals ?? 0} Players</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-start' }}>
+                      <span className="badge badge-blue">{agent.referrals?.length ?? agent._count?.referrals ?? 0} Players</span>
+                      <button
+                        onClick={() => openPlayersModal(agent)}
+                        style={{ background: '#eff6ff', color: '#3b82f6', border: '1px solid #bfdbfe', borderRadius: '6px', padding: '3px 10px', fontSize: '10px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                      >
+                        👥 VIEW
+                      </button>
+                    </div>
                 </td>
                 <td>
                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -570,16 +598,6 @@ export default function AgentsPage() {
                    </div>
                 </td>
                  <td style={{ textAlign: 'right' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'flex-end' }}>
-                      <div style={{ fontWeight: '800', color: (agent.wallet?.referralBalance ?? 0) >= 0 ? '#10b981' : '#ef4444', fontSize: '14px' }}>
-                        {(agent.wallet?.referralBalance ?? 0) >= 0 ? '+' : ''}{Number(agent.wallet?.referralBalance ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
-                      </div>
-                      <span style={{ fontSize: '10px', color: '#8c857b', fontWeight: '700', textTransform: 'uppercase' }}>Deposits - W/D</span>
-                    </div>
-                 </td>
-                 <td style={{ textAlign: 'right' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'flex-end' }}>
-                      <div style={{ fontWeight: '800', color: '#ef4444', fontSize: '14px' }}>
                         {Number(agent.botNetProfit ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
                       </div>
                       <span style={{ fontSize: '10px', color: '#8c857b', fontWeight: '700', textTransform: 'uppercase' }}>To Collect</span>
@@ -891,6 +909,90 @@ export default function AgentsPage() {
         message={alertModal.message}
         type={alertModal.type}
       />
+
+      {/* ── Players Modal ── */}
+      {playersModal && playersAgent && (
+        <div className="modal-overlay" onClick={() => setPlayersModal(false)}>
+          <div className="modal-content" style={{ maxWidth: '580px', width: '92%', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+              <div>
+                <h2 style={{ fontWeight: '900', fontSize: '20px', margin: 0 }}>👥 Branch Players</h2>
+                <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#78716c' }}>
+                  Agent: <b>{playersAgent.firstName}</b> &nbsp;·&nbsp;
+                  <code style={{ fontSize: '11px', background: 'rgba(212,175,55,0.1)', padding: '2px 6px', borderRadius: '4px' }}>{playersAgent.referralCode}</code>
+                </p>
+              </div>
+              <button onClick={() => setPlayersModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '22px', color: '#78716c' }}>✕</button>
+            </div>
+
+            <div style={{ overflowY: 'auto', flex: 1, marginTop: '12px' }}>
+              {playersLoading ? (
+                <div style={{ padding: '40px', textAlign: 'center' }}>
+                  <div className="animate-spin" style={{ width: '32px', height: '32px', border: '3px solid #d4af37', borderTopColor: 'transparent', borderRadius: '50%', margin: '0 auto' }} />
+                  <p style={{ marginTop: '12px', color: '#78716c', fontWeight: '700' }}>Loading players...</p>
+                </div>
+              ) : agentPlayers.length === 0 ? (
+                <div style={{ padding: '40px', textAlign: 'center', color: '#a8a29e' }}>
+                  <div style={{ fontSize: '32px', marginBottom: '8px' }}>👤</div>
+                  <div style={{ fontWeight: '700' }}>No players under this agent yet.</div>
+                </div>
+              ) : (
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                  <thead>
+                    <tr style={{ background: '#faf9f7', borderBottom: '2px solid #e7e5e4' }}>
+                      <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: '900', color: '#78716c', fontSize: '11px', textTransform: 'uppercase' }}>#</th>
+                      <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: '900', color: '#78716c', fontSize: '11px', textTransform: 'uppercase' }}>Player</th>
+                      <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: '900', color: '#78716c', fontSize: '11px', textTransform: 'uppercase' }}>Telegram ID</th>
+                      <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: '900', color: '#78716c', fontSize: '11px', textTransform: 'uppercase' }}>Phone</th>
+                      <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: '900', color: '#78716c', fontSize: '11px', textTransform: 'uppercase' }}>Balance</th>
+                      <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: '900', color: '#78716c', fontSize: '11px', textTransform: 'uppercase' }}>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {agentPlayers.map((player, i) => (
+                      <tr key={player.id} style={{ borderBottom: '1px solid #f5f5f4' }}>
+                        <td style={{ padding: '10px 12px', color: '#a8a29e', fontWeight: '700' }}>{i + 1}</td>
+                        <td style={{ padding: '10px 12px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: 'linear-gradient(135deg, #d4af37, #b8922a)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '900', fontSize: '12px', color: 'white', flexShrink: 0 }}>
+                              {player.firstName?.[0] || 'U'}
+                            </div>
+                            <div>
+                              <div style={{ fontWeight: '800', color: '#3d2b1f' }}>{player.firstName || '—'}</div>
+                              <div style={{ fontSize: '11px', color: '#8c857b' }}>@{player.telegramUsername || 'no_username'}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td style={{ padding: '10px 12px', fontFamily: 'monospace', fontSize: '11px', color: '#78716c' }}>{player.telegramId?.toString()}</td>
+                        <td style={{ padding: '10px 12px', fontSize: '12px', color: '#78716c' }}>{player.phone || player.phoneNumber || '—'}</td>
+                        <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: '800', color: '#3d2b1f' }}>
+                          {parseFloat(player.wallet?.balance || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span style={{ fontSize: '10px', color: '#d4af37' }}>ETB</span>
+                        </td>
+                        <td style={{ padding: '10px 12px', textAlign: 'center' }}>
+                          <span style={{
+                            display: 'inline-block', padding: '2px 8px', borderRadius: '20px', fontSize: '10px', fontWeight: '800',
+                            background: player.status === 'BANNED' ? '#fef2f2' : '#f0fdf4',
+                            color: player.status === 'BANNED' ? '#ef4444' : '#16a34a'
+                          }}>
+                            {player.status || 'ACTIVE'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+
+            <div style={{ borderTop: '1px solid #e7e5e4', paddingTop: '14px', marginTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '12px', color: '#78716c', fontWeight: '600' }}>
+                {agentPlayers.length} player{agentPlayers.length !== 1 ? 's' : ''} in this branch
+              </span>
+              <button onClick={() => setPlayersModal(false)} style={{ background: '#3d2b1f', color: 'white', border: 'none', borderRadius: '10px', padding: '10px 20px', fontWeight: '900', cursor: 'pointer', fontSize: '13px' }}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

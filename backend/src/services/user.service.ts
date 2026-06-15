@@ -517,24 +517,42 @@ export async function getAgents(page = 1, limit = 20, agentIds?: string[]) {
       const allUserIds = referrals.map(r => r.id);
 
       let totalBranchDeposited = new Decimal(0);
+      let totalBranchWithdrawn = new Decimal(0);
+      let outstandingDebt = new Decimal(0);
       let realBranchSales = new Decimal(0);
       let botBranchSales = new Decimal(0);
 
       if (allUserIds.length > 0) {
-        const deposits = await prisma.deposit.aggregate({
-          where: { status: 'APPROVED', userId: { in: allUserIds } },
-          _sum: { amount: true },
-        });
-        totalBranchDeposited = new Decimal(deposits._sum.amount?.toString() || 0);
+        const [depositsAgg, withdrawnAgg, pendingWdAgg, sales] = await Promise.all([
+          // Total approved deposits from branch players (cash brought in)
+          prisma.deposit.aggregate({
+            where: { status: 'APPROVED', userId: { in: allUserIds } },
+            _sum: { amount: true },
+          }),
+          // Total approved withdrawals from branch players (cash paid out)
+          prisma.withdrawal.aggregate({
+            where: { status: 'approved', userId: { in: allUserIds } },
+            _sum: { amount: true },
+          }),
+          // Pending withdrawals = Outstanding Debt the agent owes to players
+          prisma.withdrawal.aggregate({
+            where: { status: 'pending', userId: { in: allUserIds } },
+            _sum: { amount: true },
+          }),
+          // Ticket sales (for commission calculations)
+          prisma.transaction.findMany({
+            where: {
+              type: 'TICKET_PURCHASE',
+              status: { in: ['completed', 'COMPLETED'] },
+              userId: { in: allUserIds },
+            },
+            select: { userId: true, amount: true },
+          }),
+        ]);
 
-        const sales = await prisma.transaction.findMany({
-          where: {
-            type: 'TICKET_PURCHASE',
-            status: { in: ['completed', 'COMPLETED'] },
-            userId: { in: allUserIds },
-          },
-          select: { userId: true, amount: true },
-        });
+        totalBranchDeposited = new Decimal(depositsAgg._sum.amount?.toString() || 0);
+        totalBranchWithdrawn = new Decimal(withdrawnAgg._sum.amount?.toString() || 0);
+        outstandingDebt = new Decimal(pendingWdAgg._sum.amount?.toString() || 0);
 
         sales.forEach(s => {
           if (realUserIds.includes(s.userId)) realBranchSales = realBranchSales.add(s.amount.toString());
@@ -556,22 +574,22 @@ export async function getAgents(page = 1, limit = 20, agentIds?: string[]) {
       
       // Upfront profit kept by agent = Total Digital Recharged * discount rate
       const realNetProfit = totalDigitalRecharged.mul(agentDiscountRate);
-      
-      // For legacy display purposes if bot net profit is still shown
-      const botNetProfit  = new Decimal(0);
 
       const { getAgentPreDepositStatus } = await import('./agentPreDeposit.service');
       const preDepositStatus = await getAgentPreDepositStatus(agent.id);
 
       if (agent.wallet) {
+        // Override wallet fields with branch-level aggregates for accurate admin display
         agent.wallet.totalDeposited  = totalBranchDeposited as any;
-        agent.wallet.referralBalance = realNetProfit as any; // real profit only
+        agent.wallet.totalWithdrawn  = totalBranchWithdrawn as any;
+        agent.wallet.referralBalance = realNetProfit as any; // agent's upfront discount profit
       }
 
       (agent as any).preDepositStatus = preDepositStatus;
-      (agent as any).stakeAmount    = Number(stakeAmount.toFixed(4));   // positive = real ETB staked
-      (agent as any).realNetProfit  = Number(realNetProfit.toFixed(4));  // positive = real player profit
-      (agent as any).botNetProfit   = Number(botNetProfit.toFixed(4));   // will be shown as negative on UI
+      (agent as any).stakeAmount      = Number(stakeAmount.toFixed(4));      // ETB company physically collected
+      (agent as any).realNetProfit    = Number(realNetProfit.toFixed(4));     // agent's kept discount profit
+      (agent as any).outstandingDebt  = Number(outstandingDebt.toFixed(4));  // pending withdrawals = cash agent owes players
+      (agent as any).botNetProfit     = 0; // legacy field, kept for compatibility
 
       return agent;
     })
