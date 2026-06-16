@@ -2906,7 +2906,7 @@ staffRouter.get('/logs', restrictToAdmin, async (req, res) => {
 });
 
 // ─── Win Rate Control (House Settings) ───────────────────────────
-router.get('/admin/house-settings', requireAdmin, async (req, res) => {
+router.get('/admin/house-settings', adminMiddleware, async (req: any, res) => {
   try {
     let settings = await prisma.houseSettings.findUnique({ where: { id: 1 } });
     if (!settings) {
@@ -2921,7 +2921,7 @@ router.get('/admin/house-settings', requireAdmin, async (req, res) => {
   }
 });
 
-router.post('/admin/house-settings', requireAdmin, async (req, res) => {
+router.post('/admin/house-settings', adminMiddleware, async (req: any, res) => {
   try {
     const { forceHouseWin, rouletteFix, bingoWinRate } = req.body;
     const settings = await prisma.houseSettings.upsert({
