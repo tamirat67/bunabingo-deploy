@@ -1414,7 +1414,7 @@ const balance = Number(user?.wallet?.balance || 0);
             <p style={{ color: isVip ? 'rgba(255,255,255,0.7)' : (isDark ? 'rgba(255,255,255,0.7)' : 'rgba(61,43,31,0.6)'), fontWeight: 800 }}>{roomType} • STAKE {stake} ETB</p>
           </div>
         )}
-        <div onClick={() => setLanguage(getLanguage() === 'en' ? 'am' : 'en')} style={{ cursor: 'pointer', display: 'flex', border: `1px solid ${isVip ? '#C471ED' : (isDark ? T.gold : '#3D2B1F')}`, borderRadius: '6px', overflow: 'hidden', fontSize: '10px', fontWeight: 'bold' }}>
+        <div onClick={() => setLanguage(getLanguage() === 'en' ? 'am' : 'en')} style={{ marginLeft: 'auto', cursor: 'pointer', display: 'flex', border: `1px solid ${isVip ? '#C471ED' : (isDark ? T.gold : '#3D2B1F')}`, borderRadius: '6px', overflow: 'hidden', fontSize: '10px', fontWeight: 'bold' }}>
            <div style={{ padding: '3px 8px', background: (!mounted || getLanguage() === 'en') ? (isVip ? '#C471ED' : (isDark ? T.gold : '#3D2B1F')) : 'transparent', color: (!mounted || getLanguage() === 'en') ? (isVip ? '#1C0A35' : (isDark ? T.header : '#FFF')) : (isVip ? '#C471ED' : (isDark ? T.gold : '#3D2B1F')) }}>EN</div>
            <div style={{ padding: '3px 8px', background: (mounted && getLanguage() === 'am') ? (isVip ? '#C471ED' : (isDark ? T.gold : '#3D2B1F')) : 'transparent', color: (mounted && getLanguage() === 'am') ? (isVip ? '#1C0A35' : (isDark ? T.header : '#FFF')) : (isVip ? '#C471ED' : (isDark ? T.gold : '#3D2B1F')) }}>AM</div>
         </div>
