@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { getRooms, getWallet, getMe } from '../lib/api';
 import { initTelegram, getLanguage, setLanguage } from '../lib/telegram';
+import t from '../lib/i18n';
 import { useRouter } from 'next/navigation';
 import { Trophy, Gift, Wallet as WalletIcon, Target, Play, Dices, ExternalLink, ShieldCheck, History, User, ChevronDown, MoreVertical, X, Coffee } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -73,8 +74,8 @@ export default function LobbyPage() {
     socket.on('deposit-approved', (data: { amount: string, bonus: string }) => {
       setModalConfig({
         isOpen: true,
-        title: 'ተቀማጭ ተረጋግጧል!',
-        message: `የ ${data.amount} ETB ተቀማጭዎ ተረጋግጧል። በኪስዎ ላይ ${data.bonus} ETB የቦነስ ስጦታ ተጨምሯል!`,
+        title: t('depositConfirmedTitle'),
+        message: (t('depositConfirmedMsg') as (a: string, b: string) => string)(data.amount, data.bonus),
         type: 'success' as any
       });
     });
@@ -142,8 +143,8 @@ export default function LobbyPage() {
     if (room.type.startsWith('SPIN_')) {
       setModalConfig({
         isOpen: true,
-        title: 'በቅርቡ ይጠብቁ!',
-        message: '☕ ቡና ስፒን ጨዋታዎች ለጊዜው በእድሳት ላይ ናቸው። ዝግጁ ይሁኑ!',
+        title: t('comingSoon') as string,
+        message: t('spinUnavailable') as string,
         type: 'info'
       });
       return;

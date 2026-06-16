@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useTheme } from '../../context/ThemeContext';
 import { useSocket } from '../../context/SocketContext';
 import BunaModal from '../../components/BunaModal';
+import t from '../../lib/i18n';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   RefreshCw, 
@@ -155,8 +156,8 @@ export default function WalletPage() {
     socket.on('deposit-approved', (data: { amount: string, bonus: string }) => {
       setModal({
         isOpen: true,
-        title: 'ተቀማጭ ተረጋግጧል!',
-        message: `የ ${data.amount} ETB ተቀማጭዎ ተረጋግጧል። በኪስዎ ላይ ${data.bonus} ETB የቦነስ ስጦታ ተጨምሯል!`,
+        title: t('depositApprovedTitle') as string,
+        message: (t('depositApprovedMsg') as (a: string, b: string) => string)(data.amount, data.bonus),
         type: 'success'
       });
     });

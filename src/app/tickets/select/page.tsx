@@ -8,6 +8,7 @@ import BunaModal from '../../../components/BunaModal';
 import { ChevronLeft, ShieldCheck, Trophy, Zap, Crown, Clock, Mic, MicOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { initTelegram, getLanguage } from '../../../lib/telegram';
+import t from '../../../lib/i18n';
 import { useTheme } from '../../../context/ThemeContext';
 
 const COL_COLOR: Record<string, string> = {
@@ -983,8 +984,8 @@ function SelectionContent() {
       if (roomType !== 'DEMO' && totalAvailable === 0 && !ownedCardIds.includes(num)) {
         setModal({
           isOpen: true,
-          title: 'ተቀማጭ ያድርጉ ⚠️',
-          message: 'ማሳሰቢያ: ዋና ሂሳብዎ እና የቦነስ ሂሳብዎ ባዶ ነው። ለመጫወት እባክዎ ተቀማጭ ያድርጉ።',
+          title: t('depositRequired') as string,
+          message: t('emptyBalanceMsg') as string,
           type: 'balance',
           onConfirm: () => router.push('/wallet')
         });
@@ -993,7 +994,7 @@ function SelectionContent() {
 
       // Check maximum limit
       if (selected.length >= 5) {
-        showAlert('ገደብ ላይ ደርሰዋል', 'ለአንድ ተጫዋች የተፈቀደው ከፍተኛው የካርቴላ ብዛት 5 ነው', 'info');
+        showAlert(t('limitReached') as string, t('maxCartelasMsg') as string, 'info');
         return;
       }
 
@@ -1005,8 +1006,8 @@ function SelectionContent() {
       if (roomType !== 'DEMO' && proposedCost > totalAvailable) {
         setModal({
           isOpen: true,
-          title: 'የኪስዎ ቀሪ በቂ አይደለም ⚠️',
-          message: `እነዚህን ካርቴላዎች ለመግዛት ${proposedCost} ETB ያስፈልግዎታል። ያሎት ቀሪ ሂሳብ (ዋና: ${currentBalance.toFixed(2)} + ቦነስ: ${currentBonus.toFixed(2)}) = ${totalAvailable.toFixed(2)} ETB ብቻ ነው። ለመቀጠል ተቀማጭ ያድርጉ።`,
+          title: t('insufTitle') as string,
+          message: (t('insufficientFunds') as Function)(String(proposedCost), currentBalance.toFixed(2), currentBonus.toFixed(2), totalAvailable.toFixed(2)),
           type: 'balance',
           onConfirm: () => router.push('/wallet')
         });
@@ -1018,7 +1019,7 @@ function SelectionContent() {
     setSelected(prev => {
       if (prev.includes(num)) return prev.filter(n => n !== num);
       if (prev.length >= 5) {
-        showAlert('ገደብ ላይ ደርሰዋል', 'ለአንድ ተጫዋች የተፈቀደው ከፍተኛው የካርቴላ ብዛት 5 ነው', 'info');
+        showAlert(t('limitReached') as string, t('maxCartelasMsg') as string, 'info');
         return prev;
       }
       return [...prev, num];
@@ -1050,8 +1051,8 @@ const balance = Number(user?.wallet?.balance || 0);
       if (isGameRunning && !hasTicketsInRunningGame) {
         setModal({
           isOpen: true,
-          title: '🔴 ጨዋታ በሂደት ላይ ነው!',
-          message: 'ጨዋታ በሂደት ላይ ነው! ለሚቀጥለው ጨዋታ ካርቴላ ይግዙ።',
+          title: '🔴 ' + (t('gameInProgressScreen') as string),
+          message: t('gameInProgressMsg') as string,
           type: 'info',
         });
         setJoining(false);
@@ -1077,8 +1078,8 @@ const balance = Number(user?.wallet?.balance || 0);
     if (newCardsToBuy.length > 0 && totalAvailable < totalCost && roomType !== 'DEMO') {
       setModal({
         isOpen: true,
-        title: 'የኪስዎ ቀሪ በቂ አይደለም ⚠️',
-        message: `${newCardsToBuy.length} ካርቴላ ለመግዛት ${totalCost} ETB ያስፈልግዎታል። ያሎት ቀሪ ሂሳብ (ዋና: ${balance.toFixed(2)} + ቦነስ: ${bonusBalance.toFixed(2)}) = ${totalAvailable.toFixed(2)} ETB ብቻ ነው። ለመቀጠል ተቀማጭ ያድርጉ።`,
+        title: t('insufTitle') as string,
+        message: (t('insufficientFundsBuy') as Function)(newCardsToBuy.length, String(totalCost), balance.toFixed(2), bonusBalance.toFixed(2), totalAvailable.toFixed(2)),
         type: 'balance',
         onConfirm: () => router.push('/wallet')
       });
@@ -1098,8 +1099,8 @@ const balance = Number(user?.wallet?.balance || 0);
       if (isGameRunning) {
         setModal({
           isOpen: true,
-          title: '🔴 ጨዋታ በሂደት ላይ ነው!',
-          message: 'ጨዋታ በሂደት ላይ ነው! ለሚቀጥለው ጨዋታ ካርቴላ ይግዙ።',
+          title: '🔴 ' + (t('gameInProgressScreen') as string),
+          message: t('gameInProgressMsg') as string,
           type: 'info',
         });
       } else {
@@ -1117,8 +1118,8 @@ const balance = Number(user?.wallet?.balance || 0);
         setLiveGameDismissed(false);
         setModal({
           isOpen: true,
-          title: '🔴 ጨዋታ በሂደት ላይ ነው!',
-          message: 'አሁን ጨዋታ እየተካሄደ ነው። ካርቴላ መሸጥ ቆሟል። ጨዋታው እስኪጠናቀቅ ይጠብቁ — ገጹ በራሱ ይከፈታል!',
+          title: '🔴 ' + (t('gameInProgressScreen') as string),
+          message: t('gameRunningTicketsClosed') as string,
           type: 'info',
         });
       } else if (errCode === 'DEMO_LIMIT_REACHED') {
@@ -1615,13 +1616,13 @@ const balance = Number(user?.wallet?.balance || 0);
                 ⏳ GAME IN PROGRESS
               </motion.div>
               <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: '13px', fontWeight: '700', lineHeight: 1.6 }}>
-                ጨዋታ በሂደት ላይ ነው!
+                {t('gameInProgressScreen') as string}
               </div>
               <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px', marginTop: '6px' }}>
-                Please wait for this game to finish.
+                {t('waitForGame') as string}
               </div>
               <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}>
-                ጨዋታው ሲጠናቀቅ ካርቴላ መምረጥ ይችላሉ።
+                {t('selectAfterGame') as string}
               </div>
             </div>
 

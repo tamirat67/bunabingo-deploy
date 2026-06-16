@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Coffee, ShieldCheck, Home } from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
 import { getLanguage } from '../../../lib/telegram';
+import t from '../../../lib/i18n';
 
 export default function SpinPage() {
   const router = useRouter();
@@ -98,7 +99,7 @@ export default function SpinPage() {
           letterSpacing: '0.5px',
           opacity: 0.95
         }}>
-          በቅርቡ ይጠብቁ! 🚧
+          {t('spinComingSoonSubtitle') as string}🚧
         </h2>
 
         {/* Explanatory Message */}
@@ -121,7 +122,7 @@ export default function SpinPage() {
           borderTop: `1px solid ${(T.gold || '#D4AF37')}33`,
           paddingTop: '15px'
         }}>
-          የቡና ስፒን ጨዋታዎች እጅግ ዘመናዊ እና ፈጣን በሆኑ አዳዲስ ዝመናዎች ላይ ይገኛሉ። በቅርቡ በታላላቅ ሽልማቶችና ፈጣን አሸናፊነቶች በደመቀ ሁኔታ እንመለሳለን!
+          {t('spinComingSoonMsgAlt') as string}
         </p>
 
         {/* Back to Lobby Button */}
@@ -148,7 +149,7 @@ export default function SpinPage() {
             letterSpacing: '0.5px'
           }}
         >
-          <Home size={18} strokeWidth={2.5} /> BACK TO LOBBY / ወደ ዋናው ገጽ
+          <Home size={18} strokeWidth={2.5} /> {t('backToLobby') as string}
         </motion.button>
       </motion.div>
     </div>

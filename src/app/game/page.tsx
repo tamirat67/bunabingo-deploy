@@ -8,6 +8,7 @@ import { Volume2, VolumeX, RefreshCw, LogOut, Plus, X, Bell, ShieldCheck } from 
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { initTelegram, getLanguage } from '../../lib/telegram';
+import t from '../../lib/i18n';
 import { useTheme } from '../../context/ThemeContext';
 import { PREDEFINED_CARDS } from '../../lib/predefinedCards';
 
@@ -713,7 +714,7 @@ function GameContent() {
       setClaiming(false);
       const isTooEarlyMsg = err.message?.toLowerCase().includes('wait') || err.message?.toLowerCase().includes('minimum');
       if (!isTooEarlyMsg) {
-        showAlert('ቢንጎ ጥያቄ', err.message || 'ገና ቢንጎ አልተገኘም! እባክዎ ካርቴላዎን ያረጋግጡ።', 'info');
+        showAlert(t('bingoClaimTitle') as string, err.message || t('noBingoYetCheck') as string, 'info');
       }
       // If too early: absorb silently — revealing the minimum is a house secret
     });
@@ -968,12 +969,12 @@ function GameContent() {
         // Silently absorb early-tap backend rejections — never reveal the minimum rule
         const isTooEarlyMsg = res.error?.toLowerCase().includes('wait') || res.error?.toLowerCase().includes('minimum');
         if (!isTooEarlyMsg) {
-          showAlert('ቢንጎ ጥያቄ', res.error || 'ገና ቢንጎ አልተገኘም! እባክዎ ካርቴላዎን ያረጋግጡ።', 'info');
+          showAlert(t('bingoClaimTitle') as string, res.error || t('noBingoYetCheck') as string, 'info');
         }
       }
     }
     catch (e: any) { 
-      showAlert('ስህተት', e.response?.data?.error || 'ገና ቢንጎ አልተገኘም! መጫወትዎን ይቀጥሉ።', 'error'); 
+      showAlert(t('errorTitle') as string, e.response?.data?.error || t('noBingoYetContinue') as string, 'error'); 
     } finally {
       setClaiming(false);
     }
@@ -1304,7 +1305,7 @@ function GameContent() {
                 boxShadow: '0 4px 10px rgba(0,168,232,0.2)'
               }}
             >
-              <RefreshCw size={14} /> Refresh
+              <RefreshCw size={14} /> {t('refreshBtn') as string}
             </motion.button>
 
             <motion.button
@@ -1327,7 +1328,7 @@ function GameContent() {
                 boxShadow: '0 4px 10px rgba(231,76,60,0.2)'
               }}
             >
-              <LogOut size={14} /> Leave
+              <LogOut size={14} /> {t('leaveBtn') as string}
             </motion.button>
           </div>
         </div>
