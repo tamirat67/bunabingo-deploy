@@ -17,15 +17,42 @@ interface AgentProfile {
   telegramUsername: string | null;
 }
 
+/**
+ * Walks up the referral chain (up to 10 hops) to find the nearest ancestor
+ * whose role is AGENT or ADMIN. Returns null if no agent ancestor is found.
+ * This ensures Player B (referred by Player A who was referred by an Agent)
+ * still deposits to the Agent — not to Player A.
+ */
+async function findAgentAncestor(userId: string): Promise<any | null> {
+  const MAX_HOPS = 10;
+  let currentId: string | null = userId;
+
+  for (let hop = 0; hop < MAX_HOPS; hop++) {
+    if (!currentId) break;
+    const current = await prisma.user.findUnique({
+      where: { id: currentId },
+      select: { id: true, role: true, referredBy: true, firstName: true, lastName: true,
+                telegramUsername: true, phone: true, phoneNumber: true, depositPhones: true }
+    });
+    if (!current) break;
+    // On the first hop we skip the user themselves.
+    // From hop 1 onward, if the ancestor is AGENT or ADMIN — that's our target.
+    if (hop > 0 && (current.role === 'AGENT' || current.role === 'ADMIN' || current.role === 'admin')) {
+      return current;
+    }
+    currentId = current.referredBy ?? null;
+  }
+  return null;
+}
+
 async function getAgentProfileForUser(userId: string): Promise<AgentProfile | null> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    include: { referrer: true }
+    select: { id: true, role: true }
   });
 
-  const referrer = user?.referrer;
-  // If the user is an AGENT or ADMIN, or has no referrer, they deposit to the master admin.
-  if (!referrer || user?.role === 'AGENT' || user?.role === 'ADMIN' || user?.role === 'admin') {
+  // AGENTs and ADMINs themselves always deposit to the master admin.
+  if (!user || user.role === 'AGENT' || user.role === 'ADMIN' || user.role === 'admin') {
     const defaultAgent = await prisma.user.findFirst({ where: { telegramId: BigInt('5310030963') } });
     if (!defaultAgent) {
       return {
@@ -41,35 +68,51 @@ async function getAgentProfileForUser(userId: string): Promise<AgentProfile | nu
     };
   }
 
+  // Walk up the chain to find the nearest AGENT/ADMIN ancestor.
+  const agent = await findAgentAncestor(userId);
+  if (!agent) {
+    // No agent ancestor found — fall back to master admin
+    const defaultAgent = await prisma.user.findFirst({ where: { telegramId: BigInt('5310030963') } });
+    return {
+      displayName: defaultAgent?.firstName || defaultAgent?.telegramUsername || 'LUEL G/Libanos',
+      contactPhone: defaultAgent?.phone || defaultAgent?.phoneNumber || '0969455111',
+      telegramUsername: defaultAgent?.telegramUsername || 'Luel1616',
+    };
+  }
+
   return {
-    displayName: [referrer.firstName, referrer.lastName].filter(Boolean).join(' ') || referrer.telegramUsername || 'Agent',
-    contactPhone: referrer.phone || referrer.phoneNumber || null,
-    telegramUsername: referrer.telegramUsername || null,
+    displayName: [agent.firstName, agent.lastName].filter(Boolean).join(' ') || agent.telegramUsername || 'Agent',
+    contactPhone: agent.phone || agent.phoneNumber || null,
+    telegramUsername: agent.telegramUsername || null,
   };
 }
 
 async function getDepositAccountsForUser(userId: string) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    include: { referrer: true }
+    select: { id: true, role: true }
   });
 
   let depositPhones: any[] = [];
 
-  // If the user is a normal player and has a referrer, they deposit to their agent.
-  // AGENTs and ADMINs bypass this and always deposit to the master admin.
+  // AGENTs and ADMINs bypass agent lookup and always deposit to the master admin.
   const isAgentOrAdmin = user?.role === 'AGENT' || user?.role === 'ADMIN' || user?.role === 'admin';
-  if (user?.referrer && !isAgentOrAdmin) {
-    const refPhones = user.referrer.depositPhones as any[];
-    if (refPhones && refPhones.length > 0) {
-      depositPhones = refPhones;
-    } else if (user.referrer.phone || user.referrer.phoneNumber) {
-      const phone = user.referrer.phone || user.referrer.phoneNumber;
-      depositPhones = [{
-        name: user.referrer.firstName || user.referrer.telegramUsername || 'Agent',
-        phone: phone,
-        last4: phone.slice(-4)
-      }];
+
+  if (!isAgentOrAdmin) {
+    // Walk up the referral chain to find the nearest AGENT/ADMIN ancestor.
+    const agent = await findAgentAncestor(userId);
+    if (agent) {
+      const refPhones = agent.depositPhones as any[];
+      if (refPhones && refPhones.length > 0) {
+        depositPhones = refPhones;
+      } else if (agent.phone || agent.phoneNumber) {
+        const phone = agent.phone || agent.phoneNumber;
+        depositPhones = [{
+          name: agent.firstName || agent.telegramUsername || 'Agent',
+          phone: phone,
+          last4: phone.slice(-4)
+        }];
+      }
     }
   }
 
