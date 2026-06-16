@@ -1144,7 +1144,7 @@ const balance = Number(user?.wallet?.balance || 0);
 
   };
 
-  const isDark = activeThemeKey === 'DARK' || activeThemeKey === 'GRAY';
+  const isDark = activeThemeKey.includes('DARK') || activeThemeKey === 'GRAY';
 
   // ─── Bot-Animated Player & Prize Calculations ────────────────────────────
   // PLAYERS = server real count OR simulated bot drip (whichever is bigger)
