@@ -5,11 +5,11 @@ import Navbar from '../components/Navbar';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Buna Bingo',
+  title: '\u200B',
   description: '🎰 Join me on Buna Bingo! ☕️ We both get 5 ETB bonus!',
   metadataBase: new URL('https://bunatechhub.net'),
   openGraph: {
-    title: 'Buna Bingo',
+    title: '\u200B',
     description: '🎰 Join me on Buna Bingo! ☕️ We both get 5 ETB bonus!',
     images: [{ url: '/banner.png', width: 1200, height: 630 }],
     type: 'website',

@@ -213,11 +213,7 @@ export default function LobbyPage() {
       <div style={{ background: T.header, padding: '12px 15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `2px solid ${T.gold}` }}>
          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <Coffee size={24} color={T.gold} />
-            <div style={{ fontSize: '20px', fontWeight: '900', color: T.gold, letterSpacing: '1px' }}>BUNA GAME ZONE</div>
-         </div>
-         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <ChevronDown size={24} color={T.gold} />
-            <MoreVertical size={24} color={T.gold} />
+            <div style={{ fontSize: '20px', fontWeight: '900', color: T.gold, letterSpacing: '1px' }}>ቡና ጌም ዞን</div>
          </div>
       </div>
 

@@ -33,7 +33,7 @@ export default function SpinPage() {
         fontSize: '18px',
         letterSpacing: '1px'
       }}>
-        <ShieldCheck size={22} /> BUNA GAME ZONE
+        <ShieldCheck size={22} /> ቡና ጌም ዞን
       </div>
 
       {/* ── Main card container ── */}
