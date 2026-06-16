@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Coffee, ShieldCheck, Home } from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
+import { getLanguage } from '../../../lib/telegram';
 
 export default function SpinPage() {
   const router = useRouter();
@@ -33,7 +34,7 @@ export default function SpinPage() {
         fontSize: '18px',
         letterSpacing: '1px'
       }}>
-        <ShieldCheck size={22} /> ቡና ጌም ዞን
+        <ShieldCheck size={22} /> {getLanguage() === 'am' ? 'ቡና ጌም ዞን' : 'BUNA GAME ZONE'}
       </div>
 
       {/* ── Main card container ── */}

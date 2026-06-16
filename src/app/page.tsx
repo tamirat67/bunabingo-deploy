@@ -1,7 +1,7 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { getRooms, getWallet, getMe } from '../lib/api';
-import { initTelegram } from '../lib/telegram';
+import { initTelegram, getLanguage } from '../lib/telegram';
 import { useRouter } from 'next/navigation';
 import { Trophy, Gift, Wallet as WalletIcon, Target, Play, Dices, ExternalLink, ShieldCheck, History, User, ChevronDown, MoreVertical, X, Coffee } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -213,7 +213,9 @@ export default function LobbyPage() {
       <div style={{ background: T.header, padding: '12px 15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `2px solid ${T.gold}` }}>
          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <Coffee size={24} color={T.gold} />
-            <div style={{ fontSize: '20px', fontWeight: '900', color: T.gold, letterSpacing: '1px' }}>ቡና ጌም ዞን</div>
+            <div style={{ fontSize: '20px', fontWeight: '900', color: T.gold, letterSpacing: '1px' }}>
+              {mounted && getLanguage() === 'am' ? 'ቡና ጌም ዞን' : 'BUNA GAME ZONE'}
+            </div>
          </div>
       </div>
 

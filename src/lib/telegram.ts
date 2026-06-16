@@ -27,3 +27,12 @@ export const getTgInitData = () => {
     return '';
   }
 };
+
+export const getLanguage = () => {
+  try {
+    const lang = tg()?.initDataUnsafe?.user?.language_code;
+    return lang === 'am' ? 'am' : 'en';
+  } catch (e) {
+    return 'en';
+  }
+};

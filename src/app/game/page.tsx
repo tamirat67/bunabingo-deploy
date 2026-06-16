@@ -7,6 +7,7 @@ import BunaModal from '../../components/BunaModal';
 import { Volume2, VolumeX, RefreshCw, LogOut, Plus, X, Bell, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+import { initTelegram, getLanguage } from '../../lib/telegram';
 import { useTheme } from '../../context/ThemeContext';
 import { PREDEFINED_CARDS } from '../../lib/predefinedCards';
 
@@ -1070,7 +1071,7 @@ function GameContent() {
       {/* ── Buna Game Zone Header ── */}
       <div style={{ background: isVip ? '#1C0A35' : T.header, padding: '12px 15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: isVip ? `3px solid #FFD700` : `3px solid ${T.gold}`, position: 'sticky', top: 0, zIndex: 100 }}>
         <div style={{ color: isVip ? '#C471ED' : T.gold, fontWeight: '900', fontSize: '18px', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          <ShieldCheck size={20} color={isVip ? '#C471ED' : T.gold} /> ቡና ጌም ዞን
+          <ShieldCheck size={20} color={isVip ? '#C471ED' : T.gold} /> {getLanguage() === 'am' ? 'ቡና ጌም ዞን' : 'BUNA GAME ZONE'}
           {isVip && (
             <span style={{ background: 'linear-gradient(135deg, #FFD700, #FFA500)', color: '#1C0A35', fontSize: '9px', fontWeight: '900', padding: '2px 8px', borderRadius: '12px', boxShadow: '0 0 10px rgba(255, 215, 0, 0.6)', display: 'inline-flex', alignItems: 'center', gap: '3px', border: '1.5px solid #FFF', letterSpacing: '0.5px' }}>
               👑 BOSS VIP

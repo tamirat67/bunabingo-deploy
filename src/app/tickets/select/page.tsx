@@ -7,6 +7,7 @@ import { useSocket } from '../../../context/SocketContext';
 import BunaModal from '../../../components/BunaModal';
 import { ChevronLeft, ShieldCheck, Trophy, Zap, Crown, Clock, Mic, MicOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { initTelegram, getLanguage } from '../../../lib/telegram';
 import { useTheme } from '../../../context/ThemeContext';
 
 const COL_COLOR: Record<string, string> = {
@@ -1402,7 +1403,7 @@ const balance = Number(user?.wallet?.balance || 0);
         ) : (
           <div className="header-text">
             <h1 style={{ color: isVip ? '#C471ED' : (isDark ? T.gold : '#3D2B1F'), fontWeight: 900, display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <ShieldCheck size={24} /> ቡና ጌም ዞን
+              <ShieldCheck size={24} /> {getLanguage() === 'am' ? 'ቡና ጌም ዞን' : 'BUNA GAME ZONE'}
               {isVip && (
                 <span style={{ background: 'linear-gradient(135deg, #FFD700, #FFA500)', color: '#1C0A35', fontSize: '9px', fontWeight: '900', padding: '2px 8px', borderRadius: '12px', boxShadow: '0 0 10px rgba(255, 215, 0, 0.6)', display: 'inline-flex', alignItems: 'center', gap: '3px', border: '1.5px solid #FFF', letterSpacing: '0.5px' }}>
                   👑 BOSS VIP
