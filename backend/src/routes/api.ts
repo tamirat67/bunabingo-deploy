@@ -2905,4 +2905,53 @@ staffRouter.get('/logs', restrictToAdmin, async (req, res) => {
   }
 });
 
+// ─── Win Rate Control (House Settings) ───────────────────────────
+router.get('/admin/house-settings', requireAdmin, async (req, res) => {
+  try {
+    let settings = await prisma.houseSettings.findUnique({ where: { id: 1 } });
+    if (!settings) {
+      settings = await prisma.houseSettings.create({
+        data: { id: 1, forceHouseWin: true, rouletteFix: true, bingoWinRate: 100 }
+      });
+    }
+    res.json(settings);
+  } catch (error) {
+    logger.error('Failed to get house settings:', error);
+    res.status(500).json({ error: 'Failed to get house settings' });
+  }
+});
+
+router.post('/admin/house-settings', requireAdmin, async (req, res) => {
+  try {
+    const { forceHouseWin, rouletteFix, bingoWinRate } = req.body;
+    const settings = await prisma.houseSettings.upsert({
+      where: { id: 1 },
+      update: {
+        forceHouseWin: Boolean(forceHouseWin),
+        rouletteFix: Boolean(rouletteFix),
+        bingoWinRate: Number(bingoWinRate) || 100,
+      },
+      create: {
+        id: 1,
+        forceHouseWin: Boolean(forceHouseWin),
+        rouletteFix: Boolean(rouletteFix),
+        bingoWinRate: Number(bingoWinRate) || 100,
+      }
+    });
+
+    await prisma.adminLog.create({
+      data: {
+        adminId: req.user!.id,
+        action: 'UPDATE_HOUSE_SETTINGS',
+        details: { forceHouseWin, rouletteFix, bingoWinRate }
+      }
+    });
+
+    res.json({ success: true, settings });
+  } catch (error) {
+    logger.error('Failed to update house settings:', error);
+    res.status(500).json({ error: 'Failed to update house settings' });
+  }
+});
+
 export default router;

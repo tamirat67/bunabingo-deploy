@@ -33,19 +33,25 @@ const gamesWithBotsInjected = new Set<string>();
 
 /**
  * Check if the current cycle says the house should win this game.
- * Resets the cycle after every 5 games.
+ * Resets the cycle after every 10 games.
  */
 export async function shouldHouseWinThisGame(roomType: string): Promise<boolean> {
-  // Check process.env.FORCE_HOUSE_BOT_WIN
-  if (process.env.FORCE_HOUSE_BOT_WIN === 'true') {
-    logger.info(`[HouseBot] ${roomType} — FORCE_HOUSE_BOT_WIN is true → House Wins 100%`);
-    return true;
-  }
-  if (process.env.FORCE_HOUSE_BOT_WIN === 'false') {
-    logger.info(`[HouseBot] ${roomType} — FORCE_HOUSE_BOT_WIN is false → House wins 0%`);
-    return false;
+  // ─── DB CONFIG ───
+  // Read dynamic win rate settings from DB
+  let settings = await prisma.houseSettings.findUnique({ where: { id: 1 } });
+  if (!settings) {
+    settings = await prisma.houseSettings.create({
+      data: { id: 1, forceHouseWin: true, rouletteFix: true, bingoWinRate: 100 }
+    });
   }
 
+  // If forceHouseWin is TRUE, house ALWAYS wins, overriding any cycle.
+  if (settings.forceHouseWin) {
+    logger.info(`[HouseBot] ${roomType} — HouseSettings.forceHouseWin is TRUE → House Wins 100%`);
+    return true;
+  }
+
+  // ─── 9/10 CYCLE LOGIC ───
   // Upsert cycle record
   let cycle = await prisma.gameCycle.upsert({
     where: { roomType },
@@ -63,7 +69,6 @@ export async function shouldHouseWinThisGame(roomType: string): Promise<boolean>
   }
 
   // ─── STRICT WIN QUOTA ENFORCEMENT ───
-  // User requested: "not allow to win early real players FORCE_HOUSE_BOT_WIN rate = 9 from 10 game always"
   // This forces the house bot to win the first 9 games of the cycle.
   // Real players are ONLY allowed to potentially win on the 10th game (totalGames === 9).
   if (cycle.totalGames < HOUSE_WIN_QUOTA) {

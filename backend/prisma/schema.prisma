@@ -344,3 +344,13 @@ model GameCycle {
 
   @@map("game_cycles")
 }
+
+model HouseSettings {
+  id              Int      @id @default(1)
+  forceHouseWin   Boolean  @default(true)
+  rouletteFix     Boolean  @default(true)
+  bingoWinRate    Int      @default(100)
+  updatedAt       DateTime @updatedAt
+
+  @@map("house_settings")
+}

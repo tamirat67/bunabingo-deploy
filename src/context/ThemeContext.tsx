@@ -2,21 +2,21 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
 export const THEMES = {
-  GOLDEN: {
-    name: 'Light Golden',
-    bg:      '#F5E6BE',   
-    header:  '#3D2B1F',   
-    gold:    '#D4AF37',   
-    goldDk:  '#8B6B1D',   
-    brown:   '#8D6E63',   // For game text
-    brownLobby: '#4B3621', // For lobby text
-    text:    '#3D2B1F',   
-    textL:   '#F5E6BE',
-    card:    '#FFFFFF',   // Used in profile, game
-    cardLobby: '#3D2B1F', // Used in lobby rows
-    cardTxt: '#3D2B1F',
-    statBg:  '#EEDCBA',
-    border:  'rgba(61,43,31,0.1)'
+  PREMIUM_DARK: {
+    name: 'Premium Dark',
+    bg:      '#0F172A',
+    header:  '#1E293B',
+    gold:    '#F59E0B',
+    goldDk:  '#D97706',
+    brown:   '#94A3B8',
+    brownLobby: '#E2E8F0',
+    text:    '#F8FAFC',
+    textL:   '#F8FAFC',
+    card:    '#1E293B',
+    cardLobby: '#334155',
+    cardTxt: '#F8FAFC',
+    statBg:  '#0F172A',
+    border:  'rgba(255,255,255,0.1)'
   },
   GRAY: {
     name: 'Gray Dark',
@@ -73,13 +73,13 @@ type ThemeKey = keyof typeof THEMES;
 interface ThemeContextType {
   activeThemeKey: ThemeKey;
   setTheme: (key: ThemeKey) => void;
-  T: typeof THEMES['GOLDEN'];
+  T: typeof THEMES['PREMIUM_DARK'];
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [activeThemeKey, setActiveThemeKey] = useState<ThemeKey>('GOLDEN');
+  const [activeThemeKey, setActiveThemeKey] = useState<ThemeKey>('PREMIUM_DARK');
 
   useEffect(() => {
     const saved = localStorage.getItem('app_theme') as ThemeKey;

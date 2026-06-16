@@ -14,6 +14,8 @@ function DashboardContent() {
   const [user, setUser] = useState<any>(null);
   const [agents, setAgents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [houseSettings, setHouseSettings] = useState({ forceHouseWin: true, rouletteFix: true, bingoWinRate: 100 });
+  const [savingSettings, setSavingSettings] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -63,6 +65,11 @@ function DashboardContent() {
             const agentsRes = await api.get('/admin/agents');
             setAgents(agentsRes.data.agents || []);
           } catch (e) { console.error('Failed to load agents', e); }
+
+          try {
+            const settingsRes = await api.get('/admin/house-settings');
+            setHouseSettings(settingsRes.data);
+          } catch (e) { console.error('Failed to load house settings', e); }
         }
 
         const endpoint = isAdmin ? '/admin/analytics' : '/agent/stats';
@@ -102,6 +109,19 @@ function DashboardContent() {
     setMaxDate('');
     setFilterAgent('');
     router.push('/admin');
+  };
+
+  const handleSaveSettings = async () => {
+    setSavingSettings(true);
+    try {
+      await api.post('/admin/house-settings', houseSettings);
+      alert('✅ Win Rate Settings saved successfully!');
+    } catch (e) {
+      console.error(e);
+      alert('❌ Failed to save settings');
+    } finally {
+      setSavingSettings(false);
+    }
   };
 
   if (loading || !stats) {
@@ -434,6 +454,94 @@ function DashboardContent() {
               <div style={{ fontSize: '11px', color: '#6ee7b7', marginTop: '2px' }}>
                 {preDepositPercent.toFixed(1)}% of total recharged remaining
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Win Rate Control Panel */}
+      {isAdmin && (
+        <div style={{
+          background: '#ffffff',
+          borderRadius: '24px',
+          padding: '28px 32px',
+          marginBottom: '32px',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
+          border: '1px solid rgba(0,0,0,0.08)',
+          position: 'relative',
+          overflow: 'hidden'
+        }}>
+          {/* Top Banner */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                <span style={{ fontSize: '22px' }}>🤖</span>
+                <h2 style={{ fontSize: '20px', fontWeight: '900', margin: 0, color: '#1f2937' }}>WIN RATE CONTROL</h2>
+              </div>
+              <p style={{ margin: 0, fontSize: '13px', color: '#6b7280', fontWeight: '500' }}>Live control over bot win rates and player protection.</p>
+            </div>
+            <button
+              onClick={handleSaveSettings}
+              disabled={savingSettings}
+              style={{
+                background: savingSettings ? '#9ca3af' : '#22c55e',
+                color: '#fff',
+                padding: '10px 24px',
+                borderRadius: '12px',
+                border: 'none',
+                fontWeight: '800',
+                fontSize: '14px',
+                cursor: savingSettings ? 'not-allowed' : 'pointer',
+                boxShadow: '0 4px 12px rgba(34, 197, 94, 0.3)',
+                transition: 'all 0.2s',
+              }}
+            >
+              {savingSettings ? 'SAVING...' : 'SAVE SETTINGS'}
+            </button>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
+            {/* Bingo Protection */}
+            <div style={{ border: '1px solid rgba(0,0,0,0.05)', borderRadius: '16px', padding: '20px', background: '#f9fafb', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#374151' }}>🎰 Bingo Bot Protection</h3>
+                  <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#6b7280' }}>If ON, bots always win. If OFF, allows the 10th "mercy" game for real players.</p>
+                </div>
+                {/* Toggle Switch */}
+                <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', gap: '8px' }}>
+                  <div style={{ position: 'relative', width: '48px', height: '26px', background: houseSettings.forceHouseWin ? '#10b981' : '#e5e7eb', borderRadius: '99px', transition: 'background 0.3s' }}>
+                    <div style={{ position: 'absolute', top: '3px', left: houseSettings.forceHouseWin ? '25px' : '3px', width: '20px', height: '20px', background: '#fff', borderRadius: '50%', transition: 'all 0.3s', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }} />
+                  </div>
+                  <input type="checkbox" style={{ display: 'none' }} checked={houseSettings.forceHouseWin} onChange={e => setHouseSettings(s => ({ ...s, forceHouseWin: e.target.checked }))} />
+                </label>
+              </div>
+              {houseSettings.forceHouseWin ? (
+                <div style={{ background: '#ecfdf5', color: '#047857', padding: '8px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '700' }}>✅ Bots win 100% of the time.</div>
+              ) : (
+                <div style={{ background: '#fef3c7', color: '#b45309', padding: '8px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '700' }}>⚠️ 9/10 Rule Active. Real players can win game 10.</div>
+              )}
+            </div>
+
+            {/* Roulette Protection */}
+            <div style={{ border: '1px solid rgba(0,0,0,0.05)', borderRadius: '16px', padding: '20px', background: '#f9fafb', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#374151' }}>🎡 Roulette Protection</h3>
+                  <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#6b7280' }}>If ON, spins avoid paying out real players entirely.</p>
+                </div>
+                <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', gap: '8px' }}>
+                  <div style={{ position: 'relative', width: '48px', height: '26px', background: houseSettings.rouletteFix ? '#10b981' : '#e5e7eb', borderRadius: '99px', transition: 'background 0.3s' }}>
+                    <div style={{ position: 'absolute', top: '3px', left: houseSettings.rouletteFix ? '25px' : '3px', width: '20px', height: '20px', background: '#fff', borderRadius: '50%', transition: 'all 0.3s', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }} />
+                  </div>
+                  <input type="checkbox" style={{ display: 'none' }} checked={houseSettings.rouletteFix} onChange={e => setHouseSettings(s => ({ ...s, rouletteFix: e.target.checked }))} />
+                </label>
+              </div>
+              {houseSettings.rouletteFix ? (
+                <div style={{ background: '#ecfdf5', color: '#047857', padding: '8px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '700' }}>✅ Roulette is rigged to protect the house.</div>
+              ) : (
+                <div style={{ background: '#fef2f2', color: '#b91c1c', padding: '8px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '700' }}>🚨 WARNING: Roulette is fully random. House can lose.</div>
+              )}
             </div>
           </div>
         </div>

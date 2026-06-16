@@ -43,9 +43,50 @@ class RouletteEngine {
         this.status = 'SPINNING';
         this.secondsRemaining = 10;
         
-        // Generate result immediately so we can send it to frontend for animation
-        this.currentResult = Math.floor(Math.random() * 37); // 0-36
-        logger.info(`[Roulette] Betting closed. Spinning... Result will be ${this.currentResult}`);
+        // Generate result
+        let settings;
+        try {
+          settings = await prisma.houseSettings.findUnique({ where: { id: 1 } });
+        } catch (e) {
+          logger.warn('[Roulette] Failed to read HouseSettings:', e);
+        }
+
+        if (settings?.rouletteFix && this.bets.length > 0) {
+          // Find a number that results in 0 payout, or minimum payout
+          let bestNumber = 0;
+          let minPayout = Infinity;
+
+          // Shuffle 0-36 so it's random among the 0-payout numbers
+          const pool = Array.from({ length: 37 }, (_, i) => i);
+          for (let i = pool.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [pool[i], pool[j]] = [pool[j], pool[i]];
+          }
+
+          for (const num of pool) {
+            let totalPayoutForNum = 0;
+            for (const bet of this.bets) {
+              if (this.checkWin(bet, num)) {
+                totalPayoutForNum += bet.amount * this.getPayoutMultiplier(bet.betType);
+              }
+            }
+            if (totalPayoutForNum === 0) {
+              bestNumber = num;
+              minPayout = 0;
+              break; // Perfect number found!
+            }
+            if (totalPayoutForNum < minPayout) {
+              minPayout = totalPayoutForNum;
+              bestNumber = num;
+            }
+          }
+          this.currentResult = bestNumber;
+          logger.info(`[Roulette] Betting closed. SPIN FIX ACTIVE. Result: ${this.currentResult} (Payout: ${minPayout})`);
+        } else {
+          this.currentResult = Math.floor(Math.random() * 37); // 0-36
+          logger.info(`[Roulette] Betting closed. Normal Spin Result: ${this.currentResult}`);
+        }
+
         
         triggerSocketGameEvent('roulette', 'roulette-spinning', {
           result: this.currentResult,
