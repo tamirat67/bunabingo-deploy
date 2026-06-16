@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Coffee, ShieldCheck, Home } from 'lucide-react';
 import { useTheme } from '../../../context/ThemeContext';
-import { getLanguage } from '../../../lib/telegram';
+import { getLanguage, setLanguage } from '../../../lib/telegram';
 import t from '../../../lib/i18n';
 
 export default function SpinPage() {
@@ -36,6 +36,10 @@ export default function SpinPage() {
         letterSpacing: '1px'
       }}>
         <ShieldCheck size={22} /> {getLanguage() === 'am' ? 'ቡና ጌም ዞን' : 'BUNA GAME ZONE'}
+        <div onClick={() => setLanguage(getLanguage() === 'en' ? 'am' : 'en')} style={{ cursor: 'pointer', display: 'flex', border: `1px solid ${T.gold || '#D4AF37'}`, borderRadius: '6px', overflow: 'hidden', fontSize: '10px', fontWeight: 'bold', height: '24px', marginLeft: '10px' }}>
+           <div style={{ padding: '0px 6px', display: 'flex', alignItems: 'center', background: getLanguage() === 'en' ? (T.gold || '#D4AF37') : 'transparent', color: getLanguage() === 'en' ? (T.header || '#1C0A35') : (T.gold || '#D4AF37') }}>EN</div>
+           <div style={{ padding: '0px 6px', display: 'flex', alignItems: 'center', background: getLanguage() === 'am' ? (T.gold || '#D4AF37') : 'transparent', color: getLanguage() === 'am' ? (T.header || '#1C0A35') : (T.gold || '#D4AF37') }}>AM</div>
+        </div>
       </div>
 
       {/* ── Main card container ── */}

@@ -7,7 +7,7 @@ import BunaModal from '../../components/BunaModal';
 import { Volume2, VolumeX, RefreshCw, LogOut, Plus, X, Bell, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-import { initTelegram, getLanguage } from '../../lib/telegram';
+import { initTelegram, getLanguage, setLanguage } from '../../lib/telegram';
 import t from '../../lib/i18n';
 import { useTheme } from '../../context/ThemeContext';
 import { PREDEFINED_CARDS } from '../../lib/predefinedCards';
@@ -1072,7 +1072,7 @@ function GameContent() {
       {/* ── Buna Game Zone Header ── */}
       <div style={{ background: isVip ? '#1C0A35' : T.header, padding: '12px 15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: isVip ? `3px solid #FFD700` : `3px solid ${T.gold}`, position: 'sticky', top: 0, zIndex: 100 }}>
         <div style={{ color: isVip ? '#C471ED' : T.gold, fontWeight: '900', fontSize: '18px', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          <ShieldCheck size={20} color={isVip ? '#C471ED' : T.gold} /> {getLanguage() === 'am' ? 'ቡና ጌም ዞን' : 'BUNA GAME ZONE'}
+          <ShieldCheck size={20} color={isVip ? '#C471ED' : T.gold} /> {t('bunaGameZone') as string}
           {isVip && (
             <span style={{ background: 'linear-gradient(135deg, #FFD700, #FFA500)', color: '#1C0A35', fontSize: '9px', fontWeight: '900', padding: '2px 8px', borderRadius: '12px', boxShadow: '0 0 10px rgba(255, 215, 0, 0.6)', display: 'inline-flex', alignItems: 'center', gap: '3px', border: '1.5px solid #FFF', letterSpacing: '0.5px' }}>
               👑 BOSS VIP
@@ -1080,7 +1080,11 @@ function GameContent() {
           )}
         </div>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <div style={{ background: game?.status === 'RUNNING' ? '#27AE60' : '#E67E22', color: 'white', fontSize: '10px', fontWeight: '900', padding: '3px 10px', borderRadius: '20px' }}>
+          <div onClick={() => setLanguage(getLanguage() === 'en' ? 'am' : 'en')} style={{ cursor: 'pointer', display: 'flex', border: `1px solid ${isVip ? '#C471ED' : T.gold}`, borderRadius: '6px', overflow: 'hidden', fontSize: '10px', fontWeight: 'bold', height: '24px' }}>
+             <div style={{ padding: '0px 6px', display: 'flex', alignItems: 'center', background: getLanguage() === 'en' ? (isVip ? '#C471ED' : T.gold) : 'transparent', color: getLanguage() === 'en' ? (isVip ? '#1C0A35' : T.header) : (isVip ? '#C471ED' : T.gold) }}>EN</div>
+             <div style={{ padding: '0px 6px', display: 'flex', alignItems: 'center', background: getLanguage() === 'am' ? (isVip ? '#C471ED' : T.gold) : 'transparent', color: getLanguage() === 'am' ? (isVip ? '#1C0A35' : T.header) : (isVip ? '#C471ED' : T.gold) }}>AM</div>
+          </div>
+          <div style={{ background: game?.status === 'RUNNING' ? '#27AE60' : '#E67E22', color: 'white', fontSize: '10px', fontWeight: '900', padding: '3px 10px', borderRadius: '20px', display: 'flex', alignItems: 'center' }}>
             {game?.status || 'LOADING'}
           </div>
           {/* Auto / Manual Mode Toggle Removed */}
