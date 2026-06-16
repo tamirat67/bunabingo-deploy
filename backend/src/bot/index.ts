@@ -11,8 +11,6 @@ import { handleMyCards, handleResults }         from './commands/mycards';
 import { handleWithdraw, handleSupport }        from './commands/withdraw';
 import { handleInstructions }                   from './commands/instructions';
 import { handlePlayBingoMenu, handleVipRoom }                  from './commands/playbingo';
-import { handlePlaySpinMenu,
-         handleSpinComingSoon }                   from './commands/playspin';
 import { handleRegister }                       from './commands/register';
 import { handleInvite }                         from './commands/invite';
 import { handleChangeName,
@@ -58,7 +56,6 @@ export function createBot(): Telegraf {
   // ─── Core ─────────────────────────────────────────────────────────────────
   bot.command('start',             ctx => handleStart(ctx));
   bot.command('playbingo',         ctx => handlePlayBingoMenu(ctx));
-  bot.command('playspin',          ctx => handlePlaySpinMenu(ctx));
   bot.command('register',          ctx => handleRegister(ctx));
   bot.command('vip',               ctx => handleVipRoom(ctx));
 
@@ -103,8 +100,6 @@ export function createBot(): Telegraf {
   // ─── Main menu ────────────────────────────────────────────────────────────
   bot.action('cmd_start',          ctx => handleStart(ctx));
   bot.action('cmd_play_bingo',     ctx => handlePlayBingoMenu(ctx));
-  bot.action('cmd_play_spin',      ctx => handlePlaySpinMenu(ctx));
-  bot.action('spin_coming_soon',   ctx => handleSpinComingSoon(ctx));
   bot.action('cmd_register',       ctx => handleRegister(ctx));
   bot.action('cmd_vip',            ctx => handleVipRoom(ctx));
 

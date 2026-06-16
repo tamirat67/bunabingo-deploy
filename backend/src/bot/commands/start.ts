@@ -184,7 +184,6 @@ export async function handleStart(ctx: Context) {
         // ── Row 1: Games ─────────────────────────────────────────────────────
         [
           Markup.button.callback('Bingo ይጫወቱ 🎮', 'cmd_play_bingo'),
-          Markup.button.callback('Spin ይጫወቱ 🎮',  'cmd_play_spin'),
         ],
         // ── Row 2: Jackpot ───────────────────────────────────────────────────
         [
@@ -220,7 +219,6 @@ export async function handleStart(ctx: Context) {
         ...Markup.inlineKeyboard([
           [
             Markup.button.callback('Bingo ይጫወቱ 🎮', 'cmd_play_bingo'),
-            Markup.button.callback('Spin ይጫወቱ 🎮',  'cmd_play_spin'),
           ],
           [
             Markup.button.webApp('🔥 ጃክፖት ያሸንፉ 🔥', `${config.bot.miniAppUrl}/tickets/select?type=JACKPOT&price=100`),

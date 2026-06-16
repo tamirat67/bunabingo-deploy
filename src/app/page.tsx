@@ -346,37 +346,6 @@ export default function LobbyPage() {
 
         </div>
 
-        {/* ── ROULETTE / SPIN GAMES ── */}
-        <div style={{ padding: '20px 15px 0' }}>
-          <div style={{ color: T.brownLobby, fontSize: '14px', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', textTransform: 'uppercase', opacity: 0.8 }}>
-            <Dices size={18} color={T.gold} /> ROULETTE
-          </div>
-          
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-            <div onClick={() => router.push('/play/roulette')} style={{ background: T.cardLobby, padding: '15px 10px', display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'center', borderRadius: '8px', cursor: 'pointer', border: `1px solid ${T.gold}44` }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                    <div style={{ width: '40px', height: '40px', background: T.gold, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Dices size={24} color={T.header} />
-                    </div>
-                    <div>
-                        <div style={{ fontSize: '20px', fontWeight: '900', color: T.gold, lineHeight: '1.2' }}>Spin (Spin ተጫወት)</div>
-                        <div style={{ fontSize: '11px', color: T.textL, opacity: 0.7, fontWeight: 'bold' }}>Multiplayer European Roulette</div>
-                    </div>
-                </div>
-                <div>
-                    <button style={{ 
-                      background: '#27AE60', 
-                      color: 'white', 
-                      border: 'none', 
-                      padding: '8px 16px', 
-                      borderRadius: '6px', 
-                      fontWeight: '900', 
-                      fontSize: '13px',
-                      boxShadow: '0 3px 0 #1E8449',
-                    }}>PLAY</button>
-                </div>
-            </div>
-          </div>
         </div>
       </div>
 

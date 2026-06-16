@@ -35,7 +35,7 @@ export function initSocket(server: HttpServer) {
       let gameId = gameOrRoom;
       let room: any = null;
 
-      const isRoomType = ['DEMO', 'CASUAL', 'STANDARD', 'PRO', 'JACKPOT', 'VIP'].includes(gameOrRoom) || gameOrRoom.startsWith('SPIN_');
+      const isRoomType = ['DEMO', 'CASUAL', 'STANDARD', 'PRO', 'JACKPOT', 'VIP'].includes(gameOrRoom);
       if (isRoomType) {
         room = await getRoomWithActiveGame(gameOrRoom as any);
         gameId = room?.games[0]?.id || '';
@@ -124,7 +124,7 @@ export function initSocket(server: HttpServer) {
     // for a RUNNING game in the same room to fire this sync correctly.
     try {
       const { default: prisma } = await import('./prisma');
-      const isRoomTypeJoin = ['DEMO', 'CASUAL', 'STANDARD', 'PRO', 'JACKPOT', 'VIP'].includes(gameOrRoom) || gameOrRoom.startsWith('SPIN_');
+      const isRoomTypeJoin = ['DEMO', 'CASUAL', 'STANDARD', 'PRO', 'JACKPOT', 'VIP'].includes(gameOrRoom);
 
       let runningGame: { id: string; status: string; startedAt: Date | null } | null = null;
 
@@ -201,53 +201,7 @@ export function initSocket(server: HttpServer) {
       }
     });
 
-    socket.on('join-roulette', async () => {
-      socket.join('game_roulette');
-      logger.info(`[Socket] Socket ${socket.id} joined roulette channel`);
-      
-      try {
-        const { rouletteEngine } = await import('../game/roulette.engine');
-        socket.emit('roulette-state', {
-          status: rouletteEngine.status,
-          secondsRemaining: rouletteEngine.secondsRemaining,
-          bets: rouletteEngine.bets,
-          history: rouletteEngine.history,
-          currentResult: rouletteEngine.currentResult
-        });
-      } catch (e) {
-        logger.warn('[Socket] Could not send roulette state:', e);
-      }
-    });
 
-    socket.on('leave-roulette', () => {
-      socket.leave('game_roulette');
-      logger.info(`[Socket] Socket ${socket.id} left roulette channel`);
-    });
-
-    socket.on('roulette-place-bet', async (data: { amount: number, betType: string, betValue: string }) => {
-      if (!userId) return;
-      try {
-        const { default: prisma } = await import('./prisma');
-        let dbUserId = userId;
-        
-        // If the socket connected with a Telegram ID (numeric), look up the real UUID
-        if (/^\d+$/.test(userId)) {
-          const user = await prisma.user.findUnique({
-            where: { telegramId: BigInt(userId) },
-            select: { id: true }
-          });
-          if (!user) throw new Error('User not found');
-          dbUserId = user.id;
-        }
-
-        const { rouletteEngine } = await import('../game/roulette.engine');
-        await rouletteEngine.placeBet(dbUserId, data.amount, data.betType, data.betValue);
-        socket.emit('roulette-bet-success');
-      } catch (err: any) {
-        logger.warn(`[Socket Roulette] User ${userId} failed to bet: ${err.message}`);
-        socket.emit('roulette-bet-error', { message: err.message });
-      }
-    });
 
     socket.on('disconnect', () => {
       logger.info(`[Socket] Client disconnected: ${socket.id}`);

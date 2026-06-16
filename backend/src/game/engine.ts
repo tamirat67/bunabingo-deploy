@@ -455,7 +455,7 @@ async function runGame(gameId: string): Promise<void> {
   });
   state.tickets = ticketsWithBotFlag;
 
-  // Only rig non-DEMO, non-SPIN rooms that have bots
+  // Only rig non-DEMO rooms that have bots
   const hasBotPlayers = ticketsWithBotFlag.some(t => t.user?.isBot);
   if (!isDemo && hasBotPlayers) {
     const houseShouldWin = await shouldHouseWinThisGame(game.room.type);
@@ -1738,7 +1738,6 @@ export async function resumeRunningGames(): Promise<void> {
     logger.info(`[Recovery] Found ${runningGames.length} game(s) in RUNNING status — resuming draws.`);
 
     for (const game of runningGames) {
-      if (game.room.type.startsWith('SPIN_')) continue; // Spins don't have ball draws
       
       const existingState = activeGames.get(game.id);
       if (existingState?.drawInterval) continue; // already ticking

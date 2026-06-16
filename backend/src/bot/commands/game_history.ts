@@ -39,12 +39,11 @@ export async function handleGameHistory(ctx: Context, page = 1) {
       return ctx.reply(
         `🎮 <b>የጨዋታ ታሪክ</b>\n\n` +
         `እስካሁን ምንም ጨዋታ አልተጫወቱም።\n` +
-        `ለመጫወት የ /playbingo ወይም /playspin ትዕዛዞችን ይጠቀሙ!`,
+        `ለመጫወት የ /playbingo ትዕዛዝን ይጠቀሙ!`,
         {
           parse_mode: 'HTML',
           ...Markup.inlineKeyboard([
             [Markup.button.callback('🎮 ቢንጎ ይጫወቱ', 'cmd_play_bingo')],
-            [Markup.button.callback('🎰 ስፒን ይጫወቱ',  'cmd_play_spin')],
           ]),
         }
       );

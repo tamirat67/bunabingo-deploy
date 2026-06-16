@@ -90,15 +90,6 @@ async function main() {
     logger.error('❌ Failed to resume countdowns/games:', resumeErr);
   }
 
-  // ─── Start Roulette Engine ───────────────────────────────
-  try {
-    const { rouletteEngine } = await import('./game/roulette.engine');
-    rouletteEngine.start();
-    logger.info('✅ Global Roulette Engine started');
-  } catch (err) {
-    logger.error('❌ Failed to start Roulette Engine:', err);
-  }
-
   // ─── Background Jobs ─────────────────────────────────────
   startJobs(bot);
 
@@ -117,7 +108,6 @@ async function main() {
           // Core / Gaming
           { command: 'start',             description: '👋 Start the bot' },
           { command: 'playbingo',         description: '🎮 Start playing Bingo' },
-          { command: 'playspin',          description: '🎰 Start playing Spin' },
           { command: 'register',          description: '📝 Register for an account' },
           // Wallet & Finance
           { command: 'balance',           description: '💰 Check account balance' },
