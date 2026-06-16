@@ -86,11 +86,33 @@ export default function SettingsPage() {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [removeImage, setRemoveImage] = useState<boolean>(false);
 
+  // ─── House Win Rate Protection ───
+  const [houseProtection, setHouseProtection] = useState({ forceHouseWin: true, rouletteFix: true });
+  const [savingProtection, setSavingProtection] = useState(false);
+  const [protectionSaved, setProtectionSaved] = useState(false);
+
   useEffect(() => {
     fetchRooms();
     fetchSettings();
     fetchPromotions();
+    api.get('/admin/house-settings')
+      .then(r => setHouseProtection({ forceHouseWin: r.data.forceHouseWin, rouletteFix: r.data.rouletteFix }))
+      .catch(e => console.error('Failed to load house settings:', e));
   }, []);
+
+  const handleSaveProtection = async () => {
+    setSavingProtection(true);
+    try {
+      await api.post('/admin/house-settings', houseProtection);
+      setProtectionSaved(true);
+      setTimeout(() => setProtectionSaved(false), 3000);
+    } catch (e) {
+      console.error('Failed to save house protection:', e);
+      showAlert('Error', 'Failed to save Win Rate settings.', true);
+    } finally {
+      setSavingProtection(false);
+    }
+  };
 
   const fetchRooms = async () => {
     try {
@@ -525,6 +547,64 @@ export default function SettingsPage() {
                     position: 'absolute', top: '4px', left: settings.HOUSE_BOT_ENABLED ? '30px' : '4px', transition: '0.3s',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
                   }} />
+                </div>
+              </div>
+            </div>
+
+            {/* ─── Win Rate Control ─── */}
+            <div className="stat-card-m" style={{ padding: '32px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+                <div>
+                  <h2 style={{ fontSize: '16px', fontWeight: '900', color: '#3d2b1f', margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    🤖 Win Rate Control
+                  </h2>
+                  <p style={{ color: '#78716c', margin: '6px 0 0', fontSize: '13px' }}>Live house protection for Bingo and Roulette.</p>
+                </div>
+                <button
+                  onClick={handleSaveProtection}
+                  disabled={savingProtection}
+                  className="cmd-button"
+                  style={{ padding: '9px 20px', borderRadius: '12px', fontSize: '13px' }}
+                >
+                  {savingProtection ? 'SAVING...' : 'SAVE'}
+                </button>
+              </div>
+
+              {protectionSaved && (
+                <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '12px', padding: '10px 14px', marginBottom: '16px', fontSize: '13px', color: '#16a34a', fontWeight: '600' }}>
+                  ✅ Win Rate settings saved! Live immediately.
+                </div>
+              )}
+
+              {/* Bingo Row */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: '700', color: '#1f2937' }}>🎰 Bingo Bot Protection</div>
+                  <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '3px' }}>
+                    {houseProtection.forceHouseWin ? '✅ Bots always win — 10th game rule overridden.' : '⚠️ 9/10 cycle active — real players can win game 10.'}
+                  </div>
+                </div>
+                <div
+                  onClick={() => setHouseProtection(s => ({ ...s, forceHouseWin: !s.forceHouseWin }))}
+                  style={{ width: '52px', height: '28px', background: houseProtection.forceHouseWin ? '#10b981' : '#d1d5db', borderRadius: '99px', position: 'relative', cursor: 'pointer', transition: 'background 0.3s', flexShrink: 0 }}
+                >
+                  <div style={{ position: 'absolute', top: '4px', left: houseProtection.forceHouseWin ? '28px' : '4px', width: '20px', height: '20px', background: '#fff', borderRadius: '50%', transition: 'left 0.3s', boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }} />
+                </div>
+              </div>
+
+              {/* Roulette Row */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0 0' }}>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: '700', color: '#1f2937' }}>🎡 Roulette Protection</div>
+                  <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '3px' }}>
+                    {houseProtection.rouletteFix ? '✅ Spin avoids all real player bets — house always wins.' : '🚨 Fully random — real players can win.'}
+                  </div>
+                </div>
+                <div
+                  onClick={() => setHouseProtection(s => ({ ...s, rouletteFix: !s.rouletteFix }))}
+                  style={{ width: '52px', height: '28px', background: houseProtection.rouletteFix ? '#10b981' : '#d1d5db', borderRadius: '99px', position: 'relative', cursor: 'pointer', transition: 'background 0.3s', flexShrink: 0 }}
+                >
+                  <div style={{ position: 'absolute', top: '4px', left: houseProtection.rouletteFix ? '28px' : '4px', width: '20px', height: '20px', background: '#fff', borderRadius: '50%', transition: 'left 0.3s', boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }} />
                 </div>
               </div>
             </div>

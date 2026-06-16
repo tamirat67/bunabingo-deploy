@@ -14,8 +14,6 @@ function DashboardContent() {
   const [user, setUser] = useState<any>(null);
   const [agents, setAgents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [houseSettings, setHouseSettings] = useState({ forceHouseWin: true, rouletteFix: true, bingoWinRate: 100 });
-  const [savingSettings, setSavingSettings] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -65,11 +63,6 @@ function DashboardContent() {
             const agentsRes = await api.get('/admin/agents');
             setAgents(agentsRes.data.agents || []);
           } catch (e) { console.error('Failed to load agents', e); }
-
-          try {
-            const settingsRes = await api.get('/admin/house-settings');
-            setHouseSettings(settingsRes.data);
-          } catch (e) { console.error('Failed to load house settings', e); }
         }
 
         const endpoint = isAdmin ? '/admin/analytics' : '/agent/stats';
@@ -109,19 +102,6 @@ function DashboardContent() {
     setMaxDate('');
     setFilterAgent('');
     router.push('/admin');
-  };
-
-  const handleSaveSettings = async () => {
-    setSavingSettings(true);
-    try {
-      await api.post('/admin/house-settings', houseSettings);
-      alert('✅ Win Rate Settings saved successfully!');
-    } catch (e) {
-      console.error(e);
-      alert('❌ Failed to save settings');
-    } finally {
-      setSavingSettings(false);
-    }
   };
 
   if (loading || !stats) {
@@ -458,77 +438,6 @@ function DashboardContent() {
           </div>
         </div>
       )}
-
-      {/* Win Rate Control Panel */}
-      {isAdmin && (
-        <div style={{
-          background: '#ffffff',
-          borderRadius: '20px',
-          padding: '24px 28px',
-          marginBottom: '32px',
-          boxShadow: '0 2px 12px rgba(0,0,0,0.05)',
-          border: '1px solid rgba(0,0,0,0.07)',
-        }}>
-          {/* Header row */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '20px' }}>🤖</span>
-              <span style={{ fontSize: '14px', fontWeight: '900', color: '#1f2937', textTransform: 'uppercase', letterSpacing: '1px' }}>Win Rate Control</span>
-            </div>
-            <button
-              onClick={handleSaveSettings}
-              disabled={savingSettings}
-              style={{
-                background: savingSettings ? '#9ca3af' : '#22c55e',
-                color: '#fff',
-                padding: '8px 20px',
-                borderRadius: '10px',
-                border: 'none',
-                fontWeight: '800',
-                fontSize: '13px',
-                cursor: savingSettings ? 'not-allowed' : 'pointer',
-                transition: 'all 0.2s',
-              }}
-            >
-              {savingSettings ? 'SAVING...' : 'SAVE SETTINGS'}
-            </button>
-          </div>
-
-          {/* Bingo Row */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0' }}>
-            <div>
-              <div style={{ fontSize: '14px', fontWeight: '700', color: '#111827' }}>🎰 Bingo Bot Protection</div>
-              <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '3px' }}>
-                {houseSettings.forceHouseWin ? '✅ Bots always win — 10th game rule overridden.' : '⚠️ 9/10 Rule active — real players can win game 10.'}
-              </div>
-            </div>
-            <label onClick={() => setHouseSettings(s => ({ ...s, forceHouseWin: !s.forceHouseWin }))} style={{ cursor: 'pointer' }}>
-              <div style={{ position: 'relative', width: '48px', height: '26px', background: houseSettings.forceHouseWin ? '#10b981' : '#d1d5db', borderRadius: '99px', transition: 'background 0.3s' }}>
-                <div style={{ position: 'absolute', top: '3px', left: houseSettings.forceHouseWin ? '25px' : '3px', width: '20px', height: '20px', background: '#fff', borderRadius: '50%', transition: 'all 0.3s', boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }} />
-              </div>
-            </label>
-          </div>
-
-          {/* Divider */}
-          <div style={{ height: '1px', background: 'rgba(0,0,0,0.06)' }} />
-
-          {/* Roulette Row */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0 0' }}>
-            <div>
-              <div style={{ fontSize: '14px', fontWeight: '700', color: '#111827' }}>🎡 Roulette Protection</div>
-              <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '3px' }}>
-                {houseSettings.rouletteFix ? '✅ Spin avoids all real player bets — house always wins.' : '🚨 Fully random — real players can win.'}
-              </div>
-            </div>
-            <label onClick={() => setHouseSettings(s => ({ ...s, rouletteFix: !s.rouletteFix }))} style={{ cursor: 'pointer' }}>
-              <div style={{ position: 'relative', width: '48px', height: '26px', background: houseSettings.rouletteFix ? '#10b981' : '#d1d5db', borderRadius: '99px', transition: 'background 0.3s' }}>
-                <div style={{ position: 'absolute', top: '3px', left: houseSettings.rouletteFix ? '25px' : '3px', width: '20px', height: '20px', background: '#fff', borderRadius: '50%', transition: 'all 0.3s', boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }} />
-              </div>
-            </label>
-          </div>
-        </div>
-      )}
-
 
       {/* Six Stat Cards Grid */}
       <div className="stat-grid-6">
