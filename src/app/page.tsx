@@ -254,11 +254,11 @@ export default function LobbyPage() {
 
         {/* ── BINGO GAMES ── */}
         <div style={{ padding: '0 15px' }}>
-          <div style={{ color: T.header, fontSize: '14px', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', textTransform: 'uppercase', opacity: 0.8 }}>
+          <div style={{ color: T.brownLobby, fontSize: '14px', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', textTransform: 'uppercase', opacity: 0.8 }}>
             <Target size={18} color={T.gold} /> BINGO GAMES
           </div>
           
-          <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr 120px', fontSize: '10px', fontWeight: '900', color: T.header, padding: '0 10px 8px', opacity: 0.4 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr 120px', fontSize: '10px', fontWeight: '900', color: T.brownLobby, padding: '0 10px 8px', opacity: 0.4 }}>
              <span>BET</span>
              <span style={{ textAlign: 'center' }}>WIN/PLAYER</span>
              <span style={{ textAlign: 'right' }}>STATUS & JOIN</span>
@@ -334,7 +334,7 @@ export default function LobbyPage() {
                         </div>
                     </div>
                 </div>
-                <div style={{ background: 'rgba(61,43,31,0.05)', color: T.header, textAlign: 'center', fontSize: '8px', fontWeight: '900', padding: '2px 0', opacity: 0.5, letterSpacing: '1px' }}>
+                <div style={{ background: 'rgba(61,43,31,0.05)', color: T.brownLobby, textAlign: 'center', fontSize: '8px', fontWeight: '900', padding: '2px 0', opacity: 0.5, letterSpacing: '1px' }}>
                     JACKPOT {Number(user?.jackpot?.amount || 0).toFixed(0)} / {Number(user?.jackpot?.target || 1000).toFixed(0)}
                 </div>
               </React.Fragment>
@@ -345,7 +345,7 @@ export default function LobbyPage() {
 
         {/* ── ROULETTE / SPIN GAMES ── */}
         <div style={{ padding: '20px 15px 0' }}>
-          <div style={{ color: T.header, fontSize: '14px', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', textTransform: 'uppercase', opacity: 0.8 }}>
+          <div style={{ color: T.brownLobby, fontSize: '14px', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', textTransform: 'uppercase', opacity: 0.8 }}>
             <Dices size={18} color={T.gold} /> ROULETTE
           </div>
           
