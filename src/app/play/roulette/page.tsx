@@ -542,6 +542,10 @@ function RouletteContent() {
 
   const onBet = (key: string) => {
     if (status !== 'BETTING' || betConfirmed) return;
+    if (totalBet + selectedChip > balance + bonusBalance) {
+      setModal({ isOpen: true, title: 'Insufficient Balance', message: 'You do not have enough balance to place this bet.' });
+      return;
+    }
     setMyBets(prev => ({ ...prev, [key]: (prev[key] || 0) + selectedChip }));
     setTotalBet(prev => prev + selectedChip);
   };
@@ -625,7 +629,7 @@ function RouletteContent() {
       </div>
 
       {/* ── Betting Board (green felt) ── */}
-      <div style={{ flex: 1, padding: '10px 8px 6px', background: 'linear-gradient(180deg, #052e16 0%, #0d1a0e 100%)', margin: '8px', borderRadius: '14px', border: '2px solid rgba(245,158,11,0.2)', boxShadow: 'inset 0 2px 20px rgba(0,0,0,0.5), 0 0 30px rgba(245,158,11,0.05)' }}>
+      <div style={{ padding: '10px 8px 6px', background: 'linear-gradient(180deg, #052e16 0%, #0d1a0e 100%)', margin: '8px auto', width: 'calc(100% - 16px)', maxWidth: '500px', borderRadius: '14px', border: '2px solid rgba(245,158,11,0.2)', boxShadow: 'inset 0 2px 20px rgba(0,0,0,0.5), 0 0 30px rgba(245,158,11,0.05)' }}>
 
         {/* Numbers grid: 0 | 3 rows | 2:1 columns */}
         <div style={{ display: 'grid', gridTemplateColumns: '30px 1fr 30px', gap: '3px', marginBottom: '3px' }}>
@@ -698,7 +702,7 @@ function RouletteContent() {
       </div>
 
       {/* ── Chips & Actions ── */}
-      <div style={{ background: 'rgba(0,0,0,0.5)', borderTop: '1px solid rgba(245,158,11,0.15)', padding: '12px 12px 16px', backdropFilter: 'blur(20px)' }}>
+      <div style={{ marginTop: 'auto', background: 'rgba(0,0,0,0.5)', borderTop: '1px solid rgba(245,158,11,0.15)', padding: '12px 12px 16px', backdropFilter: 'blur(20px)' }}>
 
         {/* Chip selector */}
         <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '12px' }}>
