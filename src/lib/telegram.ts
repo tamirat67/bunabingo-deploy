@@ -29,10 +29,21 @@ export const getTgInitData = () => {
 };
 
 export const getLanguage = () => {
+  if (typeof window !== 'undefined') {
+    const override = localStorage.getItem('app_language');
+    if (override === 'am' || override === 'en') return override;
+  }
   try {
     const lang = tg()?.initDataUnsafe?.user?.language_code;
     return lang === 'am' ? 'am' : 'en';
   } catch (e) {
     return 'en';
+  }
+};
+
+export const setLanguage = (lang: 'en' | 'am') => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('app_language', lang);
+    window.location.reload();
   }
 };

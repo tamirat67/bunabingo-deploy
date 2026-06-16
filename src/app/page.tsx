@@ -1,7 +1,7 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { getRooms, getWallet, getMe } from '../lib/api';
-import { initTelegram, getLanguage } from '../lib/telegram';
+import { initTelegram, getLanguage, setLanguage } from '../lib/telegram';
 import { useRouter } from 'next/navigation';
 import { Trophy, Gift, Wallet as WalletIcon, Target, Play, Dices, ExternalLink, ShieldCheck, History, User, ChevronDown, MoreVertical, X, Coffee } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -216,6 +216,10 @@ export default function LobbyPage() {
             <div style={{ fontSize: '20px', fontWeight: '900', color: T.gold, letterSpacing: '1px' }}>
               {mounted && getLanguage() === 'am' ? 'ቡና ጌም ዞን' : 'BUNA GAME ZONE'}
             </div>
+         </div>
+         <div onClick={() => setLanguage(getLanguage() === 'en' ? 'am' : 'en')} style={{ cursor: 'pointer', display: 'flex', border: `1px solid ${T.gold}`, borderRadius: '6px', overflow: 'hidden', fontSize: '10px', fontWeight: 'bold' }}>
+           <div style={{ padding: '3px 8px', background: (!mounted || getLanguage() === 'en') ? T.gold : 'transparent', color: (!mounted || getLanguage() === 'en') ? T.header : T.gold }}>EN</div>
+           <div style={{ padding: '3px 8px', background: (mounted && getLanguage() === 'am') ? T.gold : 'transparent', color: (mounted && getLanguage() === 'am') ? T.header : T.gold }}>AM</div>
          </div>
       </div>
 
