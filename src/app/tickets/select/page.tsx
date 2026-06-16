@@ -43,6 +43,13 @@ function SelectionContent() {
   const [newlyOccupied, setNewlyOccupied] = useState<number[]>([]);
   const [fakePlayersCount, setFakePlayersCount] = useState(0);
   const [mounted, setMounted] = useState(false);
+  const [langToggle, setLangToggle] = useState(0);
+
+  useEffect(() => {
+    const handleLangChange = () => setLangToggle(prev => prev + 1);
+    window.addEventListener('languageChange', handleLangChange);
+    return () => window.removeEventListener('languageChange', handleLangChange);
+  }, []);
   const [realPlayerCount, setRealPlayerCount] = useState(0);
   const [simulatedBotCount, setSimulatedBotCount] = useState(0);
   // isInitializing: true until the very first getOccupiedCards call resolves.

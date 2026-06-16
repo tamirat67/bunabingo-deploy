@@ -44,6 +44,6 @@ export const getLanguage = () => {
 export const setLanguage = (lang: 'en' | 'am') => {
   if (typeof window !== 'undefined') {
     localStorage.setItem('app_language', lang);
-    window.location.reload();
+    window.dispatchEvent(new Event('languageChange'));
   }
 };

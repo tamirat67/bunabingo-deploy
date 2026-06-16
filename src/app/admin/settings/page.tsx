@@ -246,9 +246,6 @@ export default function SettingsPage() {
       }
 
       const config: any = { timeout: 120000 };
-      if (isMultipart) {
-        config.headers = { 'Content-Type': 'multipart/form-data' };
-      }
 
       if (editingPromo) {
         await api.patch(`/admin/promotions/${editingPromo.id}`, payload, config);

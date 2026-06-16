@@ -38,6 +38,13 @@ export default function LobbyPage() {
   }, []);
   const [activeGame, setActiveGame] = useState<any>(null);
   const [mounted, setMounted] = useState(false);
+  const [langToggle, setLangToggle] = useState(0);
+
+  useEffect(() => {
+    const handleLangChange = () => setLangToggle(prev => prev + 1);
+    window.addEventListener('languageChange', handleLangChange);
+    return () => window.removeEventListener('languageChange', handleLangChange);
+  }, []);
   const [showJackpot, setShowJackpot] = useState(false);
   const [modalConfig, setModalConfig] = useState({ isOpen: false, title: '', message: '', type: 'info' });
   const { socket } = useSocket();
@@ -161,7 +168,6 @@ export default function LobbyPage() {
     }
   };
 
-  if (!mounted) return null;
 
   // Bot counts mirror backend houseBot.service.ts BOT_COUNTS
   const BOT_COUNTS_LOBBY: Record<string, number> = { CASUAL: 30, STANDARD: 30, PRO: 30, JACKPOT: 10, VIP: 10 };

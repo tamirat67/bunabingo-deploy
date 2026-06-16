@@ -40,6 +40,13 @@ function GameContent() {
   const sp      = useSearchParams();
   const gameId  = sp.get('id');
   const { socket, isConnected } = useSocket();
+  const [langToggle, setLangToggle] = useState(0);
+
+  useEffect(() => {
+    const handleLangChange = () => setLangToggle(prev => prev + 1);
+    window.addEventListener('languageChange', handleLangChange);
+    return () => window.removeEventListener('languageChange', handleLangChange);
+  }, []);
 
   const [game,      setGame]      = useState<any>(null);
   const [tickets, setTickets] = useState<any[]>(() => {
