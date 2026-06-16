@@ -345,9 +345,7 @@ export default function LobbyPage() {
           </div>
 
         </div>
-
         </div>
-      </div>
 
       {/* ── Premium Navbar ── */}
       <div style={{ position: 'fixed', bottom: 15, left: 15, right: 15, background: T.header, display: 'flex', justifyContent: 'space-around', padding: '10px 5px', borderRadius: '20px', border: `1px solid ${T.gold}`, boxShadow: '0 8px 32px rgba(0,0,0,0.3)', zIndex: 1000 }}>
