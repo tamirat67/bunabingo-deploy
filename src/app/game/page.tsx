@@ -651,9 +651,13 @@ function GameContent() {
         }
       }
 
+      // Prize priority: winner record > socket gamePrize > game.totalPrize (real, computed by backend) > fallback
+      const socketPrize = parseFloat(String(w?.prizeAmount ?? 0)) || parseFloat(String(d?.gamePrize ?? 0)) || parseFloat(String(d?.totalPrize ?? 0));
+      // `prize` is the correctly computed value from game.totalPrize (set by our earlier fix)
+      const resolvedSocketPrize = socketPrize > 0 ? socketPrize : prize;
       const winnerData = {
         winnerName: name,
-        prize: parseFloat(String(w?.prizeAmount ?? 0)) || parseFloat(String(d?.gamePrize ?? 0)) || (Number(stake) * 31 * 0.75),
+        prize: resolvedSocketPrize,
         mode: w?.winMode || 'ROW',
         isWinner: !!w,
         hasAnyWinner: true,
@@ -829,9 +833,12 @@ function GameContent() {
           }
         }
 
+        // Prize priority: winner record > game.totalPrize (real, from backend) > computed prize
+        const pollPrize = parseFloat(String(w?.prizeAmount ?? 0)) || parseFloat(String(game?.totalPrize ?? 0));
+        const resolvedPollPrize = pollPrize > 0 ? pollPrize : prize;
         setGameFinished({
           winnerName: name,
-          prize: parseFloat(String(w?.prizeAmount ?? 0)) || parseFloat(String(game?.totalPrize ?? 0)) || (Number(stake) * 31 * 0.75),
+          prize: resolvedPollPrize,
           mode: w?.winMode || 'ROW',
           isWinner: !!w,
           hasAnyWinner: true,
