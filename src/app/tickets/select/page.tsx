@@ -52,6 +52,8 @@ function SelectionContent() {
   }, []);
   const [realPlayerCount, setRealPlayerCount] = useState(0);
   const [simulatedBotCount, setSimulatedBotCount] = useState(0);
+  const [expectedBotCount, setExpectedBotCount] = useState<number | null>(null);
+
   // isInitializing: true until the very first getOccupiedCards call resolves.
   // While true the grid stays covered so there's no flash of unlocked UI on refresh.
   const [isInitializing, setIsInitializing] = useState(() => {
@@ -364,10 +366,7 @@ function SelectionContent() {
   const safeRoomType = (roomType || '').toUpperCase().trim();
 
   // Real bot count per room type (must match backend houseBot.service.ts)
-  const BOT_COUNTS_SELECT: Record<string, number> = {
-    CASUAL: 30, STANDARD: 30, PRO: 30, VIP: 10, JACKPOT: 10,
-  };
-  const botCountForRoom = BOT_COUNTS_SELECT[safeRoomType] ?? 30;
+  const botCountForRoom = expectedBotCount ?? (safeRoomType === 'VIP' || safeRoomType === 'JACKPOT' ? 10 : 30);
 
   // ── Bot drip-in simulation ────────────────────────────────────────────────
   // A simple interval that slowly increments the simulated bots up to botCountForRoom
@@ -560,6 +559,9 @@ function SelectionContent() {
       prevOccupied.current = res.occupiedIds || [];
       setPlayerCount(res.playerCount || 0);
       setRealPlayerCount(res.realPlayerCount || 0);
+      if (res.expectedBotCount !== undefined) {
+        setExpectedBotCount(res.expectedBotCount);
+      }
       if (res.myCardIds && res.myCardIds.length > 0) {
         setSelected(res.myCardIds);
         setOwnedCardIds(res.myCardIds);
@@ -754,8 +756,46 @@ function SelectionContent() {
           setOccupied(res.occupiedIds || []);
           setPlayerCount(res.playerCount || 0);
           setRealPlayerCount(res.realPlayerCount || 0);
+          if (res.expectedBotCount !== undefined) {
+            setExpectedBotCount(res.expectedBotCount);
+          }
           const myNewCardIds = res.myCardIds || [];
           setOwnedCardIds(myNewCardIds);
+        }).catch(() => {});
+      });
+
+      socket.on('game-cancelled', (d: any) => {
+        if (d.gameId && activeGameIdRef.current && d.gameId !== activeGameIdRef.current) return;
+        showAlert('Game Cancelled', d.reason || 'The game was cancelled due to a system error. Your tickets have been refunded.', 'error');
+        isGameRunningRef.current = false;
+        setIsGameRunning(false);
+        setLiveGameDismissed(true);
+        setCountdown(null);
+        setDrawnNumbers([]);
+        setEndTime(null);
+        setLiveGameSyncTimer(null);
+        liveGameEndTimeRef.current = null;
+        setLiveGameEndTime(null);
+        setOwnedCardIds([]);
+        setSelected([]);
+        if (d.gameId) {
+          try { sessionStorage.removeItem(`game_tickets_${d.gameId}`); } catch (e) {}
+        }
+        
+        // Fetch new state
+        getOccupiedCards(roomType, activeGameIdRef.current).then(res => {
+          if (res.gameId) {
+            activeGameIdRef.current = res.gameId;
+            setActiveGameId(res.gameId);
+            loadGameData(res.gameId);
+            if (socket) socket.emit('join-game', res.gameId);
+          }
+          setOccupied(res.occupiedIds || []);
+          setPlayerCount(res.playerCount || 0);
+          setRealPlayerCount(res.realPlayerCount || 0);
+          if (res.expectedBotCount !== undefined) {
+            setExpectedBotCount(res.expectedBotCount);
+          }
         }).catch(() => {});
       });
     }
@@ -769,6 +809,7 @@ function SelectionContent() {
         socket.off('game-started');
         socket.off('game-running-sync');
         socket.off('game-finished');
+        socket.off('game-cancelled');
         socket.off('number-drawn');
       }
       // Kill audio immediately when socket effect tears down (navigation / dep change)

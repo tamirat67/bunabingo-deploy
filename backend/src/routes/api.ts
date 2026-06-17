@@ -66,8 +66,13 @@ router.use('/auth', authRouter);
 
 router.get('/rooms', async (_req: Request, res: Response) => {
   try {
+    const { getExpectedBotCount } = await import('../services/houseBot.service');
     const rooms = await withRetry(() => getRooms());
-    res.json(rooms);
+    const augmentedRooms = rooms.map(r => ({
+      ...r,
+      expectedBotCount: getExpectedBotCount(r.type)
+    }));
+    res.json(augmentedRooms);
   } catch (err) {
     logger.error('Failed to load rooms:', err);
     res.status(500).json({ error: 'Failed to load rooms' });
@@ -661,6 +666,9 @@ router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
     const realUserIds = new Set(tickets.filter(t => !t.user?.isBot).map(t => t.userId));
     const botUserIds = new Set(tickets.filter(t => t.user?.isBot).map(t => t.userId));
     const playerCount = realUserIds.size + botUserIds.size;
+    
+    const { getExpectedBotCount } = await import('../services/houseBot.service');
+    
     const responseData = { 
       occupiedIds: otherOccupiedIds, 
       myCardIds, 
@@ -669,6 +677,7 @@ router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
       playerCount,
       realPlayerCount: realUserIds.size,
       botPlayerCount: botUserIds.size,
+      expectedBotCount: getExpectedBotCount(room.type),
       isGameRunning,
       hasTicketsInRunningGame,
       runningGameId,

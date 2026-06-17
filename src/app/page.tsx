@@ -178,7 +178,7 @@ export default function LobbyPage() {
       const price = Number(r.ticketPrice);
       const livePrize = Number(r.games?.[0]?.totalPrize || 0);
       const livePlayerCount = r.games?.[0]?.tickets?.length || 0;
-      const botCount = BOT_COUNTS_LOBBY[r.type] ?? 30;
+      const botCount = r.expectedBotCount ?? 30;
       // Prize floor = (bots + live players, min 1) × price × 75% — scales with lobby activity
       const minPrize = Math.round((botCount + Math.max(1, livePlayerCount)) * price * 0.75);
       return {
