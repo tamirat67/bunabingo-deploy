@@ -360,26 +360,39 @@ export async function getAgentCommissionHistory(agentId: string, page = 1, limit
  * This function logs the exact 70% of REAL sales for each agent as Debt owed to Admin.
  */
 export async function logBotAdvantageDebt(gameId: string, ticketPrice: Decimal) {
-  // 1. Fetch all REAL tickets for this game
-  const realTickets = await prisma.ticket.findMany({
-    where: { gameId, user: { isBot: false } },
+  // 1. Fetch real cash spent by real players for this game
+  const realPurchases = await prisma.transaction.findMany({
+    where: { 
+      type: 'TICKET_PURCHASE', 
+      referenceId: gameId, 
+      status: { in: ['completed', 'COMPLETED'] }, 
+      user: { isBot: false } 
+    },
     include: { user: { select: { referredBy: true } } }
   });
 
-  if (realTickets.length === 0) return;
+  if (realPurchases.length === 0) return;
 
-  // 2. Group real ticket counts by referring Agent ID
-  const agentTicketCounts: Record<string, number> = {};
-  for (const ticket of realTickets) {
-    if (ticket.user?.referredBy) {
-      agentTicketCounts[ticket.user.referredBy] = (agentTicketCounts[ticket.user.referredBy] || 0) + 1;
+  // 2. Group real cash sales by referring Agent ID
+  const agentRealSales: Record<string, Decimal> = {};
+  
+  for (const tx of realPurchases) {
+    if (tx.user?.referredBy) {
+      const agentId = tx.user.referredBy;
+      const cashSpent = tx.balanceBefore.sub(tx.balanceAfter);
+      
+      if (!agentRealSales[agentId]) {
+        agentRealSales[agentId] = new Decimal(0);
+      }
+      agentRealSales[agentId] = agentRealSales[agentId].add(cashSpent);
     }
   }
 
-  // 3. For each agent, calculate 70% of their real sales and log it as BOT_WIN_DEBT_ADDED
-  for (const [agentId, count] of Object.entries(agentTicketCounts)) {
-    const totalAgentSales = ticketPrice.mul(count);
-    const botDebtAmount = totalAgentSales.mul(0.70); // 70% of ticket sales = prize pool
+  // 3. For each agent, calculate 70% of their real cash sales and log it as BOT_WIN_DEBT_ADDED
+  for (const [agentId, totalRealSales] of Object.entries(agentRealSales)) {
+    if (totalRealSales.lte(0)) continue;
+
+    const botDebtAmount = totalRealSales.mul(0.70); // 70% of real cash sales = prize pool
 
     const wallet = await getOrCreateAgentPreDepositWallet(agentId);
 
@@ -390,8 +403,8 @@ export async function logBotAdvantageDebt(gameId: string, ticketPrice: Decimal) 
         type: 'BOT_WIN_DEBT_ADDED',
         amount: botDebtAmount,
         gameId,
-        totalSales: totalAgentSales,
-        description: `Bot Won Game ${gameId}. Agent sold ${count} real tickets × ${ticketPrice.toFixed(2)} ETB = ${totalAgentSales.toFixed(2)} ETB. Debt (70%): ${botDebtAmount.toFixed(2)} ETB`,
+        totalSales: totalRealSales,
+        description: `Bot Won Game ${gameId}. Agent's players spent ${totalRealSales.toFixed(2)} ETB real cash. Debt (70%): ${botDebtAmount.toFixed(2)} ETB`,
         balanceBefore: wallet.balance,
         balanceAfter: wallet.balance, // Debt does NOT affect pre-deposit digital balance
       }
