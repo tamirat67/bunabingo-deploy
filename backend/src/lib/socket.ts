@@ -192,9 +192,19 @@ export function initSocket(server: HttpServer) {
         }
 
         const { claimBingoWin } = await import('../game/engine');
-        // Engine's claimBingoWin handles validation and triggering the global game-ended event
-        await claimBingoWin(gId, dbUserId);
-        socket.emit('claim-success', { gameId: gId });
+        const result = await claimBingoWin(gId, dbUserId);
+
+        if (result.won) {
+          // Player legitimately won — game-finished event fires globally from processWinner
+          socket.emit('claim-success', { gameId: gId });
+        } else {
+          // Claim rejected (house-win block, no pattern, or game already won).
+          // emit claim-error so the frontend silently resets the BINGO button.
+          // The message "wait for more balls" is absorbed silently on the client
+          // — no dialog shown, button quietly goes back to orange.
+          logger.info(`[Socket Claim] User ${userId} claim rejected for ${gId}: ${result.error}`);
+          socket.emit('claim-error', { message: result.error || 'No valid Bingo detected yet! Check your patterns or wait for more balls.' });
+        }
       } catch (err: any) {
         logger.warn(`[Socket Claim] User ${userId} failed to claim ${gId}: ${err.message}`);
         socket.emit('claim-error', { message: err.message });

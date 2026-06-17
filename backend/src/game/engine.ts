@@ -66,9 +66,11 @@ function buildNumberPool(): number[] {
  * to prevent the mathematical impossibility of avoiding an early Bingo at large scale.
  */
 function getDynamicMinBalls(totalCards: number, houseShouldWin: boolean = false): number {
-  // When house must win: draw as few balls as possible so player cards never accumulate enough
-  // called numbers to form a complete winning line — prevents green patterns appearing on cards.
-  if (houseShouldWin) return 12;
+  // When house must win: use a natural-feeling minimum that still prevents player patterns.
+  // 20 balls ≈ 60s game duration (natural Bingo length). At 20/75 balls, each player card
+  // averages ~6-7 matched numbers — not enough to manually complete any full row/column.
+  // The rig algorithm GUARANTEES no player ticket wins before the bot regardless.
+  if (houseShouldWin) return 20;
   if (totalCards <= 40) return 30; // 90 seconds
   if (totalCards <= 80) return 25; // 75 seconds
   if (totalCards <= 150) return 22; // 66 seconds
