@@ -3141,7 +3141,7 @@ router.post('/admin/fix-historical-bonus', telegramAuthMiddleware, adminMiddlewa
     const logs = await prisma.agentCommissionLog.findMany({
       where: { type: { in: ['COMMISSION_DEBIT', 'BOT_WIN_DEBT_ADDED'] } },
       include: {
-        agentPreDepositWallet: true,
+        wallet: true,
         agent: { select: { firstName: true } }
       }
     });
@@ -3195,8 +3195,8 @@ router.post('/admin/fix-historical-bonus', telegramAuthMiddleware, adminMiddlewa
         }
       });
 
-      if (log.type === 'COMMISSION_DEBIT' && log.agentPreDepositWallet) {
-        const wallet = log.agentPreDepositWallet;
+      if (log.type === 'COMMISSION_DEBIT' && log.wallet) {
+        const wallet = log.wallet;
         const newBalance = Number(wallet.balance) + difference;
         const newTotalDebited = Math.max(0, Number(wallet.totalDebited || 0) - difference);
 
@@ -3229,7 +3229,7 @@ router.post('/admin/fix-historical-bonus', telegramAuthMiddleware, adminMiddlewa
 
     await prisma.adminLog.create({
       data: {
-        adminId: req.user!.id,
+        adminId: (req as any).user!.id,
         action: 'FIX_HISTORICAL_BONUS_REPORTS',
         details: { totalRefunded: totalRefunded.toFixed(2), totalDebtReduced: totalDebtReduced.toFixed(2), corrections: report.length }
       }
