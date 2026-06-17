@@ -69,6 +69,8 @@ model User {
   tickets              Ticket[]
   winners              Winner[]
   agentCommissionLogs  AgentCommissionLog[]
+  agentSettlements     AgentSettlement[] @relation("AgentSettlements")
+  adminSettlements     AgentSettlement[] @relation("AdminSettlements")
 
   // Self-relation for referrals
   referrer         User?    @relation("UserReferrals", fields: [referredBy], references: [id])
@@ -353,4 +355,24 @@ model HouseSettings {
   updatedAt       DateTime @updatedAt
 
   @@map("house_settings")
+}
+
+// ─── Agent Cash Settlement Checkpoints ────────────────────────
+// When admin collects physical cash from an agent, a checkpoint is created.
+// Future "Current Period" reports only calculate totals after this exact timestamp.
+model AgentSettlement {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  agentId     String   @db.Uuid @map("agent_id")
+  adminId     String   @db.Uuid @map("admin_id") // Who collected it
+  amount      Decimal  @db.Decimal(20, 4)
+  periodStart DateTime @db.Timestamptz(6) @map("period_start")
+  periodEnd   DateTime @default(now()) @db.Timestamptz(6) @map("period_end")
+  notes       String?
+  createdAt   DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  agent       User     @relation("AgentSettlements", fields: [agentId], references: [id])
+  admin       User     @relation("AdminSettlements", fields: [adminId], references: [id])
+
+  @@index([agentId])
+  @@map("agent_settlements")
 }

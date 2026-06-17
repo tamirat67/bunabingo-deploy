@@ -21,7 +21,7 @@ export default function AgentReportPage() {
   const [error, setError] = useState<string | null>(null);
   const [report, setReport] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'transactions' | 'players' | 'wallet'>('overview');
-  const [timeRange, setTimeRange] = useState('all');
+  const [timeRange, setTimeRange] = useState('current_period');
   const [settleAmount, setSettleAmount] = useState('');
   const [isSettling, setIsSettling] = useState(false);
 
@@ -50,10 +50,14 @@ export default function AgentReportPage() {
 
     setIsSettling(true);
     try {
-      await api.post(`/admin/agents/${agentId}/settle-debt`, { amount });
+      // Use the new collect-cash endpoint which handles both debt settlement and period resetting
+      await api.post(`/admin/agents/${agentId}/collect-cash`, { 
+        amount: amount, 
+        settleDebtAmount: amount 
+      });
       setSettleAmount('');
       fetchReport();
-      alert('Debt successfully settled!');
+      alert('Cash collected and reporting period reset successfully!');
     } catch (e: any) {
       alert(e?.response?.data?.error || 'Failed to settle debt.');
     } finally {
@@ -367,6 +371,7 @@ export default function AgentReportPage() {
                     cursor: 'pointer', fontWeight: '800', color: '#3d2b1f', fontSize: '14px', outline: 'none', height: '100%'
                   }}
                 >
+                  <option value="current_period">Current Period (Since Last Collection)</option>
                   <option value="all">All Time</option>
                   <option value="today">Today</option>
                   <option value="week">Last 7 Days (Weekly)</option>
@@ -723,7 +728,7 @@ export default function AgentReportPage() {
                     fontWeight: '800', cursor: 'pointer', transition: 'background 0.2s', opacity: (isSettling || !settleAmount) ? 0.6 : 1
                   }}
                 >
-                  {isSettling ? 'Settling...' : 'Mark as Received'}
+                  {isSettling ? 'Collecting...' : 'Mark as Received & Reset Period'}
                 </button>
               </div>
             )}

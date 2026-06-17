@@ -14,7 +14,13 @@ export default function CompanyProfitPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<any>(null);
-  const [timeRange, setTimeRange] = useState('all');
+  const [timeRange, setTimeRange] = useState('current_period');
+  
+  // Collect Cash Modal State
+  const [collectModalOpen, setCollectModalOpen] = useState(false);
+  const [selectedAgent, setSelectedAgent] = useState<any>(null);
+  const [collectAmount, setCollectAmount] = useState('');
+  const [collectLoading, setCollectLoading] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -35,7 +41,27 @@ export default function CompanyProfitPage() {
   const fmtInt = (n: number) => Number(n || 0).toLocaleString();
   const fmtPct = (r: number) => (r * 100).toFixed(1) + '%';
 
-  const rangLabel = timeRange === 'all' ? 'All Time' : timeRange === 'today' ? 'Today' : timeRange === 'week' ? 'Last 7 Days' : 'Last 30 Days';
+  const rangLabel = timeRange === 'current_period' ? 'Current Period (Since Collection)' : timeRange === 'all' ? 'All Time' : timeRange === 'today' ? 'Today' : timeRange === 'week' ? 'Last 7 Days' : 'Last 30 Days';
+
+  const handleCollectCash = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedAgent) return;
+    try {
+      setCollectLoading(true);
+      await api.post(`/admin/agents/${selectedAgent.agentId}/collect-cash`, {
+        amount: Number(collectAmount),
+        settleDebtAmount: selectedAgent.outstandingBotDebt
+      });
+      setCollectModalOpen(false);
+      setSelectedAgent(null);
+      setCollectAmount('');
+      fetchData(); // Refresh data to show reset dashboard
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Failed to collect cash');
+    } finally {
+      setCollectLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -94,6 +120,7 @@ export default function CompanyProfitPage() {
                 boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
               }}
             >
+              <option value="current_period">📅 Current Period (Since Last Collection)</option>
               <option value="all">📅 All Time</option>
               <option value="today">📅 Today</option>
               <option value="week">📅 Last 7 Days (Weekly)</option>
@@ -236,17 +263,35 @@ export default function CompanyProfitPage() {
                       {agent.netCashFlow >= 0 ? '+' : ''}{fmt(agent.netCashFlow)} ETB
                     </td>
                     <td style={{ textAlign: 'center' }}>
-                      <button
-                        onClick={() => router.push(`/admin/agents/${agent.agentId}`)}
-                        style={{
-                          background: 'linear-gradient(135deg, #d4af37, #f59e0b)',
-                          color: 'white', border: 'none', borderRadius: '8px',
-                          padding: '6px 12px', cursor: 'pointer', fontWeight: '800', fontSize: '12px',
-                          display: 'inline-flex', alignItems: 'center', gap: '4px'
-                        }}
-                      >
-                        <FiExternalLink size={12} /> View
-                      </button>
+                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                        <button
+                          onClick={() => {
+                            setSelectedAgent(agent);
+                            // Pre-fill with outstanding debt if there is any, else 0
+                            setCollectAmount(agent.outstandingBotDebt.toString());
+                            setCollectModalOpen(true);
+                          }}
+                          style={{
+                            background: 'linear-gradient(135deg, #10b981, #059669)',
+                            color: 'white', border: 'none', borderRadius: '8px',
+                            padding: '6px 12px', cursor: 'pointer', fontWeight: '800', fontSize: '12px',
+                            display: 'inline-flex', alignItems: 'center', gap: '4px'
+                          }}
+                        >
+                          <FiDollarSign size={12} /> Collect
+                        </button>
+                        <button
+                          onClick={() => router.push(`/admin/agents/${agent.agentId}`)}
+                          style={{
+                            background: 'linear-gradient(135deg, #d4af37, #f59e0b)',
+                            color: 'white', border: 'none', borderRadius: '8px',
+                            padding: '6px 12px', cursor: 'pointer', fontWeight: '800', fontSize: '12px',
+                            display: 'inline-flex', alignItems: 'center', gap: '4px'
+                          }}
+                        >
+                          <FiExternalLink size={12} /> View
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -300,6 +345,75 @@ export default function CompanyProfitPage() {
           <div style={{ fontSize: '12px', color: '#fbbf24', marginTop: '4px' }}>Company Share + Outstanding Bot Debt</div>
         </div>
       </div>
+
+      {/* Collect Cash Modal */}
+      {collectModalOpen && selectedAgent && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+        }}>
+          <div style={{
+            background: 'white', borderRadius: '20px', padding: '32px', width: '90%', maxWidth: '420px',
+            boxShadow: '0 24px 48px rgba(0,0,0,0.2)'
+          }}>
+            <h2 style={{ margin: '0 0 16px', fontSize: '22px', fontWeight: '900', color: '#3d2b1f', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <FiDollarSign color="#10b981" /> Collect Cash
+            </h2>
+            <p style={{ color: '#78716c', marginBottom: '24px', fontSize: '14px', lineHeight: 1.5 }}>
+              Collecting cash from <strong>{selectedAgent.agentName}</strong> will <strong>reset their dashboard</strong> to start a fresh period.
+            </p>
+
+            <div style={{ background: '#fef2f2', border: '1px solid #fecaca', padding: '16px', borderRadius: '12px', marginBottom: '20px' }}>
+              <div style={{ fontSize: '12px', fontWeight: '800', color: '#ef4444', marginBottom: '4px' }}>OUTSTANDING BOT DEBT</div>
+              <div style={{ fontSize: '24px', fontWeight: '900', color: '#b91c1c' }}>{fmt(selectedAgent.outstandingBotDebt)} ETB</div>
+            </div>
+
+            <form onSubmit={handleCollectCash}>
+              <div style={{ marginBottom: '24px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', color: '#78716c', marginBottom: '8px' }}>
+                  AMOUNT COLLECTED (ETB)
+                </label>
+                <input
+                  type="number"
+                  required
+                  value={collectAmount}
+                  onChange={(e) => setCollectAmount(e.target.value)}
+                  placeholder="e.g. 500"
+                  style={{
+                    width: '100%', padding: '14px', border: '2px solid #e7e5e4', borderRadius: '12px',
+                    fontSize: '16px', fontWeight: '700', color: '#3d2b1f', outline: 'none'
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => setCollectModalOpen(false)}
+                  style={{
+                    flex: 1, padding: '14px', background: '#f5f5f4', color: '#78716c',
+                    border: 'none', borderRadius: '12px', fontWeight: '800', cursor: 'pointer'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={collectLoading}
+                  style={{
+                    flex: 1, padding: '14px', background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white',
+                    border: 'none', borderRadius: '12px', fontWeight: '800', cursor: 'pointer',
+                    opacity: collectLoading ? 0.7 : 1
+                  }}
+                >
+                  {collectLoading ? 'Processing...' : 'Confirm Collection'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

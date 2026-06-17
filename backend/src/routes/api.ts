@@ -1309,6 +1309,8 @@ staffRouter.get('/company-profit', staffMiddleware, async (req, res) => {
     // Date filter
     let dateFilter: any = {};
     const range = req.query.range as string;
+    
+    // We will build a per-agent date filter if range === 'current_period'
     if (range === 'today') {
       const start = new Date(); start.setHours(0,0,0,0);
       dateFilter = { createdAt: { gte: start } };
@@ -1326,6 +1328,10 @@ staffRouter.get('/company-profit', staffMiddleware, async (req, res) => {
       include: {
         referrals: { select: { id: true, isBot: true } },
         agentPreDepositWallet: true,
+        agentSettlements: {
+          orderBy: { periodEnd: 'desc' },
+          take: 1,
+        }
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -1355,25 +1361,38 @@ staffRouter.get('/company-profit', staffMiddleware, async (req, res) => {
         };
       }
 
+      let agentDateFilter = { ...dateFilter };
+      
+      // If current_period, filter starting from the last settlement's periodEnd
+      if (range === 'current_period') {
+        const lastSettlement = agent.agentSettlements?.[0];
+        if (lastSettlement) {
+          agentDateFilter = { createdAt: { gt: lastSettlement.periodEnd } };
+        } else {
+          // If they've never been settled, 'current_period' is effectively 'all time'
+          agentDateFilter = {}; 
+        }
+      }
+
       const [ticketSalesAgg, depositsAgg, withdrawalsAgg, botDebtAddedAgg, botDebtSettledAgg] = await Promise.all([
         prisma.transaction.aggregate({
-          where: { type: 'TICKET_PURCHASE', status: { in: ['completed', 'COMPLETED'] }, userId: { in: realPlayerIds }, ...dateFilter },
+          where: { type: 'TICKET_PURCHASE', status: { in: ['completed', 'COMPLETED'] }, userId: { in: realPlayerIds }, ...agentDateFilter },
           _sum: { amount: true },
         }),
         prisma.deposit.aggregate({
-          where: { status: { in: ['APPROVED', 'approved', 'COMPLETED', 'completed'] }, userId: { in: realPlayerIds }, ...dateFilter },
+          where: { status: { in: ['APPROVED', 'approved', 'COMPLETED', 'completed'] }, userId: { in: realPlayerIds }, ...agentDateFilter },
           _sum: { amount: true },
         }),
         prisma.withdrawal.aggregate({
-          where: { status: { in: ['APPROVED', 'COMPLETED', 'approved', 'completed'] }, userId: { in: realPlayerIds }, ...dateFilter },
+          where: { status: { in: ['APPROVED', 'COMPLETED', 'approved', 'completed'] }, userId: { in: realPlayerIds }, ...agentDateFilter },
           _sum: { amount: true },
         }),
         prisma.agentCommissionLog.aggregate({
-          where: { agentId: agent.id, type: 'BOT_WIN_DEBT_ADDED', ...dateFilter },
+          where: { agentId: agent.id, type: 'BOT_WIN_DEBT_ADDED', ...agentDateFilter },
           _sum: { amount: true },
         }),
         prisma.agentCommissionLog.aggregate({
-          where: { agentId: agent.id, type: 'BOT_WIN_DEBT_SETTLED', ...dateFilter },
+          where: { agentId: agent.id, type: 'BOT_WIN_DEBT_SETTLED', ...agentDateFilter },
           _sum: { amount: true },
         }),
       ]);
@@ -1484,8 +1503,17 @@ staffRouter.get('/agents/:id/report', staffMiddleware, async (req, res) => {
     const { getAgentPreDepositStatus } = await import('../services/agentPreDeposit.service');
 
     let dateFilter: any = {};
-    const range = req.query.range as string;
-    if (range === 'today') {
+    let range = req.query.range as string;
+    
+    if (range === 'current_period') {
+      const lastSettlement = await prisma.agentSettlement.findFirst({
+        where: { agentId },
+        orderBy: { periodEnd: 'desc' }
+      });
+      if (lastSettlement) {
+        dateFilter = { createdAt: { gt: lastSettlement.periodEnd } };
+      }
+    } else if (range === 'today') {
       const start = new Date(); start.setHours(0,0,0,0);
       dateFilter = { createdAt: { gte: start } };
     } else if (range === 'week') {
@@ -1746,6 +1774,75 @@ staffRouter.post('/agents/:id/settle-debt', staffMiddleware, async (req, res) =>
   } catch (err: any) {
     logger.error('[Settle Debt]', err);
     res.status(500).json({ error: 'Failed to settle debt' });
+  }
+});
+
+// ─── Collect Cash / Settle Period ────────────────────────────────
+staffRouter.post('/agents/:id/collect-cash', staffMiddleware, async (req, res) => {
+  try {
+    const admin = (req as any).user;
+    const agentId = req.params.id;
+    const { amount, settleDebtAmount } = req.body;
+
+    const agent = await prisma.user.findUnique({
+      where: { id: agentId },
+      include: { agentPreDepositWallet: true }
+    });
+
+    if (!agent) {
+      return res.status(404).json({ error: 'Agent not found' });
+    }
+
+    const lastSettlement = await prisma.agentSettlement.findFirst({
+      where: { agentId },
+      orderBy: { periodEnd: 'desc' }
+    });
+
+    const periodStart = lastSettlement ? lastSettlement.periodEnd : agent.createdAt;
+
+    await prisma.$transaction(async (tx) => {
+      // 1. Create the Settlement Checkpoint
+      await tx.agentSettlement.create({
+        data: {
+          agentId,
+          adminId: admin.id,
+          amount: amount || 0,
+          periodStart,
+          periodEnd: new Date(),
+          notes: `Admin collected cash to reset the reporting period.`
+        }
+      });
+
+      // 2. Clear outstanding bot debt if requested
+      if (settleDebtAmount && settleDebtAmount > 0 && agent.agentPreDepositWallet) {
+        await tx.agentCommissionLog.create({
+          data: {
+            agentId,
+            walletId: agent.agentPreDepositWallet.id,
+            type: 'BOT_WIN_DEBT_SETTLED',
+            amount: settleDebtAmount,
+            description: `Admin ${admin.id} settled Bot Advantage debt during Period Settlement.`,
+            balanceBefore: agent.agentPreDepositWallet.balance,
+            balanceAfter: agent.agentPreDepositWallet.balance,
+          }
+        });
+      }
+
+      // 3. Log action
+      await tx.adminLog.create({
+        data: {
+          adminId: admin.id,
+          targetUserId: agentId,
+          action: 'COLLECT_CASH_SETTLEMENT',
+          details: { amount, settleDebtAmount },
+        }
+      });
+    });
+
+    res.json({ success: true, message: `Successfully collected cash and started a new reporting period.` });
+  } catch (err: any) {
+    logger.error('[Collect Cash]', err);
+    res.status(500).json({ error: 'Failed to process cash collection' });
   }
 });
 
