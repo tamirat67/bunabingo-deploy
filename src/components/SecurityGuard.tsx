@@ -33,14 +33,7 @@ export default function SecurityGuard({ children }: { children: React.ReactNode 
     setIsAllowed(false);
   }, [pathname]);
 
-  if (isAllowed === null) {
-    // Show nothing or a loading state while checking
-    return (
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#3D2B1F' }}>
-        <div className="animate-spin" style={{ width: '40px', height: '40px', border: '3px solid #D4AF37', borderTopColor: 'transparent', borderRadius: '50%' }}></div>
-      </div>
-    );
-  }
+
 
   if (isAllowed === false) {
     // Automatically redirect to the Telegram Bot
