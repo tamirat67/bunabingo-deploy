@@ -124,6 +124,8 @@ function GameContent() {
   const stopAudioFiredRef  = useRef<boolean>(false);
   // Persistent ref for stop.mp3 element — prevents garbage collection before audio finishes
   const stopAudioRef = useRef<HTMLAudioElement | null>(null);
+  // Safety timeout ref: resets `claiming` if socket never sends claim-success/error (network drop)
+  const claimTimeoutRef = useRef<any>(null);
 
 
   const ticketsRef = useRef<any[]>([]);
@@ -713,11 +715,13 @@ function GameContent() {
     });
 
     socket.on('claim-success', () => {
+      clearTimeout(claimTimeoutRef.current);
       setClaiming(false);
       // The game-ended event is fired globally and will pop the winner modal natively
     });
 
     socket.on('claim-error', (err: any) => {
+      clearTimeout(claimTimeoutRef.current);
       setClaiming(false);
       const isTooEarlyMsg = err.message?.toLowerCase().includes('wait') || err.message?.toLowerCase().includes('minimum');
       if (!isTooEarlyMsg) {
@@ -961,6 +965,10 @@ function GameContent() {
     // Fast socket claim ("clicke boom")
     if (socket && socket.connected) {
       socket.emit('claim-bingo', { gameId });
+      // Safety timeout: if socket never responds (network drop), reset button after 10s
+      // so the player is never permanently stuck on "CLAIMING..."
+      if (claimTimeoutRef.current) clearTimeout(claimTimeoutRef.current);
+      claimTimeoutRef.current = setTimeout(() => setClaiming(false), 10_000);
       // Socket listeners for 'claim-success' and 'claim-error' will handle the rest
       return;
     }

