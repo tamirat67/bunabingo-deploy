@@ -1005,36 +1005,38 @@ function GameContent() {
   if (!mounted) return <LoadingScreen />;
 
   // ─── Prize / Stake / Commission calculation ─────────────────────────────
-  // Prize pool = 75% of ALL visual stakes (including bots)
+  // The backend computes totalPrize = 70% × (ALL tickets × stake) at game start.
+  // We must trust it as source-of-truth. Never override it with hardcoded bot estimates.
   const GUARANTEED_PRIZES: Record<string, number> = { CASUAL: 50, STANDARD: 100, PRO: 250, JACKPOT: 500, VIP: 1000 };
   const roomTypeName = game?.room?.type || spType || 'STANDARD';
-  
+
+  // allCards: prefer the backend's real ticket count (game.currentPlayers = _count.tickets from API)
+  // Fallback: our own tickets length + a small bot estimate — only when API hasn't loaded yet
   const BOT_COUNTS_FRONTEND: Record<string, number> = { CASUAL: 30, STANDARD: 30, PRO: 30, JACKPOT: 10, VIP: 20 };
-  const botCount = BOT_COUNTS_FRONTEND[roomTypeName] ?? 30;
-  
-  // allCards represents the fully inflated total cards (Real + Bots)
-  const fallbackCards = botCount + tickets.length;
-  const allCards = Math.max(game?.currentPlayers || 0, fallbackCards) || 1;
+  const fallbackBotCount = BOT_COUNTS_FRONTEND[roomTypeName] ?? 30;
+  const fallbackCards = fallbackBotCount + tickets.length;
+  // PRIORITY: game.currentPlayers is set by the backend to _count.tickets (real total)
+  const allCards = game?.currentPlayers && game.currentPlayers > 0
+    ? game.currentPlayers
+    : (fallbackCards || 1);
   const totalStake = isDemo ? 0 : allCards * stake;
 
-  // Fallback: estimate based on guaranteed minimum OR visual ticket count × 70%
   const minPrize = GUARANTEED_PRIZES[roomTypeName] || 50;
   const fallbackPrize = Math.max(minPrize, Math.round(allCards * stake * 0.70));
   
+  // PRIORITY: Always use the backend-computed totalPrize (accurate, based on real tickets)
   const prize = isDemo
     ? (game?.totalPrize ? Number(game.totalPrize) : 100)
-    : Math.max(
-        game?.totalPrize && Number(game.totalPrize) > 0 ? Number(game.totalPrize) : 0,
-        fallbackPrize
-      );
+    : (game?.totalPrize && Number(game.totalPrize) > 0
+        ? Number(game.totalPrize)
+        : fallbackPrize);
 
   const fallbackHouseComm = Math.round(allCards * stake * 0.30);
   const houseComm = isDemo
     ? 0
-    : Math.max(
-        game?.houseEdge && Number(game.houseEdge) > 0 ? Number(game.houseEdge) : 0,
-        fallbackHouseComm
-      );
+    : (game?.houseEdge && Number(game.houseEdge) > 0
+        ? Number(game.houseEdge)
+        : fallbackHouseComm);
 
   const cdText  = countdown !== null ? `${countdown}s` : (game?.status === 'RUNNING' ? 'LIVE' : '—');
   const visible = tickets.filter(t => !hidden.has(t.id));
