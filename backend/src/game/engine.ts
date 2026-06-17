@@ -682,12 +682,13 @@ async function checkAllTickets(gameId: string, drawnNumbers: number[]): Promise<
 export async function claimBingoWin(gameId: string, userId: string): Promise<{ won: boolean; mode?: string; prize?: number; error?: string }> {
   const state = activeGames.get(gameId);
 
-  // ── HOUSE WIN PROTECTION (checked FIRST, before any interval or DB access) ────────────
-  // When Bot Protection is ON (forceHouseWin=true) → houseShouldWin is always true.
-  // When 9/10 cycle → houseShouldWin is true for games 1-9, false for game 10.
-  // In either house-win scenario: silently reject the player's claim — bot auto-claims shortly.
-  if (state?.houseShouldWin === true || state?.botClaimLocked === true) {
-    logger.info(`[Game ${gameId}] Player ${userId} claim blocked — houseShouldWin=${state?.houseShouldWin}, botClaimLocked=${state?.botClaimLocked}`);
+  // ── RACE CONDITION PROTECTION (checked FIRST) ────────────
+  // Only block claims if the bot has already detected a win and is in the 200ms process of claiming.
+  // We no longer artificially block claims during the whole game (houseShouldWin) — instead, we rely on
+  // the mathematical rig algorithm which ensures player cards simply never form a complete pattern.
+  // When a player taps BINGO, we do an honest check, find no pattern, and reject naturally.
+  if (state?.botClaimLocked === true) {
+    logger.info(`[Game ${gameId}] Player ${userId} claim blocked — bot is currently claiming (botClaimLocked=true)`);
     return { won: false, error: 'No valid Bingo detected yet! Check your patterns or wait for more balls.' };
   }
 
