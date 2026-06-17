@@ -247,15 +247,15 @@ export async function debitWallet(
     let newBonus = bonus;
 
     if (type === 'TICKET_PURCHASE') {
-      // Use bonus balance first (player-friendly)
-      if (bonus.greaterThan(0)) {
-        const bonusToUse = Decimal.min(bonus, remainingToDebit);
-        newBonus = bonus.sub(bonusToUse);
-        remainingToDebit = remainingToDebit.sub(bonusToUse);
+      // Use main balance first (Real Cash - 'Lifeline' Bonus rule)
+      if (balance.greaterThan(0)) {
+        const balanceToUse = Decimal.min(balance, remainingToDebit);
+        newBalance = balance.sub(balanceToUse);
+        remainingToDebit = remainingToDebit.sub(balanceToUse);
       }
-      // Use main balance for the remainder
+      // Use bonus balance for the remainder if main balance runs out
       if (remainingToDebit.greaterThan(0)) {
-        newBalance = balance.sub(remainingToDebit);
+        newBonus = bonus.sub(remainingToDebit);
         remainingToDebit = new Decimal(0);
       }
     } else {
