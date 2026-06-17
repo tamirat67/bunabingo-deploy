@@ -24,6 +24,7 @@ export default function AgentReportPage() {
   const [timeRange, setTimeRange] = useState('current_period');
   const [settleAmount, setSettleAmount] = useState('');
   const [isSettling, setIsSettling] = useState(false);
+  const [isUndoing, setIsUndoing] = useState(false);
 
   const fetchReport = useCallback(async () => {
     try {
@@ -62,6 +63,21 @@ export default function AgentReportPage() {
       alert(e?.response?.data?.error || 'Failed to settle debt.');
     } finally {
       setIsSettling(false);
+    }
+  };
+
+  const handleUndoCollect = async () => {
+    if (!confirm('Are you sure you want to UNDO the last cash collection? This will restore the previous dashboard totals.')) return;
+    
+    setIsUndoing(true);
+    try {
+      await api.post(`/admin/agents/${agentId}/undo-collect`);
+      fetchReport();
+      alert('Successfully undid the last collection! The dashboard has been restored.');
+    } catch (e: any) {
+      alert(e?.response?.data?.error || 'Failed to undo collection.');
+    } finally {
+      setIsUndoing(false);
     }
   };
 
@@ -398,6 +414,31 @@ export default function AgentReportPage() {
                 }}
               >
                 <FiDownload size={18} /> Export PDF
+              </button>
+
+              <button
+                onClick={handleUndoCollect}
+                disabled={isUndoing}
+                style={{
+                  background: 'transparent',
+                  color: '#ef4444',
+                  border: '1px solid #fecaca',
+                  borderRadius: '16px',
+                  padding: '0 16px',
+                  fontWeight: '800',
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  opacity: isUndoing ? 0.6 : 1,
+                  transition: 'background 0.2s'
+                }}
+                onMouseOver={(e) => e.currentTarget.style.background = '#fef2f2'}
+                onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                title="Undo the last mistaken cash collection"
+              >
+                <FiArrowLeft size={16} /> Undo Collection
               </button>
             </div>
 

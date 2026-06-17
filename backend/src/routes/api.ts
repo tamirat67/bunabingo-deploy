@@ -1846,6 +1846,73 @@ staffRouter.post('/agents/:id/collect-cash', staffMiddleware, async (req, res) =
   }
 });
 
+// ─── Undo Last Cash Collection ────────────────────────────────
+staffRouter.post('/agents/:id/undo-collect', staffMiddleware, async (req, res) => {
+  try {
+    const admin = (req as any).user;
+    const agentId = req.params.id;
+
+    const lastSettlement = await prisma.agentSettlement.findFirst({
+      where: { agentId },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    if (!lastSettlement) {
+      return res.status(400).json({ error: 'No collection found to undo.' });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      // 1. Delete the settlement checkpoint
+      await tx.agentSettlement.delete({
+        where: { id: lastSettlement.id }
+      });
+
+      // 2. Find and delete the corresponding BOT_WIN_DEBT_SETTLED log (created at the exact same time)
+      // We look for a log within 5 seconds of the settlement creation
+      const timeWindowStart = new Date(lastSettlement.createdAt.getTime() - 5000);
+      const timeWindowEnd = new Date(lastSettlement.createdAt.getTime() + 5000);
+      
+      await tx.agentCommissionLog.deleteMany({
+        where: {
+          agentId,
+          type: 'BOT_WIN_DEBT_SETTLED',
+          createdAt: {
+            gte: timeWindowStart,
+            lte: timeWindowEnd
+          }
+        }
+      });
+
+      // 3. Delete the AdminLog
+      await tx.adminLog.deleteMany({
+        where: {
+          action: 'COLLECT_CASH_SETTLEMENT',
+          targetUserId: agentId,
+          createdAt: {
+            gte: timeWindowStart,
+            lte: timeWindowEnd
+          }
+        }
+      });
+
+      // 4. Log the undo action
+      await tx.adminLog.create({
+        data: {
+          adminId: admin.id,
+          targetUserId: agentId,
+          action: 'UNDO_COLLECTION',
+          details: { undoneSettlementId: lastSettlement.id },
+        }
+      });
+    });
+
+    res.json({ success: true, message: 'Successfully undid the last collection.' });
+  } catch (err: any) {
+    logger.error('[Undo Collect]', err);
+    res.status(500).json({ error: 'Failed to undo collection' });
+  }
+});
+
 staffRouter.post('/users/:id/promote', restrictToAdmin, async (req, res) => {
   const admin = (req as any).user;
   const { promoteToAgent } = await import('../services/user.service');
