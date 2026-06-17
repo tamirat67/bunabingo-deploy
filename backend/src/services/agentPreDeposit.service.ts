@@ -143,8 +143,27 @@ export async function debitAgentCommissionForGame(
     return null;
   }
 
-  // Commission is calculated ONLY on real player ticket sales (NOT bots)
-  const totalRealSales = ticketPrice.mul(realTicketCount);
+  // Commission is calculated ONLY on real cash spent by real players (NOT bots, NOT bonus ETB)
+  const realPurchases = await prisma.transaction.findMany({
+    where: { 
+      type: 'TICKET_PURCHASE', 
+      referenceId: gameId, 
+      status: { in: ['completed', 'COMPLETED'] }, 
+      user: { isBot: false } 
+    },
+    select: { balanceBefore: true, balanceAfter: true }
+  });
+
+  let totalRealSales = new Decimal(0);
+  for (const tx of realPurchases) {
+    const cashSpent = tx.balanceBefore.sub(tx.balanceAfter);
+    totalRealSales = totalRealSales.add(cashSpent);
+  }
+
+  if (totalRealSales.lte(0)) {
+    logger.info(`[Commission] Game ${gameId}: real players used only bonus balance, skipping pre-deposit debit.`);
+    return null;
+  }
 
   // 3. Find the agent for this game from REAL player referrals
   //    (bots don't have referrers — we attribute sales to the real-player agent)

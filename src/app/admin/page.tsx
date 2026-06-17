@@ -465,7 +465,7 @@ function DashboardContent() {
           <div className="card-body">
             <div className="card-label">COMPANY REVENUE</div>
             <div className="card-value">{companyRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB</div>
-            <div className="card-subtext">{companyRevenueRate}% of Real Stake</div>
+            <div className="card-subtext">✅ {companyRevenueRate}% of Real Cash · Bonus excluded</div>
           </div>
         </div>
 
@@ -479,7 +479,7 @@ function DashboardContent() {
           <div className="card-body">
             <div className="card-label">AGENT REVENUE</div>
             <div className="card-value">{agentRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB</div>
-            <div className="card-subtext">{agentRevenueRate}% of Real Stake</div>
+            <div className="card-subtext">✅ {agentRevenueRate}% of Real Cash · Bonus excluded</div>
           </div>
         </div>
 
@@ -536,32 +536,39 @@ function DashboardContent() {
           marginBottom: '20px',
           boxShadow: '0 2px 12px rgba(0,0,0,0.04)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '20px' }}>
             <span style={{ fontSize: '13px', fontWeight: '900', color: '#3d2b1f', textTransform: 'uppercase', letterSpacing: '1px' }}>
               📊 Real Money Accounting (All Time)
+            </span>
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: '5px',
+              background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '999px',
+              padding: '3px 10px', fontSize: '11px', fontWeight: '700', color: '#16a34a'
+            }}>
+              ✅ Real deposited cash only · Bonus ETB excluded
             </span>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
             {/* Real Gross Sales */}
             <div style={{ background: '#f0fdf4', borderRadius: '14px', padding: '16px', border: '1px solid #bbf7d0' }}>
-              <div style={{ fontSize: '10px', fontWeight: '900', color: '#059669', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>✅ Real Gross Sales</div>
+              <div style={{ fontSize: '10px', fontWeight: '900', color: '#059669', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>✅ Real Gross Sales (Cash Only)</div>
               <div style={{ fontSize: '22px', fontWeight: '900', color: '#065f46' }}>{realGrossSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-              <div style={{ fontSize: '11px', color: '#059669', marginTop: '4px' }}>ETB — from real players</div>
+              <div style={{ fontSize: '11px', color: '#059669', marginTop: '4px' }}>ETB · deposits only · bonus excluded</div>
             </div>
 
             {/* Real Company Revenue (dynamic) */}
             <div style={{ background: '#f0fdf4', borderRadius: '14px', padding: '16px', border: '1px solid #86efac' }}>
-              <div style={{ fontSize: '10px', fontWeight: '900', color: '#16a34a', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>✅ Company Revenue ({companyRevenueRate}%)</div>
+              <div style={{ fontSize: '10px', fontWeight: '900', color: '#16a34a', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>✅ Company Revenue ({companyRevenueRate}%) · Cash Only</div>
               <div style={{ fontSize: '22px', fontWeight: '900', color: '#14532d' }}>{realCompanyRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-              <div style={{ fontSize: '11px', color: '#16a34a', marginTop: '4px' }}>ETB — {companyRevenueRate}% of real gross (all-time)</div>
+              <div style={{ fontSize: '11px', color: '#16a34a', marginTop: '4px' }}>ETB · {companyRevenueRate}% of real cash (all-time)</div>
             </div>
 
             {/* Real Agent Revenue (dynamic) */}
             <div style={{ background: '#eff6ff', borderRadius: '14px', padding: '16px', border: '1px solid #93c5fd' }}>
-              <div style={{ fontSize: '10px', fontWeight: '900', color: '#2563eb', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>✅ Agent Revenue ({agentRevenueRate}%)</div>
+              <div style={{ fontSize: '10px', fontWeight: '900', color: '#2563eb', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>✅ Agent Revenue ({agentRevenueRate}%) · Cash Only</div>
               <div style={{ fontSize: '22px', fontWeight: '900', color: '#1e3a8a' }}>{realAgentRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-              <div style={{ fontSize: '11px', color: '#2563eb', marginTop: '4px' }}>ETB — {agentRevenueRate}% of real gross (all-time)</div>
+              <div style={{ fontSize: '11px', color: '#2563eb', marginTop: '4px' }}>ETB · {agentRevenueRate}% of real cash (all-time)</div>
             </div>
           </div>
         </div>

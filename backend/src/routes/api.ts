@@ -1377,7 +1377,8 @@ staffRouter.get('/company-profit', staffMiddleware, async (req, res) => {
       const [ticketSalesAgg, depositsAgg, withdrawalsAgg, botDebtAddedAgg, botDebtSettledAgg] = await Promise.all([
         prisma.transaction.aggregate({
           where: { type: 'TICKET_PURCHASE', status: { in: ['completed', 'COMPLETED'] }, userId: { in: realPlayerIds }, ...agentDateFilter },
-          _sum: { amount: true },
+          // Use balanceBefore/After to compute real cash sales (excluding bonus ETB)
+          _sum: { amount: true, balanceBefore: true, balanceAfter: true },
         }),
         prisma.deposit.aggregate({
           where: { status: { in: ['APPROVED', 'approved', 'COMPLETED', 'completed'] }, userId: { in: realPlayerIds }, ...agentDateFilter },
@@ -1397,7 +1398,8 @@ staffRouter.get('/company-profit', staffMiddleware, async (req, res) => {
         }),
       ]);
 
-      const totalTicketSales = Number(ticketSalesAgg._sum.amount || 0);
+      // Real cash spent on tickets only (excludes bonus ETB)
+      const totalTicketSales = Number(ticketSalesAgg._sum.balanceBefore || 0) - Number(ticketSalesAgg._sum.balanceAfter || 0);
       const totalDeposited = Number(depositsAgg._sum.amount || 0);
       const totalWithdrawn = Number(withdrawalsAgg._sum.amount || 0);
       const botDebtAdded = Number(botDebtAddedAgg._sum.amount || 0);
@@ -1559,7 +1561,8 @@ staffRouter.get('/agents/:id/report', staffMiddleware, async (req, res) => {
       }),
       prisma.transaction.aggregate({
         where: { type: 'TICKET_PURCHASE', status: { in: ['completed', 'COMPLETED'] }, userId: { in: referredUserIds }, ...dateFilter },
-        _sum: { amount: true }, _count: { id: true },
+        // Use balanceBefore/After to compute real cash only (excludes bonus ETB)
+        _sum: { amount: true, balanceBefore: true, balanceAfter: true }, _count: { id: true },
       }),
       prisma.withdrawal.aggregate({
         where: { status: { in: ['APPROVED', 'COMPLETED', 'approved', 'completed'] }, userId: { in: referredUserIds }, ...dateFilter },
@@ -1637,7 +1640,8 @@ staffRouter.get('/agents/:id/report', staffMiddleware, async (req, res) => {
 
     // Core financial calculations
     const totalDeposited     = Number(totalDepositsAgg._sum.amount || 0);
-    const totalTicketSales   = Number(totalTicketSalesAgg._sum.amount || 0);
+    // Real cash only — excludes bonus ETB spent on tickets
+    const totalTicketSales   = Number(totalTicketSalesAgg._sum.balanceBefore || 0) - Number(totalTicketSalesAgg._sum.balanceAfter || 0);
     const totalWithdrawn     = Number(totalWithdrawalsAgg._sum.amount || 0);
     const totalPrizesWon     = Number(realPlayerPrizesAgg._sum.amount || 0);
     const pendingDeposits    = Number(pendingDepositsAgg._sum.amount || 0);
@@ -1675,10 +1679,11 @@ staffRouter.get('/agents/:id/report', staffMiddleware, async (req, res) => {
         }),
         prisma.transaction.aggregate({
           where: { type: 'TICKET_PURCHASE', status: { in: ['completed', 'COMPLETED'] }, userId: { in: referredUserIds }, createdAt: { gte: start, lte: end } },
-          _sum: { amount: true },
+          _sum: { amount: true, balanceBefore: true, balanceAfter: true },
         }),
       ]);
-      const mTicketAmount = Number(mTickets._sum.amount || 0);
+      // Real cash only per month — excludes bonus ETB
+      const mTicketAmount = Number(mTickets._sum.balanceBefore || 0) - Number(mTickets._sum.balanceAfter || 0);
       monthlyTrend.push({
         month: label,
         deposits: Number(mDep._sum.amount || 0),
@@ -2282,7 +2287,7 @@ staffRouter.get('/analytics', staffMiddleware, async (req, res) => {
       user: { isBot: false },
       ...(agentIds ? { user: { referredBy: { in: agentIds }, isBot: false } } : {})
     },
-    _sum: { amount: true }
+    _sum: { amount: true, balanceBefore: true, balanceAfter: true }
   });
   // Bot sales = ticket purchases by bot users (synthetic/fake stake)
   const botSalesAgg = await prisma.transaction.aggregate({
@@ -2315,7 +2320,8 @@ staffRouter.get('/analytics', staffMiddleware, async (req, res) => {
     _count: { id: true },
   });
 
-  const realGrossSales = Number(realSalesAgg._sum.amount || 0);
+  const realGrossSalesCash = Number(realSalesAgg._sum.balanceBefore || 0) - Number(realSalesAgg._sum.balanceAfter || 0);
+  const realGrossSales = realGrossSalesCash; // Use true cash calculation
   const botGrossSales  = Number(botSalesAgg._sum.amount || 0);
   
   const realPlayerWinnings = Number(realPlayerWinningsAgg._sum.amount || 0);
@@ -2354,9 +2360,9 @@ staffRouter.get('/analytics', staffMiddleware, async (req, res) => {
       createdAt: { gte: todayStart, lte: todayEnd },
       ...(agentIds ? { user: { referredBy: { in: agentIds }, isBot: false } } : {})
     },
-    _sum: { amount: true }
+    _sum: { amount: true, balanceBefore: true, balanceAfter: true }
   });
-  const todayRealSales = Number(todayRealSalesAgg._sum.amount || 0);
+  const todayRealSales = Number(todayRealSalesAgg._sum.balanceBefore || 0) - Number(todayRealSalesAgg._sum.balanceAfter || 0);
   const todayCompanyRevenue = todayRealSales * COMPANY_RATE;
   const todayAgentRevenue   = todayRealSales * AGENT_RATE;
 
@@ -2445,10 +2451,10 @@ staffRouter.get('/bot-analytics', restrictToAdmin, async (req, res) => {
         where: { type: 'TICKET_PURCHASE', status: 'COMPLETED', user: { isBot: true } },
         _sum: { amount: true }
       }),
-      // Sum of ETB real player tickets represent
+      // Sum of ETB real player tickets represent (real cash only — excludes bonus ETB)
       prisma.transaction.aggregate({
         where: { type: 'TICKET_PURCHASE', status: 'COMPLETED', user: { isBot: false } },
-        _sum: { amount: true }
+        _sum: { amount: true, balanceBefore: true, balanceAfter: true }
       }),
       // Total all sales
       prisma.transaction.aggregate({
@@ -2476,7 +2482,8 @@ staffRouter.get('/bot-analytics', restrictToAdmin, async (req, res) => {
     ]);
 
     const totalBotSales = Number(totalBotSalesAgg._sum.amount || 0);
-    const totalRealSales = Number(totalRealSalesAgg._sum.amount || 0);
+    // Real sales = real cash only (balanceBefore - balanceAfter), excluding bonus ETB
+    const totalRealSales = Number(totalRealSalesAgg._sum.balanceBefore || 0) - Number(totalRealSalesAgg._sum.balanceAfter || 0);
     const totalAllSales = Number(totalAllSalesAgg._sum.amount || 0);
     // House bot win COUNT from gameCycle tracker
     const botWinPayouts = Number(houseBotWinsAgg._sum.houseWins || 0);
@@ -2511,11 +2518,12 @@ staffRouter.get('/bot-analytics', restrictToAdmin, async (req, res) => {
           }),
           prisma.transaction.aggregate({
             where: { type: 'TICKET_PURCHASE', status: 'COMPLETED', user: { isBot: false }, createdAt: { gte: start, lte: end } },
-            _sum: { amount: true }
+            _sum: { amount: true, balanceBefore: true, balanceAfter: true }
           }),
         ]);
         const dayBotSales  = Number(dayBotSalesAgg._sum.amount || 0);
-        const dayRealSales = Number(dayRealSalesAgg._sum.amount || 0);
+        // Real cash only for each day — excludes bonus ETB used
+        const dayRealSales = Number(dayRealSalesAgg._sum.balanceBefore || 0) - Number(dayRealSalesAgg._sum.balanceAfter || 0);
         return {
           label,
           botSales: dayBotSales,
@@ -2614,8 +2622,8 @@ staffRouter.get('/audit', restrictToAdmin, async (req, res) => {
       prisma.withdrawal.aggregate({ where: { status: { in: ['approved', 'APPROVED', 'completed', 'COMPLETED'] } }, _sum: { amount: true } }),
       getCompanyCommissionRate(),
       getAgentProfitRate(),
-      // Fix: status lowercase
-      prisma.transaction.aggregate({ where: { type: 'TICKET_PURCHASE', status: { in: ['completed', 'COMPLETED'] }, user: { isBot: false } }, _sum: { amount: true } }),
+      // Fix: status lowercase — also fetch balanceBefore/After to calculate real cash only
+      prisma.transaction.aggregate({ where: { type: 'TICKET_PURCHASE', status: { in: ['completed', 'COMPLETED'] }, user: { isBot: false } }, _sum: { amount: true, balanceBefore: true, balanceAfter: true } }),
       prisma.transaction.aggregate({ where: { type: 'TICKET_PURCHASE', status: { in: ['completed', 'COMPLETED'] }, user: { isBot: true } }, _sum: { amount: true } }),
       prisma.agentPreDepositWallet.aggregate({ _sum: { totalRecharged: true, totalDebited: true, balance: true } }),
       // Real player prize wins paid out
@@ -2623,7 +2631,8 @@ staffRouter.get('/audit', restrictToAdmin, async (req, res) => {
     ]);
 
     const totalSales = Number(totalSalesAgg._sum.amount || 0);
-    const realPlayerSales = Number(realSalesAgg._sum.amount || 0);
+    // Real player sales = real cash only (excludes bonus ETB used for tickets)
+    const realPlayerSales = Number(realSalesAgg._sum.balanceBefore || 0) - Number(realSalesAgg._sum.balanceAfter || 0);
     const botSales = Number(botSalesAgg._sum.amount || 0);
     const totalCommissionsDeducted = Number(commissionsAgg._sum.amount || 0);
     const expectedCommissions = realPlayerSales * rate;

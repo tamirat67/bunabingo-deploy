@@ -210,7 +210,7 @@ export default function AgentReportPage() {
         `Agent's 20% share\nየወኪሉ 20% ድርሻ`
       ],
       [
-        'REAL TICKET SALES\nትክክለኛ የቲኬት ሽያጭ',
+        'REAL TICKET SALES (CASH ONLY)\nትክክለኛ የቲኬት ሽያጭ',
         `${fmt(stats.totalTicketSales)} ETB`,
         `Total cash from real players\nከትክክለኛ ተጫዋቾች የተሰበሰበ`
       ],
@@ -466,8 +466,12 @@ export default function AgentReportPage() {
         <div style={{ fontSize: '12px', fontWeight: '800', color: '#d4af37', letterSpacing: '2px', marginBottom: '6px', textTransform: 'uppercase' }}>
           💰 Branch Profit Breakdown — {timeRange === 'all' ? 'All Time' : timeRange === 'today' ? 'Today' : timeRange === 'week' ? 'Last 7 Days' : 'Last 30 Days'}
         </div>
-        <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.55)', marginBottom: '28px' }}>
+        <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.55)', marginBottom: '12px' }}>
           Agent earns <strong style={{ color: '#d4af37' }}>20%</strong> of all real ticket sales · Company earns <strong style={{ color: '#fbbf24' }}>80%</strong>
+        </div>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', padding: '6px 12px', borderRadius: '8px', marginBottom: '28px' }}>
+          <FiCheckCircle size={14} style={{ color: '#4ade80' }} />
+          <span style={{ fontSize: '12px', color: '#4ade80', fontWeight: '700' }}>Real Cash Only — Bonus ETB is strictly excluded.</span>
         </div>
 
         {/* Massive Expected Profit Sum */}
@@ -502,7 +506,7 @@ export default function AgentReportPage() {
 
           {/* Real Ticket Sales (Base) */}
           <div style={{ background: 'rgba(255,255,255,0.07)', borderRadius: '14px', padding: '16px', border: '1px solid rgba(255,255,255,0.1)' }}>
-            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', fontWeight: '800', letterSpacing: '1px', marginBottom: '6px' }}>REAL TICKET SALES</div>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', fontWeight: '800', letterSpacing: '1px', marginBottom: '6px' }}>REAL TICKET SALES (CASH ONLY)</div>
             <div style={{ fontSize: '24px', fontWeight: '900', color: 'white' }}>{fmt(stats.totalTicketSales)}</div>
             <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', marginTop: '4px' }}>{fmtInt(stats.totalTicketsCount)} tickets sold</div>
           </div>
@@ -575,7 +579,7 @@ export default function AgentReportPage() {
               <table className="premium-table" style={{ marginTop: '12px' }}>
                 <tbody>
                   <tr>
-                    <td style={{ color: '#8c857b' }}>Real Ticket Sales (Base)</td>
+                    <td style={{ color: '#8c857b' }}>Real Ticket Sales (Deposited Cash Only — Bonus Excluded)</td>
                     <td className="text-right" style={{ fontWeight: '800', color: '#15803d' }}>{fmt(stats.totalTicketSales)} ETB</td>
                   </tr>
                   <tr>

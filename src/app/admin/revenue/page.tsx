@@ -204,23 +204,23 @@ export default function RevenuePage() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: '16px', marginBottom: '32px' }}>
         <KpiCard
           icon={<FiDollarSign size={18} />}
-          label="Real Company Revenue"
+          label="Real Company Revenue (Cash Only)"
           value={`${fmt(realCompanyRevenue)} ETB`}
-          sub={`✅ ${companyRevRate}% of real player sales — actual profit`}
+          sub={`✅ ${companyRevRate}% of real cash deposits · bonus ETB excluded`}
           accent="#22c55e"
         />
         <KpiCard
           icon={<FiTrendingUp size={18} />}
-          label="Real Gross Sales"
+          label="Real Gross Sales (Cash Only)"
           value={`${fmt(totalRealSales)} ETB`}
-          sub={`${realPct.toFixed(1)}% of total volume`}
+          sub={`✅ Deposited cash only · bonus ETB excluded · ${realPct.toFixed(1)}% of total volume`}
           accent="#3b82f6"
         />
         <KpiCard
           icon={<FiUsers size={18} />}
-          label="Agent Revenue"
+          label="Agent Revenue (Cash Only)"
           value={`${fmt(realAgentRevenue)} ETB`}
-          sub={`✅ ${agentRevRate}% of real player sales — actual agent share`}
+          sub={`✅ ${agentRevRate}% of real deposited sales · bonus excluded`}
           accent="#8b5cf6"
         />
         <KpiCard
@@ -439,7 +439,7 @@ export default function RevenuePage() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
             <thead>
               <tr style={{ borderBottom: '2px solid #f0ede8' }}>
-                {['Day', 'Real Sales', 'Bot Sales (Synthetic)', `Company Rev (${companyRevRate}%)`, `Agent Rev (${agentRevRate}%)`].map(h => (
+                {['Day', 'Real Sales (Cash Only)', 'Bot Sales (Synthetic)', `Company Rev (${companyRevRate}%)`, `Agent Rev (${agentRevRate}%)`].map(h => (
                   <th key={h} style={{ textAlign: h === 'Day' ? 'left' : 'right', padding: '10px 14px', fontSize: '10px', fontWeight: '900', color: '#8c857b', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>
                     {h}
                   </th>

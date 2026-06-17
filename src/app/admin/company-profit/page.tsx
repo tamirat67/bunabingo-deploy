@@ -106,6 +106,13 @@ export default function CompanyProfitPage() {
             <p style={{ color: '#78716c', margin: '6px 0 0', fontSize: '14px' }}>
               Company earns <strong style={{ color: '#d4af37' }}>{fmtPct(companyRate)}</strong> of all ticket sales + Bot Winnings · Agent earns <strong>{fmtPct(agentRate)}</strong>
             </p>
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '8px',
+              background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '999px',
+              padding: '4px 12px', fontSize: '12px', fontWeight: '700', color: '#16a34a'
+            }}>
+              ✅ All ticket sales = Real deposited cash only — bonus ETB excluded from all profit calculations
+            </div>
           </div>
 
           {/* Time Filter */}
@@ -167,9 +174,9 @@ export default function CompanyProfitPage() {
             <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>ETB to collect in cash</div>
           </div>
           <div style={{ background: 'rgba(16,185,129,0.15)', borderRadius: '14px', padding: '16px', border: '1px solid rgba(16,185,129,0.3)' }}>
-            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.55)', fontWeight: '800', letterSpacing: '1px', marginBottom: '6px' }}>TOTAL TICKET SALES</div>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.55)', fontWeight: '800', letterSpacing: '1px', marginBottom: '6px' }}>TOTAL TICKET SALES (REAL CASH)</div>
             <div style={{ fontSize: '22px', fontWeight: '900', color: '#6ee7b7' }}>{fmt(totals.totalTicketSales)}</div>
-            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>ETB across all branches</div>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>ETB real deposits only · bonus excluded</div>
           </div>
           <div style={{ background: 'rgba(59,130,246,0.15)', borderRadius: '14px', padding: '16px', border: '1px solid rgba(59,130,246,0.3)' }}>
             <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.55)', fontWeight: '800', letterSpacing: '1px', marginBottom: '6px' }}>REAL MONEY DEPOSITED</div>
@@ -199,8 +206,8 @@ export default function CompanyProfitPage() {
               <tr>
                 <th>Agent</th>
                 <th style={{ textAlign: 'right' }}>Real Deposits</th>
-                <th style={{ textAlign: 'right' }}>Ticket Sales</th>
-                <th style={{ textAlign: 'right', color: '#d4af37' }}>Company Share ({fmtPct(companyRate)})</th>
+                <th style={{ textAlign: 'right' }}>Ticket Sales <span style={{ fontSize: '10px', color: '#10b981', fontWeight: '700' }}>(Cash Only)</span></th>
+                <th style={{ textAlign: 'right', color: '#d4af37' }}>Company Share ({fmtPct(companyRate)}) <span style={{ fontSize: '10px', color: '#10b981' }}>✅ Real</span></th>
                 <th style={{ textAlign: 'right', color: '#ef4444' }}>Bot Winnings</th>
                 <th style={{ textAlign: 'right', color: '#ef4444' }}>Outstanding Debt</th>
                 <th style={{ textAlign: 'right' }}>Net Cash Flow</th>

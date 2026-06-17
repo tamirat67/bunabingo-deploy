@@ -47,7 +47,7 @@ router.get('/stats', async (req: Request, res: Response) => {
         where: { user: { referredBy: agent.id, isBot: false }, status: 'approved' },
         _sum: { amount: true }
       }),
-      // Total Sales = Total spent on tickets by REAL players under this agent during selected date
+      // Total Sales = Real cash spent by REAL players (balanceBefore - balanceAfter, excludes bonus ETB)
       prisma.transaction.aggregate({
         where: { 
           user: { referredBy: agent.id, isBot: false }, 
@@ -55,7 +55,7 @@ router.get('/stats', async (req: Request, res: Response) => {
           status: { in: ['completed', 'COMPLETED'] },
           createdAt: { gte: todayStart, lte: todayEnd }
         },
-        _sum: { amount: true }
+        _sum: { amount: true, balanceBefore: true, balanceAfter: true }
       }),
       // Net Commission Paid = Total company commission amounts debited from agent's pre-deposit wallet during selected date
       prisma.agentCommissionLog.aggregate({
@@ -98,7 +98,9 @@ router.get('/stats', async (req: Request, res: Response) => {
     const outstandingBotDebt = Decimal.max(0, botDebtAdded.sub(botDebtSettled));
 
 
-    const totalSales = totalSalesAgg._sum.amount || new Decimal(0);
+    const totalSales = new Decimal(
+      (Number(totalSalesAgg._sum.balanceBefore || 0) - Number(totalSalesAgg._sum.balanceAfter || 0)).toString()
+    );
     const netCommissionPaid = totalCommissionPaidAgg._sum.amount || new Decimal(0);
     
     // Agent Take-Home = Total Sales * Agent Profit Rate

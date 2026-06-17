@@ -55,8 +55,20 @@ export default function AdminAuditPage() {
           <span style={{ fontSize: '28px' }}>🔍</span> System Audit
         </h1>
         <p style={{ color: '#8c857b', marginTop: '8px', fontSize: '14px', lineHeight: '1.6' }}>
-          Real-time financial verification. Commission is charged <strong>only on real player sales</strong> — house bot purchases are synthetic and excluded.
+          Real-time financial verification. Commission is charged <strong>only on real player cash sales</strong> — bonus ETB and house bot purchases are excluded.
         </p>
+        {/* Cash-only banner */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '10px', marginTop: '12px',
+          background: 'linear-gradient(90deg, #f0fdf4, #dcfce7)', border: '1px solid #86efac',
+          borderRadius: '12px', padding: '10px 16px'
+        }}>
+          <span style={{ fontSize: '18px' }}>✅</span>
+          <div>
+            <div style={{ fontSize: '13px', fontWeight: '800', color: '#15803d' }}>All profit metrics use Real Cash Only</div>
+            <div style={{ fontSize: '12px', color: '#4ade80' }}>Bonus ETB spent on tickets is fully excluded from company revenue, agent earnings, and commission calculations.</div>
+          </div>
+        </div>
       </div>
 
       {/* ─── COMPANY REAL PROFIT (TOP HERO) ─── */}
@@ -130,9 +142,9 @@ export default function AdminAuditPage() {
             <span className="card-pill" style={{ background: 'rgba(34,197,94,0.1)', color: '#22c55e' }}>✅ Real Cash</span>
           </div>
           <div className="card-body">
-            <div className="card-label">REAL PLAYER SALES</div>
+            <div className="card-label">REAL PLAYER SALES (CASH ONLY)</div>
             <div className="card-value" style={{ fontSize: '22px', color: '#15803d' }}>{fmt(data.realPlayerSales)} ETB</div>
-            <div className="card-subtext">Commission base (non-bot tickets)</div>
+            <div className="card-subtext">Deposited ETB only · bonus balance excluded</div>
           </div>
         </div>
 

@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   FiCheck, FiX, FiEye, FiArrowUpRight, FiArrowDownLeft,
-  FiClock, FiCreditCard, FiRefreshCw, FiSearch, FiFilter
+  FiClock, FiCreditCard, FiRefreshCw, FiSearch, FiFilter, FiCheckCircle
 } from 'react-icons/fi';
 import api from '@/lib/api';
 import { Pagination } from '@/components/Pagination';
@@ -180,6 +180,12 @@ export default function TransactionsPage() {
       <div style={{ marginBottom: '28px' }}>
         <h1 style={{ fontSize: '28px', fontWeight: '900', color: '#3d2b1f', margin: 0 }}>Financial Hub</h1>
         <p style={{ color: '#78716c', margin: '4px 0 0', fontSize: '14px' }}>Authorize payments and audit full transaction history</p>
+        <div style={{ marginTop: '16px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '12px', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <FiCheckCircle size={18} style={{ color: '#16a34a' }} />
+          <span style={{ fontSize: '13px', color: '#166534', fontWeight: '600' }}>
+            <strong>✅ Real Money Accounting:</strong> All calculations in this hub represent strictly real cash deposited. Bonus ETB is strictly excluded.
+          </span>
+        </div>
       </div>
 
       {/* ── Row 1: Pending + Cash Flow ── */}

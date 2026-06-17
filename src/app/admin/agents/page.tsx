@@ -351,7 +351,7 @@ export default function AgentsPage() {
 
     // 4 summary boxes (centered below formula)
     const boxData = [
-      { label: 'TOTAL TICKET SALES', value: fmt(totals.totalTicketSales || 0) + ' ETB' },
+      { label: 'TOTAL TICKET SALES (CASH ONLY)', value: fmt(totals.totalTicketSales || 0) + ' ETB' },
       { label: 'COMPANY SHARE', value: fmt(totals.companyShare || 0) + ' ETB' },
       { label: 'AGENT EARNED (Total)', value: fmt(totals.agentEarned || 0) + ' ETB' },
       { label: 'BOT WINNINGS (Total)', value: fmt(totals.botDebtAdded || 0) + ' ETB' },
@@ -538,7 +538,7 @@ export default function AgentsPage() {
               <th>Referral Code / Link</th>
               <th>Branch Players</th>
               <th>Pre-Deposit Balance</th>
-              <th style={{ textAlign: 'right' }}>Net Cash Flow</th>
+              <th style={{ textAlign: 'right' }}>Net Cash Flow (Cash Only)</th>
               <th style={{ textAlign: 'right' }}>Outstanding Debt</th>
               <th style={{ textAlign: 'right' }}>Actions</th>
             </tr>

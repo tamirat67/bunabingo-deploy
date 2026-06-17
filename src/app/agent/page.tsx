@@ -253,7 +253,7 @@ function AgentDashboardContent() {
             <span className="card-pill" style={{ color: '#0ea5e9', background: 'rgba(14,165,233,0.1)' }}>Today</span>
           </div>
           <div className="card-body">
-            <div className="card-label">TOTAL STAKE</div>
+            <div className="card-label">TOTAL STAKE (CASH ONLY)</div>
             <div className="card-value">{globalSales.toLocaleString()} ETB</div>
             <div className="card-subtext">Real Player Bets</div>
           </div>
@@ -267,7 +267,7 @@ function AgentDashboardContent() {
           <div className="card-body">
             <div className="card-label">YOUR EARNINGS</div>
             <div className="card-value" style={{ color: '#d4af37' }}>{agentRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB</div>
-            <div className="card-subtext">{agentRatePct}% of Real Stake</div>
+            <div className="card-subtext">{agentRatePct}% of Real Stake (Cash Only)</div>
           </div>
         </div>
 
@@ -369,7 +369,7 @@ function AgentDashboardContent() {
             <h3 style={{ fontSize: '16px', fontWeight: '900', color: '#3d2b1f', margin: 0 }}>Commission Breakdown</h3>
           </div>
           <p style={{ fontSize: '12px', color: '#8c857b', marginBottom: '16px', lineHeight: '1.5' }}>
-            House margin on real stakes — your share is {agentRatePct}%.
+            House margin on real cash stakes — your share is {agentRatePct}%. Bonus ETB is not commissionable.
           </p>
 
           {/* Visual flow — dynamic from settings */}
