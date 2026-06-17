@@ -267,8 +267,8 @@ export default function CompanyProfitPage() {
                         <button
                           onClick={() => {
                             setSelectedAgent(agent);
-                            // Pre-fill with outstanding debt if there is any, else 0
-                            setCollectAmount(agent.outstandingBotDebt.toString());
+                            // Pre-fill with the total expected cash (bot debt + company share)
+                            setCollectAmount((agent.outstandingBotDebt + agent.companyShare).toString());
                             setCollectModalOpen(true);
                           }}
                           style={{
@@ -364,9 +364,20 @@ export default function CompanyProfitPage() {
               Collecting cash from <strong>{selectedAgent.agentName}</strong> will <strong>reset their dashboard</strong> to start a fresh period.
             </p>
 
-            <div style={{ background: '#fef2f2', border: '1px solid #fecaca', padding: '16px', borderRadius: '12px', marginBottom: '20px' }}>
-              <div style={{ fontSize: '12px', fontWeight: '800', color: '#ef4444', marginBottom: '4px' }}>OUTSTANDING BOT DEBT</div>
-              <div style={{ fontSize: '24px', fontWeight: '900', color: '#b91c1c' }}>{fmt(selectedAgent.outstandingBotDebt)} ETB</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+              <div style={{ background: '#fffbeb', border: '1px solid #fde68a', padding: '12px', borderRadius: '12px' }}>
+                <div style={{ fontSize: '11px', fontWeight: '800', color: '#d97706', marginBottom: '4px' }}>COMPANY SHARE ({fmtPct(companyRate)})</div>
+                <div style={{ fontSize: '18px', fontWeight: '900', color: '#b45309' }}>{fmt(selectedAgent.companyShare)} ETB</div>
+              </div>
+              <div style={{ background: '#fef2f2', border: '1px solid #fecaca', padding: '12px', borderRadius: '12px' }}>
+                <div style={{ fontSize: '11px', fontWeight: '800', color: '#ef4444', marginBottom: '4px' }}>OUTSTANDING BOT DEBT</div>
+                <div style={{ fontSize: '18px', fontWeight: '900', color: '#b91c1c' }}>{fmt(selectedAgent.outstandingBotDebt)} ETB</div>
+              </div>
+            </div>
+            
+            <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '16px', borderRadius: '12px', marginBottom: '20px' }}>
+              <div style={{ fontSize: '12px', fontWeight: '800', color: '#16a34a', marginBottom: '4px' }}>TOTAL EXPECTED COLLECTION</div>
+              <div style={{ fontSize: '24px', fontWeight: '900', color: '#15803d' }}>{fmt(selectedAgent.outstandingBotDebt + selectedAgent.companyShare)} ETB</div>
             </div>
 
             <form onSubmit={handleCollectCash}>
