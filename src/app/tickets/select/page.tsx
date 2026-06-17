@@ -1221,7 +1221,19 @@ const balance = Number(user?.wallet?.balance || 0);
     displayPlayerCount = simulatedBotCount + Math.max(realPlayers, localHumanPending);
   }
 
-  const totalStake = displayPlayerCount * stake;
+  // Total cards = simulated bots (1 each) + real player cards taken so far
+  // Add `selected.length` if the user hasn't bought them yet to show accurate preview
+  let totalVisualCards = 0;
+  if (isGameRunning) {
+    totalVisualCards = game?.tickets?.length || serverReportedPlayers;
+  } else {
+    const unboughtSelected = selected.filter(id => !ownedCardIds.includes(id)).length;
+    totalVisualCards = simulatedBotCount + occupied.length + unboughtSelected;
+    // Fallback if somehow it's less than players
+    totalVisualCards = Math.max(totalVisualCards, displayPlayerCount);
+  }
+
+  const totalStake = totalVisualCards * stake;
 
   // House edge: 30% of total stake
   const houseEdge = Math.round(totalStake * 0.30);
