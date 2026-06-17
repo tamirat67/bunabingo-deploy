@@ -14,6 +14,8 @@ function DashboardContent() {
   const [user, setUser] = useState<any>(null);
   const [agents, setAgents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fixRunning, setFixRunning] = useState(false);
+  const [fixResult, setFixResult] = useState<any>(null);
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -102,6 +104,21 @@ function DashboardContent() {
     setMaxDate('');
     setFilterAgent('');
     router.push('/admin');
+  };
+
+  const runHistoricalFix = async () => {
+    if (!confirm('⚠️ This will scan ALL historical games and refund agents for any bonus ETB that was mistakenly charged as real cash. This is a one-time correction. Proceed?')) return;
+    setFixRunning(true);
+    setFixResult(null);
+    try {
+      const res = await api.post('/admin/fix-historical-bonus');
+      setFixResult(res.data);
+      alert(`✅ Correction complete!\n\nRefunded to agent wallets: ${res.data.summary.totalPhysicalRefunded}\nBot debt reduced: ${res.data.summary.totalBotDebtReduced}\nTotal corrections: ${res.data.summary.totalCorrections}`);
+    } catch (err: any) {
+      alert('❌ Fix failed: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setFixRunning(false);
+    }
   };
 
   if (loading || !stats) {
@@ -360,6 +377,56 @@ function DashboardContent() {
       )}
 
 
+
+      {/* ── Retroactive Bonus Fix Banner (Admin only) ── */}
+      {isAdmin && (
+        <div style={{
+          background: 'linear-gradient(135deg, #451a03, #7c2d12)',
+          border: '1px solid rgba(249,115,22,0.4)',
+          borderRadius: '16px',
+          padding: '18px 24px',
+          marginBottom: '24px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '16px',
+        }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+              <span style={{ fontSize: '18px' }}>🛠️</span>
+              <span style={{ fontWeight: '900', fontSize: '14px', color: '#fed7aa' }}>Historical Bonus Correction</span>
+              <span style={{ background: 'rgba(249,115,22,0.2)', border: '1px solid rgba(249,115,22,0.4)', color: '#fb923c', fontSize: '10px', fontWeight: '800', padding: '2px 8px', borderRadius: '99px', letterSpacing: '1px' }}>ONE-TIME</span>
+            </div>
+            <p style={{ fontSize: '12px', color: '#fdba74', margin: 0 }}>
+              Before today's fix, bonus ETB was incorrectly counted as real cash, overcharging agents. Click to refund all agents and correct historical reports.
+            </p>
+            {fixResult && (
+              <div style={{ marginTop: '8px', fontSize: '12px', color: '#86efac', fontWeight: '700' }}>
+                ✅ Last run: Refunded {fixResult.summary.totalPhysicalRefunded} · Debt reduced {fixResult.summary.totalBotDebtReduced} · {fixResult.summary.totalCorrections} corrections made
+              </div>
+            )}
+          </div>
+          <button
+            onClick={runHistoricalFix}
+            disabled={fixRunning}
+            style={{
+              background: fixRunning ? '#6b7280' : 'linear-gradient(135deg, #ea580c, #dc2626)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '12px',
+              padding: '12px 24px',
+              fontWeight: '900',
+              fontSize: '13px',
+              cursor: fixRunning ? 'not-allowed' : 'pointer',
+              whiteSpace: 'nowrap',
+              boxShadow: '0 4px 14px rgba(234,88,12,0.4)',
+            }}
+          >
+            {fixRunning ? '⏳ Running Fix...' : '🔧 Run Historical Fix'}
+          </button>
+        </div>
+      )}
 
       {/* Prize Reserve Wallet Banner */}
       {isAdmin && (

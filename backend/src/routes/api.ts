@@ -3127,4 +3127,129 @@ router.post('/admin/house-settings', adminMiddleware, async (req: any, res) => {
   }
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ONE-TIME RETROACTIVE CORRECTION ENDPOINT
+// POST /admin/fix-historical-bonus
+// Scans all past AgentCommissionLogs and corrects amounts that were inflated
+// because bonus ETB was mistakenly counted as real cash. Refunds agent pre-deposit
+// wallets for overcharged commission and reduces inflated bot debt records.
+// ─────────────────────────────────────────────────────────────────────────────
+router.post('/admin/fix-historical-bonus', telegramAuthMiddleware, adminMiddleware, async (req: Request, res: Response) => {
+  logger.info('[FixHistorical] Starting retroactive bonus correction...');
+
+  try {
+    const logs = await prisma.agentCommissionLog.findMany({
+      where: { type: { in: ['COMMISSION_DEBIT', 'BOT_WIN_DEBT_ADDED'] } },
+      include: {
+        agentPreDepositWallet: true,
+        agent: { select: { firstName: true } }
+      }
+    });
+
+    const report: any[] = [];
+    let totalRefunded = 0;
+    let totalDebtReduced = 0;
+
+    for (const log of logs) {
+      if (!log.gameId || !log.totalSales || Number(log.totalSales) <= 0) continue;
+
+      // If the description already contains a correction note, skip it
+      if (log.description?.includes('Auto-Corrected')) continue;
+
+      let trueRealCash = 0;
+
+      if (log.type === 'COMMISSION_DEBIT') {
+        const txs = await prisma.transaction.findMany({
+          where: {
+            type: 'TICKET_PURCHASE', referenceId: log.gameId,
+            user: { isBot: false }, status: { in: ['completed', 'COMPLETED'] }
+          }
+        });
+        trueRealCash = txs.reduce((sum, tx) => sum + (Number(tx.balanceBefore) - Number(tx.balanceAfter)), 0);
+      } else if (log.type === 'BOT_WIN_DEBT_ADDED') {
+        const txs = await prisma.transaction.findMany({
+          where: {
+            type: 'TICKET_PURCHASE', referenceId: log.gameId,
+            user: { isBot: false, referredBy: log.agentId }, status: { in: ['completed', 'COMPLETED'] }
+          }
+        });
+        trueRealCash = txs.reduce((sum, tx) => sum + (Number(tx.balanceBefore) - Number(tx.balanceAfter)), 0);
+      }
+
+      const recordedSales = Number(log.totalSales);
+      if (trueRealCash >= recordedSales - 0.01) continue; // no bonus used, all clean
+
+      const rate = Number(log.amount) / recordedSales;
+      const newAmount = trueRealCash * rate;
+      const difference = Number(log.amount) - newAmount;
+
+      if (difference < 0.01) continue;
+
+      // Update the log entry
+      await prisma.agentCommissionLog.update({
+        where: { id: log.id },
+        data: {
+          totalSales: trueRealCash,
+          amount: newAmount,
+          description: (log.description || '') + ` [Auto-Corrected: -${difference.toFixed(2)} ETB from bonus adjustment]`
+        }
+      });
+
+      if (log.type === 'COMMISSION_DEBIT' && log.agentPreDepositWallet) {
+        const wallet = log.agentPreDepositWallet;
+        const newBalance = Number(wallet.balance) + difference;
+        const newTotalDebited = Math.max(0, Number(wallet.totalDebited || 0) - difference);
+
+        await prisma.agentPreDepositWallet.update({
+          where: { id: wallet.id },
+          data: { balance: newBalance, totalDebited: newTotalDebited }
+        });
+
+        totalRefunded += difference;
+        report.push({
+          type: 'REFUND',
+          agentName: log.agent.firstName,
+          gameId: log.gameId,
+          refundedETB: difference.toFixed(2),
+          note: `Commission overcharge corrected`
+        });
+        logger.info(`[FixHistorical] Refunded ${difference.toFixed(2)} ETB to ${log.agent.firstName} for game ${log.gameId}`);
+      } else if (log.type === 'BOT_WIN_DEBT_ADDED') {
+        totalDebtReduced += difference;
+        report.push({
+          type: 'DEBT_REDUCED',
+          agentName: log.agent.firstName,
+          gameId: log.gameId,
+          reducedETB: difference.toFixed(2),
+          note: `Bot debt overcharge corrected`
+        });
+        logger.info(`[FixHistorical] Reduced bot debt ${difference.toFixed(2)} ETB for ${log.agent.firstName} game ${log.gameId}`);
+      }
+    }
+
+    await prisma.adminLog.create({
+      data: {
+        adminId: req.user!.id,
+        action: 'FIX_HISTORICAL_BONUS_REPORTS',
+        details: { totalRefunded: totalRefunded.toFixed(2), totalDebtReduced: totalDebtReduced.toFixed(2), corrections: report.length }
+      }
+    });
+
+    logger.info(`[FixHistorical] Done. Refunded ${totalRefunded.toFixed(2)} ETB, reduced debt ${totalDebtReduced.toFixed(2)} ETB, ${report.length} corrections.`);
+
+    res.json({
+      success: true,
+      summary: {
+        totalPhysicalRefunded: totalRefunded.toFixed(2) + ' ETB',
+        totalBotDebtReduced: totalDebtReduced.toFixed(2) + ' ETB',
+        totalCorrections: report.length,
+      },
+      corrections: report
+    });
+  } catch (err: any) {
+    logger.error('[FixHistorical] Error:', err);
+    res.status(500).json({ error: 'Failed to run historical correction', details: err.message });
+  }
+});
+
 export default router;
