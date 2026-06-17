@@ -19,14 +19,34 @@ import { PREDEFINED_CARDS } from '../lib/predefinedCards';
 const CYCLE_LENGTH = 10;
 const HOUSE_WIN_QUOTA = 9;
 
-// ─── Bot count per room type ──────────────────────────────────
-export const BOT_COUNTS: Record<string, number> = {
-  CASUAL:   30,
-  STANDARD: 30,
-  PRO:      30,
-  VIP:      10,
-  JACKPOT:  10,
+// ─── Dynamic Bot count per room type (Smart Decline) ──────────
+export const BOT_COUNTS_BY_CYCLE: Record<string, number[]> = {
+  CASUAL:   [30, 28, 29, 27, 26, 25, 23, 24, 22, 20],
+  STANDARD: [30, 28, 29, 27, 26, 25, 23, 24, 22, 20],
+  PRO:      [30, 28, 29, 27, 26, 25, 23, 24, 22, 20],
+  VIP:      [10, 9, 8, 9, 7, 6, 7, 5, 6, 5],
+  JACKPOT:  [10, 9, 8, 9, 7, 6, 7, 5, 6, 5],
 };
+
+const cachedCycles: Record<string, number> = {};
+
+export async function initializeCycleCache() {
+  try {
+    const cycles = await prisma.gameCycle.findMany();
+    for (const c of cycles) {
+      cachedCycles[c.roomType] = c.totalGames;
+    }
+  } catch (e) {
+    logger.error('[HouseBot] Failed to init cycle cache:', e);
+  }
+}
+
+export function getExpectedBotCount(roomType: string): number {
+  const safeType = (roomType || '').toUpperCase().trim();
+  const arr = BOT_COUNTS_BY_CYCLE[safeType] || [30];
+  const cycleIndex = cachedCycles[safeType] || 0;
+  return arr[cycleIndex % arr.length] ?? 30;
+}
 
 // ─── In-memory set to prevent double-injecting bots ───────────
 const gamesWithBotsInjected = new Set<string>();
@@ -68,6 +88,8 @@ export async function shouldHouseWinThisGame(roomType: string): Promise<boolean>
     logger.info(`[HouseBot] Cycle reset for ${roomType}`);
   }
 
+  cachedCycles[roomType] = cycle.totalGames;
+
   // ─── STRICT WIN QUOTA ENFORCEMENT ───
   // This forces the house bot to win the first 9 games of the cycle.
   // Real players are ONLY allowed to potentially win on the 10th game (totalGames === 9).
@@ -86,7 +108,7 @@ export async function shouldHouseWinThisGame(roomType: string): Promise<boolean>
  */
 export async function recordCycleResult(roomType: string, houseWon: boolean): Promise<void> {
   try {
-    await prisma.gameCycle.upsert({
+    const cycle = await prisma.gameCycle.upsert({
       where: { roomType },
       create: {
         roomType,
@@ -100,6 +122,7 @@ export async function recordCycleResult(roomType: string, houseWon: boolean): Pr
         playerWins: { increment: houseWon ? 0 : 1 },
       },
     });
+    cachedCycles[roomType] = cycle.totalGames;
   } catch (e) {
     logger.error('[HouseBot] Failed to record cycle result:', e);
   }
@@ -152,7 +175,7 @@ export async function injectBotTickets(
   gamesWithBotsInjected.add(gameId);
 
   const safeRoomType = (roomType || '').toUpperCase().trim();
-  const botCount = BOT_COUNTS[safeRoomType] ?? 30;
+  const botCount = getExpectedBotCount(safeRoomType);
   const isVip = safeRoomType === 'VIP' || safeRoomType === 'JACKPOT';
   const cardPoolMax = isVip ? 50 : 250;
 

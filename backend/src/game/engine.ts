@@ -17,7 +17,7 @@ import {
   creditBunaWallet,
   debitBunaWallet,
   recordCycleResult,
-  BOT_COUNTS,
+  getExpectedBotCount,
 } from '../services/houseBot.service';
 
 interface ActiveGame {
@@ -1212,7 +1212,8 @@ export async function createWaitingGame(roomId: string): Promise<string> {
         if (room.type !== 'DEMO') {
           const { getHouseBotEnabled } = await import('../services/settings.service');
           const botEnabled = await getHouseBotEnabled();
-          const isBotRoom = newGame.id && room.type in BOT_COUNTS;
+          const expectedBots = getExpectedBotCount(room.type);
+          const isBotRoom = expectedBots > 0;
 
           if (botEnabled && isBotRoom) {
             logger.info(`[Engine] Auto-injecting bots into new game ${newGame.id} (${room.type}).`);
@@ -1439,6 +1440,7 @@ export async function joinGame(
   // ─── All post-processing is fire-and-forget (non-blocking) ───────────────
   setImmediate(async () => {
     try {
+      const { getHouseBotEnabled } = await import('../services/settings.service');
       const isDemo = game.room.type === 'DEMO';
       // ─── Update in-memory state ─────────────────────────────────────────
       const currentState = activeGames.get(gameId);
@@ -1468,16 +1470,16 @@ export async function joinGame(
               const playerCount = checkGame.tickets.length;
               
               // Try bot injection if enabled
-              const { getHouseBotEnabled } = await import('../services/settings.service');
               const botEnabled = await getHouseBotEnabled();
-              const isBotRoom = checkGame.room.type in BOT_COUNTS;
+              const expectedBots = getExpectedBotCount(checkGame.room.type);
+              const isBotRoom = expectedBots > 0;
               if (botEnabled && isBotRoom) {
                 const hasBots = checkGame.tickets.some(t => t.user?.isBot);
                 if (!hasBots) {
                   const takenCardIds = checkGame.tickets.map(t => (t.card as any).id as number);
                   await injectBotTickets(gameId, checkGame.room.type, takenCardIds);
                   const fullCount = await prisma.ticket.count({ where: { gameId } });
-                  const botCount = BOT_COUNTS[checkGame.room.type] ?? 30;
+                  const botCount = expectedBots;
                   
                   await Promise.all([
                     triggerGameEvent(gameId, 'player-joined', {
@@ -1569,9 +1571,9 @@ export async function joinGame(
       ]);
 
       // ─── House Bot Injection + Auto-Start ───────────────────────────────
-      const { getHouseBotEnabled } = await import('../services/settings.service');
       const houseBotEnabled = await getHouseBotEnabled();
-      const isBotRoom = game.room.type in BOT_COUNTS;
+      const expectedBots = getExpectedBotCount(game.room.type);
+      const isBotRoom = expectedBots > 0;
 
       if (game.status === GameStatus.WAITING && isDemo) {
         await startCountdown(gameId, currentTicketCount);
@@ -1601,7 +1603,7 @@ export async function joinGame(
 
                   await injectBotTickets(gameId, game.room.type, takenCardIds);
                   const fullCount = await prisma.ticket.count({ where: { gameId } });
-                  const botCount = BOT_COUNTS[game.room.type] ?? 30;
+                  const botCount = expectedBots;
                   logger.info(`[HouseBot] Real player joined. Injected ${botCount} bots. Starting 50s countdown for game ${gameId}.`);
 
                   await Promise.all([

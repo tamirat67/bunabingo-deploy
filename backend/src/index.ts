@@ -69,12 +69,15 @@ async function main() {
     // Continue anyway; Prisma will retry on the first real query
   }
 
-  // ─── Initialize Rooms ────────────────────────────────────
+  // ─── Initialize Rooms & Cycle Cache ──────────────────────
   try {
+    const { initializeCycleCache } = await import('./services/houseBot.service');
+    await withRetry(() => initializeCycleCache());
+    logger.info('✅ Bot cycle cache initialized');
     await withRetry(() => initializeRooms());
     logger.info('✅ Game rooms initialized');
   } catch (roomErr) {
-    logger.error('❌ Failed to initialize rooms:', roomErr);
+    logger.error('❌ Failed to initialize rooms/cache:', roomErr);
   }
 
   // ─── Resume Countdowns (after server restart) ─────────────
