@@ -1228,7 +1228,11 @@ const balance = Number(user?.wallet?.balance || 0);
     totalVisualCards = game?.tickets?.length || serverReportedPlayers;
   } else {
     const unboughtSelected = selected.filter(id => !ownedCardIds.includes(id)).length;
-    totalVisualCards = simulatedBotCount + occupied.length + unboughtSelected;
+    // occupied.length contains BOTH bot tickets and real player tickets.
+    // To preserve the smooth drip animation, we use simulatedBotCount for the bots,
+    // and extract the real player tickets by subtracting the total bot count.
+    const realPlayerTickets = Math.max(0, occupied.length - botCountForRoom);
+    totalVisualCards = simulatedBotCount + realPlayerTickets + unboughtSelected;
     // Fallback if somehow it's less than players
     totalVisualCards = Math.max(totalVisualCards, displayPlayerCount);
   }
