@@ -185,10 +185,7 @@ export async function handleStart(ctx: Context) {
         [
           Markup.button.callback('Bingo ይጫወቱ 🎮', 'cmd_play_bingo'),
         ],
-        // ── Row 2: Jackpot ───────────────────────────────────────────────────
-        [
-          Markup.button.webApp('🔥 ጃክፖት ያሸንፉ 🔥', `${config.bot.miniAppUrl}/tickets/select?type=JACKPOT&price=100`),
-        ],
+
         // ── Row 3: Account ───────────────────────────────────────────────────
         [
           Markup.button.callback('ይመዝገቡ 📝',  'cmd_register'),
@@ -220,9 +217,7 @@ export async function handleStart(ctx: Context) {
           [
             Markup.button.callback('Bingo ይጫወቱ 🎮', 'cmd_play_bingo'),
           ],
-          [
-            Markup.button.webApp('🔥 ጃክፖት ያሸንፉ 🔥', `${config.bot.miniAppUrl}/tickets/select?type=JACKPOT&price=100`),
-          ],
+
           [
             Markup.button.callback('ይመዝገቡ 📝',  'cmd_register'),
             Markup.button.callback('ብር ያስገቡ 💵',   'cmd_deposit'),

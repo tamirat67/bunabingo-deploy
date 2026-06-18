@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Script from 'next/script';
 import { Suspense } from 'react';
 import Navbar from '../components/Navbar';
+import SplashScreen from '../components/SplashScreen';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -39,44 +40,10 @@ export default function RootLayout({
           strategy="beforeInteractive"
         />
 
-        {/* ── Eruda mobile debugger ── Only visible to ADMINS */}
-        <Script
-          src="https://cdn.jsdelivr.net/npm/eruda"
-          strategy="afterInteractive"
-          id="eruda-src"
-        />
-        <Script id="eruda-init" strategy="afterInteractive">{`
-          (function initEruda() {
-            function isDebugging() {
-              if (window.location.search.includes('debug=1')) return true;
-              if (localStorage.getItem('admin_token')) return true;
-              try {
-                var u = sessionStorage.getItem('lobby_user');
-                if (u) {
-                  var p = JSON.parse(u);
-                  return p.role === 'ADMIN' || p.isAdmin;
-                }
-              } catch(e) {}
-              return false;
-            }
 
-            if (!isDebugging()) return;
 
-            if (typeof eruda !== 'undefined') {
-              eruda.init();
-            } else {
-              var t = setInterval(function() {
-                if (typeof eruda !== 'undefined') {
-                  clearInterval(t);
-                  eruda.init();
-                }
-              }, 150);
-              setTimeout(function() { clearInterval(t); }, 10000);
-            }
-          })();
-        `}</Script>
-        {/* ─────────────────────────────────────────────────────────────────── */}
 
+        <SplashScreen />
         <SocketProvider>
           <ThemeProvider>
             <Suspense fallback={
