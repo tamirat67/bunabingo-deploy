@@ -15,11 +15,12 @@ export async function handleInvite(ctx: Context) {
     const botUsername = 'buna_bingobot';
     // Use referralCode if available (shorter, human-readable); fallback to UUID
     const startParam  = (user as any).referralCode || user.id;
-    const inviteLink  = `https://t.me/${botUsername}?start=${startParam}`;
+    const fixedInviteLink = `https://t.me/buna_bingobot?start=AG-VL7MV`;
     const shareMessage = encodeURIComponent(
       `🎰 ቡና ቢንጎ ላይ አብረን እንጫወት! ☕️ ሁለታችንም የ 5 ብር ቦነስ እናገኛለን!\n\n`
     );
-    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(inviteLink)}&text=${shareMessage}`;
+    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(fixedInviteLink)}&text=${shareMessage}`;
+
 
     logger.info(`[Invite] User ${tgUser.id} requested invite link (startParam: ${startParam})`);
 
