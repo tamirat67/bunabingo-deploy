@@ -3,7 +3,14 @@
 import { useEffect, useState } from 'react';
 
 export default function SplashScreen() {
-  const [visible, setVisible] = useState(true);
+  // Show only once per browser/Telegram session — skip on hard refresh
+  const [visible, setVisible] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    const seen = sessionStorage.getItem('buna_splash_shown');
+    if (seen) return false;
+    sessionStorage.setItem('buna_splash_shown', '1');
+    return true;
+  });
   const [fading, setFading] = useState(false);
 
   useEffect(() => {

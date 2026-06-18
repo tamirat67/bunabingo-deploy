@@ -132,7 +132,27 @@ export async function handleStart(ctx: Context) {
     const jackpotAmount = Number(jackpot.currentAmount).toFixed(2);
     const targetAmount = Number(jackpot.targetAmount).toFixed(2);
 
-    // ── 4. Jackpot Splash Notice ─────────────────────────────────────────────
+    // ── 4. Welcome Splash ────────────────────────────────────────────────────
+    const welcomeSplashText =
+      `━━━━━━━━━━━━━━━━━━━━━━\n` +
+      `☕️✨ <b>እንኳን ደህና መጡ!</b> ✨☕️\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+      `🎰 <b>ቡና ቢንጎ</b> — <i>የቡና ጣዕም፣ ወርቃማ ድሎች።</i>\n\n` +
+      `👤 <b>${tgUser.first_name}${tgUser.username ? ` (@${tgUser.username})` : ''}</b>\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━\n` +
+      `🔥 <b>ያሁኑ ጃክፖት፡ ${jackpotAmount} ETB</b>\n` +
+      `🎯 <b>ግብ (Target)፡ ${targetAmount} ETB</b>\n` +
+      `━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+      `⬇️ <i>ከታች ካለው ዝርዝር ይምረጡ</i> ⬇️`;
+
+    const bannerUrl = `${process.env.WEBHOOK_URL}/uploads/banner.png`;
+
+    await ctx.replyWithPhoto(bannerUrl, {
+      caption: welcomeSplashText,
+      parse_mode: 'HTML',
+    }).catch(() => ctx.reply(welcomeSplashText, { parse_mode: 'HTML' }));
+
+
     const jackpotSplashText = 
       `🏆 <b>የደራሽ ጃክፖት (Derash Jackpot)</b> 🏆\n\n` +
       `🎉 <b>ታላቅ ዜና!</b>\n` +
@@ -167,7 +187,7 @@ export async function handleStart(ctx: Context) {
       // Non-fatal
     }
 
-    const bannerUrl = `${process.env.WEBHOOK_URL}/uploads/banner.png`;
+
     const mainMenuText = 
       `👋 እንኳን ወደ ቡና ቢንጎ በደህና መጡ፣ <b>${tgUser.first_name}${tgUser.username ? ` @${tgUser.username}` : ''} 🦅</b>!\n\n` +
       `📢 <b>የቡና ቢንጎ ቻናል (Buna Bingo Channel)፡</b> <a href="https://t.me/buna_bingobot1">ይቀላቀሉ!</a>\n\n` +
