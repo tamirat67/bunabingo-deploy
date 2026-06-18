@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import Script from 'next/script';
 import { Suspense } from 'react';
 import Navbar from '../components/Navbar';
-import SplashScreen from '../components/SplashScreen';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -42,8 +41,6 @@ export default function RootLayout({
 
 
 
-
-        <SplashScreen />
         <SocketProvider>
           <ThemeProvider>
             <Suspense fallback={
