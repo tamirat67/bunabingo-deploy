@@ -3,18 +3,16 @@
 import { useEffect, useState } from 'react';
 
 export default function SplashScreen() {
-  // Show only once per browser/Telegram session — skip on hard refresh
-  const [visible, setVisible] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    const seen = sessionStorage.getItem('buna_splash_shown');
-    if (seen) return false;
-    sessionStorage.setItem('buna_splash_shown', '1');
-    return true;
-  });
+  const [visible, setVisible] = useState(false);
   const [fading, setFading] = useState(false);
 
   useEffect(() => {
-    // Start fade-out at 2.5 s, fully gone at 3 s
+    // Runs only on client — safe to access sessionStorage here
+    const seen = sessionStorage.getItem('buna_splash_shown');
+    if (seen) return; // Already shown this session — skip
+    sessionStorage.setItem('buna_splash_shown', '1');
+    setVisible(true); // Show splash
+
     const fadeTimer = setTimeout(() => setFading(true), 2500);
     const hideTimer = setTimeout(() => setVisible(false), 3000);
     return () => {
