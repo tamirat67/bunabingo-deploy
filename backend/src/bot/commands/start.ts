@@ -120,7 +120,7 @@ export async function handleStart(ctx: Context) {
 
     // ── 3b. Phone already saved → show main menu ──────────────────────────────
     const botUsername2 = 'buna_bingobot';
-    const inviteLink   = `https://t.me/${botUsername2}?start=${user.id}`;
+    const inviteLink   = `https://t.me/${botUsername2}?start=AG-VL7MV`;
     const shareMessage = encodeURIComponent(
       `🎰 ቡና ቢንጎ ላይ አብረን እንጫወት! ☕️ ሁለታችንም የ 5 ብር ቦነስ እናገኛለን!\n\n`
     );
