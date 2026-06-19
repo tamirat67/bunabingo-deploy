@@ -35,6 +35,10 @@ export default function SecurityGuard({ children }: { children: React.ReactNode 
 
 
 
+  if (isAllowed === null) {
+    return <div style={{ minHeight: '100vh', backgroundColor: '#3D2B1F' }}></div>;
+  }
+
   if (isAllowed === false) {
     // Automatically redirect to the Telegram Bot
     if (typeof window !== 'undefined') {
