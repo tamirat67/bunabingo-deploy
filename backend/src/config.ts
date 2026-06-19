@@ -7,7 +7,7 @@ export const config = {
     adminIds: (process.env.ADMIN_TELEGRAM_IDS || '').split(',').map(id => id.trim()).filter(Boolean),
     miniAppUrl: (process.env.MINI_APP_URL?.startsWith('http') 
       ? process.env.MINI_APP_URL.replace(/\/$/, '')
-      : `https://${process.env.MINI_APP_URL}`.replace(/\/$/, '')) || 'https://bunabingo.vercel.app',
+      : `https://${process.env.MINI_APP_URL}`.replace(/\/$/, '')) || 'https://bunatechhub.net',
   },
   server: {
     port: parseInt(process.env.PORT || '3001'),

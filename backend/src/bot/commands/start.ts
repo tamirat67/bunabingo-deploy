@@ -201,6 +201,10 @@ export async function handleStart(ctx: Context) {
       caption: mainMenuText,
       parse_mode: 'HTML',
       ...Markup.inlineKeyboard([
+        // ── Top Row: Open App ────────────────────────────────────────────────
+        [
+          Markup.button.webApp('🚀 Open App / አፕ ክፈት', config.bot.miniAppUrl),
+        ],
         // ── Row 1: Games ─────────────────────────────────────────────────────
         [
           Markup.button.callback('Bingo ይጫወቱ 🎮', 'cmd_play_bingo'),
@@ -234,6 +238,9 @@ export async function handleStart(ctx: Context) {
       return ctx.reply(mainMenuText, {
         parse_mode: 'HTML',
         ...Markup.inlineKeyboard([
+          [
+            Markup.button.webApp('🚀 Open App / አፕ ክፈት', config.bot.miniAppUrl),
+          ],
           [
             Markup.button.callback('Bingo ይጫወቱ 🎮', 'cmd_play_bingo'),
           ],

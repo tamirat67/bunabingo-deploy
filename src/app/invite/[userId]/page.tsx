@@ -6,7 +6,7 @@ type Props = {
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const bannerUrl = 'https://bunabingo.vercel.app/banner.png';
+  const bannerUrl = 'https://bunatechhub.net/banner.png';
   
   return {
     title: 'Join me on Buna Bingo! ☕️💰',

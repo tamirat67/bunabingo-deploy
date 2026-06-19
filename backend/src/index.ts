@@ -131,14 +131,16 @@ async function main() {
         logger.error('Failed to set bot commands:', err);
       }
 
-      // ── Set the Menu Button to 'commands' (to show the 'Menu' button in UI) ──
+      // ── Set the Menu Button to 'web_app' (to show the 'Open App' button in UI) ──
       try {
         await bot.telegram.setChatMenuButton({
           menuButton: {
-            type: 'commands',
+            type: 'web_app',
+            text: 'Open App',
+            web_app: { url: config.bot.miniAppUrl }
           },
         });
-        logger.info('🤖 Chat Menu Button set to: commands list');
+        logger.info(`🤖 Chat Menu Button set to Web App: ${config.bot.miniAppUrl}`);
       } catch (err) {
         logger.error('Failed to set Chat Menu Button:', err);
       }
