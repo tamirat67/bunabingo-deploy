@@ -245,11 +245,10 @@ export default function AgentReportPage() {
         "Agent's earned share of Net Cash Flow — deducted before collection",
       ],
       [
-        { content: '★  EXPECTED CASH TO COLLECT', styles: { textColor: [61, 43, 31] as [number,number,number], fontStyle: 'bold' as const, fillColor: [255, 248, 225] as [number,number,number] } },
-        { content: `${fmt(totalExpected)} ETB`, styles: { textColor: [61, 43, 31] as [number,number,number], fontStyle: 'bold' as const, fillColor: [255, 248, 225] as [number,number,number] } },
+        { content: '★  EXPECTED CASH TO COLLECT', styles: { textColor: [61, 43, 31] as [number,number,number], fontStyle: 'bold' as const, fillColor: [255, 248, 225] as [number,number,number], fontSize: 10 } },
+        { content: `${fmt(totalExpected)} ETB`, styles: { textColor: [61, 43, 31] as [number,number,number], fontStyle: 'bold' as const, fillColor: [255, 248, 225] as [number,number,number], fontSize: 11 } },
         { content: 'Net Cash Flow − Agent Commission', styles: { fillColor: [255, 248, 225] as [number,number,number] } },
       ],
-
     ];
 
     autoTable(doc, {
@@ -276,7 +275,102 @@ export default function AgentReportPage() {
       margin: { top: 32, bottom: 32, left: 10, right: 10 },
     });
 
-    // Removed Recent Deposits mini table to keep it a simple one-page report
+    // ── BIG EXPECTED CASH TO COLLECT BOX ────────────────────
+    const tableEndY = (doc as any).lastAutoTable?.finalY || 180;
+    const boxY = tableEndY + 8;
+
+    // Outer shadow/border effect
+    doc.setFillColor(180, 140, 20);
+    doc.roundedRect(10, boxY + 1.5, pageWidth - 20, 28, 4, 4, 'F');
+
+    // Main gold box
+    doc.setFillColor(212, 175, 55);
+    doc.setDrawColor(150, 110, 10);
+    doc.setLineWidth(1);
+    doc.roundedRect(10, boxY, pageWidth - 20, 28, 4, 4, 'FD');
+
+    // Label
+    setLatin();
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(80, 50, 10);
+    doc.text('★  TOTAL CASH TO COLLECT FROM THIS AGENT', pageWidth / 2, boxY + 9, { align: 'center' });
+
+    // Amharic label
+    if (hasAmharic) {
+      setAmharic();
+      doc.setFontSize(8);
+      doc.setTextColor(100, 65, 15);
+      doc.text(`ከ ${agent.firstName} ሊሰበሰብ የሚገባ ጠቅላላ ናቁድ`, pageWidth / 2, boxY + 16, { align: 'center' });
+      setLatin();
+    }
+
+    // Big amount
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(22);
+    doc.setTextColor(61, 43, 31);
+    doc.text(`${fmt(totalExpected)} ETB`, pageWidth / 2, boxY + 25, { align: 'center' });
+
+    // ── SIGNATURE / SUBMIT SECTION ───────────────────────────
+    const sigY = boxY + 40;
+
+    // Section title
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(61, 43, 31);
+    doc.text('OFFICIAL SUBMISSION', 10, sigY);
+
+    // Horizontal divider under title
+    doc.setDrawColor(212, 175, 55);
+    doc.setLineWidth(0.5);
+    doc.line(10, sigY + 2, pageWidth - 10, sigY + 2);
+
+    // Three signature columns
+    const col1x = 10;
+    const col2x = pageWidth / 2 - 20;
+    const col3x = pageWidth - 60;
+    const lineY  = sigY + 18;
+    const labelY = sigY + 22;
+
+    // Column 1 — Submit To
+    doc.setDrawColor(100, 80, 40);
+    doc.setLineWidth(0.4);
+    doc.line(col1x, lineY, col1x + 65, lineY);
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(120, 113, 108);
+    doc.text('SUBMIT TO', col1x, labelY);
+
+    // Column 2 — Signature
+    doc.line(col2x, lineY, col2x + 70, lineY);
+    doc.text('RECEIVED BY (SIGNATURE)', col2x, labelY);
+
+    // Column 3 — Date
+    doc.line(col3x, lineY, col3x + 48, lineY);
+    doc.text('DATE', col3x, labelY);
+
+    // Second row: Agent signature + stamp box
+    const sig2Y = sigY + 38;
+    const line2Y = sig2Y + 18;
+    const label2Y = sig2Y + 22;
+
+    doc.line(col1x, line2Y, col1x + 65, line2Y);
+    doc.setTextColor(120, 113, 108);
+    doc.text('AGENT SIGNATURE', col1x, label2Y);
+
+    doc.line(col2x, line2Y, col2x + 70, line2Y);
+    doc.text('VERIFIED BY', col2x, label2Y);
+
+    // Stamp / seal box
+    doc.setDrawColor(180, 140, 20);
+    doc.setLineWidth(0.6);
+    doc.setLineDashPattern([1.5, 1.5], 0);
+    doc.rect(col3x, sig2Y + 2, 48, 20);
+    doc.setLineDashPattern([], 0);
+    doc.setFontSize(6.5);
+    doc.setTextColor(160, 140, 100);
+    doc.text('OFFICIAL STAMP', col3x + 24, sig2Y + 14, { align: 'center' });
+
     // ── FOOTER ON ALL PAGES ─────────────────────────────────
     const pageCount = (doc as any).internal.getNumberOfPages();
 
@@ -288,6 +382,7 @@ export default function AgentReportPage() {
       doc.setLineWidth(0.4);
       doc.line(10, pageHeight - 18, pageWidth - 10, pageHeight - 18);
       doc.setFontSize(7);
+      doc.setFont('helvetica', 'normal');
       doc.setTextColor(140, 133, 123);
       doc.text(`BUNA TECH | bunatech.net | @Buna_BingoBot`, 10, pageHeight - 11);
       doc.text(`Page ${i} / ${pageCount}`, pageWidth - 10, pageHeight - 11, { align: 'right' });
