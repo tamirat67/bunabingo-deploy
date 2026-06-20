@@ -141,174 +141,195 @@ export default function AgentReportPage() {
     const setLatin   = () => doc.setFont('helvetica', 'normal');
 
     const fmt = (n: number) => Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    const fmtInt = (n: number) => Number(n || 0).toLocaleString();
     const fmtPct = (r: number) => (r * 100).toFixed(1) + '%';
 
-    // Start content below header
-    let finalY = 40; 
-    
-    // Basic Info Section
+    const pageWidth  = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
+    const totalExpected = Math.max(0, stats.netCashFlow - stats.agentEarned);
+
+    // ── DARK HEADER BAR ─────────────────────────────────────
+    doc.setFillColor(61, 43, 31);
+    doc.rect(0, 0, pageWidth, 28, 'F');
+
+    // Gold accent stripe
+    doc.setFillColor(212, 175, 55);
+    doc.rect(0, 28, pageWidth, 1.5, 'F');
+
+    // Logo
+    if (logoImg) {
+      doc.addImage(logoImg as string, 'PNG', 8, 5, 18, 18);
+    }
+
+    // Brand
+    setLatin();
     doc.setFontSize(16);
-    setLatin();
-    doc.setTextColor(61, 43, 31);
-    doc.text(`Agent Report: ${agent.firstName}`, 14, finalY);
-    
-    doc.setFontSize(10);
-    doc.setTextColor(120, 113, 108);
-    doc.text(`Username: @${agent.telegramUsername || 'N/A'} | ID: ${agent.telegramId}`, 14, finalY + 6);
-    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, finalY + 12);
-    doc.text(`Time Range: ${timeRange.toUpperCase()}`, 14, finalY + 18);
+    doc.setTextColor(212, 175, 55);
+    doc.text('BUNA BINGO', 30, 13);
+    doc.setFontSize(8);
+    doc.setTextColor(180, 160, 120);
+    doc.text('BUNA TECH HUB', 30, 20);
 
-    // Section: Expected Cash Collection (Hero Card)
-    const totalExpected = stats.netCashFlow - stats.agentEarned;
+    // Report title right side
+    doc.setFontSize(13);
+    doc.setTextColor(255, 255, 255);
+    doc.text('AGENT CASH COLLECTION REPORT', pageWidth - 10, 13, { align: 'right' });
+    doc.setFontSize(8);
+    doc.setTextColor(180, 160, 120);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth - 10, 20, { align: 'right' });
 
+    // ── AGENT INFO CARD ──────────────────────────────────────
     doc.setFillColor(253, 251, 247);
-    doc.setDrawColor(212, 175, 55);
-    doc.setLineWidth(0.5);
-    doc.roundedRect(14, finalY + 26, doc.internal.pageSize.width - 28, 44, 4, 4, 'FD');
+    doc.setDrawColor(220, 200, 160);
+    doc.setLineWidth(0.4);
+    doc.roundedRect(10, 33, pageWidth - 20, 20, 3, 3, 'FD');
 
-    // English hero label
     setLatin();
-    doc.setFontSize(10);
+    doc.setFontSize(11);
+    doc.setTextColor(61, 43, 31);
+    doc.text(`Agent: ${agent.firstName}`, 14, 41);
+    doc.setFontSize(8.5);
     doc.setTextColor(120, 113, 108);
-    doc.text(`TOTAL EXPECTED CASH FROM ${agent.firstName?.toUpperCase()}`, 22, finalY + 37);
+    doc.text(`@${agent.telegramUsername || 'N/A'}  ·  ID: ${agent.telegramId}`, 14, 48);
 
-    // Amharic hero label
+    const rangeLabel = timeRange === 'all' ? 'All Time' : timeRange === 'today' ? 'Today' : timeRange === 'week' ? 'Last 7 Days' : timeRange === 'current_period' ? 'Current Period' : 'Last 30 Days';
+    doc.text(`Period: ${rangeLabel}  ·  Players: ${stats.totalPlayers}`, pageWidth - 10, 41, { align: 'right' });
+    doc.text(`Real Cash: Bonus ETB strictly excluded`, pageWidth - 10, 48, { align: 'right' });
+
+    // ── HERO COLLECTION BOX ──────────────────────────────────
+    doc.setFillColor(212, 175, 55);
+    doc.roundedRect(10, 57, pageWidth - 20, 32, 4, 4, 'F');
+
+    setLatin();
+    doc.setFontSize(8);
+    doc.setTextColor(80, 50, 10);
+    doc.text('TOTAL CASH TO COLLECT FROM THIS AGENT', pageWidth / 2, 64, { align: 'center' });
     if (hasAmharic) {
       setAmharic();
-      doc.setFontSize(10);
-      doc.setTextColor(120, 113, 108);
-      doc.text(`ከ ${agent.firstName} ሊሰበሰብ የሚገባ ጠቅላላ ገንዘብ`, 22, finalY + 45);
+      doc.setFontSize(8);
+      doc.text(`ከ ${agent.firstName} ሊሰበሰብ የሚገባ ጠቅላላ ገንዘብ`, pageWidth / 2, 71, { align: 'center' });
       setLatin();
     }
-    
-    // Hero Amount
-    doc.setFontSize(26);
+    doc.setFontSize(20);
     doc.setTextColor(61, 43, 31);
-    doc.text(`${fmt(totalExpected)} ETB`, 22, finalY + 60);
+    doc.text(`${fmt(totalExpected)} ETB`, pageWidth / 2, 82, { align: 'center' });
 
-    // Section: Bilingual Profit Breakdown Table
+    // ── CASH FLOW WATERFALL TABLE ────────────────────────────
     const tableBody = [
       [
-        'REAL CASH DEPOSITED\nገንዘብ ገቢ',
-        `${fmt(stats.totalDeposited)} ETB`,
-        `Total real cash deposited by players\nከተጫዋቾች የተሰበሰበ ጠቅላላ ገቢ`
+        { content: '⬇  REAL CASH DEPOSITED', styles: { textColor: [21, 128, 61] as [number,number,number], fontStyle: 'bold' as const } },
+        { content: `+ ${fmt(stats.totalDeposited)} ETB`, styles: { textColor: [21, 128, 61] as [number,number,number], fontStyle: 'bold' as const } },
+        'Physical cash paid by players — bonus excluded',
       ],
       [
-        'REAL CASH WITHDRAWN\nወጪ የተደረገ ገንዘብ',
-        `${fmt(stats.totalWithdrawn)} ETB`,
-        `Total real cash withdrawn by players\nለተጫዋቾች ወጪ የተደረገ ገንዘብ`
+        { content: '⬆  REAL CASH WITHDRAWN', styles: { textColor: [185, 28, 28] as [number,number,number] } },
+        { content: `- ${fmt(stats.totalWithdrawn)} ETB`, styles: { textColor: [185, 28, 28] as [number,number,number] } },
+        'Cash paid out to winning players',
       ],
       [
-        'NET CASH FLOW\nየተጣራ ገንዘብ',
-        `${fmt(stats.netCashFlow)} ETB`,
-        `Real Deposits - Withdrawals\nከገቢ ላይ ወጪ ተቀንሶ`
+        { content: '≡  NET CASH FLOW', styles: { textColor: [14, 100, 57] as [number,number,number], fontStyle: 'bold' as const, fillColor: [240, 253, 244] as [number,number,number] } },
+        { content: `${fmt(stats.netCashFlow)} ETB`, styles: { textColor: [14, 100, 57] as [number,number,number], fontStyle: 'bold' as const, fillColor: [240, 253, 244] as [number,number,number] } },
+        { content: 'Deposits − Withdrawals (real physical cash held)', styles: { fillColor: [240, 253, 244] as [number,number,number] } },
       ],
       [
-        'AGENT EARNED\nወኪሉ ያገኘው',
-        `${fmt(stats.agentEarned)} ETB`,
-        `Agent's 20% share of real sales\nየወኪሉ 20% ድርሻ`
+        { content: '✂  AGENT COMMISSION (' + fmtPct(stats.agentRate) + ')', styles: { textColor: [180, 83, 9] as [number,number,number] } },
+        { content: `- ${fmt(stats.agentEarned)} ETB`, styles: { textColor: [180, 83, 9] as [number,number,number] } },
+        "Agent's earned share — deducted before collection",
       ],
       [
-        'COMPANY SHARE (REAL CASH)\nየኩባንያ ድርሻ (ከገቢ)',
-        `${fmt(stats.companyEarnedFromBranch)} ETB`,
-        `80% of real ticket sales\nከትክክለኛ ቲኬት ሽያጭ 80%`
+        { content: '★  EXPECTED CASH TO COLLECT', styles: { textColor: [61, 43, 31] as [number,number,number], fontStyle: 'bold' as const, fillColor: [255, 248, 225] as [number,number,number] } },
+        { content: `${fmt(totalExpected)} ETB`, styles: { textColor: [61, 43, 31] as [number,number,number], fontStyle: 'bold' as const, fillColor: [255, 248, 225] as [number,number,number] } },
+        { content: 'Net Cash Flow − Agent Commission', styles: { fillColor: [255, 248, 225] as [number,number,number] } },
       ],
       [
-        'BOT WIN (REAL CASH)\nየቦት ሽልማት (ከገቢ)',
-        `${fmt(stats.botDebtAdded || 0)} ETB`,
-        `Real player money won by bots\nከእውነተኛ ተጫዋቾች የተወሰደ የቦት ሽልማት`
+        { content: '🤖  BOT WIN (REAL CASH ONLY)', styles: { textColor: [153, 27, 27] as [number,number,number] } },
+        { content: `${fmt(stats.botDebtAdded || 0)} ETB`, styles: { textColor: [153, 27, 27] as [number,number,number] } },
+        '70% of real player tickets — bots won these games (already included above)',
       ],
       [
-        'REAL TICKET SALES (CASH ONLY)\nትክክለኛ የቲኬት ሽያጭ',
-        `${fmt(stats.totalTicketSales)} ETB`,
-        `Total cash from real players\nከትክክለኛ ተጫዋቾች የተሰበሰበ`
+        { content: '🎟  REAL TICKET SALES', styles: { textColor: [100, 100, 120] as [number,number,number] } },
+        { content: `${fmt(stats.totalTicketSales)} ETB`, styles: { textColor: [100, 100, 120] as [number,number,number] } },
+        'Total real-cash ticket sales (bonus excluded)',
+      ],
+      [
+        { content: '🏦  COMPANY SHARE (' + fmtPct(stats.companyRate) + ')', styles: { textColor: [100, 100, 120] as [number,number,number] } },
+        { content: `${fmt(stats.companyEarnedFromBranch)} ETB`, styles: { textColor: [100, 100, 120] as [number,number,number] } },
+        'Company portion of real ticket sales',
       ],
     ];
 
     autoTable(doc, {
-      startY: finalY + 80,
-      head: [['Financial Metric / የፋይናንስ መለኪያ', 'Amount / መጠን', 'Description / ዝርዝር']],
+      startY: 93,
+      head: [['Metric / መለኪያ', 'Amount / መጠን', 'Notes / ማብራሪያ']],
       body: tableBody,
       theme: 'grid',
-      headStyles: { fillColor: [61, 43, 31], textColor: [255, 255, 255], fontSize: 10, fontStyle: 'normal', halign: 'left', font: hasAmharic ? 'NotoSansEthiopic' : 'helvetica' },
-      bodyStyles: { fontSize: hasAmharic ? 10 : 11, cellPadding: 6, textColor: [60, 60, 60], font: hasAmharic ? 'NotoSansEthiopic' : 'helvetica' },
+      headStyles: {
+        fillColor: [61, 43, 31], textColor: [255, 255, 255],
+        fontSize: 9, fontStyle: 'normal', halign: 'left',
+        font: hasAmharic ? 'NotoSansEthiopic' : 'helvetica',
+        cellPadding: { top: 4, bottom: 4, left: 5, right: 5 },
+      },
+      bodyStyles: {
+        fontSize: hasAmharic ? 9 : 9.5, cellPadding: { top: 4, bottom: 4, left: 5, right: 5 },
+        textColor: [60, 60, 60], font: hasAmharic ? 'NotoSansEthiopic' : 'helvetica',
+      },
       alternateRowStyles: { fillColor: [252, 250, 248] },
       columnStyles: {
-        0: { fontStyle: 'normal', textColor: [61, 43, 31], cellWidth: 68 },
-        1: { fontStyle: 'normal', textColor: [21, 128, 61], cellWidth: 42 },
-        2: { textColor: [120, 113, 108] }
+        0: { cellWidth: 64 },
+        1: { cellWidth: 42, halign: 'right' },
+        2: { textColor: [120, 113, 108], fontSize: 8 },
       },
-      margin: { top: 40, bottom: 30, left: 14, right: 14 }
+      margin: { top: 32, bottom: 32, left: 10, right: 10 },
     });
 
-    // Add Header and Footer to all pages
+    // ── RECENT DEPOSITS MINI TABLE ───────────────────────────
+    const recentDepsFiltered = (recentDeposits || []).slice(0, 10);
+    if (recentDepsFiltered.length > 0) {
+      const afterTable = (doc as any).lastAutoTable?.finalY || 160;
+      if (afterTable + 50 < pageHeight - 32) {
+        setLatin();
+        doc.setFontSize(9);
+        doc.setTextColor(61, 43, 31);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Recent Deposits (last 10)', 10, afterTable + 10);
+        doc.setFont('helvetica', 'normal');
+
+        const depRows = recentDepsFiltered.map((d: any) => [
+          new Date(d.createdAt).toLocaleDateString(),
+          d.playerName || d.userId?.slice(-6) || '—',
+          fmt(d.amount) + ' ETB',
+          d.status?.toUpperCase() || '—',
+        ]);
+
+        autoTable(doc, {
+          startY: afterTable + 14,
+          head: [['Date', 'Player', 'Amount', 'Status']],
+          body: depRows,
+          theme: 'grid',
+          headStyles: { fillColor: [100, 80, 60], textColor: [255, 255, 255], fontSize: 8, cellPadding: 3 },
+          bodyStyles: { fontSize: 8, cellPadding: 3 },
+          alternateRowStyles: { fillColor: [252, 250, 248] },
+          margin: { left: 10, right: 10, bottom: 32 },
+        });
+      }
+    }
+
+    // ── FOOTER ON ALL PAGES ─────────────────────────────────
     const pageCount = (doc as any).internal.getNumberOfPages();
-    const pageWidth = doc.internal.pageSize.width;
-    const pageHeight = doc.internal.pageSize.height;
 
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
-      
-      // --- HEADER ---
-      if (logoImg) {
-        doc.addImage(logoImg, 'PNG', 14, 10, 20, 20);
-        doc.setFontSize(22);
-        doc.setTextColor(61, 43, 31); // #3d2b1f
-        doc.text('BUNA TECH', 38, 24);
-      } else {
-        doc.setFontSize(22);
-        doc.setTextColor(61, 43, 31);
-        doc.text('BUNA TECH', 14, 24);
-      }
-      
-      // Gold separating line below header
-      doc.setDrawColor(212, 175, 55); // #d4af37
-      doc.setLineWidth(0.5);
-      doc.line(14, 32, pageWidth - 14, 32);
 
-      // --- FOOTER ---
-      // ── DECORATIVE STRIPES (Background) ─────────────────────────
-      // Draw these first so they sit behind the text
-      doc.setLineWidth(5);
-      doc.setLineCap(1); // 1 = round
-      
-      // Bottom Left (Gold stripe)
+      // Footer line
       doc.setDrawColor(212, 175, 55);
-      doc.line(14, pageHeight - 10, 26, pageHeight - 22);
-      
-      // Bottom Right (Ethiopian flag colors)
-      // Red
-      doc.setDrawColor(205, 45, 45);
-      doc.line(pageWidth - 36, pageHeight - 10, pageWidth - 14, pageHeight - 32);
-      // Green
-      doc.setDrawColor(50, 160, 70);
-      doc.line(pageWidth - 28, pageHeight - 10, pageWidth - 14, pageHeight - 24);
-      // Yellow
-      doc.setDrawColor(235, 175, 20);
-      doc.line(pageWidth - 20, pageHeight - 10, pageWidth - 14, pageHeight - 16);
-
-      // Light gray separating line above footer
-      doc.setDrawColor(220, 220, 220);
-      doc.setLineWidth(0.5);
-      doc.line(14, pageHeight - 20, pageWidth - 14, pageHeight - 20);
-      
-      doc.setFontSize(9);
-      doc.setTextColor(120, 113, 108); // #78716c
-      
-      const footerText1 = "BUNA TECH  |  info@bunatech.com  |  Addis Ababa, Ethiopia  |  bunatech.net";
-      const footerText2 = "@Buna_BingoBot (Telegram)  |  @BunaTechHub";
-      
-      const textWidth1 = doc.getTextWidth(footerText1);
-      const textWidth2 = doc.getTextWidth(footerText2);
-      
-      doc.text(footerText1, (pageWidth - textWidth1) / 2, pageHeight - 14);
-      doc.text(footerText2, (pageWidth - textWidth2) / 2, pageHeight - 9);
-      
-      // Page Number
-      const pageNumStr = `Page ${i} of ${pageCount}`;
-      doc.text(pageNumStr, pageWidth - 14 - doc.getTextWidth(pageNumStr), pageHeight - 9);
+      doc.setLineWidth(0.4);
+      doc.line(10, pageHeight - 18, pageWidth - 10, pageHeight - 18);
+      doc.setFontSize(7);
+      doc.setTextColor(140, 133, 123);
+      doc.text(`BUNA TECH | bunatech.net | @Buna_BingoBot`, 10, pageHeight - 11);
+      doc.text(`Page ${i} / ${pageCount}`, pageWidth - 10, pageHeight - 11, { align: 'right' });
     }
+
+
 
     doc.save(`Agent_Report_${agent.firstName}_${timeRange}.pdf`);
   };

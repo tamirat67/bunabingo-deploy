@@ -256,10 +256,10 @@ export default function AgentsPage() {
       return;
     }
 
-    const doc = new jsPDF(); // Defaults to portrait
-    const pageWidth = doc.internal.pageSize.width;
+    const doc = new jsPDF({ orientation: 'landscape' });
+    const pageWidth  = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
-    const fmt = (n: number) => Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const fmt    = (n: number) => Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const fmtPct = (r: number) => (r * 100).toFixed(1) + '%';
 
     // ── Load Amharic font ──────────────────────────────────────
@@ -278,11 +278,14 @@ export default function AgentsPage() {
       console.warn('Could not load Amharic font', e);
     }
 
-    // ── HEADER ──────────────────────────────────────────────
+    // ── DARK HEADER BAR ──────────────────────────────────────
     doc.setFillColor(61, 43, 31);
-    doc.rect(0, 0, pageWidth, 22, 'F');
+    doc.rect(0, 0, pageWidth, 26, 'F');
+    // Gold accent line
+    doc.setFillColor(212, 175, 55);
+    doc.rect(0, 26, pageWidth, 1.5, 'F');
 
-    // Logo circle
+    // Logo
     try {
       const img = new Image();
       img.crossOrigin = 'anonymous';
@@ -294,7 +297,7 @@ export default function AgentsPage() {
           if (ctx) {
             ctx.beginPath(); ctx.arc(30, 30, 30, 0, Math.PI * 2); ctx.closePath(); ctx.clip();
             ctx.drawImage(img, 0, 0, 60, 60);
-            doc.addImage(canvas.toDataURL('image/png'), 'PNG', 6, 3, 16, 16);
+            doc.addImage(canvas.toDataURL('image/png'), 'PNG', 8, 4, 18, 18);
           }
           resolve();
         };
@@ -303,145 +306,156 @@ export default function AgentsPage() {
       });
     } catch (e) {}
 
+    doc.setFont('helvetica', 'normal');
     doc.setFontSize(16);
     doc.setTextColor(212, 175, 55);
-    doc.text('BUNA BINGO', 26, 11);
-    doc.setFontSize(9);
-    doc.setTextColor(180, 160, 120);
-    doc.text('BUNA TECH', 26, 17);
-
-    doc.setFontSize(13);
-    doc.setTextColor(255, 255, 255);
-    doc.text('ALL AGENTS — FINANCIAL SUMMARY REPORT', pageWidth - 10, 11, { align: 'right' });
+    doc.text('BUNA BINGO', 30, 13);
     doc.setFontSize(8);
     doc.setTextColor(180, 160, 120);
-    doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth - 10, 17, { align: 'right' });
+    doc.text('BUNA TECH HUB', 30, 20);
 
-    // ── HERO TOTALS CARD ────────────────────────────────────
+    doc.setFontSize(14);
+    doc.setTextColor(255, 255, 255);
+    doc.text('ALL AGENTS — CASH COLLECTION SUMMARY', pageWidth - 10, 13, { align: 'right' });
+    doc.setFontSize(8);
+    doc.setTextColor(180, 160, 120);
+    doc.text(`Generated: ${new Date().toLocaleString()}  ·  Real Cash Only — Bonus ETB excluded`, pageWidth - 10, 20, { align: 'right' });
+
+    // ── HERO TOTALS CARD ──────────────────────────────────────
     const totals = profitData?.totals || {};
-    const totalExpected = (totals.netCashFlow || 0) - (totals.agentEarned || 0);
+    const totalExpected = Math.max(0, (totals.netCashFlow || 0) - (totals.agentEarned || 0));
 
-    doc.setFillColor(253, 251, 247);
-    doc.setDrawColor(212, 175, 55);
-    doc.setLineWidth(0.5);
-    doc.roundedRect(10, 26, pageWidth - 20, 58, 4, 4, 'FD');
+    doc.setFillColor(212, 175, 55);
+    doc.roundedRect(10, 31, pageWidth - 20, 26, 3, 3, 'F');
 
-    // Hero label (bilingual)
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(120, 113, 108);
-    doc.text('TOTAL EXPECTED CASH FROM ALL BRANCHES', pageWidth / 2, 33, { align: 'center' });
-    if (hasAmharic) {
-      doc.setFont('NotoSansEthiopic', 'normal');
-      doc.setFontSize(9);
-      doc.text('ከሁሉም ቅርንጫፎች ሊሰበሰብ የሚገባ ጠቅላላ ገንዘብ', pageWidth / 2, 40, { align: 'center' });
-      doc.setFont('helvetica', 'normal');
-    }
-
-    // Hero amount
-    doc.setFontSize(22);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.setTextColor(80, 50, 10);
+    doc.text('TOTAL EXPECTED CASH FROM ALL AGENTS / ከሁሉም ወኪሎች ሊሰበሰብ የሚገባ', pageWidth / 2, 38, { align: 'center' });
+    doc.setFontSize(18);
     doc.setTextColor(61, 43, 31);
     doc.text(`${fmt(totalExpected)} ETB`, pageWidth / 2, 50, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
 
-    // Hero breakdown pill
-    doc.setFontSize(9);
-    doc.setTextColor(120, 113, 108);
-    const formula = `Net Cash Flow: ${fmt(totals.netCashFlow || 0)} ETB   -   Agent Earnings: ${fmt(totals.agentEarned || 0)} ETB`;
-    doc.text(formula, pageWidth / 2, 58, { align: 'center' });
-
-    // 4 summary boxes (centered below formula)
+    // ── 5 SUMMARY BOXES ─────────────────────────────────────
     const boxData = [
-      { label: 'REAL DEPOSITS', value: fmt(totals.totalDeposited || 0) + ' ETB' },
-      { label: 'NET CASH FLOW', value: fmt(totals.netCashFlow || 0) + ' ETB' },
-      { label: 'TOTAL EXPECTED', value: fmt(Math.max(0, totalExpected)) + ' ETB' },
-      { label: 'AGENT EARNED', value: fmt(totals.agentEarned || 0) + ' ETB' },
+      { label: 'TOTAL REAL DEPOSITS', value: fmt(totals.totalDeposited || 0) + ' ETB', color: [21, 128, 61] as [number,number,number] },
+      { label: 'TOTAL WITHDRAWN',     value: fmt(totals.totalWithdrawn  || 0) + ' ETB', color: [185, 28, 28] as [number,number,number] },
+      { label: 'NET CASH FLOW',       value: fmt(totals.netCashFlow     || 0) + ' ETB', color: [14, 100, 57] as [number,number,number] },
+      { label: 'AGENT COMMISSIONS',   value: fmt(totals.agentEarned     || 0) + ' ETB', color: [180, 83, 9] as [number,number,number] },
+      { label: 'BOT WIN (REAL CASH)', value: fmt(totals.botDebtAdded    || 0) + ' ETB', color: [153, 27, 27] as [number,number,number] },
     ];
-    const bw = 40, bh = 14;
-    const totalBoxesWidth = 4 * bw + 3 * 3;
-    const bx0 = 10 + (pageWidth - 20 - totalBoxesWidth) / 2;
-    const by0 = 64;
-    
+    const bw = (pageWidth - 20 - 16) / 5;
+    const by0 = 60;
     boxData.forEach((b, i) => {
-      const bx = bx0 + i * (bw + 3);
+      const bx = 10 + i * (bw + 4);
       doc.setFillColor(61, 43, 31);
-      doc.setDrawColor(212, 175, 55);
-      doc.roundedRect(bx, by0, bw, bh, 2, 2, 'FD');
+      doc.setDrawColor(...b.color);
+      doc.setLineWidth(0.8);
+      doc.roundedRect(bx, by0, bw, 16, 2, 2, 'FD');
       doc.setFontSize(6);
       doc.setTextColor(180, 160, 120);
-      doc.text(b.label, bx + bw / 2, by0 + 4.5, { align: 'center' });
-      doc.setFontSize(8);
-      doc.setTextColor(212, 175, 55);
-      doc.text(b.value, bx + bw / 2, by0 + 10, { align: 'center' });
+      doc.text(b.label, bx + bw / 2, by0 + 5, { align: 'center' });
+      doc.setFontSize(8.5);
+      doc.setTextColor(...b.color);
+      doc.text(b.value, bx + bw / 2, by0 + 12, { align: 'center' });
     });
 
-    // ── PER-AGENT TABLE ─────────────────────────────────────
+    // ── PER-AGENT TABLE ──────────────────────────────────────
     const agentRows = (profitData?.agents || []).map((a: any, i: number) => {
-      const exp = a.netCashFlow - a.agentEarned;
+      const exp   = Math.max(0, a.netCashFlow - a.agentEarned);
+      const isHigh = exp > 1000;
       return [
-        i + 1,
-        a.agentName,
-        a.agentUsername ? `@${a.agentUsername}` : '—',
-        fmt(a.totalDeposited) + ' ETB',
-        fmt(a.netCashFlow) + ' ETB',
-        fmt(a.agentEarned) + ' ETB',
-        { content: fmt(exp) + ' ETB', styles: { fontStyle: 'bold', textColor: exp > 0 ? [21, 128, 61] : [239, 68, 68] } },
+        { content: String(i + 1), styles: { textColor: [120, 113, 108] as [number, number, number], halign: 'center' as const } },
+        { content: a.agentName, styles: { textColor: [61, 43, 31] as [number,number,number], fontStyle: 'bold' as const } },
+        { content: a.agentUsername ? `@${a.agentUsername}` : '—', styles: { textColor: [140, 130, 120] as [number,number,number] } },
+        { content: `+ ${fmt(a.totalDeposited)} ETB`, styles: { textColor: [21, 128, 61] as [number,number,number], halign: 'right' as const } },
+        { content: `- ${fmt(a.totalWithdrawn || 0)} ETB`, styles: { textColor: [185, 28, 28] as [number,number,number], halign: 'right' as const } },
+        { content: `${fmt(a.netCashFlow)} ETB`, styles: { textColor: [14, 100, 57] as [number,number,number], fontStyle: 'bold' as const, halign: 'right' as const } },
+        { content: `- ${fmt(a.agentEarned)} ETB`, styles: { textColor: [180, 83, 9] as [number,number,number], halign: 'right' as const } },
+        { content: `${fmt(a.botDebtAdded || 0)} ETB`, styles: { textColor: [153, 27, 27] as [number,number,number], halign: 'right' as const } },
+        {
+          content: `${isHigh ? '🔴 ' : '💰 '}${fmt(exp)} ETB`,
+          styles: {
+            fontStyle: 'bold' as const,
+            textColor: isHigh ? [185, 28, 28] as [number,number,number] : [61, 43, 31] as [number,number,number],
+            fillColor: isHigh ? [254, 242, 242] as [number,number,number] : [255, 248, 225] as [number,number,number],
+            halign: 'right' as const,
+          }
+        },
       ];
     });
 
+    // Totals row
+    const totalExp = Math.max(0, (totals.netCashFlow || 0) - (totals.agentEarned || 0));
+    agentRows.push([
+      { content: '∑', styles: { textColor: [212, 175, 55] as [number,number,number], halign: 'center' as const, fontStyle: 'bold' as const, fillColor: [61, 43, 31] as [number,number,number] } },
+      { content: `TOTAL — ${(profitData?.agents || []).length} agents`, styles: { textColor: [212, 175, 55] as [number,number,number], fontStyle: 'bold' as const, fillColor: [61, 43, 31] as [number,number,number] } },
+      { content: '', styles: { fillColor: [61, 43, 31] as [number,number,number] } },
+      { content: `+ ${fmt(totals.totalDeposited || 0)} ETB`, styles: { textColor: [110, 231, 183] as [number,number,number], fontStyle: 'bold' as const, halign: 'right' as const, fillColor: [61, 43, 31] as [number,number,number] } },
+      { content: `- ${fmt(totals.totalWithdrawn || 0)} ETB`, styles: { textColor: [252, 165, 165] as [number,number,number], fontStyle: 'bold' as const, halign: 'right' as const, fillColor: [61, 43, 31] as [number,number,number] } },
+      { content: `${fmt(totals.netCashFlow || 0)} ETB`, styles: { textColor: [110, 231, 183] as [number,number,number], fontStyle: 'bold' as const, halign: 'right' as const, fillColor: [61, 43, 31] as [number,number,number] } },
+      { content: `- ${fmt(totals.agentEarned || 0)} ETB`, styles: { textColor: [252, 211, 77] as [number,number,number], fontStyle: 'bold' as const, halign: 'right' as const, fillColor: [61, 43, 31] as [number,number,number] } },
+      { content: `${fmt(totals.botDebtAdded || 0)} ETB`, styles: { textColor: [252, 165, 165] as [number,number,number], fontStyle: 'bold' as const, halign: 'right' as const, fillColor: [61, 43, 31] as [number,number,number] } },
+      { content: `💰 ${fmt(totalExp)} ETB`, styles: { textColor: [251, 191, 36] as [number,number,number], fontStyle: 'bold' as const, halign: 'right' as const, fillColor: [61, 43, 31] as [number,number,number] } },
+    ]);
+
     autoTable(doc, {
-      startY: 89,
-      head: [['#', 'Agent\nወኪል', 'Username', 'Real Deposits\nገንዘብ ገቢ', 'Net Cash Flow\nየተጣራ ገንዘብ', 'Agent Earned\nወኪሉ ያገኘው', 'Expected Cash ▶\nሊሰበሰብ']],
+      startY: 80,
+      head: [[
+        '#',
+        'Agent / ወኪል',
+        'Username',
+        'Real Deposits\nገንዘብ ገቢ',
+        'Withdrawn\nወጪ',
+        'Net Cash Flow\nየተጣራ ገንዘብ',
+        'Commission\nወኪሉ ያገኘው',
+        'Bot Win\n(Real Cash)',
+        '💰 Expected Cash\nሊሰበሰብ',
+      ]],
       body: agentRows,
       theme: 'grid',
-      headStyles: { fillColor: [61, 43, 31], textColor: [255, 255, 255], fontSize: 7.5, fontStyle: 'normal', halign: 'left', font: hasAmharic ? 'NotoSansEthiopic' : 'helvetica' },
-      bodyStyles: { fontSize: 8, cellPadding: 3, textColor: [55, 55, 55], font: hasAmharic ? 'NotoSansEthiopic' : 'helvetica' },
+      headStyles: {
+        fillColor: [61, 43, 31], textColor: [255, 255, 255],
+        fontSize: 7.5, fontStyle: 'normal', halign: 'left',
+        font: hasAmharic ? 'NotoSansEthiopic' : 'helvetica',
+        cellPadding: { top: 3, bottom: 3, left: 4, right: 4 },
+      },
+      bodyStyles: {
+        fontSize: 8, cellPadding: { top: 3, bottom: 3, left: 4, right: 4 },
+        textColor: [55, 55, 55],
+        font: hasAmharic ? 'NotoSansEthiopic' : 'helvetica',
+      },
       alternateRowStyles: { fillColor: [252, 250, 248] },
       columnStyles: {
-        0: { cellWidth: 7, halign: 'center', textColor: [120, 113, 108] },
-        1: { fontStyle: 'normal', textColor: [61, 43, 31], cellWidth: 30 },
-        2: { cellWidth: 26, textColor: [120, 113, 108] },
-        3: { cellWidth: 30 },
-        4: { cellWidth: 30 },
-        5: { cellWidth: 30, textColor: [180, 120, 0] },
-        6: { cellWidth: 35, fillColor: [240, 253, 244] },
+        0: { cellWidth: 8,  halign: 'center' },
+        1: { cellWidth: 36 },
+        2: { cellWidth: 28, textColor: [120, 113, 108] },
+        3: { cellWidth: 36, halign: 'right' },
+        4: { cellWidth: 30, halign: 'right' },
+        5: { cellWidth: 36, halign: 'right' },
+        6: { cellWidth: 30, halign: 'right' },
+        7: { cellWidth: 30, halign: 'right' },
+        8: { cellWidth: 40, halign: 'right' },
       },
-      margin: { left: 10, right: 10, bottom: 38 },
+      margin: { left: 10, right: 10, bottom: 22 },
     });
 
-    // ── FOOTER ──────────────────────────────────────────────
-    const finalY2 = (doc as any).lastAutoTable?.finalY || pageHeight - 38;
-
-    // ── DECORATIVE STRIPES (Background) ─────────────────────
-    // Draw these first so they sit behind the text
-    doc.setLineWidth(5);
-    doc.setLineCap(1); // 1 = round
-    
-    // Bottom Left (Gold stripe)
-    doc.setDrawColor(212, 175, 55);
-    doc.line(14, pageHeight - 10, 26, pageHeight - 22);
-    
-    // Bottom Right (Ethiopian flag colors)
-    // Red
-    doc.setDrawColor(205, 45, 45);
-    doc.line(pageWidth - 36, pageHeight - 10, pageWidth - 14, pageHeight - 32);
-    // Green
-    doc.setDrawColor(50, 160, 70);
-    doc.line(pageWidth - 28, pageHeight - 10, pageWidth - 14, pageHeight - 24);
-    // Yellow
-    doc.setDrawColor(235, 175, 20);
-    doc.line(pageWidth - 20, pageHeight - 10, pageWidth - 14, pageHeight - 16);
-
-    // ── FOOTER TEXT & LINE ──────────────────────────────────
-    if (finalY2 < pageHeight - 35) {
+    // ── FOOTER ON ALL PAGES ──────────────────────────────────
+    const pageCount = (doc as any).internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
       doc.setDrawColor(212, 175, 55);
       doc.setLineWidth(0.4);
-      doc.line(10, pageHeight - 20, pageWidth - 10, pageHeight - 20);
-      doc.setFontSize(7.5);
-      doc.setTextColor(120, 113, 108);
-      doc.text('BUNA TECH | info@bunatech.com | @Buna_BingoBot | @BunaTechHub | bunatech.net', pageWidth / 2, pageHeight - 12, { align: 'center' });
+      doc.line(10, pageHeight - 14, pageWidth - 10, pageHeight - 14);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(140, 133, 123);
+      doc.text('BUNA TECH | bunatech.net | @Buna_BingoBot | @BunaTechHub', 10, pageHeight - 7);
+      doc.text(`Page ${i} / ${pageCount}`, pageWidth - 10, pageHeight - 7, { align: 'right' });
     }
 
-    doc.save(`AllAgents_Summary_Report_${new Date().toISOString().slice(0, 10)}.pdf`);
+    doc.save(`AllAgents_CashCollection_${new Date().toISOString().slice(0, 10)}.pdf`);
   };
 
   return (
