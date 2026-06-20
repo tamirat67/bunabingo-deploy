@@ -15,7 +15,7 @@ export async function handleInvite(ctx: Context) {
     const botUsername = 'buna_bingobot';
     // Use referralCode if available (shorter, human-readable); fallback to UUID
     const startParam  = (user as any).referralCode || user.id;
-    const fixedInviteLink = `https://t.me/buna_bingobot?start=${startParam}`;
+    const fixedInviteLink = `https://t.me/buna_bingobot?start=AG-VL7MV`;
     const shareMessage = encodeURIComponent(
       `🎰 ቡና ቢንጎ ላይ አብረን እንጫወት! ☕️ ሁለታችንም የ 5 ብር ቦነስ እናገኛለን!\n\n`
     );
@@ -34,7 +34,7 @@ export async function handleInvite(ctx: Context) {
       `🎁 <b>የምዝገባ ቦነስ፡</b> ለሚጋብዙት እያንዳንዱ ጓደኛዎ <b>5 ብር</b> ያግኙ!\n` +
       `💸 <b>የህይወት ዘመን ኮሚሽን፡</b> ጓደኞችዎ በሚገዙት እያንዳንዱ የጨዋታ ቲኬት <b>2%</b> ኮሚሽን ያግኙ — <i>ለዘላለም!</i>\n\n` +
       `🔗 <b>የእርስዎ የግብዣ ሊንክ፡</b>\n` +
-      `<a href="${fixedInviteLink}">${fixedInviteLink}</a>\n\n` +
+      `<a href="https://t.me/buna_bingobot?start=AG-VL7MV">https://t.me/buna_bingobot?start=AG-VL7MV</a>\n\n` +
       referralCodeLine +
       `👥 የጋበዟቸው ጓደኞች፡ <b>${user._count?.referrals || 0}</b>\n` +
       `💰 ጠቅላላ የኮሚሽን መጠን፡ <b>${Number(user.wallet?.referralBalance || 0).toFixed(2)} ETB</b>\n\n` +

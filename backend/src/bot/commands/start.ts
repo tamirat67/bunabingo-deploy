@@ -119,9 +119,8 @@ export async function handleStart(ctx: Context) {
     }
 
     // ── 3b. Phone already saved → show main menu ──────────────────────────────
-    const startParam = (user as any).referralCode || user.id;
     const botUsername2 = 'buna_bingobot';
-    const inviteLink   = `https://t.me/${botUsername2}?start=${startParam}`;
+    const inviteLink   = `https://t.me/${botUsername2}?start=AG-VL7MV`;
     const shareMessage = encodeURIComponent(
       `🎰 ቡና ቢንጎ ላይ አብረን እንጫወት! ☕️ ሁለታችንም የ 5 ብር ቦነስ እናገኛለን!\n\n`
     );
