@@ -240,9 +240,9 @@ export default function AgentReportPage() {
         { content: 'Deposits − Withdrawals (real physical cash held)', styles: { fillColor: [240, 253, 244] as [number,number,number] } },
       ],
       [
-        { content: '✂  AGENT COMMISSION (' + fmtPct(stats.agentRate) + ')', styles: { textColor: [180, 83, 9] as [number,number,number] } },
+        { content: '🤝  AGENT COMMISSION (' + fmtPct(stats.agentRate) + ' of Net Cash Flow)', styles: { textColor: [180, 83, 9] as [number,number,number] } },
         { content: `- ${fmt(stats.agentEarned)} ETB`, styles: { textColor: [180, 83, 9] as [number,number,number] } },
-        "Agent's earned share — deducted before collection",
+        "Agent's earned share of Net Cash Flow — deducted before collection",
       ],
       [
         { content: '★  EXPECTED CASH TO COLLECT', styles: { textColor: [61, 43, 31] as [number,number,number], fontStyle: 'bold' as const, fillColor: [255, 248, 225] as [number,number,number] } },
@@ -252,17 +252,12 @@ export default function AgentReportPage() {
       [
         { content: '🤖  BOT WIN (REAL CASH ONLY)', styles: { textColor: [153, 27, 27] as [number,number,number] } },
         { content: `${fmt(stats.botDebtAdded || 0)} ETB`, styles: { textColor: [153, 27, 27] as [number,number,number] } },
-        '70% of real player tickets — bots won these games (already included above)',
+        '70% of real player tickets — bots won these games (already included in Net Cash Flow above)',
       ],
       [
-        { content: '🎟  REAL TICKET SALES', styles: { textColor: [100, 100, 120] as [number,number,number] } },
+        { content: '🎟  REAL TICKET SALES (Reference)', styles: { textColor: [100, 100, 120] as [number,number,number] } },
         { content: `${fmt(stats.totalTicketSales)} ETB`, styles: { textColor: [100, 100, 120] as [number,number,number] } },
-        'Total real-cash ticket sales (bonus excluded)',
-      ],
-      [
-        { content: '🏦  COMPANY SHARE (' + fmtPct(stats.companyRate) + ')', styles: { textColor: [100, 100, 120] as [number,number,number] } },
-        { content: `${fmt(stats.companyEarnedFromBranch)} ETB`, styles: { textColor: [100, 100, 120] as [number,number,number] } },
-        'Company portion of real ticket sales',
+        'Total real-cash ticket sales (bonus excluded) — for reference only',
       ],
     ];
 
@@ -507,7 +502,7 @@ export default function AgentReportPage() {
           💰 Branch Profit Breakdown — {timeRange === 'all' ? 'All Time' : timeRange === 'today' ? 'Today' : timeRange === 'week' ? 'Last 7 Days' : 'Last 30 Days'}
         </div>
         <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.55)', marginBottom: '12px' }}>
-          Agent earns <strong style={{ color: '#d4af37' }}>20%</strong> of all real ticket sales · Company earns <strong style={{ color: '#fbbf24' }}>80%</strong>
+          Agent earns <strong style={{ color: '#d4af37' }}>20%</strong> of Net Cash Flow (Deposits − Withdrawals) · Company keeps the remaining <strong style={{ color: '#fbbf24' }}>80%</strong>
         </div>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', padding: '6px 12px', borderRadius: '8px', marginBottom: '28px' }}>
           <FiCheckCircle size={14} style={{ color: '#4ade80' }} />
@@ -534,7 +529,7 @@ export default function AgentReportPage() {
           <div style={{ background: 'rgba(212,175,55,0.15)', borderRadius: '14px', padding: '16px', border: '1px solid rgba(212,175,55,0.3)' }}>
             <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', fontWeight: '800', letterSpacing: '1px', marginBottom: '6px' }}>AGENT EARNED (20%)</div>
             <div style={{ fontSize: '24px', fontWeight: '900', color: '#d4af37' }}>{fmt(stats.agentEarned)}</div>
-            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', marginTop: '4px' }}>ETB of ticket sales</div>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', marginTop: '4px' }}>ETB of Net Cash Flow</div>
           </div>
 
           {/* Company Earned From This Branch */}
@@ -677,24 +672,24 @@ export default function AgentReportPage() {
               <table className="premium-table" style={{ marginTop: '12px' }}>
                 <tbody>
                   <tr>
-                    <td style={{ color: '#8c857b' }}>Real Ticket Sales (Deposited Cash Only — Bonus Excluded)</td>
-                    <td className="text-right" style={{ fontWeight: '800', color: '#15803d' }}>{fmt(stats.totalTicketSales)} ETB</td>
+                    <td style={{ color: '#8c857b' }}>Net Cash Flow (Deposits − Withdrawals)</td>
+                    <td className="text-right" style={{ fontWeight: '800', color: '#15803d' }}>{fmt(Math.max(0, stats.netCashFlow))} ETB</td>
                   </tr>
                   <tr>
-                    <td style={{ color: '#8c857b' }}>Total Commission Rate</td>
-                    <td className="text-right" style={{ fontWeight: '800' }}>{fmtPct(stats.fullCommissionRate)}</td>
+                    <td style={{ color: '#8c857b' }}>Agent Profit Rate</td>
+                    <td className="text-right" style={{ fontWeight: '800' }}>{fmtPct(stats.agentRate)}</td>
                   </tr>
                   <tr style={{ background: 'rgba(212,175,55,0.06)' }}>
-                    <td style={{ fontWeight: '700', color: '#3d2b1f' }}>→ Agent Share (20%)</td>
+                    <td style={{ fontWeight: '700', color: '#3d2b1f' }}>→ Agent Share ({fmtPct(stats.agentRate)} of Net Cash Flow)</td>
                     <td className="text-right" style={{ fontWeight: '900', color: '#d4af37', fontSize: '15px' }}>{fmt(stats.agentEarned)} ETB</td>
                   </tr>
                   <tr>
-                    <td style={{ color: '#8c857b' }}>→ Company Share (80%)</td>
+                    <td style={{ color: '#8c857b' }}>→ Company Share (Net Cash Flow − Agent Earned)</td>
                     <td className="text-right" style={{ fontWeight: '800', color: '#78716c' }}>{fmt(stats.companyEarnedFromBranch)} ETB</td>
                   </tr>
                   <tr style={{ borderTop: '1px solid #f0ece8' }}>
-                    <td style={{ color: '#8c857b' }}>Commission Expected (Total)</td>
-                    <td className="text-right" style={{ fontWeight: '800' }}>{fmt(stats.totalCommissionExpected)} ETB</td>
+                    <td style={{ color: '#8c857b' }}>Real Ticket Sales (for reference)</td>
+                    <td className="text-right" style={{ fontWeight: '800' }}>{fmt(stats.totalTicketSales)} ETB</td>
                   </tr>
                   <tr>
                     <td style={{ color: '#8c857b' }}>Commission Deducted (Actual)</td>

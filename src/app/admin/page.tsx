@@ -466,7 +466,7 @@ function DashboardContent() {
           <div className="card-body">
             <div className="card-label">COMPANY REVENUE</div>
             <div className="card-value">{companyRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB</div>
-            <div className="card-subtext">✅ {companyRevenueRate}% of Real Cash · Bonus excluded</div>
+            <div className="card-subtext">✅ {companyRevenueRate}% of Net Cash Flow · Period</div>
           </div>
         </div>
 
@@ -480,7 +480,7 @@ function DashboardContent() {
           <div className="card-body">
             <div className="card-label">AGENT REVENUE</div>
             <div className="card-value">{agentRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB</div>
-            <div className="card-subtext">✅ {agentRevenueRate}% of Real Cash · Bonus excluded</div>
+            <div className="card-subtext">✅ {agentRevenueRate}% of Net Cash Flow · Period</div>
           </div>
         </div>
 
@@ -562,7 +562,7 @@ function DashboardContent() {
             <div style={{ background: 'rgba(255,255,255,0.07)', borderRadius: '16px', padding: '18px', border: '1px solid rgba(255,255,255,0.1)' }}>
               <div style={{ fontSize: '10px', fontWeight: '800', color: 'rgba(255,255,255,0.55)', letterSpacing: '1px', marginBottom: '8px', textTransform: 'uppercase' }}>🤝 Agent Revenue ({agentRevenueRate}%)</div>
               <div style={{ fontSize: '22px', fontWeight: '900', color: '#93c5fd' }}>{realAgentRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-              <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>ETB · real cash only</div>
+              <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>ETB · based on ticket sales (ref only)</div>
             </div>
 
             {/* Bot Win */}

@@ -1415,14 +1415,17 @@ staffRouter.get('/company-profit', staffMiddleware, async (req, res) => {
       const botDebtAdded = Number(botDebtAddedAgg._sum.amount || 0);
       const botDebtSettled = Number(botDebtSettledAgg._sum.amount || 0);
 
+      const netCashFlow = Math.max(0, totalDeposited - totalWithdrawn);
+      const agentEarned = netCashFlow * AGENT_RATE;
+      const companyShare = netCashFlow - agentEarned;
       return {
         agentId: agent.id,
         agentName: agent.firstName || 'Unknown',
         agentUsername: agent.telegramUsername || '',
         referralCode: agent.referralCode || '',
         totalTicketSales,
-        companyShare: totalTicketSales * COMPANY_RATE,
-        agentEarned: totalTicketSales * AGENT_RATE,
+        companyShare,
+        agentEarned,
         botDebtAdded,
         botDebtSettled,
         outstandingBotDebt: Math.max(0, botDebtAdded - botDebtSettled),
@@ -1668,10 +1671,13 @@ staffRouter.get('/agents/:id/report', staffMiddleware, async (req, res) => {
 
     const AGENT_RATE   = profitRate;
     const COMPANY_RATE = Math.max(0, companyRate - profitRate);
-    const agentEarned             = totalTicketSales * AGENT_RATE;
-    const companyEarnedFromBranch = totalTicketSales * COMPANY_RATE;
-    const totalCommissionExpected = totalTicketSales * companyRate;
     const netCashFlow = totalDeposited - totalWithdrawn;
+    // Commission is now based on Net Cash Flow (not Gross Ticket Sales)
+    // Agent gets their % of what was actually retained; company keeps the rest
+    const netCashFlowForCalc = Math.max(0, netCashFlow); // never negative
+    const agentEarned             = netCashFlowForCalc * AGENT_RATE;
+    const companyEarnedFromBranch = netCashFlowForCalc - agentEarned;
+    const totalCommissionExpected = netCashFlowForCalc * companyRate;
     const houseEdge   = totalTicketSales - totalPrizesWon;
 
     // Monthly 6-month trend
@@ -1682,7 +1688,7 @@ staffRouter.get('/agents/:id/report', staffMiddleware, async (req, res) => {
       const start = new Date(d.getFullYear(), d.getMonth(), 1);
       const end   = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
       const label = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-      const [mDep, mTickets] = await Promise.all([
+      const [mDep, mTickets, mWithdrawals] = await Promise.all([
         prisma.deposit.aggregate({
           where: { status: { in: ['APPROVED', 'approved', 'COMPLETED', 'completed'] }, userId: { in: referredUserIds }, createdAt: { gte: start, lte: end } },
           _sum: { amount: true },
@@ -1691,14 +1697,21 @@ staffRouter.get('/agents/:id/report', staffMiddleware, async (req, res) => {
           where: { type: 'TICKET_PURCHASE', status: { in: ['completed', 'COMPLETED'] }, userId: { in: referredUserIds }, createdAt: { gte: start, lte: end } },
           _sum: { amount: true, balanceBefore: true, balanceAfter: true },
         }),
+        prisma.withdrawal.aggregate({
+          where: { status: { in: ['APPROVED', 'COMPLETED', 'approved', 'completed'] }, userId: { in: referredUserIds }, createdAt: { gte: start, lte: end } },
+          _sum: { amount: true },
+        }),
       ]);
       // Real cash only per month — excludes bonus ETB
       const mTicketAmount = Number(mTickets._sum.balanceBefore || 0) - Number(mTickets._sum.balanceAfter || 0);
+      const mDeposited = Number(mDep._sum.amount || 0);
+      const mWithdrawn = Number(mWithdrawals._sum.amount || 0);
+      const mNetCashFlow = Math.max(0, mDeposited - mWithdrawn);
       monthlyTrend.push({
         month: label,
-        deposits: Number(mDep._sum.amount || 0),
+        deposits: mDeposited,
         ticketSales: mTicketAmount,
-        agentProfit: mTicketAmount * AGENT_RATE,
+        agentProfit: mNetCashFlow * AGENT_RATE,
       });
     }
 
@@ -2357,6 +2370,8 @@ staffRouter.get('/analytics', staffMiddleware, async (req, res) => {
   }));
 
   const realCompanyRevenue = realGrossSales * COMPANY_RATE;
+  // realAgentRevenue: all-time agent share — NOTE: for all-time view, still uses ticket sales
+  // as all-time deposits/withdrawals can't be easily scoped. This is for reference in the accounting section.
   const realAgentRevenue   = realGrossSales * AGENT_RATE;
   const botCompanyRevenue  = botGrossSales  * COMPANY_RATE;  // synthetic — NOT real profit
 
@@ -2372,9 +2387,32 @@ staffRouter.get('/analytics', staffMiddleware, async (req, res) => {
     },
     _sum: { amount: true, balanceBefore: true, balanceAfter: true }
   });
+  // Period deposits and withdrawals (for Net Cash Flow based commission)
+  const [periodDepositsAgg, periodWithdrawalsAgg] = await Promise.all([
+    prisma.deposit.aggregate({
+      where: {
+        status: { in: ['approved', 'APPROVED', 'completed', 'COMPLETED'] },
+        createdAt: { gte: todayStart, lte: todayEnd },
+        ...(agentIds ? { user: { referredBy: { in: agentIds } } } : { user: { isBot: false } })
+      },
+      _sum: { amount: true }
+    }),
+    prisma.withdrawal.aggregate({
+      where: {
+        status: { in: ['approved', 'APPROVED', 'completed', 'COMPLETED'] },
+        createdAt: { gte: todayStart, lte: todayEnd },
+        ...(agentIds ? { user: { referredBy: { in: agentIds } } } : { user: { isBot: false } })
+      },
+      _sum: { amount: true }
+    }),
+  ]);
   const todayRealSales = Number(todayRealSalesAgg._sum.balanceBefore || 0) - Number(todayRealSalesAgg._sum.balanceAfter || 0);
-  const todayCompanyRevenue = todayRealSales * COMPANY_RATE;
-  const todayAgentRevenue   = todayRealSales * AGENT_RATE;
+  const periodDeposited   = Number(periodDepositsAgg._sum.amount || 0);
+  const periodWithdrawn   = Number(periodWithdrawalsAgg._sum.amount || 0);
+  const periodNetCashFlow = Math.max(0, periodDeposited - periodWithdrawn);
+  // Period commission: Agent earns AGENT_RATE of Net Cash Flow; company keeps the rest
+  const todayAgentRevenue   = periodNetCashFlow * AGENT_RATE;
+  const todayCompanyRevenue = periodNetCashFlow - todayAgentRevenue;
 
   // Build a human-readable date range label for the frontend
   const fmtDate = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
