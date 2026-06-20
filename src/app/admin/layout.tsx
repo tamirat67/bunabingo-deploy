@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { 
@@ -21,11 +21,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     system: pathname.startsWith('/admin/audit') || pathname.startsWith('/admin/logs') || pathname.startsWith('/admin/settings') 
   });
   const [user, setUser] = useState<any>(null);
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  // Ref to track if we've already successfully loaded the user.
+  // useRef never causes stale closures — it's always up-to-date.
+  const userLoadedRef = useRef(false);
 
   const [selectedDate, setSelectedDate] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -63,6 +61,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const handleLogout = () => {
     localStorage.removeItem('admin_token');
+    userLoadedRef.current = false;
     if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.initData) {
       (window as any).Telegram.WebApp.close();
     } else {
@@ -70,19 +69,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
   };
 
+  // ── Auth check runs ONCE on mount, never on pathname changes ──────────────
+  // This prevents the stale-closure redirect bug when clicking sidebar links.
   useEffect(() => {
-    // Don't run until the component is fully mounted on the client
-    if (!isMounted) return;
+    // If the user is already loaded, do nothing at all — no redirect, no API call.
+    if (userLoadedRef.current) return;
+
+    // Login page: set a guest stub so the layout renders children (the login form)
+    if (pathname === '/admin/login') {
+      userLoadedRef.current = true;
+      setUser({ firstName: 'Guest', role: 'GUEST' });
+      return;
+    }
 
     async function loadUser() {
-      // Don't check auth if we are already on the login page
-      if (pathname === '/admin/login') {
-        setUser({ firstName: 'Guest', role: 'GUEST' });
-        return;
-      }
-
-      // If we already have a user loaded, don't re-fetch on every page navigation
-      // unless the token disappears
       const token = localStorage.getItem('admin_token');
       const tgInitData = (window as any).Telegram?.WebApp?.initData || null;
 
@@ -91,36 +91,34 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         return;
       }
 
-      // If we already loaded a user, skip the API call on mere path changes
-      if (user) return;
-
       try {
         const response = await api.get('/me');
         const userData = response.data;
         if (userData.role !== 'ADMIN' && userData.role !== 'AGENT' && userData.role !== 'STAFF' && !userData.isAdmin) {
-          // This is a real unauthorized user — clear token
           localStorage.removeItem('admin_token');
           router.push('/admin/login');
           return;
         }
+        userLoadedRef.current = true;
         setUser(userData);
       } catch (err: any) {
-        // Only log out on explicit auth rejection (401 or 403)
-        // Network errors, 500s, and timeouts should NOT clear the session
+        // Only clear the session on explicit auth rejection (401 / 403).
+        // Network errors, timeouts and 5xx must NOT log the user out.
         const status = err?.response?.status;
         if (status === 401 || status === 403) {
           localStorage.removeItem('admin_token');
+          userLoadedRef.current = false;
           router.push('/admin/login');
         }
-        // Otherwise: stay on page, keep the loading spinner briefly
-        // The user will see the page once the network recovers
+        // For any other error, keep showing the spinner; user stays logged in.
       }
     }
     loadUser();
-  }, [pathname, isMounted]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // <-- Empty array: runs ONLY once on mount, never on navigation
 
-  // Show spinner while waiting for client-side mount OR while fetching user
-  if (!isMounted || !user) return <div className="login-container">
+  // Show spinner until user is loaded
+  if (!user) return <div className="login-container">
     <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2" style={{ borderColor: 'var(--cmd-gold)' }}></div>
   </div>;
 
