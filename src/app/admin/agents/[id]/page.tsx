@@ -249,16 +249,7 @@ export default function AgentReportPage() {
         { content: `${fmt(totalExpected)} ETB`, styles: { textColor: [61, 43, 31] as [number,number,number], fontStyle: 'bold' as const, fillColor: [255, 248, 225] as [number,number,number] } },
         { content: 'Net Cash Flow − Agent Commission', styles: { fillColor: [255, 248, 225] as [number,number,number] } },
       ],
-      [
-        { content: '🤖  BOT WIN (REAL CASH ONLY)', styles: { textColor: [153, 27, 27] as [number,number,number] } },
-        { content: `${fmt(stats.botDebtAdded || 0)} ETB`, styles: { textColor: [153, 27, 27] as [number,number,number] } },
-        '70% of real player tickets — bots won these games (already included in Net Cash Flow above)',
-      ],
-      [
-        { content: '🎟  REAL TICKET SALES (Reference)', styles: { textColor: [100, 100, 120] as [number,number,number] } },
-        { content: `${fmt(stats.totalTicketSales)} ETB`, styles: { textColor: [100, 100, 120] as [number,number,number] } },
-        'Total real-cash ticket sales (bonus excluded) — for reference only',
-      ],
+
     ];
 
     autoTable(doc, {

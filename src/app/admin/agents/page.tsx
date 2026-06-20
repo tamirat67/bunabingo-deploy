@@ -343,9 +343,8 @@ export default function AgentsPage() {
       { label: 'TOTAL WITHDRAWN',     value: fmt(totals.totalWithdrawn  || 0) + ' ETB', color: [185, 28, 28] as [number,number,number] },
       { label: 'NET CASH FLOW',       value: fmt(totals.netCashFlow     || 0) + ' ETB', color: [14, 100, 57] as [number,number,number] },
       { label: 'AGENT COMMISSIONS',   value: fmt(totals.agentEarned     || 0) + ' ETB', color: [180, 83, 9] as [number,number,number] },
-      { label: 'BOT WIN (REAL CASH)', value: fmt(totals.botDebtAdded    || 0) + ' ETB', color: [153, 27, 27] as [number,number,number] },
     ];
-    const bw = (pageWidth - 20 - 16) / 5;
+    const bw = (pageWidth - 20 - 12) / 4;
     const by0 = 60;
     boxData.forEach((b, i) => {
       const bx = 10 + i * (bw + 4);
@@ -373,7 +372,6 @@ export default function AgentsPage() {
         { content: `- ${fmt(a.totalWithdrawn || 0)} ETB`, styles: { textColor: [185, 28, 28] as [number,number,number], halign: 'right' as const } },
         { content: `${fmt(a.netCashFlow)} ETB`, styles: { textColor: [14, 100, 57] as [number,number,number], fontStyle: 'bold' as const, halign: 'right' as const } },
         { content: `- ${fmt(a.agentEarned)} ETB`, styles: { textColor: [180, 83, 9] as [number,number,number], halign: 'right' as const } },
-        { content: `${fmt(a.botDebtAdded || 0)} ETB`, styles: { textColor: [153, 27, 27] as [number,number,number], halign: 'right' as const } },
         {
           content: `${isHigh ? '🔴 ' : '💰 '}${fmt(exp)} ETB`,
           styles: {
@@ -396,7 +394,6 @@ export default function AgentsPage() {
       { content: `- ${fmt(totals.totalWithdrawn || 0)} ETB`, styles: { textColor: [252, 165, 165] as [number,number,number], fontStyle: 'bold' as const, halign: 'right' as const, fillColor: [61, 43, 31] as [number,number,number] } },
       { content: `${fmt(totals.netCashFlow || 0)} ETB`, styles: { textColor: [110, 231, 183] as [number,number,number], fontStyle: 'bold' as const, halign: 'right' as const, fillColor: [61, 43, 31] as [number,number,number] } },
       { content: `- ${fmt(totals.agentEarned || 0)} ETB`, styles: { textColor: [252, 211, 77] as [number,number,number], fontStyle: 'bold' as const, halign: 'right' as const, fillColor: [61, 43, 31] as [number,number,number] } },
-      { content: `${fmt(totals.botDebtAdded || 0)} ETB`, styles: { textColor: [252, 165, 165] as [number,number,number], fontStyle: 'bold' as const, halign: 'right' as const, fillColor: [61, 43, 31] as [number,number,number] } },
       { content: `💰 ${fmt(totalExp)} ETB`, styles: { textColor: [251, 191, 36] as [number,number,number], fontStyle: 'bold' as const, halign: 'right' as const, fillColor: [61, 43, 31] as [number,number,number] } },
     ]);
 
@@ -410,7 +407,6 @@ export default function AgentsPage() {
         'Withdrawn\nወጪ',
         'Net Cash Flow\nየተጣራ ገንዘብ',
         'Commission\nወኪሉ ያገኘው',
-        'Bot Win\n(Real Cash)',
         '💰 Expected Cash\nሊሰበሰብ',
       ]],
       body: agentRows,
@@ -435,8 +431,7 @@ export default function AgentsPage() {
         4: { cellWidth: 30, halign: 'right' },
         5: { cellWidth: 36, halign: 'right' },
         6: { cellWidth: 30, halign: 'right' },
-        7: { cellWidth: 30, halign: 'right' },
-        8: { cellWidth: 40, halign: 'right' },
+        7: { cellWidth: 44, halign: 'right' },
       },
       margin: { left: 10, right: 10, bottom: 22 },
     });
