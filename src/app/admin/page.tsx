@@ -450,9 +450,9 @@ function DashboardContent() {
             <span className="card-pill" style={{ color: '#0ea5e9', background: 'rgba(14, 165, 233, 0.1)' }}>Today</span>
           </div>
           <div className="card-body">
-            <div className="card-label">TOTAL TURNOVER (STAKE)</div>
+            <div className="card-label">REAL CASH TURNOVER</div>
             <div className="card-value">{globalSales.toLocaleString()} ETB</div>
-            <div className="card-subtext">Includes Re-betted Winnings</div>
+            <div className="card-subtext">✅ Real Players Only · Bonus excluded</div>
           </div>
         </div>
 

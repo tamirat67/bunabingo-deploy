@@ -1102,7 +1102,8 @@ staffRouter.get('/transactions/summary', async (req, res) => {
     userFilter = { referredBy: user.id };
   }
 
-  const txUserFilter = Object.keys(userFilter).length > 0 ? { user: userFilter } : {};
+  const txUserFilter = Object.keys(userFilter).length > 0 ? { user: { isBot: false, ...userFilter } } : { user: { isBot: false } };
+  const walletUserFilter = Object.keys(userFilter).length > 0 ? { user: { isBot: false, ...userFilter } } : { user: { isBot: false } };
 
   try {
     const [
@@ -1117,21 +1118,21 @@ staffRouter.get('/transactions/summary', async (req, res) => {
       totalWalletAgg,
     ] = await Promise.all([
       prisma.deposit.aggregate({
-        where: { status: { in: ['pending', 'PENDING'] }, user: userFilter },
+        where: { status: { in: ['pending', 'PENDING'] }, ...txUserFilter },
         _sum: { amount: true },
         _count: { id: true }
       }),
       prisma.withdrawal.aggregate({
-        where: { status: { in: ['pending', 'PENDING'] }, user: userFilter },
+        where: { status: { in: ['pending', 'PENDING'] }, ...txUserFilter },
         _sum: { amount: true },
         _count: { id: true }
       }),
       prisma.deposit.aggregate({
-        where: { status: { in: ['approved', 'completed', 'APPROVED', 'COMPLETED'] }, user: userFilter },
+        where: { status: { in: ['approved', 'completed', 'APPROVED', 'COMPLETED'] }, ...txUserFilter },
         _sum: { amount: true }
       }),
       prisma.withdrawal.aggregate({
-        where: { status: { in: ['approved', 'completed', 'APPROVED', 'COMPLETED'] }, user: userFilter },
+        where: { status: { in: ['approved', 'completed', 'APPROVED', 'COMPLETED'] }, ...txUserFilter },
         _sum: { amount: true }
       }),
       // Bonus credits (deposit bonus — DEPOSIT type but description contains 'bonus')
@@ -1152,11 +1153,11 @@ staffRouter.get('/transactions/summary', async (req, res) => {
       // Ticket purchases (money spent on tickets)
       prisma.transaction.aggregate({
         where: { type: 'TICKET_PURCHASE', status: { in: ['completed', 'COMPLETED'] }, ...txUserFilter },
-        _sum: { amount: true }
+        _sum: { amount: true, balanceBefore: true, balanceAfter: true }
       }),
       // Current total wallet balances across all real players
       prisma.wallet.aggregate({
-        where: Object.keys(userFilter).length > 0 ? { user: userFilter } : {},
+        where: walletUserFilter,
         _sum: { balance: true }
       }),
     ]);
@@ -1166,7 +1167,7 @@ staffRouter.get('/transactions/summary', async (req, res) => {
     const bonusCredits      = Number(bonusCreditsAgg._sum.amount || 0);
     const prizeWinnings     = Number(prizeWinningsAgg._sum.amount || 0);
     const referralBonuses   = Number(referralBonusAgg._sum.amount || 0);
-    const ticketsPurchased  = Number(ticketPurchasesAgg._sum.amount || 0);
+    const ticketsPurchased  = Number(ticketPurchasesAgg._sum.balanceBefore || 0) - Number(ticketPurchasesAgg._sum.balanceAfter || 0);
     const totalWalletBalance = Number(totalWalletAgg._sum.balance || 0);
 
     res.json({
@@ -2205,17 +2206,17 @@ staffRouter.get('/analytics', staffMiddleware, async (req, res) => {
     prisma.deposit.count({ where: { status: { in: ['pending', 'PENDING'] }, ...txFilter } }),
     prisma.withdrawal.count({ where: { status: { in: ['pending', 'PENDING'] }, ...txFilter } }),
     prisma.transaction.aggregate({ 
-      where: { type: 'TICKET_PURCHASE', status: { in: ['completed', 'COMPLETED'] }, ...txFilter }, 
-      _sum: { amount: true } 
+      where: { type: 'TICKET_PURCHASE', status: { in: ['completed', 'COMPLETED'] }, user: { isBot: false }, ...txFilter }, 
+      _sum: { amount: true, balanceBefore: true, balanceAfter: true } 
     }),
     prisma.agentCommissionLog.aggregate({ 
       where: { type: 'COMMISSION_DEBIT', ...commFilter }, 
       _sum: { amount: true } 
     }),
-    // Today's Sales (Gross Volume)
+    // Today's Sales (Real Gross Volume)
     prisma.transaction.aggregate({
-      where: { type: 'TICKET_PURCHASE', status: { in: ['completed', 'COMPLETED'] }, createdAt: { gte: todayStart, lte: todayEnd }, ...txFilter },
-      _sum: { amount: true }
+      where: { type: 'TICKET_PURCHASE', status: { in: ['completed', 'COMPLETED'] }, user: { isBot: false }, createdAt: { gte: todayStart, lte: todayEnd }, ...txFilter },
+      _sum: { amount: true, balanceBefore: true, balanceAfter: true }
     }),
     // Today's Company Revenue
     prisma.agentCommissionLog.aggregate({
@@ -2359,7 +2360,7 @@ staffRouter.get('/analytics', staffMiddleware, async (req, res) => {
   const realAgentRevenue   = realGrossSales * AGENT_RATE;
   const botCompanyRevenue  = botGrossSales  * COMPANY_RATE;  // synthetic — NOT real profit
 
-  const todayGlobalSales = Number(globalSalesTodayAgg._sum.amount || 0);
+  const todayGlobalSales = Number(globalSalesTodayAgg._sum.balanceBefore || 0) - Number(globalSalesTodayAgg._sum.balanceAfter || 0);
   // Today's real sales (non-bot tickets purchased today)
   const todayRealSalesAgg = await prisma.transaction.aggregate({
     where: {
@@ -2389,7 +2390,7 @@ staffRouter.get('/analytics', staffMiddleware, async (req, res) => {
     totalWithdrawn: totalWithdrawalsAllTime._sum.amount || 0,
     pendingDeposits,
     pendingWithdrawals,
-    globalSales: globalSalesAllTimeAgg._sum.amount || 0,
+    globalSales: (Number(globalSalesAllTimeAgg._sum.balanceBefore || 0) - Number(globalSalesAllTimeAgg._sum.balanceAfter || 0)),
     totalCompanyRevenue: totalCompanyRevenueAllTimeAgg._sum.amount || 0,
     preDepositBalance: totalPreDepositBalance,
     preDepositAdded: totalPreDepositAdded,
