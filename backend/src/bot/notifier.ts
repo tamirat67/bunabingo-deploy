@@ -257,22 +257,14 @@ export async function notifyAllAdminsAndAgent(
     logger.warn('[Notifier] notifyAllAdminsAndAgent: notifySuperAdmin failed', err);
   }
 
-  // 2. Notify the player's referring agent (if different from an admin already notified)
+  // 2. Notify the player's referring agent (or their agent ancestor)
   try {
-    const player = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { referredBy: true }
-    });
+    const { findAgentAncestor } = await import('../services/user.service');
+    const agent = await findAgentAncestor(userId);
 
-    if (player?.referredBy) {
-      const agent = await prisma.user.findUnique({
-        where: { id: player.referredBy },
-        select: { id: true, telegramId: true, role: true }
-      });
-
-      // Only notify if they are actually an AGENT or ADMIN (and have a Telegram ID)
-      if (agent?.telegramId && (agent.role === 'AGENT' || agent.role === 'ADMIN' || agent.role === 'admin')) {
-        const agentTgId = Number(agent.telegramId);
+    // Only notify if they have a Telegram ID (findAgentAncestor already ensures role is AGENT or ADMIN)
+    if (agent?.telegramId) {
+      const agentTgId = Number(agent.telegramId);
         // Avoid double-notifying if they're already in the global admin list
         const SUPER_ADMIN_TELEGRAM_ID = 5310030963;
         const envAdminIds = (config.bot.adminIds || []).map(Number);
@@ -289,7 +281,6 @@ export async function notifyAllAdminsAndAgent(
             logger.warn(`[Notifier] Could not notify referring agent TG ID ${agentTgId}:`, err);
           }
         }
-      }
     }
   } catch (err) {
     logger.warn('[Notifier] notifyAllAdminsAndAgent: agent lookup failed', err);

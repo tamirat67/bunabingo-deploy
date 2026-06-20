@@ -300,10 +300,16 @@ export async function rejectWithdrawal(withdrawalId: string, adminId: string, re
 // GET PENDING WITHDRAWALS (with ledger verification)
 // ─────────────────────────────────────────────────────────────────────────────
 export async function getPendingWithdrawals(agentId?: string) {
+  let userIds: string[] | undefined;
+  if (agentId) {
+    const { getDescendantUserIds } = await import('./user.service');
+    userIds = await getDescendantUserIds(agentId);
+  }
+
   const withdrawals = await prisma.withdrawal.findMany({
     where: { 
       status: { in: ['pending', 'PENDING'] },
-      ...(agentId ? { user: { referredBy: agentId } } : {}),
+      ...(agentId && userIds ? { userId: { in: userIds.length > 0 ? userIds : ['no-users'] } } : {}),
     },
     include: { 
       user: { 

@@ -1255,7 +1255,7 @@ staffRouter.get('/users', async (req, res) => {
           ];
         }
         const [users, total] = await Promise.all([
-          prisma.user.findMany({ where, skip, take: limit, include: { wallet: true, referrer: { select: { id: true, firstName: true, telegramUsername: true, referralCode: true } } }, orderBy: { createdAt: 'desc' } }),
+          prisma.user.findMany({ where, skip, take: limit, include: { wallet: true, referrer: { select: { id: true, firstName: true, telegramUsername: true, referralCode: true, role: true } } }, orderBy: { createdAt: 'desc' } }),
           prisma.user.count({ where }),
         ]);
         res.json({ users, total, pages: Math.ceil(total / limit) });
@@ -1565,10 +1565,19 @@ staffRouter.get('/agents/:id/report', staffMiddleware, async (req, res) => {
       return res.status(404).json({ error: 'User is not a staff member' });
     }
 
+    // Fetch all descendant users (nested referrals)
+    const { getDescendantUserIds } = await import('../services/user.service');
+    const descendantIds = await getDescendantUserIds(agentId);
+    
+    const descendantUsers = await prisma.user.findMany({
+      where: { id: { in: descendantIds.length > 0 ? descendantIds : ['no-users'] } },
+      select: { id: true, isBot: true }
+    });
+
     // Only real (non-bot) referred users
-    const referredUserIds = agent.referrals.filter((r: any) => !r.isBot).map((r: any) => r.id);
-    const realPlayers = agent.referrals.filter((r: any) => !r.isBot);
-    const botPlayers = agent.referrals.filter((r: any) => r.isBot);
+    const referredUserIds = descendantUsers.filter((r: any) => !r.isBot).map((r: any) => r.id);
+    const realPlayers = descendantUsers.filter((r: any) => !r.isBot);
+    const botPlayers = descendantUsers.filter((r: any) => r.isBot);
 
     const { getAgentProfitRate, getCompanyCommissionRate } = await import('../services/settings.service');
     const { getAgentPreDepositStatus } = await import('../services/agentPreDeposit.service');

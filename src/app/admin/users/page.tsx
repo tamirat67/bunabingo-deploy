@@ -296,7 +296,7 @@ export default function UsersPage() {
                 <th>Telegram ID</th>
                 <th>Phone</th>
                 <th>Balance</th>
-                <th>Agent</th>
+                <th>Referrer</th>
                 <th>Role</th>
                 <th>Status</th>
                 <th>Actions</th>
@@ -330,11 +330,12 @@ export default function UsersPage() {
                   <td>
                     {user.referrer ? (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                        <span style={{ fontWeight: '800', color: '#1d4ed8', fontSize: '12px' }}>
-                          @{user.referrer.telegramUsername || user.referrer.firstName || 'Agent'}
+                        <span style={{ fontWeight: '800', color: user.referrer.role === 'PLAYER' ? '#6b7280' : '#1d4ed8', fontSize: '12px' }}>
+                          @{user.referrer.telegramUsername || user.referrer.firstName || 'Unknown'}
+                          {user.referrer.role === 'PLAYER' && <span style={{ marginLeft: '4px', fontSize: '9px', background: '#f3f4f6', color: '#6b7280', padding: '2px 4px', borderRadius: '4px' }}>PLAYER</span>}
                         </span>
                         {user.referrer.referralCode && (
-                          <span style={{ fontSize: '10px', color: '#7c3aed', fontFamily: 'monospace', fontWeight: '700', background: '#f3f0ff', padding: '1px 5px', borderRadius: '4px' }}>
+                          <span style={{ fontSize: '10px', color: '#7c3aed', fontFamily: 'monospace', fontWeight: '700', background: '#f3f0ff', padding: '1px 5px', borderRadius: '4px', alignSelf: 'flex-start' }}>
                             {user.referrer.referralCode}
                           </span>
                         )}

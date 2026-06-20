@@ -272,6 +272,7 @@ export async function getAllUsers(page = 1, limit = 20, search = '', agentIds?: 
             firstName: true,
             telegramUsername: true,
             referralCode: true,
+            role: true,
           }
         }
       },
@@ -280,6 +281,44 @@ export async function getAllUsers(page = 1, limit = 20, search = '', agentIds?: 
     prisma.user.count({ where }),
   ]);
   return { users, total, pages: Math.ceil(total / limit) };
+}
+
+export async function getDescendantUserIds(agentId: string): Promise<string[]> {
+  try {
+    const result = await prisma.$queryRaw<{id: string}[]>`
+      WITH RECURSIVE descendants AS (
+        SELECT id FROM "users" WHERE referred_by = ${agentId}::uuid
+        UNION ALL
+        SELECT u.id FROM "users" u
+        INNER JOIN descendants d ON u.referred_by = d.id
+      )
+      SELECT id FROM descendants;
+    `;
+    return result.map(r => r.id);
+  } catch (err) {
+    logger.error('[user.service] Error in getDescendantUserIds:', err);
+    return [];
+  }
+}
+
+export async function findAgentAncestor(userId: string): Promise<any | null> {
+  const MAX_HOPS = 10;
+  let currentId: string | null = userId;
+
+  for (let hop = 0; hop < MAX_HOPS; hop++) {
+    if (!currentId) break;
+    const current = await prisma.user.findUnique({
+      where: { id: currentId },
+      select: { id: true, role: true, referredBy: true, firstName: true, lastName: true,
+                telegramUsername: true, phone: true, phoneNumber: true, depositPhones: true }
+    });
+    if (!current) break;
+    if (hop > 0 && (current.role === 'AGENT' || current.role === 'ADMIN' || current.role === 'admin')) {
+      return current;
+    }
+    currentId = current.referredBy ?? null;
+  }
+  return null;
 }
 
 export async function suspendUser(userId: string, adminId: string, reason: string) {
@@ -436,8 +475,10 @@ export async function getPlayersUnderAgent(agentId: string, page = 1, limit = 20
       }
     : {};
 
+  const descendantIds = await getDescendantUserIds(agentId);
+
   const where: any = {
-    referredBy: agentId,
+    id: { in: descendantIds.length > 0 ? descendantIds : ['no-users'] },
     ...searchFilter,
   };
 
@@ -454,6 +495,7 @@ export async function getPlayersUnderAgent(agentId: string, page = 1, limit = 20
             firstName: true,
             telegramUsername: true,
             referralCode: true,
+            role: true,
           }
         }
       },
@@ -511,10 +553,15 @@ export async function getAgents(page = 1, limit = 20, agentIds?: string[]) {
 
   const enrichedAgents = await Promise.all(
     agents.map(async (agent) => {
-      const referrals = agent.referrals;
-      const realUserIds = referrals.filter(r => !r.isBot).map(r => r.id);
-      const botUserIds = referrals.filter(r => r.isBot).map(r => r.id);
-      const allUserIds = referrals.map(r => r.id);
+      const descendantIds = await getDescendantUserIds(agent.id);
+      const descendantUsers = await prisma.user.findMany({
+        where: { id: { in: descendantIds.length > 0 ? descendantIds : ['no-users'] } },
+        select: { id: true, isBot: true }
+      });
+
+      const realUserIds = descendantUsers.filter(r => !r.isBot).map(r => r.id);
+      const botUserIds = descendantUsers.filter(r => r.isBot).map(r => r.id);
+      const allUserIds = descendantIds;
 
       let totalBranchDeposited = new Decimal(0);
       let totalBranchWithdrawn = new Decimal(0);
@@ -584,6 +631,11 @@ export async function getAgents(page = 1, limit = 20, agentIds?: string[]) {
         agent.wallet.totalWithdrawn  = totalBranchWithdrawn as any;
         agent.wallet.referralBalance = realNetProfit as any; // agent's upfront discount profit
       }
+
+      // Override referrals so the frontend displays the full nested player count
+      (agent as any).referrals = descendantUsers;
+      if (!(agent as any)._count) (agent as any)._count = {};
+      (agent as any)._count.referrals = descendantUsers.length;
 
       (agent as any).preDepositStatus = preDepositStatus;
       (agent as any).stakeAmount      = Number(stakeAmount.toFixed(4));      // ETB company physically collected

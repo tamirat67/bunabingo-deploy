@@ -61,14 +61,20 @@ export async function createDepositRequest(
     logger.warn(`[Deposit] Could not send admin/agent notifications for deposit ${deposit.id}.`, e);
   }
 
-  // Also trigger web dashboard event for the referring agent
-  if (deposit.user?.referredBy) {
-    await triggerUserEvent(deposit.user.referredBy, 'agent-new-deposit', {
-      depositId: deposit.id,
-      userId,
-      amount,
-      userName: deposit.user?.username || 'User',
-    });
+  // Also trigger web dashboard event for the referring agent (or their ancestor)
+  try {
+    const { findAgentAncestor } = await import('./user.service');
+    const ancestor = await findAgentAncestor(userId);
+    if (ancestor) {
+      await triggerUserEvent(ancestor.id, 'agent-new-deposit', {
+        depositId: deposit.id,
+        userId,
+        amount,
+        userName: deposit.user?.username || 'User',
+      });
+    }
+  } catch (e) {
+    logger.warn('[Deposit] Failed to trigger user event for ancestor', e);
   }
 
   logger.info(`Deposit request: user ${userId}, amount ${amount}, ref ${reference}`);
@@ -197,10 +203,16 @@ export async function rejectDeposit(depositId: string, adminId: string, reason: 
 }
 
 export async function getPendingDeposits(agentId?: string) {
+  let userIds: string[] | undefined;
+  if (agentId) {
+    const { getDescendantUserIds } = await import('./user.service');
+    userIds = await getDescendantUserIds(agentId);
+  }
+
   return prisma.deposit.findMany({
     where: { 
       status: { in: ['pending', 'PENDING'] },
-      ...(agentId ? { user: { referredBy: agentId } } : {}),
+      ...(agentId && userIds ? { userId: { in: userIds.length > 0 ? userIds : ['no-users'] } } : {}),
     },
     include: { user: { select: { username: true, telegramId: true, telegramUsername: true, firstName: true } } },
     orderBy: { createdAt: 'desc' },
