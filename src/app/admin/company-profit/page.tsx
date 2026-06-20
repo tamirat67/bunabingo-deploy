@@ -238,6 +238,7 @@ export default function CompanyProfitPage() {
                     <td style={{ textAlign: 'right' }}>
                       {totalExpected > 0 ? (
                         <span style={{
+                          display: 'inline-block', whiteSpace: 'nowrap',
                           background: isHighDebt ? '#fef2f2' : '#fff8e1',
                           color: isHighDebt ? '#ef4444' : '#b45309',
                           padding: '6px 12px', borderRadius: '8px', fontWeight: '900', fontSize: '14px',
