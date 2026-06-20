@@ -425,9 +425,7 @@ export default function AgentReportPage() {
     // Stamp / seal box (col 3 row 2)
     doc.setDrawColor(180, 140, 20);
     doc.setLineWidth(0.6);
-    doc.setLineDashPattern([1.5, 1.5], 0);
     doc.rect(col3x, sig2Y + 2, 50, 24);
-    doc.setLineDashPattern([], 0);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(6.5);
     doc.setTextColor(160, 140, 100);
