@@ -285,38 +285,7 @@ export default function AgentReportPage() {
       margin: { top: 32, bottom: 32, left: 10, right: 10 },
     });
 
-    // ── RECENT DEPOSITS MINI TABLE ───────────────────────────
-    const recentDepsFiltered = (recentDeposits || []).slice(0, 10);
-    if (recentDepsFiltered.length > 0) {
-      const afterTable = (doc as any).lastAutoTable?.finalY || 160;
-      if (afterTable + 50 < pageHeight - 32) {
-        setLatin();
-        doc.setFontSize(9);
-        doc.setTextColor(61, 43, 31);
-        doc.setFont('helvetica', 'bold');
-        doc.text('Recent Deposits (last 10)', 10, afterTable + 10);
-        doc.setFont('helvetica', 'normal');
-
-        const depRows = recentDepsFiltered.map((d: any) => [
-          new Date(d.createdAt).toLocaleDateString(),
-          d.playerName || d.userId?.slice(-6) || '—',
-          fmt(d.amount) + ' ETB',
-          d.status?.toUpperCase() || '—',
-        ]);
-
-        autoTable(doc, {
-          startY: afterTable + 14,
-          head: [['Date', 'Player', 'Amount', 'Status']],
-          body: depRows,
-          theme: 'grid',
-          headStyles: { fillColor: [100, 80, 60], textColor: [255, 255, 255], fontSize: 8, cellPadding: 3 },
-          bodyStyles: { fontSize: 8, cellPadding: 3 },
-          alternateRowStyles: { fillColor: [252, 250, 248] },
-          margin: { left: 10, right: 10, bottom: 32 },
-        });
-      }
-    }
-
+    // Removed Recent Deposits mini table to keep it a simple one-page report
     // ── FOOTER ON ALL PAGES ─────────────────────────────────
     const pageCount = (doc as any).internal.getNumberOfPages();
 
