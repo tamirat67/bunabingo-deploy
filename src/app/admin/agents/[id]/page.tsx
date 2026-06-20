@@ -225,30 +225,25 @@ export default function AgentReportPage() {
     // ── CASH FLOW WATERFALL TABLE (Bilingual) ─────────────────
     const tableBody = [
       [
-        { content: '⬇  REAL CASH DEPOSITED\nጥሬ ገንዘብ ገቢ', styles: { textColor: [21, 128, 61] as [number,number,number], fontStyle: 'bold' as const } },
+        { content: 'REAL CASH DEPOSITED\nጥሬ ገንዘብ ገቢ', styles: { textColor: [21, 128, 61] as [number,number,number], fontStyle: 'bold' as const } },
         { content: `+ ${fmt(stats.totalDeposited)} ETB`, styles: { textColor: [21, 128, 61] as [number,number,number], fontStyle: 'bold' as const } },
         { content: 'Physical cash paid by players — bonus excluded\nተጫዋቾች የከፈሉ ጥሬ ብር — ቦነስ አልተካተተም' },
       ],
       [
-        { content: '⬆  REAL CASH WITHDRAWN\nጥሬ ገንዘብ ወጪ', styles: { textColor: [185, 28, 28] as [number,number,number] } },
+        { content: 'REAL CASH WITHDRAWN\nጥሬ ገንዘብ ወጪ', styles: { textColor: [185, 28, 28] as [number,number,number] } },
         { content: `- ${fmt(stats.totalWithdrawn)} ETB`, styles: { textColor: [185, 28, 28] as [number,number,number] } },
         { content: 'Cash paid out to winning players\nለአሸናፊ ተጫዋቾች የተከፈለ' },
       ],
       [
-        { content: '≡  NET CASH FLOW\nየተጣራ ጥሬ ገንዘብ', styles: { textColor: [14, 100, 57] as [number,number,number], fontStyle: 'bold' as const, fillColor: [240, 253, 244] as [number,number,number] } },
+        { content: 'NET CASH FLOW\nየተጣራ ጥሬ ገንዘብ', styles: { textColor: [14, 100, 57] as [number,number,number], fontStyle: 'bold' as const, fillColor: [240, 253, 244] as [number,number,number] } },
         { content: `${fmt(stats.netCashFlow)} ETB`, styles: { textColor: [14, 100, 57] as [number,number,number], fontStyle: 'bold' as const, fillColor: [240, 253, 244] as [number,number,number] } },
         { content: 'Deposits − Withdrawals (real physical cash held)\nገቢ − ወጪ (ወኪሉ ዘንድ ያለ ጥሬ ብር)', styles: { fillColor: [240, 253, 244] as [number,number,number] } },
       ],
       [
-        { content: '🤝  AGENT COMMISSION (' + fmtPct(stats.agentRate) + ')\nየወኪል ኮሚሽን', styles: { textColor: [180, 83, 9] as [number,number,number] } },
+        { content: 'AGENT COMMISSION (' + fmtPct(stats.agentRate) + ')\nየወኪል ኮሚሽን', styles: { textColor: [180, 83, 9] as [number,number,number] } },
         { content: `- ${fmt(stats.agentEarned)} ETB`, styles: { textColor: [180, 83, 9] as [number,number,number] } },
         { content: "Agent's earned share — deducted before collection\nሊሰበሰብ ከሚገባው ቀርቶ የሚወሰድ" },
-      ],
-      [
-        { content: '★  EXPECTED CASH TO COLLECT\nሊሰበሰብ የሚገባ ጠቅላላ ገንዘብ', styles: { textColor: [61, 43, 31] as [number,number,number], fontStyle: 'bold' as const, fillColor: [255, 248, 225] as [number,number,number], fontSize: 10 } },
-        { content: `${fmt(totalExpected)} ETB`, styles: { textColor: [61, 43, 31] as [number,number,number], fontStyle: 'bold' as const, fillColor: [255, 248, 225] as [number,number,number], fontSize: 11 } },
-        { content: 'Net Cash Flow − Agent Commission\nየተጣራ ጥሬ ብር − የወኪል ኮሚሽን', styles: { fillColor: [255, 248, 225] as [number,number,number] } },
-      ],
+      ]
     ];
 
     autoTable(doc, {
@@ -294,7 +289,7 @@ export default function AgentReportPage() {
     doc.setFontSize(8.5);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(80, 50, 10);
-    doc.text('★  TOTAL CASH TO COLLECT FROM THIS AGENT', pageWidth / 2, boxY + 9, { align: 'center' });
+    doc.text('TOTAL CASH TO COLLECT FROM THIS AGENT', pageWidth / 2, boxY + 9, { align: 'center' });
 
     // Amharic label
     if (hasAmharic) {
