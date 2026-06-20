@@ -319,7 +319,7 @@ export default function AgentsPage() {
 
     // ── HERO TOTALS CARD ────────────────────────────────────
     const totals = profitData?.totals || {};
-    const totalExpected = (totals.companyShare || 0) + (totals.botDebtAdded || 0);
+    const totalExpected = (totals.netCashFlow || 0) - (totals.agentEarned || 0);
 
     doc.setFillColor(253, 251, 247);
     doc.setDrawColor(212, 175, 55);
@@ -346,15 +346,15 @@ export default function AgentsPage() {
     // Hero breakdown pill
     doc.setFontSize(9);
     doc.setTextColor(120, 113, 108);
-    const formula = `Company Share (80%): ${fmt(totals.companyShare || 0)} ETB   +   Bot Winnings: ${fmt(totals.botDebtAdded || 0)} ETB`;
+    const formula = `Net Cash Flow: ${fmt(totals.netCashFlow || 0)} ETB   -   Agent Earnings: ${fmt(totals.agentEarned || 0)} ETB`;
     doc.text(formula, pageWidth / 2, 58, { align: 'center' });
 
     // 4 summary boxes (centered below formula)
     const boxData = [
-      { label: 'TOTAL TICKET SALES (CASH ONLY)', value: fmt(totals.totalTicketSales || 0) + ' ETB' },
-      { label: 'COMPANY SHARE', value: fmt(totals.companyShare || 0) + ' ETB' },
-      { label: 'AGENT EARNED (Total)', value: fmt(totals.agentEarned || 0) + ' ETB' },
-      { label: 'BOT WINNINGS (Total)', value: fmt(totals.botDebtAdded || 0) + ' ETB' },
+      { label: 'REAL DEPOSITS', value: fmt(totals.totalDeposited || 0) + ' ETB' },
+      { label: 'NET CASH FLOW', value: fmt(totals.netCashFlow || 0) + ' ETB' },
+      { label: 'TOTAL EXPECTED', value: fmt(Math.max(0, totalExpected)) + ' ETB' },
+      { label: 'AGENT EARNED', value: fmt(totals.agentEarned || 0) + ' ETB' },
     ];
     const bw = 40, bh = 14;
     const totalBoxesWidth = 4 * bw + 3 * 3;
@@ -375,20 +375,22 @@ export default function AgentsPage() {
     });
 
     // ── PER-AGENT TABLE ─────────────────────────────────────
-    const agentRows = (profitData?.agents || []).map((a: any, i: number) => [
-      i + 1,
-      a.agentName,
-      a.agentUsername ? `@${a.agentUsername}` : '—',
-      fmt(a.totalTicketSales) + ' ETB',
-      `${fmt(a.companyShare)} ETB\n(80%)`,
-      fmt(a.botDebtAdded) + ' ETB',
-      { content: fmt(a.companyShare + a.botDebtAdded) + ' ETB', styles: { fontStyle: 'bold', textColor: [21, 128, 61] } },
-      `${fmt(a.agentEarned)} ETB\n(20%)`,
-    ]);
+    const agentRows = (profitData?.agents || []).map((a: any, i: number) => {
+      const exp = a.netCashFlow - a.agentEarned;
+      return [
+        i + 1,
+        a.agentName,
+        a.agentUsername ? `@${a.agentUsername}` : '—',
+        fmt(a.totalDeposited) + ' ETB',
+        fmt(a.netCashFlow) + ' ETB',
+        fmt(a.agentEarned) + ' ETB',
+        { content: fmt(exp) + ' ETB', styles: { fontStyle: 'bold', textColor: exp > 0 ? [21, 128, 61] : [239, 68, 68] } },
+      ];
+    });
 
     autoTable(doc, {
       startY: 89,
-      head: [['#', 'Agent\nወኪል', 'Username', 'Ticket Sales\nቲኬት ሽያጭ', 'Company Share\nየኩባንያ ድርሻ', 'Bot Winnings\nየቦት ሽልማቶች', 'Expected Cash ▶\nሊሰበሰብ', 'Agent Earned\nያገኘው']],
+      head: [['#', 'Agent\nወኪል', 'Username', 'Real Deposits\nገንዘብ ገቢ', 'Net Cash Flow\nየተጣራ ገንዘብ', 'Agent Earned\nወኪሉ ያገኘው', 'Expected Cash ▶\nሊሰበሰብ']],
       body: agentRows,
       theme: 'grid',
       headStyles: { fillColor: [61, 43, 31], textColor: [255, 255, 255], fontSize: 7.5, fontStyle: 'normal', halign: 'left', font: hasAmharic ? 'NotoSansEthiopic' : 'helvetica' },
@@ -396,13 +398,12 @@ export default function AgentsPage() {
       alternateRowStyles: { fillColor: [252, 250, 248] },
       columnStyles: {
         0: { cellWidth: 7, halign: 'center', textColor: [120, 113, 108] },
-        1: { fontStyle: 'normal', textColor: [61, 43, 31], cellWidth: 24 },
-        2: { cellWidth: 20, textColor: [120, 113, 108] },
-        3: { cellWidth: 25 },
-        4: { cellWidth: 32 },
-        5: { cellWidth: 26 },
-        6: { cellWidth: 32, fillColor: [240, 253, 244] },
-        7: { cellWidth: 24, textColor: [180, 120, 0] },
+        1: { fontStyle: 'normal', textColor: [61, 43, 31], cellWidth: 30 },
+        2: { cellWidth: 26, textColor: [120, 113, 108] },
+        3: { cellWidth: 30 },
+        4: { cellWidth: 30 },
+        5: { cellWidth: 30, textColor: [180, 120, 0] },
+        6: { cellWidth: 35, fillColor: [240, 253, 244] },
       },
       margin: { left: 10, right: 10, bottom: 38 },
     });

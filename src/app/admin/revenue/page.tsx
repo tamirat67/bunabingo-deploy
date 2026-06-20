@@ -176,6 +176,7 @@ export default function RevenuePage() {
   const totalDeposited  = Number(overallStats?.totalDeposited || 0);
   const totalWithdrawn  = Number(overallStats?.totalWithdrawn || 0);
   const netCashPosition = totalDeposited - totalWithdrawn;
+  const realCompanyRevenueCash = netCashPosition - realAgentRevenue;
   const realPct = totalAllSales > 0 ? (totalRealSales / totalAllSales) * 100 : 0;
   const botPct  = totalAllSales > 0 ? (totalBotSales  / totalAllSales) * 100 : 0;
 
@@ -205,8 +206,8 @@ export default function RevenuePage() {
         <KpiCard
           icon={<FiDollarSign size={18} />}
           label="Real Company Revenue (Cash Only)"
-          value={`${fmt(realCompanyRevenue)} ETB`}
-          sub={`✅ ${companyRevRate}% of real cash deposits · bonus ETB excluded`}
+          value={`${fmt(realCompanyRevenueCash)} ETB`}
+          sub={`✅ Net Cash Deposits − Agent Earnings`}
           accent="#22c55e"
         />
         <KpiCard
@@ -299,7 +300,7 @@ export default function RevenuePage() {
             <div>👥 Real Players: <strong>{realPlayerCount.toLocaleString()}</strong></div>
             <div>🎟 Real Ticket Sales: <strong>{fmt(totalRealSales)} ETB</strong></div>
             <div style={{ marginTop: '8px', padding: '8px 12px', background: 'rgba(255,255,255,0.6)', borderRadius: '10px' }}>
-              <div>🏦 Company ({companyRevRate}%): <strong style={{ color: '#059669' }}>{fmt(realCompanyRevenue)} ETB</strong></div>
+              <div>🏦 Company Revenue: <strong style={{ color: '#059669' }}>{fmt(realCompanyRevenueCash)} ETB</strong></div>
               <div>🤝 Agents ({agentRevRate}%): <strong style={{ color: '#059669' }}>{fmt(realAgentRevenue)} ETB</strong></div>
               <div>🏆 Prize Pool ({winnerPct}%): <strong style={{ color: '#059669' }}>{fmt(totalRealSales * (winnerPct / 100))} ETB</strong></div>
             </div>
@@ -491,7 +492,7 @@ export default function RevenuePage() {
           <ul style={{ margin: 0, padding: '0 0 0 18px', lineHeight: '2', fontSize: '13px', color: '#cbd5e1' }}>
             <li>House bots buy tickets using <strong style={{ color: '#fbbf24' }}>synthetic credits</strong> (not real deposited ETB)</li>
             <li>When a bot wins, the payout is credited to the bot's wallet — but bots <strong style={{ color: '#4ade80' }}>cannot withdraw</strong>, so the money stays in the system</li>
-            <li><strong style={{ color: '#22c55e' }}>Real Company Revenue</strong> = {companyRevRate}% × real player ticket sales only</li>
+            <li><strong style={{ color: '#22c55e' }}>Real Company Revenue</strong> = Net Cash Position − Agent Earnings</li>
             <li><strong style={{ color: '#f97316' }}>Bot "Revenue"</strong> is labeled SYNTHETIC — it is NOT actual profit and should NOT be counted as company income</li>
             <li>Net Cash Position = Total Deposits − Total Approved Withdrawals (real cash flow)</li>
           </ul>

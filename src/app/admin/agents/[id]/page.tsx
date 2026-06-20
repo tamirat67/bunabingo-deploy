@@ -43,9 +43,9 @@ export default function AgentReportPage() {
 
   const handleSettleDebt = async () => {
     const amount = Number(settleAmount);
-    const outstanding = report?.stats?.outstandingBotDebt || 0;
+    const outstanding = (report?.stats?.netCashFlow || 0) - (report?.stats?.agentEarned || 0);
     if (!amount || amount <= 0 || amount > outstanding) {
-      return alert('Please enter a valid amount up to the outstanding debt.');
+      return alert('Please enter a valid amount up to the expected cash.');
     }
     if (!confirm(`Are you sure you received ${amount} ETB in cash from this agent?`)) return;
 
@@ -160,7 +160,7 @@ export default function AgentReportPage() {
     doc.text(`Time Range: ${timeRange.toUpperCase()}`, 14, finalY + 18);
 
     // Section: Expected Cash Collection (Hero Card)
-    const totalExpected = stats.companyEarnedFromBranch + (stats.botDebtAdded || 0);
+    const totalExpected = stats.netCashFlow - stats.agentEarned;
 
     doc.setFillColor(253, 251, 247);
     doc.setDrawColor(212, 175, 55);
@@ -190,6 +190,16 @@ export default function AgentReportPage() {
     // Section: Bilingual Profit Breakdown Table
     const tableBody = [
       [
+        'NET CASH FLOW\nየተጣራ ገንዘብ',
+        `${fmt(stats.netCashFlow)} ETB`,
+        `Real Deposits - Withdrawals\nከገቢ ላይ ወጪ ተቀንሶ`
+      ],
+      [
+        'AGENT EARNED\nወኪሉ ያገኘው',
+        `${fmt(stats.agentEarned)} ETB`,
+        `Agent's 20% share\nየወኪሉ 20% ድርሻ`
+      ],
+      [
         'COMPANY SHARE\nየኩባንያ ድርሻ (ኮሚሽን)',
         `${fmt(stats.companyEarnedFromBranch)} ETB`,
         `80% of ticket sales\nከቲኬት ሽያጭ 80%`
@@ -205,9 +215,9 @@ export default function AgentReportPage() {
         `Unsettled bot winnings\nያልተከፈሉ የቦት ሽልማቶች`
       ],
       [
-        'AGENT EARNED\nወኪሉ ያገኘው',
-        `${fmt(stats.agentEarned)} ETB`,
-        `Agent's 20% share\nየወኪሉ 20% ድርሻ`
+        'TOTAL BOT WINNINGS\nጠቅላላ የቦት ሽልማቶች',
+        `${fmt(stats.botDebtAdded || 0)} ETB`,
+        `Prizes won by house bots\nበቤቱ ቦቶች የተሸለሙ ሽልማቶች`
       ],
       [
         'REAL TICKET SALES (CASH ONLY)\nትክክለኛ የቲኬት ሽያጭ',
@@ -480,12 +490,12 @@ export default function AgentReportPage() {
             TOTAL EXPECTED CASH FROM {agent.firstName?.toUpperCase()}
           </div>
           <div style={{ fontSize: 'clamp(32px, 8vw, 46px)', fontWeight: '900', color: '#fbbf24', lineHeight: 1.1, marginBottom: '10px' }}>
-            {fmt(stats.companyEarnedFromBranch + (stats.botDebtAdded || 0))} <span style={{ fontSize: 'clamp(16px, 4vw, 20px)', color: 'rgba(255,255,255,0.5)' }}>ETB</span>
+            {fmt(stats.netCashFlow - stats.agentEarned)} <span style={{ fontSize: 'clamp(16px, 4vw, 20px)', color: 'rgba(255,255,255,0.5)' }}>ETB</span>
           </div>
           <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-            <span><strong style={{ color: 'white' }}>{fmt(stats.companyEarnedFromBranch)}</strong> ETB (Company Share {fmtPct(stats.companyRate)})</span>
-            <span style={{ color: 'rgba(255,255,255,0.3)' }}>+</span>
-            <span><strong style={{ color: 'white' }}>{fmt(stats.botDebtAdded || 0)}</strong> ETB (Total Bot Winnings)</span>
+            <span><strong style={{ color: 'white' }}>{fmt(stats.netCashFlow)}</strong> ETB (Net Cash Flow)</span>
+            <span style={{ color: 'rgba(255,255,255,0.3)' }}>−</span>
+            <span><strong style={{ color: 'white' }}>{fmt(stats.agentEarned)}</strong> ETB (Agent Earnings)</span>
           </div>
         </div>
 
@@ -726,42 +736,42 @@ export default function AgentReportPage() {
             </div>
           </div>
 
-          {/* ── Bot Advantage Debt Collection ── */}
+          {/* ── Physical Cash Collection ── */}
           <div className="premium-card" style={{ border: '1px solid #ef4444', background: '#fffcfc' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
               <FiAlertTriangle size={18} style={{ color: '#ef4444' }} />
-              <h3 className="premium-card-title" style={{ color: '#ef4444', margin: 0 }}>Bot Advantage Debt Collection</h3>
+              <h3 className="premium-card-title" style={{ color: '#ef4444', margin: 0 }}>Physical Cash Collection</h3>
             </div>
             <p style={{ fontSize: '13px', color: '#5c554b', marginBottom: '16px', lineHeight: '1.5' }}>
-              When a House Bot wins, the Agent holds the cash from real ticket sales. This cash belongs to the company and must be collected from the agent in real life.
+              The Agent holds the net cash deposited by players. After deducting their commission, the remaining balance must be collected in real life.
             </p>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '20px' }}>
               <div style={{ background: '#faf8f5', padding: '12px', borderRadius: '10px' }}>
-                <div style={{ fontSize: '10px', fontWeight: '800', color: '#8c857b', textTransform: 'uppercase' }}>Total Bot Winnings</div>
-                <div style={{ fontSize: '18px', fontWeight: '900', color: '#3d2b1f' }}>{fmt(stats.botDebtAdded)} ETB</div>
+                <div style={{ fontSize: '10px', fontWeight: '800', color: '#8c857b', textTransform: 'uppercase' }}>Net Cash Flow</div>
+                <div style={{ fontSize: '18px', fontWeight: '900', color: '#3d2b1f' }}>{fmt(stats.netCashFlow)} ETB</div>
               </div>
-              <div style={{ background: '#f0fdf4', padding: '12px', borderRadius: '10px' }}>
-                <div style={{ fontSize: '10px', fontWeight: '800', color: '#166534', textTransform: 'uppercase' }}>Total Settled</div>
-                <div style={{ fontSize: '18px', fontWeight: '900', color: '#15803d' }}>{fmt(stats.botDebtSettled)} ETB</div>
+              <div style={{ background: '#fef2f2', padding: '12px', borderRadius: '10px' }}>
+                <div style={{ fontSize: '10px', fontWeight: '800', color: '#ef4444', textTransform: 'uppercase' }}>Agent Earnings (Deducted)</div>
+                <div style={{ fontSize: '18px', fontWeight: '900', color: '#dc2626' }}>- {fmt(stats.agentEarned)} ETB</div>
               </div>
-              <div style={{ background: 'rgba(239,68,68,0.05)', padding: '12px', borderRadius: '10px' }}>
-                <div style={{ fontSize: '10px', fontWeight: '800', color: '#ef4444', textTransform: 'uppercase' }}>Outstanding Debt</div>
-                <div style={{ fontSize: '20px', fontWeight: '900', color: '#b91c1c' }}>{fmt(stats.outstandingBotDebt)} ETB</div>
+              <div style={{ background: 'rgba(239,68,68,0.05)', padding: '12px', borderRadius: '10px', border: '1px solid #fecaca' }}>
+                <div style={{ fontSize: '10px', fontWeight: '800', color: '#ef4444', textTransform: 'uppercase' }}>Expected Cash To Collect</div>
+                <div style={{ fontSize: '20px', fontWeight: '900', color: '#b91c1c' }}>{fmt(stats.netCashFlow - stats.agentEarned)} ETB</div>
               </div>
             </div>
 
-            {stats.outstandingBotDebt > 0 && (
+            {(stats.netCashFlow - stats.agentEarned) > 0 && (
               <div style={{ background: '#fff', border: '1px solid #e5e5e5', borderRadius: '12px', padding: '16px', display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
                 <div style={{ flex: 1 }}>
                   <label style={{ display: 'block', fontSize: '11px', fontWeight: '800', color: '#78716c', marginBottom: '6px' }}>SETTLE AMOUNT (CASH RECEIVED)</label>
                   <input
                     type="number"
                     min="1"
-                    max={stats.outstandingBotDebt}
+                    max={stats.netCashFlow - stats.agentEarned}
                     value={settleAmount}
                     onChange={(e) => setSettleAmount(e.target.value)}
-                    placeholder={`e.g. ${stats.outstandingBotDebt}`}
+                    placeholder={`e.g. ${stats.netCashFlow - stats.agentEarned}`}
                     style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #d4d4d8', fontSize: '14px', fontWeight: '700', outline: 'none' }}
                   />
                 </div>

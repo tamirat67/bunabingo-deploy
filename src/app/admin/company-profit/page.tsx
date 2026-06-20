@@ -90,7 +90,7 @@ export default function CompanyProfitPage() {
   if (!data) return null;
 
   const { totals, agents, companyRate, agentRate } = data;
-  const totalCompanyProfit = totals.companyShare + totals.outstandingBotDebt;
+  const totalCompanyProfit = totals.netCashFlow - totals.agentEarned;
 
   return (
     <div className="admin-page">
@@ -154,7 +154,7 @@ export default function CompanyProfitPage() {
           {fmt(totalCompanyProfit)} <span style={{ fontSize: 'clamp(16px, 4vw, 20px)', color: 'rgba(212,175,55,0.7)' }}>ETB</span>
         </div>
         <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', marginBottom: '28px' }}>
-          Company Share + Outstanding Bot Debt from all agents
+          Net Cash Deposits - Agent Earnings
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '16px' }}>
@@ -216,8 +216,8 @@ export default function CompanyProfitPage() {
             </thead>
             <tbody>
               {agents.map((agent: any, i: number) => {
-                const totalOwed = agent.companyShare + agent.outstandingBotDebt;
-                const isHighDebt = agent.outstandingBotDebt > 1000;
+                const totalExpected = agent.netCashFlow - agent.agentEarned;
+                const isHighDebt = totalExpected > 1000;
                 return (
                   <tr key={agent.agentId} style={{ background: i % 2 === 0 ? 'white' : '#fafaf9' }}>
                     <td>
@@ -253,14 +253,14 @@ export default function CompanyProfitPage() {
                       {fmt(agent.botDebtAdded)} ETB
                     </td>
                     <td style={{ textAlign: 'right' }}>
-                      {agent.outstandingBotDebt > 0 ? (
+                      {totalExpected > 0 ? (
                         <span style={{
                           background: isHighDebt ? '#fef2f2' : '#fff7ed',
                           color: isHighDebt ? '#ef4444' : '#f59e0b',
                           padding: '4px 10px', borderRadius: '8px', fontWeight: '900', fontSize: '13px',
                           border: `1px solid ${isHighDebt ? '#fecaca' : '#fde68a'}`
                         }}>
-                          {isHighDebt ? '🔴' : '🟡'} {fmt(agent.outstandingBotDebt)} ETB
+                          {isHighDebt ? '🔴' : '🟡'} {fmt(totalExpected)} ETB
                         </span>
                       ) : (
                         <span style={{ color: '#10b981', fontWeight: '700', fontSize: '13px' }}>✅ Cleared</span>
@@ -274,8 +274,8 @@ export default function CompanyProfitPage() {
                         <button
                           onClick={() => {
                             setSelectedAgent(agent);
-                            // Pre-fill with the total expected cash (bot debt + company share)
-                            setCollectAmount((agent.outstandingBotDebt + agent.companyShare).toString());
+                            // Pre-fill with the total expected cash (net cash flow - agent profit)
+                            setCollectAmount(Math.max(0, agent.netCashFlow - agent.agentEarned).toString());
                             setCollectModalOpen(true);
                           }}
                           style={{
@@ -337,19 +337,19 @@ export default function CompanyProfitPage() {
       {/* Summary cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginTop: '24px' }}>
         <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '16px', padding: '20px' }}>
-          <div style={{ fontSize: '12px', fontWeight: '800', color: '#16a34a', letterSpacing: '1px', marginBottom: '8px' }}>✅ COMMISSION AUTO-COLLECTED</div>
-          <div style={{ fontSize: '28px', fontWeight: '900', color: '#16a34a' }}>{fmt(totals.botDebtSettled)} ETB</div>
-          <div style={{ fontSize: '12px', color: '#4ade80', marginTop: '4px' }}>Already settled by agents via pre-deposit</div>
+          <div style={{ fontSize: '12px', fontWeight: '800', color: '#16a34a', letterSpacing: '1px', marginBottom: '8px' }}>✅ NET CASH COLLECTED (AGENT BALANCE)</div>
+          <div style={{ fontSize: '28px', fontWeight: '900', color: '#16a34a' }}>{fmt(totals.netCashFlow)} ETB</div>
+          <div style={{ fontSize: '12px', color: '#4ade80', marginTop: '4px' }}>Physical cash currently held by agents</div>
         </div>
         <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '16px', padding: '20px' }}>
-          <div style={{ fontSize: '12px', fontWeight: '800', color: '#ef4444', letterSpacing: '1px', marginBottom: '8px' }}>⚠️ CASH TO COLLECT FROM AGENTS</div>
-          <div style={{ fontSize: '28px', fontWeight: '900', color: '#ef4444' }}>{fmt(totals.outstandingBotDebt)} ETB</div>
-          <div style={{ fontSize: '12px', color: '#fca5a5', marginTop: '4px' }}>Physical cash outstanding from bot wins</div>
+          <div style={{ fontSize: '12px', fontWeight: '800', color: '#ef4444', letterSpacing: '1px', marginBottom: '8px' }}>⚠️ AGENT EARNINGS (COMMISSION)</div>
+          <div style={{ fontSize: '28px', fontWeight: '900', color: '#ef4444' }}>{fmt(totals.agentEarned)} ETB</div>
+          <div style={{ fontSize: '12px', color: '#fca5a5', marginTop: '4px' }}>Deducted from the cash to collect</div>
         </div>
         <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '16px', padding: '20px' }}>
           <div style={{ fontSize: '12px', fontWeight: '800', color: '#d97706', letterSpacing: '1px', marginBottom: '8px' }}>💰 TOTAL COMPANY PURE PROFIT</div>
           <div style={{ fontSize: '28px', fontWeight: '900', color: '#d97706' }}>{fmt(totalCompanyProfit)} ETB</div>
-          <div style={{ fontSize: '12px', color: '#fbbf24', marginTop: '4px' }}>Company Share + Outstanding Bot Debt</div>
+          <div style={{ fontSize: '12px', color: '#fbbf24', marginTop: '4px' }}>Net Cash Flow - Agent Earnings</div>
         </div>
       </div>
 
@@ -373,18 +373,18 @@ export default function CompanyProfitPage() {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
               <div style={{ background: '#fffbeb', border: '1px solid #fde68a', padding: '12px', borderRadius: '12px' }}>
-                <div style={{ fontSize: '11px', fontWeight: '800', color: '#d97706', marginBottom: '4px' }}>COMPANY SHARE ({fmtPct(companyRate)})</div>
-                <div style={{ fontSize: '18px', fontWeight: '900', color: '#b45309' }}>{fmt(selectedAgent.companyShare)} ETB</div>
+                <div style={{ fontSize: '11px', fontWeight: '800', color: '#d97706', marginBottom: '4px' }}>NET CASH FLOW</div>
+                <div style={{ fontSize: '18px', fontWeight: '900', color: '#b45309' }}>{fmt(selectedAgent.netCashFlow)} ETB</div>
               </div>
               <div style={{ background: '#fef2f2', border: '1px solid #fecaca', padding: '12px', borderRadius: '12px' }}>
-                <div style={{ fontSize: '11px', fontWeight: '800', color: '#ef4444', marginBottom: '4px' }}>OUTSTANDING BOT DEBT</div>
-                <div style={{ fontSize: '18px', fontWeight: '900', color: '#b91c1c' }}>{fmt(selectedAgent.outstandingBotDebt)} ETB</div>
+                <div style={{ fontSize: '11px', fontWeight: '800', color: '#ef4444', marginBottom: '4px' }}>AGENT PROFIT ({fmtPct(agentRate)})</div>
+                <div style={{ fontSize: '18px', fontWeight: '900', color: '#b91c1c' }}>- {fmt(selectedAgent.agentEarned)} ETB</div>
               </div>
             </div>
             
             <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '16px', borderRadius: '12px', marginBottom: '20px' }}>
               <div style={{ fontSize: '12px', fontWeight: '800', color: '#16a34a', marginBottom: '4px' }}>TOTAL EXPECTED COLLECTION</div>
-              <div style={{ fontSize: '24px', fontWeight: '900', color: '#15803d' }}>{fmt(selectedAgent.outstandingBotDebt + selectedAgent.companyShare)} ETB</div>
+              <div style={{ fontSize: '24px', fontWeight: '900', color: '#15803d' }}>{fmt(selectedAgent.netCashFlow - selectedAgent.agentEarned)} ETB</div>
             </div>
 
             <form onSubmit={handleCollectCash}>
