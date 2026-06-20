@@ -163,16 +163,6 @@ export default function CompanyProfitPage() {
             <div style={{ fontSize: '22px', fontWeight: '900', color: '#d4af37' }}>{fmt(totals.companyShare)}</div>
             <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>ETB from ticket sales</div>
           </div>
-          <div style={{ background: 'rgba(239,68,68,0.15)', borderRadius: '14px', padding: '16px', border: '1px solid rgba(239,68,68,0.3)' }}>
-            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.55)', fontWeight: '800', letterSpacing: '1px', marginBottom: '6px' }}>BOT WIN (REAL CASH ONLY)</div>
-            <div style={{ fontSize: '22px', fontWeight: '900', color: '#f87171' }}>{fmt(totals.botDebtAdded)}</div>
-            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>ETB from real player tickets only</div>
-          </div>
-          <div style={{ background: 'rgba(239,68,68,0.2)', borderRadius: '14px', padding: '16px', border: '1px solid rgba(239,68,68,0.4)' }}>
-            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.55)', fontWeight: '800', letterSpacing: '1px', marginBottom: '6px' }}>OUTSTANDING BOT DEBT</div>
-            <div style={{ fontSize: '22px', fontWeight: '900', color: '#fca5a5' }}>{fmt(totals.outstandingBotDebt)}</div>
-            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>ETB to collect in cash</div>
-          </div>
           <div style={{ background: 'rgba(16,185,129,0.15)', borderRadius: '14px', padding: '16px', border: '1px solid rgba(16,185,129,0.3)' }}>
             <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.55)', fontWeight: '800', letterSpacing: '1px', marginBottom: '6px' }}>TOTAL TICKET SALES (REAL CASH)</div>
             <div style={{ fontSize: '22px', fontWeight: '900', color: '#6ee7b7' }}>{fmt(totals.totalTicketSales)}</div>
@@ -208,7 +198,6 @@ export default function CompanyProfitPage() {
                 <th style={{ textAlign: 'right' }}>Real Deposited</th>
                 <th style={{ textAlign: 'right' }}>Net Cash Flow</th>
                 <th style={{ textAlign: 'right', color: '#d4af37' }}>Agent Commission</th>
-                <th style={{ textAlign: 'right', color: '#ef4444' }}>Bot Win <span style={{ fontSize: '10px', color: '#fca5a5' }}>(Real Cash)</span></th>
                 <th style={{ textAlign: 'right', background: '#fff8e1', color: '#b45309', fontWeight: '900' }}>💰 Expected Cash To Collect</th>
                 <th style={{ textAlign: 'center' }}>Action</th>
               </tr>
@@ -246,9 +235,6 @@ export default function CompanyProfitPage() {
                     <td style={{ textAlign: 'right', fontWeight: '700', color: '#d97706' }}>
                       - {fmt(agent.agentEarned)} ETB
                     </td>
-                    <td style={{ textAlign: 'right', fontWeight: '700', color: '#ef4444' }}>
-                      {fmt(agent.botDebtAdded)} ETB
-                    </td>
                     <td style={{ textAlign: 'right' }}>
                       {totalExpected > 0 ? (
                         <span style={{
@@ -264,35 +250,39 @@ export default function CompanyProfitPage() {
                       )}
                     </td>
                     <td style={{ textAlign: 'center' }}>
-                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                        <button
-                          onClick={() => {
-                            setSelectedAgent(agent);
-                            // Pre-fill with the total expected cash (net cash flow - agent profit)
-                            setCollectAmount(Math.max(0, agent.netCashFlow - agent.agentEarned).toString());
-                            setCollectModalOpen(true);
-                          }}
-                          style={{
-                            background: 'linear-gradient(135deg, #10b981, #059669)',
-                            color: 'white', border: 'none', borderRadius: '8px',
-                            padding: '6px 12px', cursor: 'pointer', fontWeight: '800', fontSize: '12px',
-                            display: 'inline-flex', alignItems: 'center', gap: '4px'
-                          }}
-                        >
-                          <FiDollarSign size={12} /> Collect
-                        </button>
-                        <button
-                          onClick={() => router.push(`/admin/agents/${agent.agentId}`)}
-                          style={{
-                            background: 'linear-gradient(135deg, #d4af37, #f59e0b)',
-                            color: 'white', border: 'none', borderRadius: '8px',
-                            padding: '6px 12px', cursor: 'pointer', fontWeight: '800', fontSize: '12px',
-                            display: 'inline-flex', alignItems: 'center', gap: '4px'
-                          }}
-                        >
-                          <FiExternalLink size={12} /> View
-                        </button>
-                      </div>
+                      {agent.agentId !== 'system' ? (
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                          <button
+                            onClick={() => {
+                              setSelectedAgent(agent);
+                              // Pre-fill with the total expected cash (net cash flow - agent profit)
+                              setCollectAmount(Math.max(0, agent.netCashFlow - agent.agentEarned).toString());
+                              setCollectModalOpen(true);
+                            }}
+                            style={{
+                              background: 'linear-gradient(135deg, #10b981, #059669)',
+                              color: 'white', border: 'none', borderRadius: '8px',
+                              padding: '6px 12px', cursor: 'pointer', fontWeight: '800', fontSize: '12px',
+                              display: 'inline-flex', alignItems: 'center', gap: '4px'
+                            }}
+                          >
+                            <FiDollarSign size={12} /> Collect
+                          </button>
+                          <button
+                            onClick={() => router.push(`/admin/agents/${agent.agentId}`)}
+                            style={{
+                              background: 'linear-gradient(135deg, #d4af37, #f59e0b)',
+                              color: 'white', border: 'none', borderRadius: '8px',
+                              padding: '6px 12px', cursor: 'pointer', fontWeight: '800', fontSize: '12px',
+                              display: 'inline-flex', alignItems: 'center', gap: '4px'
+                            }}
+                          >
+                            <FiExternalLink size={12} /> View
+                          </button>
+                        </div>
+                      ) : (
+                        <span style={{ color: '#a8a29e', fontSize: '11px', fontWeight: '700' }}>System Account</span>
+                      )}
                     </td>
                   </tr>
                 );

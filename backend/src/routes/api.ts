@@ -1455,6 +1455,61 @@ staffRouter.get('/company-profit', staffMiddleware, async (req, res) => {
       totalDeposited: 0, totalWithdrawn: 0, netCashFlow: 0,
     });
 
+    // Get global totals for real players in the same date range
+    const [globalSalesAgg, globalDepositsAgg, globalWithdrawalsAgg] = await Promise.all([
+      prisma.transaction.aggregate({
+        where: { type: 'TICKET_PURCHASE', status: { in: ['completed', 'COMPLETED'] }, user: { isBot: false }, ...dateFilter },
+        _sum: { amount: true, balanceBefore: true, balanceAfter: true }
+      }),
+      prisma.deposit.aggregate({
+        where: { status: { in: ['APPROVED', 'approved', 'COMPLETED', 'completed'] }, user: { isBot: false }, ...dateFilter },
+        _sum: { amount: true }
+      }),
+      prisma.withdrawal.aggregate({
+        where: { status: { in: ['APPROVED', 'COMPLETED', 'approved', 'completed'] }, user: { isBot: false }, ...dateFilter },
+        _sum: { amount: true }
+      })
+    ]);
+
+    const globalSales = Number(globalSalesAgg._sum.balanceBefore || 0) - Number(globalSalesAgg._sum.balanceAfter || 0);
+    const globalDeposits = Number(globalDepositsAgg._sum.amount || 0);
+    const globalWithdrawals = Number(globalWithdrawalsAgg._sum.amount || 0);
+
+    const unreferredSales = Math.max(0, globalSales - totals.totalTicketSales);
+    const unreferredDeposits = Math.max(0, globalDeposits - totals.totalDeposited);
+    const unreferredWithdrawals = Math.max(0, globalWithdrawals - totals.totalWithdrawn);
+    const unreferredNCF = Math.max(0, unreferredDeposits - unreferredWithdrawals);
+
+    // If there is any unreferred activity, add a "System" row
+    if (unreferredSales > 0 || unreferredDeposits > 0) {
+      const systemRow = {
+        agentId: 'system',
+        agentName: 'Direct to Company (No Agent)',
+        agentUsername: 'system',
+        referralCode: 'none',
+        totalTicketSales: unreferredSales,
+        companyShare: unreferredNCF, // Company keeps 100% since there's no agent
+        agentEarned: 0,
+        botDebtAdded: 0,
+        botDebtSettled: 0,
+        outstandingBotDebt: 0,
+        totalDeposited: unreferredDeposits,
+        totalWithdrawn: unreferredWithdrawals,
+        netCashFlow: unreferredNCF,
+        preDepositBalance: 0,
+        realPlayersCount: 0, // Not explicitly tracked here for system
+      };
+
+      agentRows.push(systemRow);
+      
+      // Update totals
+      totals.totalTicketSales += systemRow.totalTicketSales;
+      totals.companyShare += systemRow.companyShare;
+      totals.totalDeposited += systemRow.totalDeposited;
+      totals.totalWithdrawn += systemRow.totalWithdrawn;
+      totals.netCashFlow += systemRow.netCashFlow;
+    }
+
     res.json({
       range: range || 'all',
       companyRate: COMPANY_RATE,
