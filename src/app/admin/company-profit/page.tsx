@@ -104,7 +104,7 @@ export default function CompanyProfitPage() {
           <div>
             <h1 style={{ fontSize: '28px', fontWeight: '900', color: '#3d2b1f', margin: 0 }}>🏦 Company Profit Summary</h1>
             <p style={{ color: '#78716c', margin: '6px 0 0', fontSize: '14px' }}>
-              Company earns <strong style={{ color: '#d4af37' }}>{fmtPct(companyRate)}</strong> of all ticket sales + Bot Winnings · Agent earns <strong>{fmtPct(agentRate)}</strong>
+              Company earns <strong style={{ color: '#d4af37' }}>{fmtPct(companyRate)}</strong> of Net Cash Flow · Agent earns <strong>{fmtPct(agentRate)}</strong> of Net Cash Flow
             </p>
             <div style={{
               display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '8px',
