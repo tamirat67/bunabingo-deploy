@@ -250,7 +250,7 @@ export async function getAllUsers(page = 1, limit = 20, search = '', agentIds?: 
           { username: { contains: search, mode: 'insensitive' } },
           { phone: { contains: search } },
           // telegramId is BigInt — only filter if search looks numeric
-          ...(isNaN(Number(search)) ? [] : [{ telegramId: BigInt(search) }]),
+          ...(search.trim() !== '' && !isNaN(Number(search)) ? [{ telegramId: BigInt(search) }] : []),
         ],
       }
     : {};
@@ -286,11 +286,17 @@ export async function getAllUsers(page = 1, limit = 20, search = '', agentIds?: 
 export async function getDescendantUserIds(agentId: string): Promise<string[]> {
   try {
     const result = await prisma.$queryRaw<{id: string}[]>`
-      WITH RECURSIVE descendants AS (
-        SELECT id FROM "users" WHERE referred_by = ${agentId}::uuid
+      WITH RECURSIVE descendants(id, depth, path) AS (
+        SELECT id, 1, ARRAY[id]
+        FROM "users" 
+        WHERE referred_by = ${agentId}::uuid
+        
         UNION ALL
-        SELECT u.id FROM "users" u
+        
+        SELECT u.id, d.depth + 1, d.path || u.id
+        FROM "users" u
         INNER JOIN descendants d ON u.referred_by = d.id
+        WHERE u.id <> ALL(d.path) AND d.depth < 10
       )
       SELECT id FROM descendants;
     `;
@@ -470,7 +476,7 @@ export async function getPlayersUnderAgent(agentId: string, page = 1, limit = 20
           { telegramUsername: { contains: search, mode: 'insensitive' } },
           { username: { contains: search, mode: 'insensitive' } },
           { phone: { contains: search } },
-          ...(isNaN(Number(search)) ? [] : [{ telegramId: BigInt(search) }]),
+          ...(search.trim() !== '' && !isNaN(Number(search)) ? [{ telegramId: BigInt(search) }] : []),
         ],
       }
     : {};
