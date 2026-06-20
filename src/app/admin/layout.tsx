@@ -71,6 +71,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   };
 
   useEffect(() => {
+    // Don't run until the component is fully mounted on the client
+    if (!isMounted) return;
+
     async function loadUser() {
       // Don't check auth if we are already on the login page
       if (pathname === '/admin/login') {
@@ -78,33 +81,45 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         return;
       }
 
-      // CRITICAL: Only read localStorage after the component is mounted on the client.
-      // During SSR/hydration, window is undefined and we must not redirect.
+      // If we already have a user loaded, don't re-fetch on every page navigation
+      // unless the token disappears
       const token = localStorage.getItem('admin_token');
       const tgInitData = (window as any).Telegram?.WebApp?.initData || null;
-      
+
       if (!token && !tgInitData) {
         router.push('/admin/login');
         return;
       }
 
+      // If we already loaded a user, skip the API call on mere path changes
+      if (user) return;
+
       try {
         const response = await api.get('/me');
         const userData = response.data;
         if (userData.role !== 'ADMIN' && userData.role !== 'AGENT' && userData.role !== 'STAFF' && !userData.isAdmin) {
+          // This is a real unauthorized user — clear token
+          localStorage.removeItem('admin_token');
           router.push('/admin/login');
           return;
         }
         setUser(userData);
-      } catch (err) {
-        localStorage.removeItem('admin_token');
-        router.push('/admin/login');
+      } catch (err: any) {
+        // Only log out on explicit auth rejection (401 or 403)
+        // Network errors, 500s, and timeouts should NOT clear the session
+        const status = err?.response?.status;
+        if (status === 401 || status === 403) {
+          localStorage.removeItem('admin_token');
+          router.push('/admin/login');
+        }
+        // Otherwise: stay on page, keep the loading spinner briefly
+        // The user will see the page once the network recovers
       }
     }
     loadUser();
   }, [pathname, isMounted]);
 
-  // Show spinner while waiting for client-side mount (prevents SSR redirect loop)
+  // Show spinner while waiting for client-side mount OR while fetching user
   if (!isMounted || !user) return <div className="login-container">
     <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2" style={{ borderColor: 'var(--cmd-gold)' }}></div>
   </div>;
