@@ -11,6 +11,7 @@ import api from '@/lib/api';
 import '@/app/admin.css';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import BunaModal from '@/components/BunaModal';
 
 export default function AgentReportPage() {
   const params = useParams();
@@ -25,6 +26,8 @@ export default function AgentReportPage() {
   const [settleAmount, setSettleAmount] = useState('');
   const [isSettling, setIsSettling] = useState(false);
   const [isUndoing, setIsUndoing] = useState(false);
+  const [showSettleModal, setShowSettleModal] = useState(false);
+  const [showUndoModal, setShowUndoModal] = useState(false);
 
   const fetchReport = useCallback(async () => {
     try {
@@ -41,17 +44,20 @@ export default function AgentReportPage() {
 
   useEffect(() => { fetchReport(); }, [fetchReport]);
 
-  const handleSettleDebt = async () => {
+  const handleSettleDebt = () => {
     const amount = Number(settleAmount);
     const outstanding = (report?.stats?.netCashFlow || 0) - (report?.stats?.agentEarned || 0);
     if (!amount || amount <= 0 || amount > outstanding) {
       return alert('Please enter a valid amount up to the expected cash.');
     }
-    if (!confirm(`Are you sure you received ${amount} ETB in cash from this agent?`)) return;
+    setShowSettleModal(true);
+  };
 
+  const executeSettleDebt = async () => {
+    const amount = Number(settleAmount);
     setIsSettling(true);
+    setShowSettleModal(false);
     try {
-      // Use the new collect-cash endpoint which handles both debt settlement and period resetting
       await api.post(`/admin/agents/${agentId}/collect-cash`, { 
         amount: amount, 
         settleDebtAmount: amount 
@@ -66,10 +72,13 @@ export default function AgentReportPage() {
     }
   };
 
-  const handleUndoCollect = async () => {
-    if (!confirm('Are you sure you want to UNDO the last cash collection? This will restore the previous dashboard totals.')) return;
-    
+  const handleUndoCollect = () => {
+    setShowUndoModal(true);
+  };
+
+  const executeUndoCollect = async () => {
     setIsUndoing(true);
+    setShowUndoModal(false);
     try {
       await api.post(`/admin/agents/${agentId}/undo-collect`);
       fetchReport();
@@ -952,6 +961,27 @@ export default function AgentReportPage() {
           </div>
         </div>
       )}
+
+      {/* ── Modals ── */}
+      <BunaModal
+        isOpen={showSettleModal}
+        onClose={() => setShowSettleModal(false)}
+        onConfirm={executeSettleDebt}
+        title="Confirm Cash Collection"
+        message={`Are you sure you received ${Number(settleAmount)} ETB in physical cash from this agent? This action will reset their reporting period.`}
+        type="confirm"
+        confirmText="Yes, Collect Cash"
+      />
+
+      <BunaModal
+        isOpen={showUndoModal}
+        onClose={() => setShowUndoModal(false)}
+        onConfirm={executeUndoCollect}
+        title="Undo Last Collection"
+        message="Are you sure you want to UNDO the last cash collection? This will restore the previous dashboard totals and reverse the last debt settlement."
+        type="confirm"
+        confirmText="Yes, Undo Collection"
+      />
     </div>
   );
 }
