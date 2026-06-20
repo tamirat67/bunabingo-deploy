@@ -230,7 +230,7 @@ export default function AgentReportPage() {
     ];
 
     autoTable(doc, {
-      startY: 93,
+      startY: 60,
       head: [['Metric / መለኪያ', 'Amount / መጠን', 'Notes / ማብራሪያ']],
       body: tableBody,
       theme: 'grid',
