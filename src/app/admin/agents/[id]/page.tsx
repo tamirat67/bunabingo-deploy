@@ -222,32 +222,32 @@ export default function AgentReportPage() {
     doc.setTextColor(61, 43, 31);
     doc.text(`${fmt(totalExpected)} ETB`, pageWidth / 2, 82, { align: 'center' });
 
-    // ── CASH FLOW WATERFALL TABLE ────────────────────────────
+    // ── CASH FLOW WATERFALL TABLE (Bilingual) ─────────────────
     const tableBody = [
       [
-        { content: '⬇  REAL CASH DEPOSITED', styles: { textColor: [21, 128, 61] as [number,number,number], fontStyle: 'bold' as const } },
+        { content: '⬇  REAL CASH DEPOSITED\nጥሬ ገንዘብ ገቢ', styles: { textColor: [21, 128, 61] as [number,number,number], fontStyle: 'bold' as const } },
         { content: `+ ${fmt(stats.totalDeposited)} ETB`, styles: { textColor: [21, 128, 61] as [number,number,number], fontStyle: 'bold' as const } },
-        'Physical cash paid by players — bonus excluded',
+        { content: 'Physical cash paid by players — bonus excluded\nተጫዋቾች የከፈሉ ጥሬ ብር — ቦነስ አልተካተተም' },
       ],
       [
-        { content: '⬆  REAL CASH WITHDRAWN', styles: { textColor: [185, 28, 28] as [number,number,number] } },
+        { content: '⬆  REAL CASH WITHDRAWN\nጥሬ ገንዘብ ወጪ', styles: { textColor: [185, 28, 28] as [number,number,number] } },
         { content: `- ${fmt(stats.totalWithdrawn)} ETB`, styles: { textColor: [185, 28, 28] as [number,number,number] } },
-        'Cash paid out to winning players',
+        { content: 'Cash paid out to winning players\nለአሸናፊ ተጫዋቾች የተከፈለ' },
       ],
       [
-        { content: '≡  NET CASH FLOW', styles: { textColor: [14, 100, 57] as [number,number,number], fontStyle: 'bold' as const, fillColor: [240, 253, 244] as [number,number,number] } },
+        { content: '≡  NET CASH FLOW\nየተጣራ ጥሬ ገንዘብ', styles: { textColor: [14, 100, 57] as [number,number,number], fontStyle: 'bold' as const, fillColor: [240, 253, 244] as [number,number,number] } },
         { content: `${fmt(stats.netCashFlow)} ETB`, styles: { textColor: [14, 100, 57] as [number,number,number], fontStyle: 'bold' as const, fillColor: [240, 253, 244] as [number,number,number] } },
-        { content: 'Deposits − Withdrawals (real physical cash held)', styles: { fillColor: [240, 253, 244] as [number,number,number] } },
+        { content: 'Deposits − Withdrawals (real physical cash held)\nገቢ − ወጪ (ወኪሉ ዘንድ ያለ ጥሬ ብር)', styles: { fillColor: [240, 253, 244] as [number,number,number] } },
       ],
       [
-        { content: '🤝  AGENT COMMISSION (' + fmtPct(stats.agentRate) + ' of Net Cash Flow)', styles: { textColor: [180, 83, 9] as [number,number,number] } },
+        { content: '🤝  AGENT COMMISSION (' + fmtPct(stats.agentRate) + ')\nየወኪል ኮሚሽን', styles: { textColor: [180, 83, 9] as [number,number,number] } },
         { content: `- ${fmt(stats.agentEarned)} ETB`, styles: { textColor: [180, 83, 9] as [number,number,number] } },
-        "Agent's earned share of Net Cash Flow — deducted before collection",
+        { content: "Agent's earned share — deducted before collection\nሊሰበሰብ ከሚገባው ቀርቶ የሚወሰድ" },
       ],
       [
-        { content: '★  EXPECTED CASH TO COLLECT', styles: { textColor: [61, 43, 31] as [number,number,number], fontStyle: 'bold' as const, fillColor: [255, 248, 225] as [number,number,number], fontSize: 10 } },
+        { content: '★  EXPECTED CASH TO COLLECT\nሊሰበሰብ የሚገባ ጠቅላላ ገንዘብ', styles: { textColor: [61, 43, 31] as [number,number,number], fontStyle: 'bold' as const, fillColor: [255, 248, 225] as [number,number,number], fontSize: 10 } },
         { content: `${fmt(totalExpected)} ETB`, styles: { textColor: [61, 43, 31] as [number,number,number], fontStyle: 'bold' as const, fillColor: [255, 248, 225] as [number,number,number], fontSize: 11 } },
-        { content: 'Net Cash Flow − Agent Commission', styles: { fillColor: [255, 248, 225] as [number,number,number] } },
+        { content: 'Net Cash Flow − Agent Commission\nየተጣራ ጥሬ ብር − የወኪል ኮሚሽን', styles: { fillColor: [255, 248, 225] as [number,number,number] } },
       ],
     ];
 
@@ -311,65 +311,134 @@ export default function AgentReportPage() {
     doc.setTextColor(61, 43, 31);
     doc.text(`${fmt(totalExpected)} ETB`, pageWidth / 2, boxY + 25, { align: 'center' });
 
-    // ── SIGNATURE / SUBMIT SECTION ───────────────────────────
+    // ── SIGNATURE / SUBMIT SECTION (Bilingual) ────────────────
     const sigY = boxY + 40;
 
-    // Section title
+    // Section title — bilingual
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8);
+    doc.setFontSize(8.5);
     doc.setTextColor(61, 43, 31);
     doc.text('OFFICIAL SUBMISSION', 10, sigY);
+    if (hasAmharic) {
+      setAmharic();
+      doc.setFontSize(8);
+      doc.setTextColor(100, 70, 20);
+      doc.text('ይፋዊ ቀረባ / ፊርማ', 10, sigY + 6);
+      setLatin();
+    }
 
-    // Horizontal divider under title
+    // Gold divider under title
     doc.setDrawColor(212, 175, 55);
-    doc.setLineWidth(0.5);
-    doc.line(10, sigY + 2, pageWidth - 10, sigY + 2);
+    doc.setLineWidth(0.6);
+    doc.line(10, sigY + 9, pageWidth - 10, sigY + 9);
 
-    // Three signature columns
+    // ── ROW 1 columns ─────────────────────────────────────────
     const col1x = 10;
-    const col2x = pageWidth / 2 - 20;
-    const col3x = pageWidth - 60;
-    const lineY  = sigY + 18;
-    const labelY = sigY + 22;
+    const col2x = pageWidth / 2 - 18;
+    const col3x = pageWidth - 58;
+    const lineY  = sigY + 30;
 
-    // Column 1 — Submit To
     doc.setDrawColor(100, 80, 40);
     doc.setLineWidth(0.4);
-    doc.line(col1x, lineY, col1x + 65, lineY);
+
+    // Col 1 line
+    doc.line(col1x, lineY, col1x + 68, lineY);
+    // Col 2 line
+    doc.line(col2x, lineY, col2x + 72, lineY);
+    // Col 3 line
+    doc.line(col3x, lineY, col3x + 50, lineY);
+
+    // Col 1 labels — SUBMIT TO
+    doc.setFont('helvetica', 'bold');
     doc.setFontSize(7);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(120, 113, 108);
-    doc.text('SUBMIT TO', col1x, labelY);
+    doc.setTextColor(80, 50, 10);
+    doc.text('SUBMIT TO', col1x, lineY + 4);
+    if (hasAmharic) {
+      setAmharic();
+      doc.setFontSize(7);
+      doc.setTextColor(120, 90, 30);
+      doc.text('የሚቀርብለት', col1x, lineY + 10);
+      setLatin();
+    }
 
-    // Column 2 — Signature
-    doc.line(col2x, lineY, col2x + 70, lineY);
-    doc.text('RECEIVED BY (SIGNATURE)', col2x, labelY);
+    // Col 2 labels — RECEIVED BY (SIGNATURE)
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.setTextColor(80, 50, 10);
+    doc.text('RECEIVED BY (SIGNATURE)', col2x, lineY + 4);
+    if (hasAmharic) {
+      setAmharic();
+      doc.setFontSize(7);
+      doc.setTextColor(120, 90, 30);
+      doc.text('የተቀበለ (ፊርማ)', col2x, lineY + 10);
+      setLatin();
+    }
 
-    // Column 3 — Date
-    doc.line(col3x, lineY, col3x + 48, lineY);
-    doc.text('DATE', col3x, labelY);
+    // Col 3 labels — DATE
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.setTextColor(80, 50, 10);
+    doc.text('DATE', col3x, lineY + 4);
+    if (hasAmharic) {
+      setAmharic();
+      doc.setFontSize(7);
+      doc.setTextColor(120, 90, 30);
+      doc.text('ቀን', col3x, lineY + 10);
+      setLatin();
+    }
 
-    // Second row: Agent signature + stamp box
-    const sig2Y = sigY + 38;
+    // ── ROW 2 columns ─────────────────────────────────────────
+    const sig2Y  = sigY + 56;
     const line2Y = sig2Y + 18;
-    const label2Y = sig2Y + 22;
 
-    doc.line(col1x, line2Y, col1x + 65, line2Y);
-    doc.setTextColor(120, 113, 108);
-    doc.text('AGENT SIGNATURE', col1x, label2Y);
+    doc.setDrawColor(100, 80, 40);
+    doc.setLineWidth(0.4);
+    doc.line(col1x, line2Y, col1x + 68, line2Y);
+    doc.line(col2x, line2Y, col2x + 72, line2Y);
 
-    doc.line(col2x, line2Y, col2x + 70, line2Y);
-    doc.text('VERIFIED BY', col2x, label2Y);
+    // Col 1 — AGENT SIGNATURE
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.setTextColor(80, 50, 10);
+    doc.text('AGENT SIGNATURE', col1x, line2Y + 4);
+    if (hasAmharic) {
+      setAmharic();
+      doc.setFontSize(7);
+      doc.setTextColor(120, 90, 30);
+      doc.text('የወኪል ፊርማ', col1x, line2Y + 10);
+      setLatin();
+    }
 
-    // Stamp / seal box
+    // Col 2 — VERIFIED BY
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.setTextColor(80, 50, 10);
+    doc.text('VERIFIED BY', col2x, line2Y + 4);
+    if (hasAmharic) {
+      setAmharic();
+      doc.setFontSize(7);
+      doc.setTextColor(120, 90, 30);
+      doc.text('ያረጋገጠ', col2x, line2Y + 10);
+      setLatin();
+    }
+
+    // Stamp / seal box (col 3 row 2)
     doc.setDrawColor(180, 140, 20);
     doc.setLineWidth(0.6);
     doc.setLineDashPattern([1.5, 1.5], 0);
-    doc.rect(col3x, sig2Y + 2, 48, 20);
+    doc.rect(col3x, sig2Y + 2, 50, 24);
     doc.setLineDashPattern([], 0);
+    doc.setFont('helvetica', 'normal');
     doc.setFontSize(6.5);
     doc.setTextColor(160, 140, 100);
-    doc.text('OFFICIAL STAMP', col3x + 24, sig2Y + 14, { align: 'center' });
+    doc.text('OFFICIAL STAMP', col3x + 25, sig2Y + 11, { align: 'center' });
+    if (hasAmharic) {
+      setAmharic();
+      doc.setFontSize(6.5);
+      doc.setTextColor(160, 140, 100);
+      doc.text('ይፋዊ ማህተም', col3x + 25, sig2Y + 18, { align: 'center' });
+      setLatin();
+    }
 
     // ── FOOTER ON ALL PAGES ─────────────────────────────────
     const pageCount = (doc as any).internal.getNumberOfPages();
