@@ -204,29 +204,12 @@ export default function AgentReportPage() {
     doc.text(`Period: ${rangeLabel}  ·  Players: ${stats.totalPlayers}`, pageWidth - 10, 41, { align: 'right' });
     doc.text(`Real Cash: Bonus ETB strictly excluded`, pageWidth - 10, 48, { align: 'right' });
 
-    // ── HERO COLLECTION BOX ──────────────────────────────────
-    doc.setFillColor(212, 175, 55);
-    doc.roundedRect(10, 57, pageWidth - 20, 32, 4, 4, 'F');
-
-    setLatin();
-    doc.setFontSize(8);
-    doc.setTextColor(80, 50, 10);
-    doc.text('TOTAL CASH TO COLLECT FROM THIS AGENT', pageWidth / 2, 64, { align: 'center' });
-    if (hasAmharic) {
-      setAmharic();
-      doc.setFontSize(8);
-      doc.text(`ከ ${agent.firstName} ሊሰበሰብ የሚገባ ጠቅላላ ገንዘብ`, pageWidth / 2, 71, { align: 'center' });
-      setLatin();
-    }
-    doc.setFontSize(20);
-    doc.setTextColor(61, 43, 31);
-    doc.text(`${fmt(totalExpected)} ETB`, pageWidth / 2, 82, { align: 'center' });
 
     // ── CASH FLOW WATERFALL TABLE (Bilingual) ─────────────────
     const tableBody = [
       [
-        { content: 'REAL CASH DEPOSITED\nጥሬ ገንዘብ ገቢ', styles: { textColor: [21, 128, 61] as [number,number,number], fontStyle: 'bold' as const } },
-        { content: `+ ${fmt(stats.totalDeposited)} ETB`, styles: { textColor: [21, 128, 61] as [number,number,number], fontStyle: 'bold' as const } },
+        { content: 'REAL CASH DEPOSITED\nጥሬ ገንዘብ ገቢ', styles: { textColor: [21, 128, 61] as [number,number,number] } },
+        { content: `+ ${fmt(stats.totalDeposited)} ETB`, styles: { textColor: [21, 128, 61] as [number,number,number] } },
         { content: 'Physical cash paid by players — bonus excluded\nተጫዋቾች የከፈሉ ጥሬ ብር — ቦነስ አልተካተተም' },
       ],
       [
@@ -235,8 +218,8 @@ export default function AgentReportPage() {
         { content: 'Cash paid out to winning players\nለአሸናፊ ተጫዋቾች የተከፈለ' },
       ],
       [
-        { content: 'NET CASH FLOW\nየተጣራ ጥሬ ገንዘብ', styles: { textColor: [14, 100, 57] as [number,number,number], fontStyle: 'bold' as const, fillColor: [240, 253, 244] as [number,number,number] } },
-        { content: `${fmt(stats.netCashFlow)} ETB`, styles: { textColor: [14, 100, 57] as [number,number,number], fontStyle: 'bold' as const, fillColor: [240, 253, 244] as [number,number,number] } },
+        { content: 'NET CASH FLOW\nየተጣራ ጥሬ ገንዘብ', styles: { textColor: [14, 100, 57] as [number,number,number], fillColor: [240, 253, 244] as [number,number,number] } },
+        { content: `${fmt(stats.netCashFlow)} ETB`, styles: { textColor: [14, 100, 57] as [number,number,number], fillColor: [240, 253, 244] as [number,number,number] } },
         { content: 'Deposits − Withdrawals (real physical cash held)\nገቢ − ወጪ (ወኪሉ ዘንድ ያለ ጥሬ ብር)', styles: { fillColor: [240, 253, 244] as [number,number,number] } },
       ],
       [
