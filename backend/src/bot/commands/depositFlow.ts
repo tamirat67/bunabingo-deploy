@@ -532,12 +532,11 @@ async function submitDeposit(
 
     let notifyTgIds: number[] = [];
 
-    // Notify the agent
-    if (user.referredBy) {
-      const agent = await prisma.user.findUnique({ where: { id: user.referredBy } });
-      if (agent?.telegramId) {
-        notifyTgIds.push(Number(agent.telegramId));
-      }
+    // Notify the actual Agent (bypassing regular players)
+    const { findAgentAncestor } = await import('../../services/user.service');
+    const actualAgent = await findAgentAncestor(user.id);
+    if (actualAgent?.telegramId) {
+      notifyTgIds.push(Number(actualAgent.telegramId));
     }
 
     // AND global admins from config
