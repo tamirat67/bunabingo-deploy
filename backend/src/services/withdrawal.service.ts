@@ -309,7 +309,7 @@ export async function getPendingWithdrawals(agentId?: string) {
   const withdrawals = await prisma.withdrawal.findMany({
     where: { 
       status: { in: ['pending', 'PENDING'] },
-      ...(agentId && userIds ? { userId: { in: userIds.length > 0 ? userIds : ['no-users'] } } : {}),
+      ...(agentId && userIds ? { userId: { in: userIds.length > 0 ? userIds : ['00000000-0000-0000-0000-000000000000'] } } : {}),
     },
     include: { 
       user: { 

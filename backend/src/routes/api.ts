@@ -1096,7 +1096,7 @@ staffRouter.get('/transactions/summary', async (req, res) => {
     if (assigned.length > 0) {
       userFilter = { referredBy: { in: assigned } };
     } else {
-      userFilter = { referredBy: 'no-agents-assigned' };
+      userFilter = { referredBy: '00000000-0000-0000-0000-000000000000' };
     }
   } else if (!user.isAdmin && user.role !== 'ADMIN') {
     userFilter = { referredBy: user.id };
@@ -1302,7 +1302,7 @@ staffRouter.get('/agents', staffMiddleware, async (req, res) => {
     const assigned = Array.isArray(admin.depositPhones) ? admin.depositPhones : [];
     agentIds = assigned;
     if (agentIds.length === 0) {
-      agentIds = ['no-agents-assigned'];
+      agentIds = ['00000000-0000-0000-0000-000000000000'];
     }
   }
 
@@ -1570,7 +1570,7 @@ staffRouter.get('/agents/:id/report', staffMiddleware, async (req, res) => {
     const descendantIds = await getDescendantUserIds(agentId);
     
     const descendantUsers = await prisma.user.findMany({
-      where: { id: { in: descendantIds.length > 0 ? descendantIds : ['no-users'] } },
+      where: { id: { in: descendantIds.length > 0 ? descendantIds : ['00000000-0000-0000-0000-000000000000'] } },
       select: { id: true, isBot: true }
     });
 
@@ -2225,7 +2225,7 @@ staffRouter.get('/analytics', staffMiddleware, async (req, res) => {
     agentIds = assigned;
     // If a staff has 0 assigned agents, we should still filter down to an empty array so they see 0.
     if (agentIds.length === 0) {
-      agentIds = ['no-agents-assigned'];
+      agentIds = ['00000000-0000-0000-0000-000000000000'];
     }
   }
 

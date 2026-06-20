@@ -484,7 +484,7 @@ export async function getPlayersUnderAgent(agentId: string, page = 1, limit = 20
   const descendantIds = await getDescendantUserIds(agentId);
 
   const where: any = {
-    id: { in: descendantIds.length > 0 ? descendantIds : ['no-users'] },
+    id: { in: descendantIds.length > 0 ? descendantIds : ['00000000-0000-0000-0000-000000000000'] },
     ...searchFilter,
   };
 
@@ -561,7 +561,7 @@ export async function getAgents(page = 1, limit = 20, agentIds?: string[]) {
     agents.map(async (agent) => {
       const descendantIds = await getDescendantUserIds(agent.id);
       const descendantUsers = await prisma.user.findMany({
-        where: { id: { in: descendantIds.length > 0 ? descendantIds : ['no-users'] } },
+        where: { id: { in: descendantIds.length > 0 ? descendantIds : ['00000000-0000-0000-0000-000000000000'] } },
         select: { id: true, isBot: true }
       });
 
