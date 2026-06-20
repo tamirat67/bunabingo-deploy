@@ -457,7 +457,12 @@ export default function AgentReportPage() {
 
 
 
-    doc.save(`Agent_Report_${agent.firstName}_${timeRange}.pdf`);
+    // Sanitize filename to prevent browser from dropping the .pdf extension
+    // if the agent name contains emojis or Amharic characters.
+    const safeName = (agent.firstName || 'Agent').replace(/[^a-zA-Z0-9]/g, '_');
+    const fileName = `Agent_Report_${safeName}_${timeRange}.pdf`;
+    
+    doc.save(fileName);
   };
 
   if (loading) {
