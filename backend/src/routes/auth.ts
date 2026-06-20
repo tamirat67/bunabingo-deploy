@@ -27,7 +27,7 @@ router.post('/login', async (req: Request, res: Response) => {
       where: {
         OR: [
           { telegramUsername: username },
-          { telegramId: !isNaN(Number(username)) ? BigInt(username) : undefined }
+          ...(username.trim() !== '' && !isNaN(Number(username)) ? [{ telegramId: BigInt(username) }] : [])
         ]
       },
       include: { wallet: true }
