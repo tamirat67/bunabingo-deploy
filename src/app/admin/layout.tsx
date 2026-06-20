@@ -21,6 +21,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     system: pathname.startsWith('/admin/audit') || pathname.startsWith('/admin/logs') || pathname.startsWith('/admin/settings') 
   });
   const [user, setUser] = useState<any>(null);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const [selectedDate, setSelectedDate] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -69,13 +74,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     async function loadUser() {
       // Don't check auth if we are already on the login page
       if (pathname === '/admin/login') {
-        setUser({ firstName: 'Guest', role: 'GUEST' }); // Temporary guest state
+        setUser({ firstName: 'Guest', role: 'GUEST' });
         return;
       }
 
-      // Pre-check token for web users or Telegram Mini App
-      const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
-      const tgInitData = typeof window !== 'undefined' ? (window as any).Telegram?.WebApp?.initData : null;
+      // CRITICAL: Only read localStorage after the component is mounted on the client.
+      // During SSR/hydration, window is undefined and we must not redirect.
+      const token = localStorage.getItem('admin_token');
+      const tgInitData = (window as any).Telegram?.WebApp?.initData || null;
       
       if (!token && !tgInitData) {
         router.push('/admin/login');
@@ -86,18 +92,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         const response = await api.get('/me');
         const userData = response.data;
         if (userData.role !== 'ADMIN' && userData.role !== 'AGENT' && userData.role !== 'STAFF' && !userData.isAdmin) {
-          router.push('/admin/login'); // Redirect unauthorized users
+          router.push('/admin/login');
           return;
         }
         setUser(userData);
       } catch (err) {
+        localStorage.removeItem('admin_token');
         router.push('/admin/login');
       }
     }
     loadUser();
-  }, [pathname]);
+  }, [pathname, isMounted]);
 
-  if (!user) return <div className="login-container">
+  // Show spinner while waiting for client-side mount (prevents SSR redirect loop)
+  if (!isMounted || !user) return <div className="login-container">
     <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2" style={{ borderColor: 'var(--cmd-gold)' }}></div>
   </div>;
 
