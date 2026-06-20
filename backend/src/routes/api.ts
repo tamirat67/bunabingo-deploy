@@ -1346,8 +1346,9 @@ staffRouter.get('/company-profit', staffMiddleware, async (req, res) => {
       orderBy: { createdAt: 'desc' },
     });
 
-    const COMPANY_RATE = Math.max(0, companyRate - profitRate);
-    const AGENT_RATE = profitRate;
+    // NCF Split: If agent takes 6% of ticket sales and house edge is 30%, their NCF share is 6/30 = 20%
+    const AGENT_RATE = companyRate > 0 ? profitRate / companyRate : 0.20;
+    const COMPANY_RATE = Math.max(0, 1 - AGENT_RATE);
 
     const agentRows = await Promise.all(agents.map(async (agent) => {
       const realPlayerIds = agent.referrals.filter((r: any) => !r.isBot).map((r: any) => r.id);
@@ -1669,8 +1670,9 @@ staffRouter.get('/agents/:id/report', staffMiddleware, async (req, res) => {
     const botDebtSettled = Number(botDebtSettledAgg._sum.amount || 0);
     const outstandingBotDebt = Math.max(0, botDebtAdded - botDebtSettled);
 
-    const AGENT_RATE   = profitRate;
-    const COMPANY_RATE = Math.max(0, companyRate - profitRate);
+    // NCF Split: Agent gets profitRate/companyRate (e.g. 0.06/0.30 = 20%)
+    const AGENT_RATE   = companyRate > 0 ? profitRate / companyRate : 0.20;
+    const COMPANY_RATE = Math.max(0, 1 - AGENT_RATE);
     const netCashFlow = totalDeposited - totalWithdrawn;
     // Commission is now based on Net Cash Flow (not Gross Ticket Sales)
     // Agent gets their % of what was actually retained; company keeps the rest
@@ -2358,8 +2360,9 @@ staffRouter.get('/analytics', staffMiddleware, async (req, res) => {
   const agentRate = await getAgentProfitRate(); // e.g. 0.06 (6%)
   const companyRate = await getCompanyCommissionRate(); // e.g. 0.30 (30%)
 
-  const AGENT_RATE = agentRate;
-  const COMPANY_RATE = Math.max(0, companyRate - agentRate);
+  // NCF Split Rates
+  const AGENT_RATE = companyRate > 0 ? agentRate / companyRate : 0.20;
+  const COMPANY_RATE = Math.max(0, 1 - AGENT_RATE);
 
   // Breakdown using dynamic companyRate (fixes hardcoded 0.25 bug)
   const breakdown = Object.keys(roomStats).map(key => ({
@@ -2369,11 +2372,15 @@ staffRouter.get('/analytics', staffMiddleware, async (req, res) => {
     serviceFee: roomStats[key].totalStake * companyRate
   }));
 
-  const realCompanyRevenue = realGrossSales * COMPANY_RATE;
-  // realAgentRevenue: all-time agent share — NOTE: for all-time view, still uses ticket sales
+  // For all-time stats based on ticket sales, Expected NCF = Sales * House Edge (companyRate)
+  const expectedRealNCF = realGrossSales * companyRate;
+  const expectedBotNCF  = botGrossSales * companyRate;
+
+  const realCompanyRevenue = expectedRealNCF * COMPANY_RATE;
+  // realAgentRevenue: all-time agent share — NOTE: for all-time view, still uses expected NCF
   // as all-time deposits/withdrawals can't be easily scoped. This is for reference in the accounting section.
-  const realAgentRevenue   = realGrossSales * AGENT_RATE;
-  const botCompanyRevenue  = botGrossSales  * COMPANY_RATE;  // synthetic — NOT real profit
+  const realAgentRevenue   = expectedRealNCF * AGENT_RATE;
+  const botCompanyRevenue  = expectedBotNCF  * COMPANY_RATE;  // synthetic — NOT real profit
 
   const todayGlobalSales = Number(globalSalesTodayAgg._sum.balanceBefore || 0) - Number(globalSalesTodayAgg._sum.balanceAfter || 0);
   // Today's real sales (non-bot tickets purchased today)
