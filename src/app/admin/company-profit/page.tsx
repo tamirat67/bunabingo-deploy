@@ -164,9 +164,9 @@ export default function CompanyProfitPage() {
             <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>ETB from ticket sales</div>
           </div>
           <div style={{ background: 'rgba(239,68,68,0.15)', borderRadius: '14px', padding: '16px', border: '1px solid rgba(239,68,68,0.3)' }}>
-            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.55)', fontWeight: '800', letterSpacing: '1px', marginBottom: '6px' }}>TOTAL BOT WINNINGS</div>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.55)', fontWeight: '800', letterSpacing: '1px', marginBottom: '6px' }}>BOT WIN (REAL CASH ONLY)</div>
             <div style={{ fontSize: '22px', fontWeight: '900', color: '#f87171' }}>{fmt(totals.botDebtAdded)}</div>
-            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>ETB bot advantage</div>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>ETB from real player tickets only</div>
           </div>
           <div style={{ background: 'rgba(239,68,68,0.2)', borderRadius: '14px', padding: '16px', border: '1px solid rgba(239,68,68,0.4)' }}>
             <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.55)', fontWeight: '800', letterSpacing: '1px', marginBottom: '6px' }}>OUTSTANDING BOT DEBT</div>
@@ -205,12 +205,11 @@ export default function CompanyProfitPage() {
             <thead>
               <tr>
                 <th>Agent</th>
-                <th style={{ textAlign: 'right' }}>Real Deposits</th>
-                <th style={{ textAlign: 'right' }}>Ticket Sales <span style={{ fontSize: '10px', color: '#10b981', fontWeight: '700' }}>(Cash Only)</span></th>
-                <th style={{ textAlign: 'right', color: '#d4af37' }}>Company Share ({fmtPct(companyRate)}) <span style={{ fontSize: '10px', color: '#10b981' }}>✅ Real</span></th>
-                <th style={{ textAlign: 'right', color: '#ef4444' }}>Bot Winnings</th>
-                <th style={{ textAlign: 'right', color: '#ef4444' }}>Outstanding Debt</th>
+                <th style={{ textAlign: 'right' }}>Real Deposited</th>
                 <th style={{ textAlign: 'right' }}>Net Cash Flow</th>
+                <th style={{ textAlign: 'right', color: '#d4af37' }}>Agent Commission</th>
+                <th style={{ textAlign: 'right', color: '#ef4444' }}>Bot Win <span style={{ fontSize: '10px', color: '#fca5a5' }}>(Real Cash)</span></th>
+                <th style={{ textAlign: 'right', background: '#fff8e1', color: '#b45309', fontWeight: '900' }}>💰 Expected Cash To Collect</th>
                 <th style={{ textAlign: 'center' }}>Action</th>
               </tr>
             </thead>
@@ -241,13 +240,11 @@ export default function CompanyProfitPage() {
                     <td style={{ textAlign: 'right', fontWeight: '700', color: '#10b981' }}>
                       {fmt(agent.totalDeposited)} ETB
                     </td>
-                    <td style={{ textAlign: 'right', fontWeight: '700', color: '#3d2b1f' }}>
-                      {fmt(agent.totalTicketSales)} ETB
+                    <td style={{ textAlign: 'right', fontWeight: '700', color: agent.netCashFlow >= 0 ? '#10b981' : '#ef4444' }}>
+                      {agent.netCashFlow >= 0 ? '+' : ''}{fmt(agent.netCashFlow)} ETB
                     </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <span style={{ fontWeight: '900', color: '#d4af37', fontSize: '15px' }}>
-                        {fmt(agent.companyShare)} ETB
-                      </span>
+                    <td style={{ textAlign: 'right', fontWeight: '700', color: '#d97706' }}>
+                      - {fmt(agent.agentEarned)} ETB
                     </td>
                     <td style={{ textAlign: 'right', fontWeight: '700', color: '#ef4444' }}>
                       {fmt(agent.botDebtAdded)} ETB
@@ -255,19 +252,16 @@ export default function CompanyProfitPage() {
                     <td style={{ textAlign: 'right' }}>
                       {totalExpected > 0 ? (
                         <span style={{
-                          background: isHighDebt ? '#fef2f2' : '#fff7ed',
-                          color: isHighDebt ? '#ef4444' : '#f59e0b',
-                          padding: '4px 10px', borderRadius: '8px', fontWeight: '900', fontSize: '13px',
-                          border: `1px solid ${isHighDebt ? '#fecaca' : '#fde68a'}`
+                          background: isHighDebt ? '#fef2f2' : '#fff8e1',
+                          color: isHighDebt ? '#ef4444' : '#b45309',
+                          padding: '6px 12px', borderRadius: '8px', fontWeight: '900', fontSize: '14px',
+                          border: `2px solid ${isHighDebt ? '#fecaca' : '#fbbf24'}`
                         }}>
-                          {isHighDebt ? '🔴' : '🟡'} {fmt(totalExpected)} ETB
+                          {isHighDebt ? '🔴' : '💰'} {fmt(totalExpected)} ETB
                         </span>
                       ) : (
                         <span style={{ color: '#10b981', fontWeight: '700', fontSize: '13px' }}>✅ Cleared</span>
                       )}
-                    </td>
-                    <td style={{ textAlign: 'right', fontWeight: '700', color: agent.netCashFlow >= 0 ? '#10b981' : '#ef4444' }}>
-                      {agent.netCashFlow >= 0 ? '+' : ''}{fmt(agent.netCashFlow)} ETB
                     </td>
                     <td style={{ textAlign: 'center' }}>
                       <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
@@ -312,20 +306,17 @@ export default function CompanyProfitPage() {
                 <td style={{ textAlign: 'right', fontWeight: '900', color: '#6ee7b7' }}>
                   {fmt(totals.totalDeposited)} ETB
                 </td>
-                <td style={{ textAlign: 'right', fontWeight: '900', color: 'white' }}>
-                  {fmt(totals.totalTicketSales)} ETB
+                <td style={{ textAlign: 'right', fontWeight: '900', color: totals.netCashFlow >= 0 ? '#6ee7b7' : '#fca5a5' }}>
+                  {totals.netCashFlow >= 0 ? '+' : ''}{fmt(totals.netCashFlow)} ETB
                 </td>
-                <td style={{ textAlign: 'right', fontWeight: '900', color: '#d4af37', fontSize: '15px' }}>
-                  {fmt(totals.companyShare)} ETB
+                <td style={{ textAlign: 'right', fontWeight: '900', color: '#fcd34d' }}>
+                  - {fmt(totals.agentEarned)} ETB
                 </td>
                 <td style={{ textAlign: 'right', fontWeight: '900', color: '#fca5a5' }}>
                   {fmt(totals.botDebtAdded)} ETB
                 </td>
-                <td style={{ textAlign: 'right', fontWeight: '900', color: '#fca5a5', fontSize: '15px' }}>
-                  {fmt(totals.outstandingBotDebt)} ETB
-                </td>
-                <td style={{ textAlign: 'right', fontWeight: '900', color: totals.netCashFlow >= 0 ? '#6ee7b7' : '#fca5a5' }}>
-                  {totals.netCashFlow >= 0 ? '+' : ''}{fmt(totals.netCashFlow)} ETB
+                <td style={{ textAlign: 'right', fontWeight: '900', color: '#fbbf24', fontSize: '15px' }}>
+                  💰 {fmt(totals.netCashFlow - totals.agentEarned)} ETB
                 </td>
                 <td />
               </tr>

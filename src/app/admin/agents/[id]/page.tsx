@@ -190,6 +190,16 @@ export default function AgentReportPage() {
     // Section: Bilingual Profit Breakdown Table
     const tableBody = [
       [
+        'REAL CASH DEPOSITED\nገንዘብ ገቢ',
+        `${fmt(stats.totalDeposited)} ETB`,
+        `Total real cash deposited by players\nከተጫዋቾች የተሰበሰበ ጠቅላላ ገቢ`
+      ],
+      [
+        'REAL CASH WITHDRAWN\nወጪ የተደረገ ገንዘብ',
+        `${fmt(stats.totalWithdrawn)} ETB`,
+        `Total real cash withdrawn by players\nለተጫዋቾች ወጪ የተደረገ ገንዘብ`
+      ],
+      [
         'NET CASH FLOW\nየተጣራ ገንዘብ',
         `${fmt(stats.netCashFlow)} ETB`,
         `Real Deposits - Withdrawals\nከገቢ ላይ ወጪ ተቀንሶ`
@@ -197,27 +207,17 @@ export default function AgentReportPage() {
       [
         'AGENT EARNED\nወኪሉ ያገኘው',
         `${fmt(stats.agentEarned)} ETB`,
-        `Agent's 20% share\nየወኪሉ 20% ድርሻ`
+        `Agent's 20% share of real sales\nየወኪሉ 20% ድርሻ`
       ],
       [
-        'COMPANY SHARE\nየኩባንያ ድርሻ (ኮሚሽን)',
+        'COMPANY SHARE (REAL CASH)\nየኩባንያ ድርሻ (ከገቢ)',
         `${fmt(stats.companyEarnedFromBranch)} ETB`,
-        `80% of ticket sales\nከቲኬት ሽያጭ 80%`
+        `80% of real ticket sales\nከትክክለኛ ቲኬት ሽያጭ 80%`
       ],
       [
-        'TOTAL BOT WINNINGS\nጠቅላላ የቦት ሽልማቶች',
+        'BOT WIN (REAL CASH)\nየቦት ሽልማት (ከገቢ)',
         `${fmt(stats.botDebtAdded || 0)} ETB`,
-        `Prizes won by house bots\nበቤቱ ቦቶች የተሸለሙ ሽልማቶች`
-      ],
-      [
-        'OUTSTANDING BOT DEBT\nያልተወራረደ የቦት እዳ',
-        `${fmt(stats.outstandingBotDebt || 0)} ETB`,
-        `Unsettled bot winnings\nያልተከፈሉ የቦት ሽልማቶች`
-      ],
-      [
-        'TOTAL BOT WINNINGS\nጠቅላላ የቦት ሽልማቶች',
-        `${fmt(stats.botDebtAdded || 0)} ETB`,
-        `Prizes won by house bots\nበቤቱ ቦቶች የተሸለሙ ሽልማቶች`
+        `Real player money won by bots\nከእውነተኛ ተጫዋቾች የተወሰደ የቦት ሽልማት`
       ],
       [
         'REAL TICKET SALES (CASH ONLY)\nትክክለኛ የቲኬት ሽያጭ',
@@ -521,6 +521,13 @@ export default function AgentReportPage() {
             <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', marginTop: '4px' }}>{fmtInt(stats.totalTicketsCount)} tickets sold</div>
           </div>
 
+          {/* Real Cash Deposited */}
+          <div style={{ background: 'rgba(255,255,255,0.07)', borderRadius: '14px', padding: '16px', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', fontWeight: '800', letterSpacing: '1px', marginBottom: '6px' }}>TOTAL REAL DEPOSITS</div>
+            <div style={{ fontSize: '24px', fontWeight: '900', color: '#60a5fa' }}>{fmt(stats.totalDeposited)}</div>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', marginTop: '4px' }}>Physical ETB collected</div>
+          </div>
+
           {/* Net Cash Flow */}
           <div style={{ background: 'rgba(255,255,255,0.07)', borderRadius: '14px', padding: '16px', border: '1px solid rgba(255,255,255,0.1)' }}>
             <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', fontWeight: '800', letterSpacing: '1px', marginBottom: '6px' }}>NET CASH FLOW</div>
@@ -529,13 +536,64 @@ export default function AgentReportPage() {
             </div>
             <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', marginTop: '4px' }}>Deposits − Withdrawals</div>
           </div>
+
+          {/* Bot Win (Real Cash) */}
+          <div style={{ background: 'rgba(239,68,68,0.12)', borderRadius: '14px', padding: '16px', border: '1px solid rgba(239,68,68,0.35)' }}>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', fontWeight: '800', letterSpacing: '1px', marginBottom: '6px' }}>BOT WIN (REAL CASH)</div>
+            <div style={{ fontSize: '24px', fontWeight: '900', color: '#f87171' }}>{fmt(stats.botDebtAdded || 0)}</div>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', marginTop: '4px' }}>From real player tickets only</div>
+          </div>
         </div>
       </div>
 
       {/* ── KPI Grid ────────────────────────────────────────── */}
       {/* Removed per user request */}
 
-      {/* ── Tabs ────────────────────────────────────────────── */}
+      {/* ── REAL MONEY COLLECTION CARD ──────────────────────── */}
+      <div style={{
+        background: 'linear-gradient(135deg, #fff7ed, #fffbeb)',
+        borderRadius: '20px', padding: '24px 28px', marginBottom: '24px',
+        border: '2px solid #d4af37',
+        boxShadow: '0 4px 20px rgba(212,175,55,0.2)',
+      }}>
+        <div style={{ fontSize: '12px', fontWeight: '900', color: '#92400e', letterSpacing: '2px', marginBottom: '16px', textTransform: 'uppercase' }}>
+          💰 Real Money Collection Breakdown for {agent.firstName}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px', marginBottom: '16px' }}>
+          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '14px' }}>
+            <div style={{ fontSize: '10px', fontWeight: '800', color: '#6b7280', textTransform: 'uppercase', marginBottom: '4px' }}>⬇️ Real Deposited</div>
+            <div style={{ fontSize: '20px', fontWeight: '900', color: '#15803d' }}>{fmt(stats.totalDeposited)} ETB</div>
+          </div>
+          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '14px' }}>
+            <div style={{ fontSize: '10px', fontWeight: '800', color: '#6b7280', textTransform: 'uppercase', marginBottom: '4px' }}>⬆️ Withdrawn</div>
+            <div style={{ fontSize: '20px', fontWeight: '900', color: '#ef4444' }}>- {fmt(stats.totalWithdrawn)} ETB</div>
+          </div>
+          <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '12px', padding: '14px' }}>
+            <div style={{ fontSize: '10px', fontWeight: '800', color: '#166534', textTransform: 'uppercase', marginBottom: '4px' }}>💵 Net Cash Flow</div>
+            <div style={{ fontSize: '20px', fontWeight: '900', color: '#15803d' }}>{fmt(stats.netCashFlow)} ETB</div>
+          </div>
+          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '14px' }}>
+            <div style={{ fontSize: '10px', fontWeight: '800', color: '#6b7280', textTransform: 'uppercase', marginBottom: '4px' }}>🤝 Agent Commission</div>
+            <div style={{ fontSize: '20px', fontWeight: '900', color: '#d97706' }}>- {fmt(stats.agentEarned)} ETB</div>
+          </div>
+        </div>
+        <div style={{ background: '#fff8e1', border: '2px solid #fbbf24', borderRadius: '14px', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+          <div>
+            <div style={{ fontSize: '11px', fontWeight: '800', color: '#92400e', letterSpacing: '1px' }}>TOTAL EXPECTED CASH TO COLLECT</div>
+            <div style={{ fontSize: '11px', color: '#b45309', marginTop: '2px' }}>Net Cash Flow ({fmt(stats.netCashFlow)}) − Agent Earnings ({fmt(stats.agentEarned)})</div>
+          </div>
+          <div style={{ fontSize: '32px', fontWeight: '900', color: '#b45309' }}>{fmt(Math.max(0, stats.netCashFlow - stats.agentEarned))} ETB</div>
+        </div>
+        {(stats.botDebtAdded || 0) > 0 && (
+          <div style={{ marginTop: '12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '12px', padding: '14px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+            <div>
+              <div style={{ fontSize: '11px', fontWeight: '800', color: '#991b1b', letterSpacing: '1px' }}>🤖 BOT WIN ADVANTAGE (from real players)</div>
+              <div style={{ fontSize: '11px', color: '#7f1d1d', marginTop: '2px' }}>70% of real ticket sales won by house bots — already included in the above collection</div>
+            </div>
+            <div style={{ fontSize: '22px', fontWeight: '900', color: '#dc2626' }}>{fmt(stats.botDebtAdded)} ETB</div>
+          </div>
+        )}
+      </div>
       <div style={{ display: 'flex', gap: '4px', borderBottom: '2px solid #f0ece8', marginBottom: '24px', overflowX: 'auto' }}>
         {tabs.map(t => (
           <button
