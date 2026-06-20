@@ -527,55 +527,71 @@ function DashboardContent() {
         </div>
       </div>
 
-      {/* ── Real Money Accounting Card ── */}
+      {/* ── Net Cash Position Hero ── */}
       {isAdmin && (
         <div style={{
-          background: '#ffffff',
-          borderRadius: '20px',
-          border: '1px solid rgba(0,0,0,0.06)',
-          padding: '24px 28px',
-          marginBottom: '20px',
-          boxShadow: '0 2px 12px rgba(0,0,0,0.04)'
+          background: 'linear-gradient(135deg, #1a0a00 0%, #3d2b1f 60%, #5c3d2e 100%)',
+          borderRadius: '24px', padding: '28px 32px', marginBottom: '20px',
+          color: 'white', position: 'relative', overflow: 'hidden',
+          boxShadow: '0 12px 40px rgba(61,43,31,0.35)',
+          border: '1px solid rgba(212,175,55,0.2)',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '20px' }}>
-            <span style={{ fontSize: '13px', fontWeight: '900', color: '#3d2b1f', textTransform: 'uppercase', letterSpacing: '1px' }}>
-              📊 Real Money Accounting (All Time)
-            </span>
-            <span style={{
-              display: 'inline-flex', alignItems: 'center', gap: '5px',
-              background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '999px',
-              padding: '3px 10px', fontSize: '11px', fontWeight: '700', color: '#16a34a'
-            }}>
-              ✅ Real deposited cash only · Bonus ETB excluded
-            </span>
+          <div style={{ position: 'absolute', top: '-40px', right: '-40px', width: '220px', height: '220px', background: 'rgba(212,175,55,0.06)', borderRadius: '50%' }} />
+          <div style={{ position: 'absolute', bottom: '-60px', left: '40px', width: '160px', height: '160px', background: 'rgba(212,175,55,0.04)', borderRadius: '50%' }} />
+
+          <div style={{ fontSize: '11px', fontWeight: '900', color: '#d4af37', letterSpacing: '2px', marginBottom: '16px', textTransform: 'uppercase' }}>
+            💰 Real Money Accounting — All Time
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px' }}>
             {/* Real Gross Sales */}
-            <div style={{ background: '#f0fdf4', borderRadius: '14px', padding: '16px', border: '1px solid #bbf7d0' }}>
-              <div style={{ fontSize: '10px', fontWeight: '900', color: '#059669', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>✅ Real Gross Sales (Cash Only)</div>
-              <div style={{ fontSize: '22px', fontWeight: '900', color: '#065f46' }}>{realGrossSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-              <div style={{ fontSize: '11px', color: '#059669', marginTop: '4px' }}>ETB · deposits only · bonus excluded</div>
+            <div style={{ background: 'rgba(255,255,255,0.07)', borderRadius: '16px', padding: '18px', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <div style={{ fontSize: '10px', fontWeight: '800', color: 'rgba(255,255,255,0.55)', letterSpacing: '1px', marginBottom: '8px', textTransform: 'uppercase' }}>🎟 Real Ticket Sales</div>
+              <div style={{ fontSize: '22px', fontWeight: '900', color: '#6ee7b7' }}>{realGrossSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+              <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>ETB · bonus excluded</div>
             </div>
 
-            {/* Real Company Revenue (dynamic) */}
-            <div style={{ background: '#f0fdf4', borderRadius: '14px', padding: '16px', border: '1px solid #86efac' }}>
-              <div style={{ fontSize: '10px', fontWeight: '900', color: '#16a34a', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>✅ Company Revenue ({companyRevenueRate}%) · Cash Only</div>
-              <div style={{ fontSize: '22px', fontWeight: '900', color: '#14532d' }}>{realCompanyRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-              <div style={{ fontSize: '11px', color: '#16a34a', marginTop: '4px' }}>ETB · {companyRevenueRate}% of real cash (all-time)</div>
+            {/* Company Revenue */}
+            <div style={{ background: 'rgba(212,175,55,0.12)', borderRadius: '16px', padding: '18px', border: '1px solid rgba(212,175,55,0.25)' }}>
+              <div style={{ fontSize: '10px', fontWeight: '800', color: 'rgba(212,175,55,0.8)', letterSpacing: '1px', marginBottom: '8px', textTransform: 'uppercase' }}>🏦 Company Revenue ({companyRevenueRate}%)</div>
+              <div style={{ fontSize: '22px', fontWeight: '900', color: '#d4af37' }}>{realCompanyRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+              <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>ETB · real cash only</div>
             </div>
 
-            {/* Real Agent Revenue (dynamic) */}
-            <div style={{ background: '#eff6ff', borderRadius: '14px', padding: '16px', border: '1px solid #93c5fd' }}>
-              <div style={{ fontSize: '10px', fontWeight: '900', color: '#2563eb', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>✅ Agent Revenue ({agentRevenueRate}%) · Cash Only</div>
-              <div style={{ fontSize: '22px', fontWeight: '900', color: '#1e3a8a' }}>{realAgentRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-              <div style={{ fontSize: '11px', color: '#2563eb', marginTop: '4px' }}>ETB · {agentRevenueRate}% of real cash (all-time)</div>
+            {/* Agent Revenue */}
+            <div style={{ background: 'rgba(255,255,255,0.07)', borderRadius: '16px', padding: '18px', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <div style={{ fontSize: '10px', fontWeight: '800', color: 'rgba(255,255,255,0.55)', letterSpacing: '1px', marginBottom: '8px', textTransform: 'uppercase' }}>🤝 Agent Revenue ({agentRevenueRate}%)</div>
+              <div style={{ fontSize: '22px', fontWeight: '900', color: '#93c5fd' }}>{realAgentRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+              <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>ETB · real cash only</div>
             </div>
+
+            {/* Bot Win */}
+            <div style={{ background: 'rgba(239,68,68,0.12)', borderRadius: '16px', padding: '18px', border: '1px solid rgba(239,68,68,0.25)' }}>
+              <div style={{ fontSize: '10px', fontWeight: '800', color: 'rgba(239,68,68,0.7)', letterSpacing: '1px', marginBottom: '8px', textTransform: 'uppercase' }}>🤖 Bot Win (Real Cash)</div>
+              <div style={{ fontSize: '22px', fontWeight: '900', color: '#f87171' }}>{botWinPayoutAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+              <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>ETB · from real player tickets</div>
+            </div>
+
+            {/* Real Player Winnings */}
+            <div style={{ background: 'rgba(255,255,255,0.07)', borderRadius: '16px', padding: '18px', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <div style={{ fontSize: '10px', fontWeight: '800', color: 'rgba(255,255,255,0.55)', letterSpacing: '1px', marginBottom: '8px', textTransform: 'uppercase' }}>🏆 Player Winnings</div>
+              <div style={{ fontSize: '22px', fontWeight: '900', color: '#fbbf24' }}>{realPlayerWinnings.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+              <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>ETB · real prizes paid out</div>
+            </div>
+
+            {/* Bot Win Count */}
+            <div style={{ background: 'rgba(255,255,255,0.07)', borderRadius: '16px', padding: '18px', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <div style={{ fontSize: '10px', fontWeight: '800', color: 'rgba(255,255,255,0.55)', letterSpacing: '1px', marginBottom: '8px', textTransform: 'uppercase' }}>🎮 Bot Game Wins</div>
+              <div style={{ fontSize: '22px', fontWeight: '900', color: 'white' }}>{botWinCount.toLocaleString()}</div>
+              <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>Games won by house bots</div>
+            </div>
+          </div>
+
+          <div style={{ marginTop: '16px', padding: '10px 16px', background: 'rgba(255,255,255,0.05)', borderRadius: '10px', fontSize: '11px', color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            ✅ All figures are derived from real deposited cash only — synthetic bot credits and bonus ETB are strictly excluded
           </div>
         </div>
       )}
-
-
 
       {/* Two Column Layout */}
       <div className="dashboard-grid">
