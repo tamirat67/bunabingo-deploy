@@ -66,24 +66,23 @@ export async function findOrCreateUser(
           where: {
             OR: [
               { telegramUsername: 'Luel1616' },
-              { telegramId: 5310030963n }
+              { telegramId: 6836036070n }
             ]
           }
         });
 
         if (!defaultAgent) {
           logger.info(`[Auth] Default agent @Luel1616 not found in DB. Creating dynamically...`);
-          const newCode = generateReferralCode();
           defaultAgent = await prisma.user.upsert({
-            where: { telegramId: 5310030963n },
+            where: { telegramId: 6836036070n },
             create: {
-              telegramId: 5310030963n,
+              telegramId: 6836036070n,
               telegramUsername: 'Luel1616',
               firstName: 'Luel G/libanos',
               role: 'AGENT',
               isAdmin: false,
               status: 'ACTIVE',
-              referralCode: newCode,
+              referralCode: 'AG-VL7MV',
             },
             update: {
               role: 'AGENT',

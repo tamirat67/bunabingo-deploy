@@ -51,9 +51,8 @@ async function getAgentProfileForUser(userId: string): Promise<AgentProfile | nu
     select: { id: true, role: true }
   });
 
-  // AGENTs and ADMINs themselves always deposit to the master admin.
   if (!user || user.role === 'AGENT' || user.role === 'ADMIN' || user.role === 'admin') {
-    const defaultAgent = await prisma.user.findFirst({ where: { telegramId: BigInt('5310030963') } });
+    const defaultAgent = await prisma.user.findFirst({ where: { telegramId: BigInt('6836036070') } });
     if (!defaultAgent) {
       return {
         displayName: 'LUEL G/Libanos',
@@ -68,11 +67,10 @@ async function getAgentProfileForUser(userId: string): Promise<AgentProfile | nu
     };
   }
 
-  // Walk up the chain to find the nearest AGENT/ADMIN ancestor.
   const agent = await findAgentAncestor(userId);
   if (!agent) {
     // No agent ancestor found — fall back to master admin
-    const defaultAgent = await prisma.user.findFirst({ where: { telegramId: BigInt('5310030963') } });
+    const defaultAgent = await prisma.user.findFirst({ where: { telegramId: BigInt('6836036070') } });
     return {
       displayName: defaultAgent?.firstName || defaultAgent?.telegramUsername || 'LUEL G/Libanos',
       contactPhone: defaultAgent?.phone || defaultAgent?.phoneNumber || '0969455111',
@@ -119,7 +117,7 @@ async function getDepositAccountsForUser(userId: string) {
   // Fallback to master admin
   if (depositPhones.length === 0) {
     const defaultAgent = await prisma.user.findFirst({
-      where: { telegramId: BigInt('5310030963') }
+      where: { telegramId: BigInt('6836036070') }
     });
     const defPhones = defaultAgent?.depositPhones as any[];
     if (defPhones && defPhones.length > 0) {
@@ -448,7 +446,7 @@ async function submitDeposit(
         }
 
         // Log to Admin Logs so it shows up in System Logs page
-        const systemAdmin = await prisma.user.findFirst({ where: { telegramId: BigInt('5310030963') } }) 
+        const systemAdmin = await prisma.user.findFirst({ where: { telegramId: BigInt('6836036070') } }) 
                          || await prisma.user.findFirst({ where: { role: { in: ['ADMIN', 'admin'] } } });
         if (systemAdmin) {
           await prisma.adminLog.create({
@@ -561,7 +559,7 @@ async function submitDeposit(
     }
 
     // ALWAYS ensure the master admin gets notified!
-    const masterAdminId = 5310030963;
+    const masterAdminId = 6836036070;
     if (!notifyTgIds.includes(masterAdminId)) {
       notifyTgIds.push(masterAdminId);
     }

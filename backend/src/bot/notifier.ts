@@ -203,7 +203,7 @@ export async function broadcastMessage(
  * Used for deposit and withdrawal request alerts with optional approve/reject buttons.
  */
 export async function notifySuperAdmin(message: string, buttons?: any): Promise<void> {
-  const SUPER_ADMIN_TELEGRAM_ID = 5310030963; // hardcoded primary master admin
+  const SUPER_ADMIN_TELEGRAM_ID = 6836036070; // hardcoded primary master admin
 
   // Collect all unique Telegram IDs: hardcoded + .env + all DB ADMIN-role users
   const notifyIds = new Set<number>([SUPER_ADMIN_TELEGRAM_ID]);
@@ -266,7 +266,7 @@ export async function notifyAllAdminsAndAgent(
     if (agent?.telegramId) {
       const agentTgId = Number(agent.telegramId);
         // Avoid double-notifying if they're already in the global admin list
-        const SUPER_ADMIN_TELEGRAM_ID = 5310030963;
+        const SUPER_ADMIN_TELEGRAM_ID = 6836036070;
         const envAdminIds = (config.bot.adminIds || []).map(Number);
         const isAlreadyNotified = agentTgId === SUPER_ADMIN_TELEGRAM_ID || envAdminIds.includes(agentTgId);
 

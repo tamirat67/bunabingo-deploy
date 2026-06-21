@@ -782,7 +782,7 @@ export default function AgentsPage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ fontSize: '11px', fontWeight: '800', color: '#78716c', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}><FiPhone size={10} /> Telegram ID</label>
-                  <input type="number" className="login-input" placeholder="e.g. 5310030963" value={newStaff.telegramId} onChange={e => setNewStaff(s => ({ ...s, telegramId: e.target.value }))} />
+                  <input type="number" className="login-input" placeholder="e.g. 6836036070" value={newStaff.telegramId} onChange={e => setNewStaff(s => ({ ...s, telegramId: e.target.value }))} />
                 </div>
                 <div>
                   <label style={{ fontSize: '11px', fontWeight: '800', color: '#78716c', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}><FiUser size={10} /> Username</label>
