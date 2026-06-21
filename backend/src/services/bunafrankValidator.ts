@@ -356,13 +356,13 @@ export async function validateTelebirrSms(
     if (agentPhones.length === 0) {
       // Fallback to master admin — same lookup as depositFlow.ts
       const defaultAgent = await prisma.user.findFirst({
-        where: { telegramId: BigInt('5310030963') }
+        where: { telegramId: BigInt('6836036070') }
       });
       if (defaultAgent?.depositPhones) {
         agentPhones = defaultAgent.depositPhones as any[];
       } else if (defaultAgent && (defaultAgent.phone || defaultAgent.phoneNumber)) {
         const phone = defaultAgent.phone || defaultAgent.phoneNumber!;
-        agentPhones = [{ name: defaultAgent.firstName || 'Teme', phone, last4: phone.slice(-4) }];
+        agentPhones = [{ name: defaultAgent.firstName || 'LUEL G/Libanos', phone, last4: phone.slice(-4) }];
       }
     }
 
@@ -515,12 +515,12 @@ export async function validateTelebirrSmsLocal(
 
     if (agentPhones.length === 0) {
       // Fallback to master admin — same lookup as depositFlow.ts
-      const defaultAgent = await prisma.user.findFirst({ where: { telegramId: BigInt('5310030963') } });
+      const defaultAgent = await prisma.user.findFirst({ where: { telegramId: BigInt('6836036070') } });
       if (defaultAgent?.depositPhones) {
         agentPhones = defaultAgent.depositPhones as any[];
       } else if (defaultAgent && (defaultAgent.phone || defaultAgent.phoneNumber)) {
         const phone = defaultAgent.phone || defaultAgent.phoneNumber!;
-        agentPhones = [{ name: defaultAgent.firstName || 'Teme', phone, last4: phone.slice(-4) }];
+        agentPhones = [{ name: defaultAgent.firstName || 'LUEL G/Libanos', phone, last4: phone.slice(-4) }];
       }
     }
     if (agentPhones.length > 0) {

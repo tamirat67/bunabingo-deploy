@@ -35,11 +35,13 @@ async function findAgentAncestor(userId: string): Promise<any | null> {
                 telegramUsername: true, phone: true, phoneNumber: true, depositPhones: true }
     });
     if (!current) break;
-    // On the first hop we skip the user themselves.
-    // From hop 1 onward, if the ancestor is AGENT or ADMIN — that's our target.
+    // Skip the user themselves (hop 0).
+    // From hop 1 onward, ONLY return if the ancestor is strictly AGENT or ADMIN.
+    // Regular PLAYERs are NEVER returned — even if they referred someone.
     if (hop > 0 && (current.role === 'AGENT' || current.role === 'ADMIN' || current.role === 'admin')) {
       return current;
     }
+    // If hop > 0 and it's just a PLAYER, keep walking up the chain.
     currentId = current.referredBy ?? null;
   }
   return null;
@@ -51,31 +53,21 @@ async function getAgentProfileForUser(userId: string): Promise<AgentProfile | nu
     select: { id: true, role: true }
   });
 
+  // If the requesting user is themselves an AGENT/ADMIN, show the master company account.
   if (!user || user.role === 'AGENT' || user.role === 'ADMIN' || user.role === 'admin') {
-    const defaultAgent = await prisma.user.findFirst({ where: { telegramId: BigInt('6836036070') } });
-    if (!defaultAgent) {
-      return {
-        displayName: 'LUEL G/Libanos',
-        contactPhone: '0969455111',
-        telegramUsername: 'Luel1616',
-      };
-    }
-    return {
-      displayName: defaultAgent.firstName || defaultAgent.telegramUsername || 'LUEL G/Libanos',
-      contactPhone: defaultAgent.phone || defaultAgent.phoneNumber || '0969455111',
-      telegramUsername: defaultAgent.telegramUsername || 'Luel1616',
-    };
+    return null; // Agents see no agent header — they deposit to master directly.
   }
 
+  // Walk up the chain — only returns AGENT/ADMIN, never a plain PLAYER.
   const agent = await findAgentAncestor(userId);
   if (!agent) {
-    // No agent ancestor found — fall back to master admin
-    const defaultAgent = await prisma.user.findFirst({ where: { telegramId: BigInt('6836036070') } });
-    return {
-      displayName: defaultAgent?.firstName || defaultAgent?.telegramUsername || 'LUEL G/Libanos',
-      contactPhone: defaultAgent?.phone || defaultAgent?.phoneNumber || '0969455111',
-      telegramUsername: defaultAgent?.telegramUsername || 'Luel1616',
-    };
+    // No real agent found — show nothing (master account will be shown via accounts list).
+    return null;
+  }
+
+  // Safety guard: double-check role before showing profile.
+  if (agent.role !== 'AGENT' && agent.role !== 'ADMIN' && agent.role !== 'admin') {
+    return null;
   }
 
   return {
@@ -93,65 +85,60 @@ async function getDepositAccountsForUser(userId: string) {
 
   let depositPhones: any[] = [];
 
-  // AGENTs and ADMINs bypass agent lookup and always deposit to the master admin.
+  // AGENTs and ADMINs always deposit to the master company account.
   const isAgentOrAdmin = user?.role === 'AGENT' || user?.role === 'ADMIN' || user?.role === 'admin';
 
   if (!isAgentOrAdmin) {
-    // Walk up the referral chain to find the nearest AGENT/ADMIN ancestor.
+    // Walk up the referral chain — ONLY returns AGENT/ADMIN, never a plain PLAYER.
     const agent = await findAgentAncestor(userId);
-    if (agent) {
+
+    // STRICT guard: only use the account if the ancestor is truly AGENT or ADMIN.
+    if (agent && (agent.role === 'AGENT' || agent.role === 'ADMIN' || agent.role === 'admin')) {
       const refPhones = agent.depositPhones as any[];
       if (refPhones && refPhones.length > 0) {
-        depositPhones = refPhones;
+        depositPhones = refPhones.map((p: any) => ({
+          name: p.name,
+          phone: p.phone,
+          last4: p.last4 || p.phone.slice(-4)
+        }));
       } else if (agent.phone || agent.phoneNumber) {
         const phone = agent.phone || agent.phoneNumber;
         depositPhones = [{
-          name: agent.firstName || agent.telegramUsername || 'Agent',
+          name: [agent.firstName, agent.lastName].filter(Boolean).join(' ') || agent.telegramUsername || 'Agent',
           phone: phone,
           last4: phone.slice(-4)
         }];
       }
     }
+    // If agent is null or not AGENT/ADMIN, depositPhones stays empty → falls to master below.
   }
 
-  // Fallback to master admin
+  // Fallback: no real agent found — use the master company account.
   if (depositPhones.length === 0) {
     const defaultAgent = await prisma.user.findFirst({
       where: { telegramId: BigInt('6836036070') }
     });
     const defPhones = defaultAgent?.depositPhones as any[];
     if (defPhones && defPhones.length > 0) {
-      depositPhones = defPhones;
+      depositPhones = defPhones.map((p: any) => ({
+        name: p.name,
+        phone: p.phone,
+        last4: p.last4 || p.phone.slice(-4)
+      }));
     } else if (defaultAgent && (defaultAgent.phone || defaultAgent.phoneNumber)) {
       const phone = defaultAgent.phone || defaultAgent.phoneNumber;
       depositPhones = [{
-        name: defaultAgent.firstName || defaultAgent.telegramUsername || 'Teme',
-        phone: phone,
-        last4: phone.slice(-4)
+        name: defaultAgent.firstName || defaultAgent.telegramUsername || 'LUEL G/Libanos',
+        phone: phone!,
+        last4: phone!.slice(-4)
       }];
     } else {
-      depositPhones = [{
-        name: 'LUEL G/Libanos',
-        phone: '0969455111',
-        last4: '5111'
-      }];
+      // Hard fallback
+      depositPhones = [{ name: 'LUEL G/Libanos', phone: '0969455111', last4: '5111' }];
     }
   }
 
-  if (depositPhones && depositPhones.length > 0) {
-    const phones = depositPhones.map(p => ({
-      name: p.name,
-      phone: p.phone,
-      last4: p.last4 || p.phone.slice(-4)
-    }));
-    // Always include the master admin account as an option
-    const masterAcc = DEFAULT_DEPOSIT_ACCOUNTS[0];
-    if (!phones.some(p => p.last4 === masterAcc.last4)) {
-      phones.push(masterAcc);
-    }
-    return phones;
-  }
-  return DEFAULT_DEPOSIT_ACCOUNTS;
+  return depositPhones;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
