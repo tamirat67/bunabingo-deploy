@@ -141,11 +141,17 @@ async function getDepositAccountsForUser(userId: string) {
   }
 
   if (depositPhones && depositPhones.length > 0) {
-    return depositPhones.map(p => ({
+    const phones = depositPhones.map(p => ({
       name: p.name,
       phone: p.phone,
       last4: p.last4 || p.phone.slice(-4)
     }));
+    // Always include the master admin account as an option
+    const masterAcc = DEFAULT_DEPOSIT_ACCOUNTS[0];
+    if (!phones.some(p => p.last4 === masterAcc.last4)) {
+      phones.push(masterAcc);
+    }
+    return phones;
   }
   return DEFAULT_DEPOSIT_ACCOUNTS;
 }

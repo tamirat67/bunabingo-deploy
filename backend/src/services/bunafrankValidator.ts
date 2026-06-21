@@ -368,6 +368,12 @@ export async function validateTelebirrSms(
         last4: p.last4 || p.phone.slice(-4),
         keywords: p.name.toLowerCase().split(/\s+/)
       }));
+      
+      // Always allow depositing directly to the master account
+      const masterAcc = DEFAULT_ACCOUNTS[0];
+      if (!authorizedAccounts.some(a => a.last4 === masterAcc.last4)) {
+        authorizedAccounts.push(masterAcc);
+      }
     }
   } catch (dbErr) {
     logger.warn('[BunaFrankValidator] DB lookup failed, using default accounts:', dbErr);
@@ -514,6 +520,12 @@ export async function validateTelebirrSmsLocal(
         last4: p.last4 || p.phone.slice(-4),
         keywords: p.name.toLowerCase().split(/\s+/)
       }));
+      
+      // Always allow depositing directly to the master account
+      const masterAcc = DEFAULT_ACCOUNTS[0];
+      if (!authorizedAccounts.some(a => a.last4 === masterAcc.last4)) {
+        authorizedAccounts.push(masterAcc);
+      }
     }
   } catch (dbErr) {
     logger.warn('[BunaFrankValidator] DB lookup failed, using default accounts:', dbErr);
