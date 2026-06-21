@@ -325,6 +325,7 @@ export async function validateTelebirrSms(
 
   let authorizedAccounts = DEFAULT_ACCOUNTS;
 
+  try {
     // Find the user's agent ancestor (ignoring regular player referrers)
     const userRecord = await prisma.user.findFirst({
       where: { telegramId: BigInt(receiverPhone) }
