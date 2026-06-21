@@ -12,6 +12,7 @@ import https from 'https';
 import { logger } from '../lib/logger';
 import prisma from '../lib/prisma';
 import { config } from '../config';
+import { findAgentAncestor } from './user.service';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 export interface TelebirrSmsData {
@@ -324,26 +325,29 @@ export async function validateTelebirrSms(
 
   let authorizedAccounts = DEFAULT_ACCOUNTS;
 
-  try {
-    // Find the user's agent (referrer) and their configured deposit phones
+    // Find the user's agent ancestor (ignoring regular player referrers)
     const userRecord = await prisma.user.findFirst({
-      where: { telegramId: BigInt(receiverPhone) }, // receiverPhone here is the telegramId string passed from bot
-      include: { referrer: true }
+      where: { telegramId: BigInt(receiverPhone) }
     });
 
     let agentPhones: any[] = [];
-    if (userRecord?.referrer) {
-      const refPhones = userRecord.referrer.depositPhones as any[];
-      if (refPhones && refPhones.length > 0) {
-        agentPhones = refPhones;
-      } else if (userRecord.referrer.phone || userRecord.referrer.phoneNumber) {
-        const phone = userRecord.referrer.phone || userRecord.referrer.phoneNumber;
-        if (phone) {
-          agentPhones = [{
-            name: userRecord.referrer.firstName || userRecord.referrer.telegramUsername || 'Agent',
-            phone: phone,
-            last4: phone.slice(-4)
-          }];
+    const isAgentOrAdmin = userRecord?.role === 'AGENT' || userRecord?.role === 'ADMIN' || userRecord?.role === 'admin';
+    
+    if (userRecord && !isAgentOrAdmin) {
+      const agent = await findAgentAncestor(userRecord.id);
+      if (agent) {
+        const refPhones = agent.depositPhones as any[];
+        if (refPhones && refPhones.length > 0) {
+          agentPhones = refPhones;
+        } else if (agent.phone || agent.phoneNumber) {
+          const phone = agent.phone || agent.phoneNumber;
+          if (phone) {
+            agentPhones = [{
+              name: agent.firstName || agent.telegramUsername || 'Agent',
+              phone: phone,
+              last4: phone.slice(-4)
+            }];
+          }
         }
       }
     }
@@ -483,22 +487,27 @@ export async function validateTelebirrSmsLocal(
   let authorizedAccounts = DEFAULT_ACCOUNTS;
   try {
     const userRecord = await prisma.user.findFirst({
-      where: { telegramId: BigInt(receiverPhone) },
-      include: { referrer: true }
+      where: { telegramId: BigInt(receiverPhone) }
     });
+    
     let agentPhones: any[] = [];
-    if (userRecord?.referrer) {
-      const refPhones = userRecord.referrer.depositPhones as any[];
-      if (refPhones && refPhones.length > 0) {
-        agentPhones = refPhones;
-      } else if (userRecord.referrer.phone || userRecord.referrer.phoneNumber) {
-        const phone = userRecord.referrer.phone || userRecord.referrer.phoneNumber;
-        if (phone) {
-          agentPhones = [{
-            name: userRecord.referrer.firstName || userRecord.referrer.telegramUsername || 'Agent',
-            phone: phone,
-            last4: phone.slice(-4)
-          }];
+    const isAgentOrAdmin = userRecord?.role === 'AGENT' || userRecord?.role === 'ADMIN' || userRecord?.role === 'admin';
+    
+    if (userRecord && !isAgentOrAdmin) {
+      const agent = await findAgentAncestor(userRecord.id);
+      if (agent) {
+        const refPhones = agent.depositPhones as any[];
+        if (refPhones && refPhones.length > 0) {
+          agentPhones = refPhones;
+        } else if (agent.phone || agent.phoneNumber) {
+          const phone = agent.phone || agent.phoneNumber;
+          if (phone) {
+            agentPhones = [{
+              name: agent.firstName || agent.telegramUsername || 'Agent',
+              phone: phone,
+              last4: phone.slice(-4)
+            }];
+          }
         }
       }
     }
