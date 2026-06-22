@@ -287,7 +287,7 @@ export default function AgentsPage() {
     // Logo
     try {
       const img = new Image();
-      img.crossOrigin = 'anonymous';
+      // Removed crossOrigin='anonymous' to avoid same-origin CORS failures
       await new Promise<void>((resolve) => {
         img.onload = () => {
           const canvas = document.createElement('canvas');
@@ -301,7 +301,7 @@ export default function AgentsPage() {
           resolve();
         };
         img.onerror = () => resolve();
-        img.src = '/logo.png';
+        img.src = window.location.origin + '/logo.png';
       });
     } catch (e) {}
 
