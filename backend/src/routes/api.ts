@@ -1496,37 +1496,7 @@ staffRouter.get('/company-profit', staffMiddleware, async (req, res) => {
     const unreferredWithdrawals = Math.max(0, globalWithdrawals - totals.totalWithdrawn);
     const unreferredNCF = Math.max(0, unreferredDeposits - unreferredWithdrawals);
 
-    // If there is any unreferred activity, add a "System" row
-    if (unreferredSales > 0 || unreferredDeposits > 0) {
-      const systemRow = {
-        agentId: 'system',
-        agentName: 'Direct to Company (No Agent)',
-        agentUsername: 'system',
-        referralCode: 'none',
-        totalTicketSales: unreferredSales,
-        companyShare: unreferredNCF, // Company keeps 100% since there's no agent
-        agentEarned: 0,
-        botDebtAdded: 0,
-        botDebtSettled: 0,
-        outstandingBotDebt: 0,
-        totalDeposited: unreferredDeposits,
-        totalWithdrawn: unreferredWithdrawals,
-        netCashFlow: unreferredNCF,
-        preDepositBalance: 0,
-        realPlayersCount: 0, // Not explicitly tracked here for system
-        totalCollected: 0,
-        lastCollectedAt: new Date(0),
-      };
-
-      agentRows.push(systemRow);
-      
-      // Update totals
-      totals.totalTicketSales += systemRow.totalTicketSales;
-      totals.companyShare += systemRow.companyShare;
-      totals.totalDeposited += systemRow.totalDeposited;
-      totals.totalWithdrawn += systemRow.totalWithdrawn;
-      totals.netCashFlow += systemRow.netCashFlow;
-    }
+    // System row (Direct to Company) removed per request.
 
     res.json({
       range: range || 'all',
