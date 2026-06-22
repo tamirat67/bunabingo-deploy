@@ -1585,7 +1585,7 @@ staffRouter.get('/agents/:id/report', staffMiddleware, async (req, res) => {
     
     const descendantUsers = await prisma.user.findMany({
       where: { id: { in: descendantIds.length > 0 ? descendantIds : ['00000000-0000-0000-0000-000000000000'] } },
-      select: { id: true, isBot: true }
+      select: { id: true, isBot: true, firstName: true, telegramUsername: true }
     });
 
     // Only real (non-bot) referred users
