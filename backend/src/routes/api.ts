@@ -1429,7 +1429,9 @@ staffRouter.get('/company-profit', staffMiddleware, async (req, res) => {
       const botDebtSettled = Number(botDebtSettledAgg._sum.amount || 0);
 
       const netCashFlow = Math.max(0, totalDeposited - totalWithdrawn);
-      const agentEarned = netCashFlow * AGENT_RATE;
+      // Salaried Employee Override: @Luel1616 (Buna Bingo Support) earns 0% commission
+      const actualAgentRate = agent.id === 'd1d93520-0c1a-4403-bf0c-f2f162a1dd36' ? 0 : AGENT_RATE;
+      const agentEarned = netCashFlow * actualAgentRate;
       const companyShare = netCashFlow - agentEarned;
       return {
         agentId: agent.id,
