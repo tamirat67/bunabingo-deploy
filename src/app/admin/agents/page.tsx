@@ -549,7 +549,8 @@ export default function AgentsPage() {
               <th>Branch Players</th>
               <th>Pre-Deposit Balance</th>
               <th style={{ textAlign: 'right' }}>Net Cash Flow (Cash Only)</th>
-              <th style={{ textAlign: 'right' }}>Outstanding Debt</th>
+              <th style={{ textAlign: 'right' }}>Agent Owes Players</th>
+              <th style={{ textAlign: 'right', background: '#fff8e1', color: '#b45309', fontWeight: '900' }}>💰 Agent Owes Company</th>
               <th style={{ textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
@@ -624,7 +625,6 @@ export default function AgentsPage() {
                     })()}
                   </td>
                   <td style={{ textAlign: 'right' }}>
-                    {/* Outstanding Debt = pending withdrawals from branch players */}
                     {(() => {
                       const debt = Number(agent.outstandingDebt ?? 0);
                       return (
@@ -636,6 +636,29 @@ export default function AgentsPage() {
                             {debt > 0 ? 'Pending W/D' : 'All Settled'}
                           </span>
                         </div>
+                      );
+                    })()}
+                  </td>
+                  <td style={{ textAlign: 'right' }}>
+                    {(() => {
+                      const debt = Number(agent.outstandingCollectionDebt ?? 0);
+                      const isHighDebt = debt > 1000;
+                      return debt > 0 ? (
+                        <div style={{
+                          display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-end',
+                          background: isHighDebt ? '#fef2f2' : '#fff8e1',
+                          padding: '6px 12px', borderRadius: '8px',
+                          border: `1px solid ${isHighDebt ? '#fecaca' : '#fbbf24'}`
+                        }}>
+                          <div style={{ fontWeight: '900', color: isHighDebt ? '#ef4444' : '#b45309', fontSize: '14px' }}>
+                            {isHighDebt ? '🔴' : '💰'} {debt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB
+                          </div>
+                          <span style={{ fontSize: '10px', color: isHighDebt ? '#991b1b' : '#b45309', fontWeight: '800', marginTop: '2px' }}>
+                            THIS PERIOD
+                          </span>
+                        </div>
+                      ) : (
+                        <span style={{ color: '#10b981', fontWeight: '800', fontSize: '13px' }}>✅ Collected</span>
                       );
                     })()}
                   </td>

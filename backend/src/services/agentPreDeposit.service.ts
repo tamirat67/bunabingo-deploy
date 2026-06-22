@@ -103,6 +103,10 @@ export async function debitAgentCommissionForGame(
   gameId: string,
   totalSales: Decimal
 ): Promise<{ agentId: string; commissionAmount: Decimal } | null> {
+  // NEW ARCHITECTURE: Pre-Deposit is no longer deducted per-game (Gross Sales).
+  // It is now deducted on Deposits and refunded on Withdrawals (Net Cash Flow).
+  return null;
+
   // 1. Fetch all tickets for this game
   const tickets = await prisma.ticket.findMany({
     where: { gameId },

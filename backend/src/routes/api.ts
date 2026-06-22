@@ -1340,7 +1340,7 @@ staffRouter.get('/company-profit', staffMiddleware, async (req, res) => {
         agentPreDepositWallet: true,
         agentSettlements: {
           orderBy: { periodEnd: 'desc' },
-          take: 1,
+          take: 2, // take 2 so we can surface lastCollectedAt
         }
       },
       orderBy: { createdAt: 'desc' },
@@ -1352,6 +1352,14 @@ staffRouter.get('/company-profit', staffMiddleware, async (req, res) => {
 
     const agentRows = await Promise.all(agents.map(async (agent) => {
       const realPlayerIds = agent.referrals.filter((r: any) => !r.isBot).map((r: any) => r.id);
+      // Sum of all past settlements = total physically collected ever
+      const allSettlementsAgg = await prisma.agentSettlement.aggregate({
+        where: { agentId: agent.id },
+        _sum: { amount: true },
+      });
+      const totalCollected = Number(allSettlementsAgg._sum.amount || 0);
+      const lastCollectedAt = agent.agentSettlements?.[0]?.periodEnd ?? null;
+
       if (realPlayerIds.length === 0) {
         return {
           agentId: agent.id,
@@ -1369,6 +1377,8 @@ staffRouter.get('/company-profit', staffMiddleware, async (req, res) => {
           netCashFlow: 0,
           preDepositBalance: Number(agent.agentPreDepositWallet?.balance || 0),
           realPlayersCount: 0,
+          totalCollected,
+          lastCollectedAt,
         };
       }
 
@@ -1435,6 +1445,8 @@ staffRouter.get('/company-profit', staffMiddleware, async (req, res) => {
         netCashFlow: totalDeposited - totalWithdrawn,
         preDepositBalance: Number(agent.agentPreDepositWallet?.balance || 0),
         realPlayersCount: realPlayerIds.length,
+        totalCollected,
+        lastCollectedAt,
       };
     }));
 
@@ -1498,6 +1510,8 @@ staffRouter.get('/company-profit', staffMiddleware, async (req, res) => {
         netCashFlow: unreferredNCF,
         preDepositBalance: 0,
         realPlayersCount: 0, // Not explicitly tracked here for system
+        totalCollected: 0,
+        lastCollectedAt: new Date(0),
       };
 
       agentRows.push(systemRow);
@@ -1781,6 +1795,26 @@ staffRouter.get('/agents/:id/report', staffMiddleware, async (req, res) => {
       });
     }
 
+    // All-time collected & settlement history
+    const [allTimeCollectedAgg, allSettlements] = await Promise.all([
+      prisma.agentSettlement.aggregate({
+        where: { agentId },
+        _sum: { amount: true },
+      }),
+      prisma.agentSettlement.findMany({
+        where: { agentId },
+        orderBy: { periodEnd: 'desc' },
+        take: 10,
+        select: { id: true, amount: true, periodStart: true, periodEnd: true, notes: true, createdAt: true },
+      }),
+    ]);
+    const allTimeCollected = Number(allTimeCollectedAgg._sum.amount || 0);
+    const lastSettlementForPeriod = await prisma.agentSettlement.findFirst({
+      where: { agentId },
+      orderBy: { periodEnd: 'desc' },
+    });
+    const currentPeriodStart = lastSettlementForPeriod?.periodEnd ?? agent.createdAt;
+
     res.json({
       agent: {
         id: agent.id, firstName: agent.firstName,
@@ -1809,6 +1843,10 @@ staffRouter.get('/agents/:id/report', staffMiddleware, async (req, res) => {
         commissionDebitsCount: commissionDebitsAgg._count.id,
         botDebtAdded, botDebtSettled, outstandingBotDebt,
       },
+      // Cash collection history
+      allTimeCollected,
+      currentPeriodStart,
+      allSettlements,
       players: realPlayers,
       topPlayers: topPlayersEnriched,
       recentTransactions, recentDeposits,

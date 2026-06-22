@@ -199,6 +199,7 @@ export default function CompanyProfitPage() {
                 <th style={{ textAlign: 'right' }}>Net Cash Flow</th>
                 <th style={{ textAlign: 'right', color: '#d4af37' }}>Agent Commission</th>
                 <th style={{ textAlign: 'right', background: '#fff8e1', color: '#b45309', fontWeight: '900' }}>💰 Expected Cash To Collect</th>
+                <th style={{ textAlign: 'right', color: '#10b981' }}>All-Time Collected</th>
                 <th style={{ textAlign: 'center' }}>Action</th>
               </tr>
             </thead>
@@ -248,6 +249,14 @@ export default function CompanyProfitPage() {
                         </span>
                       ) : (
                         <span style={{ color: '#10b981', fontWeight: '700', fontSize: '13px' }}>✅ Cleared</span>
+                      )}
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <div style={{ fontWeight: '900', color: '#10b981' }}>{fmt(agent.totalCollected || 0)} ETB</div>
+                      {agent.lastCollectedAt && (
+                        <div style={{ fontSize: '11px', color: '#78716c' }}>
+                          Last: {new Date(agent.lastCollectedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                        </div>
                       )}
                     </td>
                     <td style={{ textAlign: 'center' }}>
@@ -309,6 +318,7 @@ export default function CompanyProfitPage() {
                 <td style={{ textAlign: 'right', fontWeight: '900', color: '#fbbf24', fontSize: '15px' }}>
                   💰 {fmt(totals.netCashFlow - totals.agentEarned)} ETB
                 </td>
+                <td />
                 <td />
               </tr>
             </tbody>

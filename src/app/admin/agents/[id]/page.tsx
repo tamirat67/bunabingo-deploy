@@ -469,7 +469,7 @@ export default function AgentReportPage() {
 
   if (!report) return null;
 
-  const { agent, preDepositStatus, preDepositWallet, stats, players, topPlayers, recentTransactions, recentDeposits, rechargeHistory, commissionDebits, monthlyTrend } = report;
+  const { agent, preDepositStatus, preDepositWallet, stats, players, topPlayers, recentTransactions, recentDeposits, rechargeHistory, commissionDebits, monthlyTrend, allTimeCollected, currentPeriodStart, allSettlements } = report;
 
   const fmt = (n: number) => Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const fmtInt = (n: number) => Number(n || 0).toLocaleString();
@@ -678,6 +678,48 @@ export default function AgentReportPage() {
 
       {/* ── KPI Grid ────────────────────────────────────────── */}
       {/* Removed per user request */}
+
+      {/* ── HISTORICAL DATA WARNING BANNER ──────────────────── */}
+      {currentPeriodStart && new Date(currentPeriodStart) < new Date('2026-06-22T00:00:00Z') && (
+        <div style={{
+          background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '12px',
+          padding: '16px 20px', marginBottom: '16px', display: 'flex', gap: '12px', alignItems: 'flex-start'
+        }}>
+          <FiAlertTriangle size={20} style={{ color: '#d97706', flexShrink: 0, marginTop: '2px' }} />
+          <div>
+            <div style={{ fontSize: '14px', fontWeight: '800', color: '#92400e', marginBottom: '4px' }}>Historical Data Accuracy Warning</div>
+            <div style={{ fontSize: '13px', color: '#b45309', lineHeight: '1.5' }}>
+              The current period started before <strong>June 22, 2026</strong>. Prior to this date, the system allowed Bonus ETB to be used before Real ETB, which artificially inflates the "Real Ticket Sales" metrics for old transactions. Proceed with caution when settling old periods.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── ALL-TIME COLLECTION SUMMARY STRIP ───────────────── */}
+      <div style={{
+        display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '16px',
+        background: 'linear-gradient(135deg, #10b981, #059669)', borderRadius: '14px', padding: '20px',
+        border: '1px solid #047857', color: 'white'
+      }}>
+        <div style={{ flex: 1, minWidth: '160px' }}>
+          <div style={{ fontSize: '11px', fontWeight: '800', color: '#a7f3d0', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '4px' }}>✅ All-Time Collected from {agent.firstName}</div>
+          <div style={{ fontSize: '28px', fontWeight: '900', color: 'white', textShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>{fmt(allTimeCollected || 0)} ETB</div>
+          <div style={{ fontSize: '12px', color: '#d1fae5', marginTop: '4px' }}>{(allSettlements || []).length} physical cash collection(s) recorded</div>
+        </div>
+        <div style={{ flex: 1, minWidth: '160px', borderLeft: '1px solid rgba(255,255,255,0.2)', paddingLeft: '20px' }}>
+          <div style={{ fontSize: '11px', fontWeight: '800', color: '#a7f3d0', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '4px' }}>📅 Current Period Started</div>
+          <div style={{ fontSize: '18px', fontWeight: '900', color: 'white' }}>
+            {currentPeriodStart ? new Date(currentPeriodStart).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Since account created'}
+          </div>
+          <div style={{ fontSize: '12px', color: '#d1fae5', marginTop: '4px' }}>Figures below cover only this active period</div>
+        </div>
+        <div style={{ flex: 1, minWidth: '160px', borderLeft: '1px solid rgba(255,255,255,0.2)', paddingLeft: '20px', background: 'rgba(0,0,0,0.1)', padding: '16px', borderRadius: '10px', marginLeft: '10px' }}>
+          <div style={{ fontSize: '11px', fontWeight: '800', color: '#fca5a5', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '4px' }}>🔴 Outstanding This Period</div>
+          <div style={{ fontSize: '28px', fontWeight: '900', color: '#fecaca', textShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>{fmt(Math.max(0, stats.netCashFlow - stats.agentEarned))} ETB</div>
+          <div style={{ fontSize: '12px', color: '#f87171', marginTop: '4px' }}>Not yet collected</div>
+        </div>
+      </div>
+
 
       {/* ── REAL MONEY COLLECTION CARD ──────────────────────── */}
       <div style={{
@@ -976,6 +1018,44 @@ export default function AgentReportPage() {
               </div>
             )}
           </div>
+
+          {/* ── Settlement History ── */}
+          {allSettlements && allSettlements.length > 0 && (
+            <div className="data-table-container" style={{ overflow: 'hidden', marginBottom: '0' }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid #f5f5f4', background: '#f9f5ef', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '800', color: '#3d2b1f' }}>🗂️ Cash Collection History</h3>
+                <span style={{ fontSize: '12px', fontWeight: '800', color: '#d4af37', background: 'rgba(212,175,55,0.1)', padding: '4px 10px', borderRadius: '8px' }}>
+                  Total Collected: {fmt(allTimeCollected || 0)} ETB
+                </span>
+              </div>
+              <div style={{ maxHeight: '280px', overflowY: 'auto' }}>
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Amount Collected</th>
+                      <th>Period</th>
+                      <th>Collection Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {allSettlements.map((s: any, i: number) => (
+                      <tr key={s.id}>
+                        <td style={{ color: '#78716c', fontSize: '12px' }}>#{i + 1}</td>
+                        <td><span style={{ fontWeight: '900', color: '#15803d', fontSize: '14px' }}>+{fmt(s.amount)} ETB</span></td>
+                        <td style={{ fontSize: '11px', color: '#5c554b' }}>
+                          {new Date(s.periodStart).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' })}
+                          {' → '}
+                          {new Date(s.periodEnd).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' })}
+                        </td>
+                        <td style={{ fontSize: '12px', color: '#78716c' }}>{new Date(s.createdAt).toLocaleDateString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           {/* Commission Audit */}
           <div className="premium-card">

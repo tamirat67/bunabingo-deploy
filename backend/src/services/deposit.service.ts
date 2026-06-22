@@ -130,6 +130,50 @@ export async function approveDeposit(depositId: string, adminId: string) {
     if (!alreadyCredited) {
       await creditWallet(deposit.userId, deposit.amount, 'DEPOSIT', depositId, 'Deposit approved');
 
+      // ─── Pre-Deposit Deduction (NCF Architecture) ───
+      try {
+        const { findAgentAncestor } = await import('./user.service');
+        const ancestor = await findAgentAncestor(deposit.userId);
+        if (ancestor) {
+          const { getCompanyCommissionRate } = await import('./settings.service');
+          const { getOrCreateAgentPreDepositWallet } = await import('./agentPreDeposit.service');
+          const { Decimal } = await import('@prisma/client/runtime/library');
+          
+          const companyRate = await getCompanyCommissionRate();
+          const commissionAmount = new Decimal(deposit.amount.toString()).mul(companyRate);
+          
+          const wallet = await getOrCreateAgentPreDepositWallet(ancestor.id);
+          const oldBalance = new Decimal(wallet.balance.toString());
+          const newBalance = oldBalance.sub(commissionAmount);
+          
+          await prisma.agentPreDepositWallet.update({
+            where: { id: wallet.id },
+            data: {
+              balance: newBalance,
+              totalDebited: new Decimal(wallet.totalDebited?.toString() ?? '0').add(commissionAmount),
+              updatedAt: new Date()
+            }
+          });
+          
+          await prisma.agentCommissionLog.create({
+            data: {
+              agentId: ancestor.id,
+              walletId: wallet.id,
+              type: 'COMMISSION_DEBIT',
+              amount: commissionAmount,
+              gameId: depositId, // using depositId as reference
+              totalSales: new Decimal(deposit.amount.toString()),
+              description: `NCF Commission: Deposit approved for ${deposit.user?.username || deposit.userId}. ${deposit.amount} ETB × ${(companyRate * 100).toFixed(0)}%`,
+              balanceBefore: oldBalance,
+              balanceAfter: newBalance,
+            }
+          });
+          logger.info(`[PreDeposit] Deducted ${commissionAmount.toFixed(2)} ETB from agent ${ancestor.id} for deposit ${depositId}`);
+        }
+      } catch (e) {
+        logger.error(`[PreDeposit] Error deducting from agent pre-deposit for deposit ${depositId}:`, e);
+      }
+
       // ─── Deposit Bonus (Dynamic based on system settings) ───
       const { isDepositBonusEligible } = await import('./settings.service');
       const { percentage: bonusPercentage } = await isDepositBonusEligible(Number(deposit.amount));

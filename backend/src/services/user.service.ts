@@ -575,7 +575,7 @@ export async function getAgents(page = 1, limit = 20, agentIds?: string[]) {
       let botBranchSales = new Decimal(0);
 
       if (allUserIds.length > 0) {
-        const [depositsAgg, withdrawnAgg, pendingWdAgg, sales] = await Promise.all([
+        const [depositsAgg, withdrawnAgg, pendingWdAgg, sales, settlementsAgg] = await Promise.all([
           // Total approved deposits from branch players (cash brought in)
           prisma.deposit.aggregate({
             where: { status: 'APPROVED', userId: { in: allUserIds } },
@@ -600,16 +600,27 @@ export async function getAgents(page = 1, limit = 20, agentIds?: string[]) {
             },
             select: { userId: true, amount: true },
           }),
+          // All-time physical cash collected from this agent
+          prisma.agentSettlement.aggregate({
+            where: { agentId: agent.id },
+            _sum: { amount: true },
+          })
         ]);
 
         totalBranchDeposited = new Decimal(depositsAgg._sum.amount?.toString() || 0);
         totalBranchWithdrawn = new Decimal(withdrawnAgg._sum.amount?.toString() || 0);
         outstandingDebt = new Decimal(pendingWdAgg._sum.amount?.toString() || 0);
+        
+        // Sum of all past cash collections (AgentSettlements)
+        const allTimeCollected = new Decimal(settlementsAgg._sum?.amount?.toString() || 0);
 
-        sales.forEach(s => {
+        sales.forEach((s: any) => {
           if (realUserIds.includes(s.userId)) realBranchSales = realBranchSales.add(s.amount.toString());
           else botBranchSales = botBranchSales.add(s.amount.toString());
         });
+        
+        // Expose allTimeCollected out of scope
+        (agent as any)._allTimeCollected = allTimeCollected;
       }
 
       const rate = await getAgentProfitRate();
@@ -642,10 +653,18 @@ export async function getAgents(page = 1, limit = 20, agentIds?: string[]) {
       if (!(agent as any)._count) (agent as any)._count = {};
       (agent as any)._count.referrals = descendantUsers.length;
 
+      // Calculate outstanding company profit debt (Expected collection this period)
+      const ncf = Decimal.max(0, totalBranchDeposited.sub(totalBranchWithdrawn));
+      const ncfAgentEarned = ncf.mul(agentDiscountRate);
+      const expectedTotalCash = ncf.sub(ncfAgentEarned);
+      const allTimeCollected = (agent as any)._allTimeCollected || new Decimal(0);
+      const outstandingCollectionDebt = Decimal.max(0, expectedTotalCash.sub(allTimeCollected));
+
       (agent as any).preDepositStatus = preDepositStatus;
       (agent as any).stakeAmount      = Number(stakeAmount.toFixed(4));      // ETB company physically collected
       (agent as any).realNetProfit    = Number(realNetProfit.toFixed(4));     // agent's kept discount profit
       (agent as any).outstandingDebt  = Number(outstandingDebt.toFixed(4));  // pending withdrawals = cash agent owes players
+      (agent as any).outstandingCollectionDebt = Number(outstandingCollectionDebt.toFixed(2)); // Cash agent owes company
       (agent as any).botNetProfit     = 0; // legacy field, kept for compatibility
 
       return agent;

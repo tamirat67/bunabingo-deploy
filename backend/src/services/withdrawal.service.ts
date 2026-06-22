@@ -204,6 +204,51 @@ export async function approveWithdrawal(withdrawalId: string, adminId: string) {
     }
   });
 
+  // ─── Pre-Deposit Refund (NCF Architecture) ───
+  try {
+    if (withdrawal.userId) {
+      const { findAgentAncestor } = await import('./user.service');
+      const ancestor = await findAgentAncestor(withdrawal.userId);
+      if (ancestor) {
+        const { getCompanyCommissionRate } = await import('./settings.service');
+        const { getOrCreateAgentPreDepositWallet } = await import('./agentPreDeposit.service');
+        
+        const companyRate = await getCompanyCommissionRate();
+        const refundAmount = withdrawalAmount.mul(companyRate);
+        
+        const wallet = await getOrCreateAgentPreDepositWallet(ancestor.id);
+        const oldBalance = new Decimal(wallet.balance.toString());
+        const newBalance = oldBalance.add(refundAmount);
+        
+        await prisma.agentPreDepositWallet.update({
+          where: { id: wallet.id },
+          data: {
+            balance: newBalance,
+            updatedAt: new Date()
+          }
+        });
+        
+        // Negative amount for COMMISSION_DEBIT = Refund
+        await prisma.agentCommissionLog.create({
+          data: {
+            agentId: ancestor.id,
+            walletId: wallet.id,
+            type: 'COMMISSION_DEBIT', // Reusing the same type, but logging it as a positive balance change
+            amount: refundAmount.negated(),
+            gameId: withdrawalId, // using withdrawalId as reference
+            totalSales: withdrawalAmount.negated(),
+            description: `NCF Refund: Withdrawal approved for ${withdrawal.user?.username || withdrawal.userId}. ${withdrawal.amount} ETB × ${(companyRate * 100).toFixed(0)}% refunded.`,
+            balanceBefore: oldBalance,
+            balanceAfter: newBalance,
+          }
+        });
+        logger.info(`[PreDeposit] Refunded ${refundAmount.toFixed(2)} ETB to agent ${ancestor.id} for withdrawal ${withdrawalId}`);
+      }
+    }
+  } catch (e) {
+    logger.error(`[PreDeposit] Error refunding agent pre-deposit for withdrawal ${withdrawalId}:`, e);
+  }
+
   // 8. Notify player on web dashboard + Telegram
   if (withdrawal.userId) {
     await triggerUserEvent(withdrawal.userId, 'withdrawal-approved', {

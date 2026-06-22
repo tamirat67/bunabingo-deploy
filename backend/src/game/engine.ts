@@ -303,19 +303,19 @@ async function runGame(gameId: string): Promise<void> {
         continue;
       }
 
-      // Deduct from Bonus Wallet first, then Main Wallet
+      // Use main balance first, then bonus for the remainder (real-money priority rule)
       let remainingToDebit = totalCharge;
-      let newBonus = bonus;
       let newBalance = balance;
+      let newBonus = bonus;
 
-      if (bonus.greaterThan(0)) {
-        const bonusToUse = Decimal.min(bonus, remainingToDebit);
-        newBonus = bonus.sub(bonusToUse);
-        remainingToDebit = remainingToDebit.sub(bonusToUse);
+      if (balance.greaterThan(0)) {
+        const balanceToUse = Decimal.min(balance, remainingToDebit);
+        newBalance = balance.sub(balanceToUse);
+        remainingToDebit = remainingToDebit.sub(balanceToUse);
       }
 
       if (remainingToDebit.greaterThan(0)) {
-        newBalance = balance.sub(remainingToDebit);
+        newBonus = bonus.sub(remainingToDebit);
       }
 
       await prisma.$transaction(async (tx) => {
@@ -336,7 +336,7 @@ async function runGame(gameId: string): Promise<void> {
             balanceAfter: newBalance,
             status: 'COMPLETED',
             referenceId: gameId,
-            description: `Game started — ${numTickets} ticket(s) charged for ${game.room.type} (Bonus Used: ${bonus.sub(newBonus).toFixed(2)} ETB)`,
+            description: `Game started — ${numTickets} ticket(s) charged for ${game.room.type} (Main Used: ${balance.sub(newBalance).toFixed(2)} ETB, Bonus Used: ${bonus.sub(newBonus).toFixed(2)} ETB)`,
           },
         });
       });
