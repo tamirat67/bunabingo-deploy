@@ -256,11 +256,10 @@ export default function AgentsPage() {
       return;
     }
 
-    const doc = new jsPDF({ orientation: 'landscape' });
+    const doc = new jsPDF({ orientation: 'portrait' });
     const pageWidth  = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
     const fmt    = (n: number) => Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    const fmtPct = (r: number) => (r * 100).toFixed(1) + '%';
 
     // ── Load Amharic font ──────────────────────────────────────
     let hasAmharic = false;
@@ -279,11 +278,11 @@ export default function AgentsPage() {
     }
 
     // ── DARK HEADER BAR ──────────────────────────────────────
+    const headerH = hasAmharic ? 34 : 26;
     doc.setFillColor(61, 43, 31);
-    doc.rect(0, 0, pageWidth, 26, 'F');
-    // Gold accent line
+    doc.rect(0, 0, pageWidth, headerH, 'F');
     doc.setFillColor(212, 175, 55);
-    doc.rect(0, 26, pageWidth, 1.5, 'F');
+    doc.rect(0, headerH, pageWidth, 1.5, 'F');
 
     // Logo
     try {
@@ -297,7 +296,7 @@ export default function AgentsPage() {
           if (ctx) {
             ctx.beginPath(); ctx.arc(30, 30, 30, 0, Math.PI * 2); ctx.closePath(); ctx.clip();
             ctx.drawImage(img, 0, 0, 60, 60);
-            doc.addImage(canvas.toDataURL('image/png'), 'PNG', 8, 4, 18, 18);
+            doc.addImage(canvas.toDataURL('image/png'), 'PNG', 8, 5, 18, 18);
           }
           resolve();
         };
@@ -306,61 +305,131 @@ export default function AgentsPage() {
       });
     } catch (e) {}
 
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(16);
+    // Left — BUNA BINGO title
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(15);
     doc.setTextColor(212, 175, 55);
-    doc.text('BUNA BINGO', 30, 13);
-    doc.setFontSize(8);
-    doc.setTextColor(180, 160, 120);
-    doc.text('BUNA TECH HUB', 30, 20);
+    doc.text('BUNA BINGO', 30, 12);
+    if (hasAmharic) {
+      doc.setFont('NotoSansEthiopic', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(200, 178, 120);
+      doc.text('ቡና ቢንጎ', 30, 21);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(160, 140, 100);
+      doc.text('BUNA TECH HUB', 30, 29);
+    } else {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(180, 160, 120);
+      doc.text('BUNA TECH HUB', 30, 20);
+    }
 
-    doc.setFontSize(14);
-    doc.setTextColor(255, 255, 255);
-    doc.text('ALL AGENTS — CASH COLLECTION SUMMARY', pageWidth - 10, 13, { align: 'right' });
-    doc.setFontSize(8);
-    doc.setTextColor(180, 160, 120);
-    doc.text(`Generated: ${new Date().toLocaleString()}  ·  Real Cash Only — Bonus ETB excluded`, pageWidth - 10, 20, { align: 'right' });
+    // Right — Report title (English) — bright gold for maximum visibility
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(255, 223, 80);  // bright gold
+    doc.text('ALL AGENTS — CASH COLLECTION SUMMARY', pageWidth - 10, 11, { align: 'right' });
+
+    if (hasAmharic) {
+      // Right — Report title (Amharic)
+      doc.setFont('NotoSansEthiopic', 'normal');
+      doc.setFontSize(9.5);
+      doc.setTextColor(220, 198, 150);
+      doc.text('ሁሉም ወኪሎች — የጥሬ ገንዘብ ስብሰባ ማጠቃለያ', pageWidth - 10, 21, { align: 'right' });
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(160, 140, 100);
+      doc.text(`${new Date().toLocaleString()}  ·  Real Cash Only — Bonus ETB excluded`, pageWidth - 10, 30, { align: 'right' });
+    } else {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.setTextColor(180, 160, 120);
+      doc.text(`Generated: ${new Date().toLocaleString()}  ·  Real Cash Only — Bonus ETB excluded`, pageWidth - 10, 20, { align: 'right' });
+    }
 
     // ── HERO TOTALS CARD ──────────────────────────────────────
     const totals = profitData?.totals || {};
     const totalExpected = Math.max(0, (totals.netCashFlow || 0) - (totals.agentEarned || 0));
 
+    const heroY = headerH + 3;
+    const heroH = hasAmharic ? 34 : 26;
     doc.setFillColor(212, 175, 55);
-    doc.roundedRect(10, 31, pageWidth - 20, 26, 3, 3, 'F');
+    doc.roundedRect(10, heroY, pageWidth - 20, heroH, 3, 3, 'F');
 
+    // Hero — English label
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8.5);
     doc.setTextColor(80, 50, 10);
-    doc.text('TOTAL EXPECTED CASH FROM ALL AGENTS', pageWidth / 2, 37, { align: 'center' });
-    doc.setFontSize(8);
-    doc.setTextColor(100, 70, 20);
-    doc.text('Real Cash Only  -  Bonus ETB Excluded', pageWidth / 2, 43, { align: 'center' });
-    doc.setFontSize(20);
-    doc.setTextColor(61, 43, 31);
-    doc.text(`${fmt(totalExpected)} ETB`, pageWidth / 2, 52, { align: 'center' });
+    doc.text('TOTAL EXPECTED CASH FROM ALL AGENTS', pageWidth / 2, heroY + 6, { align: 'center' });
+
+    if (hasAmharic) {
+      // Hero — Amharic label
+      doc.setFont('NotoSansEthiopic', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(100, 65, 15);
+      doc.text('ከሁሉም ወኪሎች የሚጠበቅ ጠቅላላ ጥሬ ገንዘብ', pageWidth / 2, heroY + 14, { align: 'center' });
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.setTextColor(120, 80, 25);
+      doc.text('Real Cash Only  -  Bonus ETB Excluded', pageWidth / 2, heroY + 21, { align: 'center' });
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(17);
+      doc.setTextColor(61, 43, 31);
+      doc.text(`${fmt(totalExpected)} ETB`, pageWidth / 2, heroY + 31, { align: 'center' });
+    } else {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(100, 70, 20);
+      doc.text('Real Cash Only  -  Bonus ETB Excluded', pageWidth / 2, heroY + 13, { align: 'center' });
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(20);
+      doc.setTextColor(61, 43, 31);
+      doc.text(`${fmt(totalExpected)} ETB`, pageWidth / 2, heroY + 22, { align: 'center' });
+    }
     doc.setFont('helvetica', 'normal');
 
-    // ── 5 SUMMARY BOXES ─────────────────────────────────────
+    // ── 4 SUMMARY BOXES ─────────────────────────────────────
     const boxData = [
-      { label: 'TOTAL REAL DEPOSITS', value: fmt(totals.totalDeposited || 0) + ' ETB', color: [21, 128, 61] as [number,number,number] },
-      { label: 'TOTAL WITHDRAWN',     value: fmt(totals.totalWithdrawn  || 0) + ' ETB', color: [185, 28, 28] as [number,number,number] },
-      { label: 'NET CASH FLOW',       value: fmt(totals.netCashFlow     || 0) + ' ETB', color: [14, 100, 57] as [number,number,number] },
-      { label: 'AGENT COMMISSIONS',   value: fmt(totals.agentEarned     || 0) + ' ETB', color: [180, 83, 9] as [number,number,number] },
+      { en: 'TOTAL REAL DEPOSITS', am: 'ጠቅላላ ተቀማጭ ገንዘብ', value: fmt(totals.totalDeposited || 0) + ' ETB', color: [21, 128, 61]  as [number,number,number] },
+      { en: 'TOTAL WITHDRAWN',     am: 'ጠቅላላ የወጣ ገንዘብ',   value: fmt(totals.totalWithdrawn  || 0) + ' ETB', color: [185, 28, 28] as [number,number,number] },
+      { en: 'NET CASH FLOW',       am: 'የጥሬ ገንዘብ ፍሰት',    value: fmt(totals.netCashFlow     || 0) + ' ETB', color: [14, 100, 57]  as [number,number,number] },
+      { en: 'AGENT COMMISSIONS',   am: 'የወኪሎች ኮሚሽን',      value: fmt(totals.agentEarned     || 0) + ' ETB', color: [180, 83, 9]   as [number,number,number] },
     ];
-    const bw = (pageWidth - 20 - 12) / 4;
-    const by0 = 60;
+    const bw   = (pageWidth - 20 - 12) / 4;
+    const by0  = heroY + heroH + 3;
+    const boxH = hasAmharic ? 22 : 16;
+
     boxData.forEach((b, i) => {
       const bx = 10 + i * (bw + 4);
       doc.setFillColor(61, 43, 31);
       doc.setDrawColor(...b.color);
       doc.setLineWidth(0.8);
-      doc.roundedRect(bx, by0, bw, 16, 2, 2, 'FD');
+      doc.roundedRect(bx, by0, bw, boxH, 2, 2, 'FD');
+
+      // English label
+      doc.setFont('helvetica', 'bold');
       doc.setFontSize(6);
       doc.setTextColor(180, 160, 120);
-      doc.text(b.label, bx + bw / 2, by0 + 5, { align: 'center' });
-      doc.setFontSize(8.5);
-      doc.setTextColor(...b.color);
-      doc.text(b.value, bx + bw / 2, by0 + 12, { align: 'center' });
+      doc.text(b.en, bx + bw / 2, by0 + 5.5, { align: 'center' });
+
+      if (hasAmharic) {
+        // Amharic label
+        doc.setFont('NotoSansEthiopic', 'normal');
+        doc.setFontSize(6.5);
+        doc.setTextColor(200, 180, 140);
+        doc.text(b.am, bx + bw / 2, by0 + 12, { align: 'center' });
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8.5);
+        doc.setTextColor(...b.color);
+        doc.text(b.value, bx + bw / 2, by0 + 20, { align: 'center' });
+      } else {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8.5);
+        doc.setTextColor(...b.color);
+        doc.text(b.value, bx + bw / 2, by0 + 13, { align: 'center' });
+      }
     });
 
     // ── PER-AGENT TABLE ──────────────────────────────────────
@@ -400,25 +469,31 @@ export default function AgentsPage() {
       { content: `${fmt(totalExp)} ETB`, styles: { textColor: [110, 231, 183] as [number,number,number], fontStyle: 'bold' as const, halign: 'right' as const, fillColor: [61, 43, 31] as [number,number,number] } },
     ]);
 
+    const tableStartY = by0 + boxH + 4;
+
+    // Bilingual table headers — English on top, Amharic below (split by \n)
+    const tableHeaders = [[
+      '#',
+      hasAmharic ? 'Agent Name\nየወኪል ስም'           : 'Agent Name',
+      hasAmharic ? 'Username\nመጠቀሚያ ስም'             : 'Username',
+      hasAmharic ? 'Real Deposits\nተቀማጭ ገንዘብ'      : 'Real Deposits',
+      hasAmharic ? 'Withdrawn\nወጪ ገንዘብ'             : 'Withdrawn',
+      hasAmharic ? 'Net Cash Flow\nጥሬ ገንዘብ ፍሰት'    : 'Net Cash Flow',
+      hasAmharic ? 'Agent Earnings\nወኪል ያተረፈ'       : 'Agent Earnings',
+      hasAmharic ? 'COLLECT FROM AGENT\nከወኪል ይሰብሰብ' : 'COLLECT FROM AGENT',
+    ]];
+
     autoTable(doc, {
-      startY: 82,
-      head: [[
-        '#',
-        'Agent Name',
-        'Username',
-        'Real Deposits',
-        'Withdrawn',
-        'Net Cash Flow',
-        'Agent Earnings',
-        'COLLECT FROM AGENT',
-      ]],
+      startY: tableStartY,
+      head: tableHeaders,
       body: agentRows,
       theme: 'grid',
       headStyles: {
         fillColor: [61, 43, 31], textColor: [255, 255, 255],
-        fontSize: 7.5, fontStyle: 'bold', halign: 'left',
+        fontSize: 7, fontStyle: 'bold', halign: 'left',
         font: 'helvetica',
-        cellPadding: { top: 4, bottom: 4, left: 4, right: 4 },
+        cellPadding: { top: 3, bottom: 3, left: 4, right: 4 },
+        minCellHeight: hasAmharic ? 18 : 10,
       },
       bodyStyles: {
         fontSize: 8.5, cellPadding: { top: 3.5, bottom: 3.5, left: 4, right: 4 },
@@ -427,16 +502,44 @@ export default function AgentsPage() {
       },
       alternateRowStyles: { fillColor: [252, 250, 248] },
       columnStyles: {
-        0: { cellWidth: 8,  halign: 'center' },
-        1: { cellWidth: 38 },
-        2: { cellWidth: 30, textColor: [120, 113, 108] },
-        3: { cellWidth: 34, halign: 'right' },
-        4: { cellWidth: 30, halign: 'right' },
-        5: { cellWidth: 34, halign: 'right' },
-        6: { cellWidth: 30, halign: 'right' },
-        7: { cellWidth: 40, halign: 'right' },
+        0: { cellWidth: 7,  halign: 'center' },
+        1: { cellWidth: 28 },
+        2: { cellWidth: 22, textColor: [120, 113, 108] },
+        3: { cellWidth: 26, halign: 'right' },
+        4: { cellWidth: 22, halign: 'right' },
+        5: { cellWidth: 26, halign: 'right' },
+        6: { cellWidth: 22, halign: 'right' },
+        7: { cellWidth: 37, halign: 'right' },
       },
       margin: { left: 10, right: 10, bottom: 22 },
+      // Render bilingual header cells: English (helvetica) + Amharic (NotoSansEthiopic)
+      willDrawCell: (data: any) => {
+        if (!hasAmharic || data.section !== 'head' || data.column.index === 0) return;
+        const rawText = String(data.cell.raw || '');
+        const parts = rawText.split('\n');
+        if (parts.length < 2) return;
+
+        // Suppress default text so we can draw both lines with different fonts
+        data.cell.text = [];
+
+        const cx = data.cell.x + 4;
+        const cy = data.cell.y;
+        const ch = data.cell.height;
+
+        // English line
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7);
+        doc.setTextColor(255, 255, 255);
+        doc.text(parts[0], cx, cy + ch * 0.38);
+
+        // Amharic line
+        doc.setFont('NotoSansEthiopic', 'normal');
+        doc.setFontSize(7);
+        doc.setTextColor(215, 193, 150);
+        doc.text(parts[1], cx, cy + ch * 0.76);
+
+        doc.setFont('helvetica', 'normal');
+      },
     });
 
     // ── FOOTER ON ALL PAGES ──────────────────────────────────
