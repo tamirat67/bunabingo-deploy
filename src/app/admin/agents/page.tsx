@@ -331,10 +331,13 @@ export default function AgentsPage() {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8.5);
     doc.setTextColor(80, 50, 10);
-    doc.text('TOTAL EXPECTED CASH FROM ALL AGENTS / ከሁሉም ወኪሎች ሊሰበሰብ የሚገባ', pageWidth / 2, 38, { align: 'center' });
-    doc.setFontSize(18);
+    doc.text('TOTAL EXPECTED CASH FROM ALL AGENTS', pageWidth / 2, 37, { align: 'center' });
+    doc.setFontSize(8);
+    doc.setTextColor(100, 70, 20);
+    doc.text('Real Cash Only  -  Bonus ETB Excluded', pageWidth / 2, 43, { align: 'center' });
+    doc.setFontSize(20);
     doc.setTextColor(61, 43, 31);
-    doc.text(`${fmt(totalExpected)} ETB`, pageWidth / 2, 50, { align: 'center' });
+    doc.text(`${fmt(totalExpected)} ETB`, pageWidth / 2, 52, { align: 'center' });
     doc.setFont('helvetica', 'normal');
 
     // ── 5 SUMMARY BOXES ─────────────────────────────────────
@@ -366,18 +369,18 @@ export default function AgentsPage() {
       const isHigh = exp > 1000;
       return [
         { content: String(i + 1), styles: { textColor: [120, 113, 108] as [number, number, number], halign: 'center' as const } },
-        { content: a.agentName, styles: { textColor: [61, 43, 31] as [number,number,number], fontStyle: 'bold' as const } },
+        { content: a.agentName || '-', styles: { textColor: [61, 43, 31] as [number,number,number], fontStyle: 'bold' as const } },
         { content: a.agentUsername ? `@${a.agentUsername}` : '—', styles: { textColor: [140, 130, 120] as [number,number,number] } },
         { content: `+ ${fmt(a.totalDeposited)} ETB`, styles: { textColor: [21, 128, 61] as [number,number,number], halign: 'right' as const } },
         { content: `- ${fmt(a.totalWithdrawn || 0)} ETB`, styles: { textColor: [185, 28, 28] as [number,number,number], halign: 'right' as const } },
         { content: `${fmt(a.netCashFlow)} ETB`, styles: { textColor: [14, 100, 57] as [number,number,number], fontStyle: 'bold' as const, halign: 'right' as const } },
         { content: `- ${fmt(a.agentEarned)} ETB`, styles: { textColor: [180, 83, 9] as [number,number,number], halign: 'right' as const } },
         {
-          content: `${isHigh ? '🔴 ' : '💰 '}${fmt(exp)} ETB`,
+          content: `${fmt(exp)} ETB`,
           styles: {
             fontStyle: 'bold' as const,
-            textColor: isHigh ? [185, 28, 28] as [number,number,number] : [61, 43, 31] as [number,number,number],
-            fillColor: isHigh ? [254, 242, 242] as [number,number,number] : [255, 248, 225] as [number,number,number],
+            textColor: isHigh ? [185, 28, 28] as [number,number,number] : [21, 128, 61] as [number,number,number],
+            fillColor: isHigh ? [254, 242, 242] as [number,number,number] : [240, 253, 244] as [number,number,number],
             halign: 'right' as const,
           }
         },
@@ -387,51 +390,51 @@ export default function AgentsPage() {
     // Totals row
     const totalExp = Math.max(0, (totals.netCashFlow || 0) - (totals.agentEarned || 0));
     agentRows.push([
-      { content: '∑', styles: { textColor: [212, 175, 55] as [number,number,number], halign: 'center' as const, fontStyle: 'bold' as const, fillColor: [61, 43, 31] as [number,number,number] } },
-      { content: `TOTAL — ${(profitData?.agents || []).length} agents`, styles: { textColor: [212, 175, 55] as [number,number,number], fontStyle: 'bold' as const, fillColor: [61, 43, 31] as [number,number,number] } },
+      { content: 'SUM', styles: { textColor: [212, 175, 55] as [number,number,number], halign: 'center' as const, fontStyle: 'bold' as const, fillColor: [61, 43, 31] as [number,number,number] } },
+      { content: `TOTAL  (${(profitData?.agents || []).length} agents)`, styles: { textColor: [212, 175, 55] as [number,number,number], fontStyle: 'bold' as const, fillColor: [61, 43, 31] as [number,number,number] } },
       { content: '', styles: { fillColor: [61, 43, 31] as [number,number,number] } },
       { content: `+ ${fmt(totals.totalDeposited || 0)} ETB`, styles: { textColor: [110, 231, 183] as [number,number,number], fontStyle: 'bold' as const, halign: 'right' as const, fillColor: [61, 43, 31] as [number,number,number] } },
       { content: `- ${fmt(totals.totalWithdrawn || 0)} ETB`, styles: { textColor: [252, 165, 165] as [number,number,number], fontStyle: 'bold' as const, halign: 'right' as const, fillColor: [61, 43, 31] as [number,number,number] } },
       { content: `${fmt(totals.netCashFlow || 0)} ETB`, styles: { textColor: [110, 231, 183] as [number,number,number], fontStyle: 'bold' as const, halign: 'right' as const, fillColor: [61, 43, 31] as [number,number,number] } },
       { content: `- ${fmt(totals.agentEarned || 0)} ETB`, styles: { textColor: [252, 211, 77] as [number,number,number], fontStyle: 'bold' as const, halign: 'right' as const, fillColor: [61, 43, 31] as [number,number,number] } },
-      { content: `💰 ${fmt(totalExp)} ETB`, styles: { textColor: [251, 191, 36] as [number,number,number], fontStyle: 'bold' as const, halign: 'right' as const, fillColor: [61, 43, 31] as [number,number,number] } },
+      { content: `${fmt(totalExp)} ETB`, styles: { textColor: [110, 231, 183] as [number,number,number], fontStyle: 'bold' as const, halign: 'right' as const, fillColor: [61, 43, 31] as [number,number,number] } },
     ]);
 
     autoTable(doc, {
-      startY: 80,
+      startY: 82,
       head: [[
         '#',
-        'Agent / ወኪል',
+        'Agent Name',
         'Username',
-        'Real Deposits\nገንዘብ ገቢ',
-        'Withdrawn\nወጪ',
-        'Net Cash Flow\nየተጣራ ገንዘብ',
-        'Commission\nወኪሉ ያገኘው',
-        '💰 Expected Cash\nሊሰበሰብ',
+        'Real Deposits',
+        'Withdrawn',
+        'Net Cash Flow',
+        'Agent Earnings',
+        'COLLECT FROM AGENT',
       ]],
       body: agentRows,
       theme: 'grid',
       headStyles: {
         fillColor: [61, 43, 31], textColor: [255, 255, 255],
-        fontSize: 7.5, fontStyle: 'normal', halign: 'left',
-        font: hasAmharic ? 'NotoSansEthiopic' : 'helvetica',
-        cellPadding: { top: 3, bottom: 3, left: 4, right: 4 },
+        fontSize: 7.5, fontStyle: 'bold', halign: 'left',
+        font: 'helvetica',
+        cellPadding: { top: 4, bottom: 4, left: 4, right: 4 },
       },
       bodyStyles: {
-        fontSize: 8, cellPadding: { top: 3, bottom: 3, left: 4, right: 4 },
+        fontSize: 8.5, cellPadding: { top: 3.5, bottom: 3.5, left: 4, right: 4 },
         textColor: [55, 55, 55],
-        font: hasAmharic ? 'NotoSansEthiopic' : 'helvetica',
+        font: 'helvetica',
       },
       alternateRowStyles: { fillColor: [252, 250, 248] },
       columnStyles: {
         0: { cellWidth: 8,  halign: 'center' },
-        1: { cellWidth: 36 },
-        2: { cellWidth: 28, textColor: [120, 113, 108] },
-        3: { cellWidth: 36, halign: 'right' },
+        1: { cellWidth: 38 },
+        2: { cellWidth: 30, textColor: [120, 113, 108] },
+        3: { cellWidth: 34, halign: 'right' },
         4: { cellWidth: 30, halign: 'right' },
-        5: { cellWidth: 36, halign: 'right' },
+        5: { cellWidth: 34, halign: 'right' },
         6: { cellWidth: 30, halign: 'right' },
-        7: { cellWidth: 44, halign: 'right' },
+        7: { cellWidth: 40, halign: 'right' },
       },
       margin: { left: 10, right: 10, bottom: 22 },
     });
