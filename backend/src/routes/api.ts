@@ -1350,8 +1350,10 @@ staffRouter.get('/company-profit', staffMiddleware, async (req, res) => {
     const AGENT_RATE = companyRate > 0 ? profitRate / companyRate : 0.20;
     const COMPANY_RATE = Math.max(0, 1 - AGENT_RATE);
 
+    const { getBranchPlayerIds } = await import('../services/user.service');
+
     const agentRows = await Promise.all(agents.map(async (agent) => {
-      const realPlayerIds = agent.referrals.filter((r: any) => !r.isBot).map((r: any) => r.id);
+      const realPlayerIds = await getBranchPlayerIds(agent.id);
       // Sum of all past settlements = total physically collected ever
       const allSettlementsAgg = await prisma.agentSettlement.aggregate({
         where: { agentId: agent.id },
@@ -1579,19 +1581,19 @@ staffRouter.get('/agents/:id/report', staffMiddleware, async (req, res) => {
       return res.status(404).json({ error: 'User is not a staff member' });
     }
 
-    // Fetch all descendant users (nested referrals)
-    const { getDescendantUserIds } = await import('../services/user.service');
-    const descendantIds = await getDescendantUserIds(agentId);
+    // Fetch branch players (nested referrals, but stopping at sub-agents)
+    const { getBranchPlayerIds } = await import('../services/user.service');
+    const branchPlayerIds = await getBranchPlayerIds(agentId);
     
     const descendantUsers = await prisma.user.findMany({
-      where: { id: { in: descendantIds.length > 0 ? descendantIds : ['00000000-0000-0000-0000-000000000000'] } },
+      where: { id: { in: branchPlayerIds.length > 0 ? branchPlayerIds : ['00000000-0000-0000-0000-000000000000'] } },
       select: { id: true, isBot: true, firstName: true, telegramUsername: true }
     });
 
     // Only real (non-bot) referred users
-    const referredUserIds = descendantUsers.filter((r: any) => !r.isBot).map((r: any) => r.id);
-    const realPlayers = descendantUsers.filter((r: any) => !r.isBot);
-    const botPlayers = descendantUsers.filter((r: any) => r.isBot);
+    const referredUserIds = descendantUsers.map((r: any) => r.id);
+    const realPlayers = descendantUsers;
+    const botPlayers = []; // Branch query already excludes bots
 
     const { getAgentProfitRate, getCompanyCommissionRate } = await import('../services/settings.service');
     const { getAgentPreDepositStatus } = await import('../services/agentPreDeposit.service');

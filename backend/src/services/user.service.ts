@@ -306,6 +306,37 @@ export async function getDescendantUserIds(agentId: string): Promise<string[]> {
   }
 }
 
+/**
+ * Gets all players that belong to this agent's branch.
+ * It traverses referrals recursively, but STOPS if it hits another Agent or Admin,
+ * ensuring agents don't double-count players belonging to their sub-agents.
+ */
+export async function getBranchPlayerIds(agentId: string): Promise<string[]> {
+  try {
+    const result = await prisma.$queryRaw<{id: string}[]>`
+      WITH RECURSIVE branch AS (
+        -- Base case: direct referrals
+        SELECT id, role
+        FROM "users" 
+        WHERE referred_by = ${agentId}::uuid AND is_bot = false
+        
+        UNION ALL
+        
+        -- Recursive step: referrals of the branch members (only if parent is not an agent)
+        SELECT u.id, u.role
+        FROM "users" u
+        INNER JOIN branch b ON u.referred_by = b.id
+        WHERE b.role NOT IN ('AGENT', 'ADMIN') AND u.is_bot = false
+      )
+      SELECT id FROM branch;
+    `;
+    return result.map(r => r.id);
+  } catch (err) {
+    logger.error('[user.service] Error in getBranchPlayerIds:', err);
+    return [];
+  }
+}
+
 export async function findAgentAncestor(userId: string): Promise<any | null> {
   const MAX_HOPS = 10;
   let currentId: string | null = userId;
