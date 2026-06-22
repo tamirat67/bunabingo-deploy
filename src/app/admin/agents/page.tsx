@@ -335,7 +335,7 @@ export default function AgentsPage() {
       { en: 'AGENT COMMISSIONS',   am: 'የወኪሎች ኮሚሽን',      value: fmt(totals.agentEarned     || 0) + ' ETB', color: [180, 83, 9]   as [number,number,number] },
     ];
     const bw   = (pageWidth - 20 - 12) / 4;
-    const by0  = headerH + 4;
+    const by0  = headerH + 10;
     const boxH = hasAmharic ? 22 : 16;
 
     boxData.forEach((b, i) => {
@@ -406,7 +406,7 @@ export default function AgentsPage() {
       { content: `${fmt(totalExp)} ETB`, styles: { textColor: [110, 231, 183] as [number,number,number], fontStyle: 'bold' as const, halign: 'right' as const, fillColor: [61, 43, 31] as [number,number,number] } },
     ]);
 
-    const tableStartY = by0 + boxH + 4;
+    const tableStartY = by0 + boxH + 10;
 
     // Bilingual table headers — English on top, Amharic below
     const tableHeaders = [[
@@ -429,24 +429,24 @@ export default function AgentsPage() {
         fillColor: [61, 43, 31], textColor: [255, 255, 255],
         fontSize: 7, fontStyle: 'bold', halign: 'left',
         font: 'helvetica',
-        cellPadding: { top: 3, bottom: 3, left: 4, right: 4 },
-        minCellHeight: hasAmharic ? 18 : 10,
+        cellPadding: { top: 4, bottom: 4, left: 4, right: 4 },
+        minCellHeight: hasAmharic ? 20 : 12,
       },
       bodyStyles: {
-        fontSize: 8.5, cellPadding: { top: 3.5, bottom: 3.5, left: 4, right: 4 },
+        fontSize: 8.5, cellPadding: { top: 6, bottom: 6, left: 4, right: 4 },
         textColor: [55, 55, 55],
         font: 'helvetica',
       },
       alternateRowStyles: { fillColor: [252, 250, 248] },
       columnStyles: {
         0: { cellWidth: 7,  halign: 'center' },
-        1: { cellWidth: 28 },
-        2: { cellWidth: 22, textColor: [120, 113, 108] },
+        1: { cellWidth: 27 },
+        2: { cellWidth: 20, textColor: [120, 113, 108] },
         3: { cellWidth: 26, halign: 'right' },
-        4: { cellWidth: 22, halign: 'right' },
+        4: { cellWidth: 24, halign: 'right' },
         5: { cellWidth: 26, halign: 'right' },
-        6: { cellWidth: 22, halign: 'right' },
-        7: { cellWidth: 37, halign: 'right' },
+        6: { cellWidth: 25, halign: 'right' },
+        7: { cellWidth: 35, halign: 'right' },
       },
       margin: { left: 10, right: 10, bottom: 22 },
       willDrawCell: (data: any) => {
@@ -467,13 +467,13 @@ export default function AgentsPage() {
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(7);
         doc.setTextColor(255, 255, 255);
-        doc.text(parts[0], cx, cy + ch * 0.38);
+        doc.text(parts[0], cx, cy + ch * 0.40);
 
         // Amharic line
         doc.setFont('NotoSansEthiopic', 'normal');
         doc.setFontSize(7);
         doc.setTextColor(215, 193, 150);
-        doc.text(parts[1], cx, cy + ch * 0.76);
+        doc.text(parts[1], cx, cy + ch * 0.74);
 
         doc.setFont('helvetica', 'normal');
       },
@@ -481,7 +481,7 @@ export default function AgentsPage() {
 
     // ── HERO TOTALS CARD (Moved to bottom) ───────────────────
     const totalExpected = Math.max(0, (totals.netCashFlow || 0) - (totals.agentEarned || 0));
-    let heroY = (doc as any).lastAutoTable.finalY + 8;
+    let heroY = (doc as any).lastAutoTable.finalY + 14;
     const heroH = hasAmharic ? 34 : 26;
 
     // Add a new page if the hero card doesn't fit on the current page
