@@ -325,46 +325,7 @@ export default function AgentsPage() {
     doc.setTextColor(180, 160, 120);
     doc.text(`Generated: ${new Date().toLocaleString()}  ·  Real Cash Only — Bonus ETB excluded`, pageWidth - 10, 18, { align: 'right' });
 
-    // ── HERO TOTALS CARD ──────────────────────────────────────
     const totals = profitData?.totals || {};
-    const totalExpected = Math.max(0, (totals.netCashFlow || 0) - (totals.agentEarned || 0));
-
-    const heroY = headerH + 3;
-    const heroH = hasAmharic ? 34 : 26;
-    doc.setFillColor(212, 175, 55);
-    doc.roundedRect(10, heroY, pageWidth - 20, heroH, 3, 3, 'F');
-
-    // Hero — English label
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8.5);
-    doc.setTextColor(80, 50, 10);
-    doc.text('TOTAL EXPECTED CASH FROM ALL AGENTS', pageWidth / 2, heroY + 6, { align: 'center' });
-
-    if (hasAmharic) {
-      // Hero — Amharic label
-      doc.setFont('NotoSansEthiopic', 'normal');
-      doc.setFontSize(8.5);
-      doc.setTextColor(100, 65, 15);
-      doc.text('ከሁሉም ወኪሎች የሚጠበቅ ጠቅላላ ጥሬ ገንዘብ', pageWidth / 2, heroY + 14, { align: 'center' });
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7.5);
-      doc.setTextColor(120, 80, 25);
-      doc.text('Real Cash Only  -  Bonus ETB Excluded', pageWidth / 2, heroY + 21, { align: 'center' });
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(17);
-      doc.setTextColor(61, 43, 31);
-      doc.text(`${fmt(totalExpected)} ETB`, pageWidth / 2, heroY + 31, { align: 'center' });
-    } else {
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
-      doc.setTextColor(100, 70, 20);
-      doc.text('Real Cash Only  -  Bonus ETB Excluded', pageWidth / 2, heroY + 13, { align: 'center' });
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(20);
-      doc.setTextColor(61, 43, 31);
-      doc.text(`${fmt(totalExpected)} ETB`, pageWidth / 2, heroY + 22, { align: 'center' });
-    }
-    doc.setFont('helvetica', 'normal');
 
     // ── 4 SUMMARY BOXES ─────────────────────────────────────
     const boxData = [
@@ -374,7 +335,7 @@ export default function AgentsPage() {
       { en: 'AGENT COMMISSIONS',   am: 'የወኪሎች ኮሚሽን',      value: fmt(totals.agentEarned     || 0) + ' ETB', color: [180, 83, 9]   as [number,number,number] },
     ];
     const bw   = (pageWidth - 20 - 12) / 4;
-    const by0  = heroY + heroH + 3;
+    const by0  = headerH + 4;
     const boxH = hasAmharic ? 22 : 16;
 
     boxData.forEach((b, i) => {
@@ -447,16 +408,16 @@ export default function AgentsPage() {
 
     const tableStartY = by0 + boxH + 4;
 
-    // Table headers — standard English
+    // Bilingual table headers — English on top, Amharic below
     const tableHeaders = [[
       '#',
-      'Agent Name',
-      'Username',
-      'Real Deposits',
-      'Withdrawn',
-      'Net Cash Flow',
-      'Agent Earnings',
-      'COLLECT FROM AGENT',
+      hasAmharic ? 'Agent Name\nየወኪል ስም'           : 'Agent Name',
+      hasAmharic ? 'Username\nመጠቀሚያ ስም'             : 'Username',
+      hasAmharic ? 'Real Deposits\nተቀማጭ ገንዘብ'      : 'Real Deposits',
+      hasAmharic ? 'Withdrawn\nወጪ ገንዘብ'             : 'Withdrawn',
+      hasAmharic ? 'Net Cash Flow\nጥሬ ገንዘብ ፍሰት'    : 'Net Cash Flow',
+      hasAmharic ? 'Agent Earnings\nወኪል ያተረፈ'       : 'Agent Earnings',
+      hasAmharic ? 'COLLECT FROM AGENT\nከወኪል ይሰብሰብ' : 'COLLECT FROM AGENT',
     ]];
 
     autoTable(doc, {
@@ -468,8 +429,8 @@ export default function AgentsPage() {
         fillColor: [61, 43, 31], textColor: [255, 255, 255],
         fontSize: 7, fontStyle: 'bold', halign: 'left',
         font: 'helvetica',
-        cellPadding: { top: 4, bottom: 4, left: 4, right: 4 },
-        minCellHeight: 12,
+        cellPadding: { top: 3, bottom: 3, left: 4, right: 4 },
+        minCellHeight: hasAmharic ? 18 : 10,
       },
       bodyStyles: {
         fontSize: 8.5, cellPadding: { top: 3.5, bottom: 3.5, left: 4, right: 4 },
@@ -488,7 +449,81 @@ export default function AgentsPage() {
         7: { cellWidth: 37, halign: 'right' },
       },
       margin: { left: 10, right: 10, bottom: 22 },
+      willDrawCell: (data: any) => {
+        if (!hasAmharic || data.section !== 'head' || data.column.index === 0) return;
+        data.cell.text = []; // Suppress default autotable text so we can draw it in didDrawCell
+      },
+      didDrawCell: (data: any) => {
+        if (!hasAmharic || data.section !== 'head' || data.column.index === 0) return;
+        const rawText = String(data.cell.raw || '');
+        const parts = rawText.split('\n');
+        if (parts.length < 2) return;
+
+        const cx = data.cell.x + 4;
+        const cy = data.cell.y;
+        const ch = data.cell.height;
+
+        // English line
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7);
+        doc.setTextColor(255, 255, 255);
+        doc.text(parts[0], cx, cy + ch * 0.38);
+
+        // Amharic line
+        doc.setFont('NotoSansEthiopic', 'normal');
+        doc.setFontSize(7);
+        doc.setTextColor(215, 193, 150);
+        doc.text(parts[1], cx, cy + ch * 0.76);
+
+        doc.setFont('helvetica', 'normal');
+      },
     });
+
+    // ── HERO TOTALS CARD (Moved to bottom) ───────────────────
+    const totalExpected = Math.max(0, (totals.netCashFlow || 0) - (totals.agentEarned || 0));
+    let heroY = (doc as any).lastAutoTable.finalY + 8;
+    const heroH = hasAmharic ? 34 : 26;
+
+    // Add a new page if the hero card doesn't fit on the current page
+    if (heroY + heroH > pageHeight - 20) {
+      doc.addPage();
+      heroY = 20;
+    }
+
+    doc.setFillColor(212, 175, 55);
+    doc.roundedRect(10, heroY, pageWidth - 20, heroH, 3, 3, 'F');
+
+    // Hero — English label
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.setTextColor(80, 50, 10);
+    doc.text('TOTAL EXPECTED CASH FROM ALL AGENTS', pageWidth / 2, heroY + 6, { align: 'center' });
+
+    if (hasAmharic) {
+      // Hero — Amharic label
+      doc.setFont('NotoSansEthiopic', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(100, 65, 15);
+      doc.text('ከሁሉም ወኪሎች የሚጠበቅ ጠቅላላ ጥሬ ገንዘብ', pageWidth / 2, heroY + 14, { align: 'center' });
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.setTextColor(120, 80, 25);
+      doc.text('Real Cash Only  -  Bonus ETB Excluded', pageWidth / 2, heroY + 21, { align: 'center' });
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(17);
+      doc.setTextColor(61, 43, 31);
+      doc.text(`${fmt(totalExpected)} ETB`, pageWidth / 2, heroY + 31, { align: 'center' });
+    } else {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(100, 70, 20);
+      doc.text('Real Cash Only  -  Bonus ETB Excluded', pageWidth / 2, heroY + 13, { align: 'center' });
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(20);
+      doc.setTextColor(61, 43, 31);
+      doc.text(`${fmt(totalExpected)} ETB`, pageWidth / 2, heroY + 22, { align: 'center' });
+    }
+    doc.setFont('helvetica', 'normal');
 
     // ── FOOTER ON ALL PAGES ──────────────────────────────────
     const pageCount = (doc as any).internal.getNumberOfPages();
