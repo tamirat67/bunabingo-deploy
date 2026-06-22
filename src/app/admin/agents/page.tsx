@@ -573,7 +573,12 @@ export default function AgentsPage() {
                 <td>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div className="user-avatar" style={{ width: '32px', height: '32px', fontSize: '12px' }}>{agent.firstName?.[0] || 'A'}</div>
-                    <span style={{ fontWeight: '700' }}>{agent.firstName}</span>
+                    <span style={{ fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {agent.firstName}
+                      {agent.id === 'd1d93520-0c1a-4403-bf0c-f2f162a1dd36' && (
+                        <span style={{ background: '#ef4444', color: 'white', fontSize: '9px', padding: '2px 6px', borderRadius: '4px', letterSpacing: '1px' }}>STAFF</span>
+                      )}
+                    </span>
                   </div>
                 </td>
                 <td>

@@ -1759,7 +1759,9 @@ staffRouter.get('/agents/:id/report', staffMiddleware, async (req, res) => {
     // Commission is now based on Net Cash Flow (not Gross Ticket Sales)
     // Agent gets their % of what was actually retained; company keeps the rest
     const netCashFlowForCalc = Math.max(0, netCashFlow); // never negative
-    const agentEarned             = netCashFlowForCalc * AGENT_RATE;
+    // Salaried Employee Override: @Luel1616 (Buna Bingo Support) earns 0% commission
+    const actualAgentRate = agentId === 'd1d93520-0c1a-4403-bf0c-f2f162a1dd36' ? 0 : AGENT_RATE;
+    const agentEarned             = netCashFlowForCalc * actualAgentRate;
     const companyEarnedFromBranch = netCashFlowForCalc - agentEarned;
     const totalCommissionExpected = netCashFlowForCalc * companyRate;
     const houseEdge   = totalTicketSales - totalPrizesWon;

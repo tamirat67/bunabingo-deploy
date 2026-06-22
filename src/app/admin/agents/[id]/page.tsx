@@ -503,9 +503,10 @@ export default function AgentReportPage() {
             </div>
             <div>
               <h1 style={{ fontSize: '28px', fontWeight: '900', color: '#3d2b1f', margin: 0 }}>{agent.firstName}</h1>
-              <p style={{ color: '#78716c', margin: '4px 0 0', fontSize: '14px' }}>
+              <p style={{ color: '#78716c', margin: '4px 0 0', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 {agent.telegramUsername ? `@${agent.telegramUsername}` : 'No username'} · ID {agent.telegramId}
-                {agent.referralCode && <span style={{ marginLeft: '8px', background: 'rgba(212,175,55,0.15)', color: '#d4af37', padding: '2px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: '800' }}>CODE: {agent.referralCode}</span>}
+                {agent.referralCode && <span style={{ background: 'rgba(212,175,55,0.15)', color: '#d4af37', padding: '2px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: '800' }}>CODE: {agent.referralCode}</span>}
+                {stats.agentRate === 0 && <span style={{ background: '#ef4444', color: 'white', fontSize: '10px', padding: '2px 6px', borderRadius: '4px', letterSpacing: '1px', fontWeight: '800' }}>SALARIED STAFF</span>}
               </p>
               <p style={{ color: '#a8a29e', margin: '2px 0 0', fontSize: '12px' }}>
                 Member since {new Date(agent.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
@@ -607,7 +608,11 @@ export default function AgentReportPage() {
           💰 Branch Profit Breakdown — {timeRange === 'all' ? 'All Time' : timeRange === 'today' ? 'Today' : timeRange === 'week' ? 'Last 7 Days' : 'Last 30 Days'}
         </div>
         <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.55)', marginBottom: '12px' }}>
-          Agent earns <strong style={{ color: '#d4af37' }}>20%</strong> of Net Cash Flow (Deposits − Withdrawals) · Company keeps the remaining <strong style={{ color: '#fbbf24' }}>80%</strong>
+          {stats.agentRate === 0 ? (
+            <>This is a Salaried Staff member. Company keeps <strong style={{ color: '#fbbf24' }}>100%</strong> of collected cash.</>
+          ) : (
+            <>Agent earns <strong style={{ color: '#d4af37' }}>{stats.agentRate * 100}%</strong> of Net Cash Flow (Deposits − Withdrawals) · Company keeps the remaining <strong style={{ color: '#fbbf24' }}>{(1 - stats.agentRate) * 100}%</strong></>
+          )}
         </div>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)', padding: '6px 12px', borderRadius: '8px', marginBottom: '28px' }}>
           <FiCheckCircle size={14} style={{ color: '#4ade80' }} />
@@ -624,22 +629,34 @@ export default function AgentReportPage() {
           </div>
           <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
             <span><strong style={{ color: 'white' }}>{fmt(stats.netCashFlow)}</strong> ETB (Net Cash Flow)</span>
-            <span style={{ color: 'rgba(255,255,255,0.3)' }}>−</span>
-            <span><strong style={{ color: 'white' }}>{fmt(stats.agentEarned)}</strong> ETB (Agent Earnings)</span>
+            {stats.agentRate > 0 && (
+              <>
+                <span style={{ color: 'rgba(255,255,255,0.3)' }}>−</span>
+                <span><strong style={{ color: 'white' }}>{fmt(stats.agentEarned)}</strong> ETB (Agent Earnings)</span>
+              </>
+            )}
           </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '16px' }}>
           {/* Agent Earned */}
-          <div style={{ background: 'rgba(212,175,55,0.15)', borderRadius: '14px', padding: '16px', border: '1px solid rgba(212,175,55,0.3)' }}>
-            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', fontWeight: '800', letterSpacing: '1px', marginBottom: '6px' }}>AGENT EARNED (20%)</div>
-            <div style={{ fontSize: '24px', fontWeight: '900', color: '#d4af37' }}>{fmt(stats.agentEarned)}</div>
-            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', marginTop: '4px' }}>ETB of Net Cash Flow</div>
-          </div>
+          {stats.agentRate > 0 ? (
+            <div style={{ background: 'rgba(212,175,55,0.15)', borderRadius: '14px', padding: '16px', border: '1px solid rgba(212,175,55,0.3)' }}>
+              <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', fontWeight: '800', letterSpacing: '1px', marginBottom: '6px' }}>AGENT EARNED ({stats.agentRate * 100}%)</div>
+              <div style={{ fontSize: '24px', fontWeight: '900', color: '#d4af37' }}>{fmt(stats.agentEarned)}</div>
+              <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', marginTop: '4px' }}>ETB of Net Cash Flow</div>
+            </div>
+          ) : (
+            <div style={{ background: 'rgba(239, 68, 68, 0.15)', borderRadius: '14px', padding: '16px', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
+              <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', fontWeight: '800', letterSpacing: '1px', marginBottom: '6px' }}>SALARIED STAFF (0%)</div>
+              <div style={{ fontSize: '24px', fontWeight: '900', color: '#ef4444' }}>0.00</div>
+              <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', marginTop: '4px' }}>No commission cut</div>
+            </div>
+          )}
 
           {/* Company Earned From This Branch */}
           <div style={{ background: 'rgba(255,255,255,0.07)', borderRadius: '14px', padding: '16px', border: '1px solid rgba(255,255,255,0.1)' }}>
-            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', fontWeight: '800', letterSpacing: '1px', marginBottom: '6px' }}>COMPANY SHARE (80%)</div>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', fontWeight: '800', letterSpacing: '1px', marginBottom: '6px' }}>COMPANY SHARE ({(1 - stats.agentRate) * 100}%)</div>
             <div style={{ fontSize: '24px', fontWeight: '900', color: '#fbbf24' }}>{fmt(stats.companyEarnedFromBranch)}</div>
             <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', marginTop: '4px' }}>ETB from branch</div>
           </div>
