@@ -1711,6 +1711,13 @@ function GameContent() {
                         if ([0,1,2,3,4].every(i => isDaubed(i, 4-i))) {
                           for (let i = 0; i < 5; i++) winningCells.add(`${i}-${4-i}`);
                         }
+                      } else if (mode === 'FOUR_CORNERS') {
+                        if (isDaubed(0,0) && isDaubed(0,4) && isDaubed(4,0) && isDaubed(4,4)) {
+                          winningCells.add('0-0');
+                          winningCells.add('0-4');
+                          winningCells.add('4-0');
+                          winningCells.add('4-4');
+                        }
                       }
 
                       // 🛡️ BOT/FALLBACK GUARANTEE: If the drawn numbers didn't form a bingo (e.g. random bot cartela),
@@ -1735,6 +1742,11 @@ function GameContent() {
                           } else {
                             for (let i=0; i<5; i++) { winningCells.add(`${i}-${4-i}`); drawnSet.add(Number((gameFinished.card as any[][])[i][4-i])); }
                           }
+                        } else if (mode === 'FOUR_CORNERS') {
+                          winningCells.add('0-0'); drawnSet.add(Number((gameFinished.card as any[][])[0][0]));
+                          winningCells.add('0-4'); drawnSet.add(Number((gameFinished.card as any[][])[0][4]));
+                          winningCells.add('4-0'); drawnSet.add(Number((gameFinished.card as any[][])[4][0]));
+                          winningCells.add('4-4'); drawnSet.add(Number((gameFinished.card as any[][])[4][4]));
                         } else {
                           const fr = [0, 1, 3, 4][pRand % 4];
                           for (let c=0; c<5; c++) { winningCells.add(`${fr}-${c}`); drawnSet.add(Number((gameFinished.card as any[][])[fr][c])); }

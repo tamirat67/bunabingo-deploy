@@ -168,6 +168,66 @@ export function initSocket(server: HttpServer) {
   });
 
 
+    // ── Card Reservation: player is pre-selecting cards (before purchase) ────────
+    // Broadcast their pending selection to all other players so those cards
+    // appear as occupied (green) — identical to bot/purchased cards.
+    // cardIds=[] means the player deselected everything (acts as a full release).
+    socket.on('card-select', async (data: { gameId: string; cardIds: number[]; roomType: string }) => {
+      if (!userId) return;
+      const { gameId, cardIds, roomType } = data || {};
+      if (!gameId) return;
+
+      try {
+        const { reserveCards, getReservedCardIds } = await import('./cardReservations');
+
+        let dbUserId = userId;
+        // Resolve Telegram numeric ID to internal UUID if needed
+        if (/^\d+$/.test(userId)) {
+          const { default: prisma } = await import('./prisma');
+          const user = await prisma.user.findUnique({
+            where: { telegramId: BigInt(userId) },
+            select: { id: true },
+          });
+          if (!user) return;
+          dbUserId = user.id;
+        }
+
+        // Update reservations for this user (cardIds=[] clears all their reservations)
+        reserveCards(gameId, cardIds ?? [], dbUserId, roomType || '');
+
+        // Broadcast the updated full reserved list to ALL players in this game room.
+        // Each client merges this into their local "occupied" state.
+        const allReservedIds = getReservedCardIds(gameId); // no excludeUserId — broadcast all
+        if (io) {
+          io.to(`game_${gameId}`).emit('cards-reserved', {
+            reservedIds: allReservedIds,
+            gameId,
+          });
+        }
+      } catch (e) {
+        logger.warn(`[Socket] card-select handler failed for user ${userId}:`, e);
+      }
+    });
+
+    // On disconnect: release all reservations this user holds across any game.
+    // This mirrors the "player closed app" path — the frontend can't send card-select [].
+    socket.on('disconnect', async () => {
+      if (!userId) {
+        logger.info(`[Socket] Client disconnected: ${socket.id}`);
+        return;
+      }
+      logger.info(`[Socket] Client disconnected: ${socket.id} (userId=${userId})`);
+
+      try {
+        // We don't know which game(s) this user had reservations in,
+        // so we let the 2-minute TTL handle cleanup naturally.
+        // (Actively scanning all games on every disconnect is expensive at scale.)
+        // The TTL is short enough (2 min) that cards free up quickly.
+      } catch (e) {
+        // silent
+      }
+    });
+
     socket.on('leave-game', (gameId: string) => {
       socket.leave(`game_${gameId}`);
       logger.info(`[Socket] Socket ${socket.id} left game room: ${gameId}`);

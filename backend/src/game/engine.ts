@@ -67,10 +67,16 @@ function buildNumberPool(): number[] {
  */
 function getDynamicMinBalls(totalCards: number, houseShouldWin: boolean = false): number {
   // When house must win: use a natural-feeling minimum that still prevents player patterns.
-  // 20 balls ≈ 60s game duration (natural Bingo length). At 20/75 balls, each player card
-  // averages ~6-7 matched numbers — not enough to manually complete any full row/column.
-  // The rig algorithm GUARANTEES no player ticket wins before the bot regardless.
-  if (houseShouldWin) return 35;
+  if (houseShouldWin) {
+    // If there are many cards, it's mathematically impossible to draw 35 balls
+    // without a real player winning. We MUST lower the threshold to ensure the Rig succeeds.
+    if (totalCards > 150) return 9;
+    if (totalCards > 100) return 12;
+    if (totalCards > 50) return 15;
+    if (totalCards > 20) return 20;
+    return 25;
+  }
+  
   if (totalCards <= 40) return 30; // 90 seconds
   if (totalCards <= 80) return 25; // 75 seconds
   if (totalCards <= 150) return 22; // 66 seconds
@@ -437,6 +443,10 @@ async function runGame(gameId: string): Promise<void> {
     },
   });
 
+  // Clear any pre-purchase reservations for this game now that it's running
+  const { clearGameReservations } = await import('../lib/cardReservations');
+  clearGameReservations(gameId);
+
 
 
   let state = activeGames.get(gameId);
@@ -689,7 +699,7 @@ export async function claimBingoWin(gameId: string, userId: string): Promise<{ w
   // When a player taps BINGO, we do an honest check, find no pattern, and reject naturally.
   if (state?.botClaimLocked === true) {
     logger.info(`[Game ${gameId}] Player ${userId} claim blocked — bot is currently claiming (botClaimLocked=true)`);
-    return { won: false, error: 'No valid Bingo detected yet! Check your patterns or wait for more balls.' };
+    return { won: false, error: 'Someone else already yelled BINGO! Verifying...' };
   }
 
   // Immediately pause the draw interval in memory to stop calling new balls

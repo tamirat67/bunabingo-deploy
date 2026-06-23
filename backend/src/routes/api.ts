@@ -477,6 +477,11 @@ router.post('/games/join', joinGameLimiter, async (req: Request, res: Response) 
     }
 
     const { tickets, cards } = await joinGame(user.id, gameId, cardIds);
+    
+    // Release pre-purchase reservations now that real tickets exist
+    const { releaseCards } = await import('../lib/cardReservations');
+    releaseCards(gameId, cardIds, user.id);
+
     res.json({ success: true, tickets, cards, gameId });
   } catch (e: any) {
     // ── Structured handling: game is currently RUNNING ────────────────────────
@@ -668,9 +673,13 @@ router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
     const playerCount = realUserIds.size + botUserIds.size;
     
     const { getExpectedBotCount } = await import('../services/houseBot.service');
+    const { getReservedCardIds } = await import('../lib/cardReservations');
+
+    const reservedByOthers = gameId ? getReservedCardIds(gameId, user?.id) : [];
+    const allOccupiedIds = Array.from(new Set([...otherOccupiedIds, ...reservedByOthers]));
     
     const responseData = { 
-      occupiedIds: otherOccupiedIds, 
+      occupiedIds: allOccupiedIds, 
       myCardIds, 
       gameId, 
       roomId: room.id, 

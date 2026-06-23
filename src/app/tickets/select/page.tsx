@@ -584,6 +584,15 @@ function SelectionContent() {
       socket.emit('join-game', roomType);
       if (activeGameIdRef.current) socket.emit('join-game', activeGameIdRef.current);
 
+      socket.on('cards-reserved', (data: { reservedIds: number[]; gameId: string }) => {
+        if (data.gameId !== activeGameIdRef.current) return;
+        setOccupied(prev => {
+          const combined = Array.from(new Set([...prevOccupied.current, ...data.reservedIds]));
+          // Exclude cards I have selected myself
+          return combined.filter(id => !selectedRef.current.includes(id));
+        });
+      });
+
       socket.on('occupied-sync', (data: any) => {
         if (data.tickets) {
           const ticketList = data.tickets;
@@ -802,7 +811,11 @@ function SelectionContent() {
 
     return () => {
       if (socket) {
+        if (activeGameIdRef.current) {
+          socket.emit('card-select', { gameId: activeGameIdRef.current, cardIds: [], roomType });
+        }
         socket.off('connect', handleConnect);
+        socket.off('cards-reserved');
         socket.off('occupied-sync');
         socket.off('countdown-start');
         socket.off('countdown-tick');
@@ -1065,12 +1078,26 @@ function SelectionContent() {
 
     // 3. Normal select/deselect flow (freely allow changing owned cards)
     setSelected(prev => {
-      if (prev.includes(num)) return prev.filter(n => n !== num);
-      if (prev.length >= 5) {
+      let next;
+      if (prev.includes(num)) {
+        next = prev.filter(n => n !== num);
+      } else if (prev.length >= 5) {
         showAlert(t('limitReached') as string, t('maxCartelasMsg') as string, 'info');
         return prev;
+      } else {
+        next = [...prev, num];
       }
-      return [...prev, num];
+
+      // 🆕 Emit reservation update to server in real-time
+      if (socket && activeGameIdRef.current) {
+        socket.emit('card-select', {
+          gameId: activeGameIdRef.current,
+          cardIds: next,
+          roomType,
+        });
+      }
+
+      return next;
     });
   };
 
