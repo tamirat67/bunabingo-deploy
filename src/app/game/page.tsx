@@ -1636,7 +1636,8 @@ function GameContent() {
                       if (m === 'DIAGONAL') return 'DIAGONAL BINGO';
                       if (m === 'COLUMN') return 'COLUMN BINGO';
                       if (m === 'ROW') return 'ROW BINGO';
-                      return m + ' BINGO';
+                      // Fallback: replace underscores with spaces
+                      return m.replace(/_/g, ' ') + ' BINGO';
                     })()}
                   </div>
                   <div style={{
@@ -1779,12 +1780,14 @@ function GameContent() {
                                   borderRadius: '5px', fontSize: '11px', fontWeight: '900',
                                   background: isWinningCell || isFreeCell 
                                     ? '#27AE60' // Solid GREEN for the winning pattern!
-                                    : wasDrawn
-                                      ? COL_COLOR[col]
-                                      : 'rgba(255,255,255,0.08)',
-                                  color: isWinningCell || isFreeCell || wasDrawn ? 'white' : 'rgba(255,255,255,0.35)',
-                                  border: isWinningCell ? '2px solid #a7f3d0' : (wasDrawn && !isFreeCell ? `1px solid ${COL_COLOR[col]}` : 'none'),
-                                  opacity: wasDrawn && !isWinningCell && winningCells.size > 0 ? 0.45 : 1, // Dim non-winning drawn cells
+                                    : wasDrawn && winningCells.size === 0
+                                      ? COL_COLOR[col]  // No winning pattern yet — show normal drawn colors
+                                      : wasDrawn
+                                        ? 'rgba(255,255,255,0.12)' // Dim drawn non-winning cells so pattern stands out
+                                        : 'rgba(255,255,255,0.08)',
+                                  color: isWinningCell || isFreeCell ? 'white' : wasDrawn ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.25)',
+                                  border: isWinningCell ? '2px solid #a7f3d0' : 'none',
+                                  opacity: 1,
                                   zIndex: isWinningCell ? 10 : 1,
                                   position: 'relative'
                               }}>
