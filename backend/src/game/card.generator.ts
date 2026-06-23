@@ -97,20 +97,17 @@ export function checkWin(card: BingoCard, drawnNumbers: number[]): WinResult {
     return val === 'FREE' || drawn.has(val as number);
   };
 
-  // Shuffle row/column check order so wins don't always come from the same row
-  const shuffled = [0, 1, 2, 3, 4].sort(() => Math.random() - 0.5);
-
-  // Check rows (in shuffled order)
-  for (const r of shuffled) {
+  // Check rows — deterministic order (row 0 first)
+  // IMPORTANT: must be deterministic so rig pre-simulation matches runtime
+  for (const r of [0, 1, 2, 3, 4]) {
     if ([0,1,2,3,4].every(c => isMarked(r, c))) {
       modes.push('ROW');
       break;
     }
   }
 
-  // Check columns (in shuffled order)
-  const shuffledCols = [0, 1, 2, 3, 4].sort(() => Math.random() - 0.5);
-  for (const c of shuffledCols) {
+  // Check columns — deterministic order (col 0 first)
+  for (const c of [0, 1, 2, 3, 4]) {
     if ([0,1,2,3,4].every(r => isMarked(r, c))) {
       modes.push('COLUMN');
       break;

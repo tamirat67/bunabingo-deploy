@@ -100,6 +100,7 @@ function GameContent() {
   const [audioUnlocked, setAudioUnlocked] = useState(false);
   const audioUnlockedRef = useRef(false);
   const [claiming,      setClaiming]      = useState(false);
+  const [gameEnded,     setGameEnded]     = useState(false); // set true the instant game-finished fires
   const [calledHistory, setCalledHistory] = useState<number[]>([]);
 
   const toastTimer           = useRef<any>(null);
@@ -668,6 +669,9 @@ function GameContent() {
         drawnNumbers: d.drawnNumbers || drawn || [],
       };
 
+      // ── Immediately lock the BINGO button before anything else ──
+      setGameEnded(true);
+
       // ── Play stop.mp3, then show winner modal as soon as it finishes ──
       // Winner data is already built — we just wait for the audio to complete.
       playStopAudio(() => {
@@ -727,9 +731,14 @@ function GameContent() {
     socket.on('claim-error', (err: any) => {
       clearTimeout(claimTimeoutRef.current);
       setClaiming(false);
-      const isTooEarlyMsg = err.message?.toLowerCase().includes('wait') || err.message?.toLowerCase().includes('minimum');
-      if (!isTooEarlyMsg) {
-        showAlert(t('bingoClaimTitle') as string, err.message || t('noBingoYetCheck') as string, 'info');
+      const msg = err.message || '';
+      const isTooEarlyMsg = msg.toLowerCase().includes('wait') || msg.toLowerCase().includes('minimum');
+      const isAlreadyWon  = msg.toLowerCase().includes('already won') || msg.toLowerCase().includes('finished') || msg.toLowerCase().includes('not running');
+      if (isAlreadyWon || gameEnded) {
+        // Game ended before claim was processed — show clear friendly message
+        showAlert('ጨዋታ ተጠናቀቀ', 'Another player won this round. Better luck next time! 🍀', 'info');
+      } else if (!isTooEarlyMsg) {
+        showAlert(t('bingoClaimTitle') as string, msg || t('noBingoYetCheck') as string, 'info');
       }
       // If too early: absorb silently — revealing the minimum is a house secret
     });
@@ -1059,8 +1068,9 @@ function GameContent() {
       const isMarked = (r: number, c: number) => {
         const val = rows[r][c];
         const numVal = Number(val);
-        // Win detection requires manual tap (marked) — green hint shows which to tap
-        return val === 'FREE' || val === 0 || val === null || (drawnSet.has(numVal) && marked.has(numVal));
+        // Button activates as soon as drawn numbers complete a pattern.
+        // Manual daubing is optional — the backend does the authoritative check.
+        return val === 'FREE' || val === 0 || val === null || drawnSet.has(numVal);
       };
 
       for (let r = 0; r < 5; r++) if ([0,1,2,3,4].every(c => isMarked(r, c))) return true;
@@ -1503,7 +1513,7 @@ function GameContent() {
                       e.stopPropagation();
                       if (game?.status === 'RUNNING' && !claiming) handleBingo();
                     }}
-                    disabled={game?.status !== 'RUNNING' || claiming}
+                    disabled={game?.status !== 'RUNNING' || claiming || gameEnded}
                     style={{
                       width: '100%',
                       background: game?.status === 'RUNNING'
