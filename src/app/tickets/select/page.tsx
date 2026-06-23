@@ -1751,7 +1751,7 @@ const balance = Number(user?.wallet?.balance || 0);
               style={{
                 background: isOwned
                   ? 'linear-gradient(135deg, #1C0A35, #D4AF37)'
-                  : (isOccupied ? 'linear-gradient(135deg, #27AE60, #1E8449)' : (isSelected ? 'linear-gradient(135deg, #00B4DB, #0083B0)' : undefined)),
+                  : (isOccupied || isSelected) ? 'linear-gradient(135deg, #27AE60, #1E8449)' : undefined,
                 color: (isOwned || isOccupied || isSelected)
                   ? 'white'
                   : T.text,
@@ -1759,10 +1759,10 @@ const balance = Number(user?.wallet?.balance || 0);
                 opacity: 1,
                 border: isOwned
                   ? '2.5px solid #D4AF37'
-                  : (isOccupied ? '2px solid #2ECC71' : (isSelected ? '2px solid #00D2FF' : undefined)),
+                  : (isOccupied || isSelected) ? '2px solid #2ECC71' : undefined,
                 boxShadow: isOwned
                   ? '0 0 12px rgba(212, 175, 55, 0.6)'
-                  : (isOccupied ? '0 0 8px rgba(46, 204, 113, 0.5)' : (isSelected ? '0 0 10px rgba(0, 180, 219, 0.6)' : 'none')),
+                  : (isOccupied || isSelected) ? '0 0 8px rgba(46, 204, 113, 0.5)' : 'none',
                 position: 'relative',
                 overflow: 'hidden',
                 fontWeight: '900',
@@ -1778,10 +1778,10 @@ const balance = Number(user?.wallet?.balance || 0);
                 </div>
               )}
 
-              {/* Light blue/cyan crown for selected cards */}
+              {/* Green crown for selected cards — matches occupied/bot card style */}
               {isSelected && !isOwned && (
                 <div style={{ position: 'absolute', top: '1.5px', right: '1.5px', lineHeight: 1 }}>
-                  <Crown size={9} color="#E0F7FA" fill="#00E5FF" />
+                  <Crown size={9} color="#2ECC71" fill="#2ECC71" />
                 </div>
               )}
 
