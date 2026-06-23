@@ -12,7 +12,7 @@ import { debitAgentCommissionForGame } from '../services/agentPreDeposit.service
 import {
   injectBotTickets,
   shouldHouseWinThisGame,
-  rigDrawSequence,
+  buildDeterministicSequence,
   clearBotInjectionRecord,
   creditBunaWallet,
   debitBunaWallet,
@@ -487,7 +487,7 @@ async function runGame(gameId: string): Promise<void> {
     logger.info(`[RiggedDraw] Target win mode for game ${gameId}: ${targetWinMode}`);
 
     const dynamicMinBalls = getDynamicMinBalls(ticketsForSim.length, houseShouldWin);
-    const riggedPool = rigDrawSequence(ticketsForSim, houseShouldWin, 5000, dynamicMinBalls, targetWinMode);
+    const riggedPool = buildDeterministicSequence(ticketsForSim, houseShouldWin, dynamicMinBalls, targetWinMode);
     state.numberPool = riggedPool; // override the random pool with the rigged one
     state.targetWinMode = targetWinMode; // save it so checkAllTickets can prioritize it
   }
@@ -1807,7 +1807,7 @@ export async function resumeRunningGames(): Promise<void> {
         
         // Rig the remaining pool using dynamic balls based on total tickets
         const dynamicMinBalls = getDynamicMinBalls(ticketsForSim.length);
-        state.numberPool = rigDrawSequence(ticketsForSim, state.houseShouldWin, 5000, dynamicMinBalls, state.targetWinMode).filter(n => !drawnSet.has(n));
+        state.numberPool = buildDeterministicSequence(ticketsForSim, state.houseShouldWin, dynamicMinBalls, state.targetWinMode).filter(n => !drawnSet.has(n));
       }
 
       activeGames.set(game.id, state);

