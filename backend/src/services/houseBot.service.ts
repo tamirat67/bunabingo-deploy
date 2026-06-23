@@ -324,10 +324,42 @@ function shuffleArray(arr: any[]) {
   }
 }
 
-function generateRandomSequence(): number[] {
+function generateSafeRandomSequence(tickets: { userId: string; card: any; isBot?: boolean }[], minDrawn: number): number[] {
+  const allCards = tickets.map(t => parseCardRows(t.card)).filter(rows => rows !== null) as any[][][];
+  
   const pool = Array.from({ length: 75 }, (_, i) => i + 1);
   shuffleArray(pool);
-  return pool.reverse(); // Engine pops from the end
+  
+  const sequence: number[] = [];
+  const drawnSet = new Set<number>();
+  const targetSafeCount = Math.max(0, minDrawn - 1);
+  
+  // Try to pick balls safely until minDrawn - 1 to ensure NO ONE gets a bingo early
+  for (let i = pool.length - 1; i >= 0 && sequence.length < targetSafeCount; i--) {
+    const ball = pool[i];
+    drawnSet.add(ball);
+    
+    let safe = true;
+    const drawnArray = Array.from(drawnSet);
+    for (const rows of allCards) {
+      if (checkWin(rows as any, drawnArray).won) {
+        safe = false;
+        break;
+      }
+    }
+    
+    if (safe) {
+      sequence.push(ball);
+      pool.splice(i, 1);
+    } else {
+      drawnSet.delete(ball);
+    }
+  }
+  
+  shuffleArray(pool);
+  const finalSequence = [...sequence, ...pool];
+  
+  return finalSequence.reverse(); // Engine pops from the end
 }
 
 export function buildDeterministicSequence(
@@ -337,8 +369,8 @@ export function buildDeterministicSequence(
   targetWinMode: string = 'ROW'
 ): number[] {
   if (!houseShouldWin) {
-    logger.info(`[RiggedDraw] Player win requested. Using random sequence.`);
-    return generateRandomSequence();
+    logger.info(`[RiggedDraw] Player win requested. Using safe random sequence.`);
+    return generateSafeRandomSequence(tickets, minDrawn);
   }
 
   const botTickets = tickets.filter(t => t.isBot);
@@ -446,6 +478,6 @@ export function buildDeterministicSequence(
     }
   }
 
-  logger.warn(`[RiggedDraw] ❌ Failed to build deterministic sequence. Falling back to random.`);
-  return generateRandomSequence();
+  logger.warn(`[RiggedDraw] ❌ Failed to build deterministic sequence. Falling back to safe random.`);
+  return generateSafeRandomSequence(tickets, minDrawn);
 }
