@@ -15,9 +15,8 @@ import { checkWin, parseCardRows, BingoCard } from '../game/card.generator';
 import { PREDEFINED_CARDS } from '../lib/predefinedCards';
 
 // ─── Win Quota Config ─────────────────────────────────────────
-// House bot must win 9 out of every 10 games (90% win rate)
+// Dynamic house bot win cycle logic (e.g. 9/10, 8/10, 5/10)
 const CYCLE_LENGTH = 10;
-const HOUSE_WIN_QUOTA = 9;
 
 // ─── Dynamic Bot count per room type (Smart Decline) ──────────
 export const BOT_COUNTS_BY_CYCLE: Record<string, number[]> = {
@@ -65,13 +64,7 @@ export async function shouldHouseWinThisGame(roomType: string): Promise<boolean>
     });
   }
 
-  // If forceHouseWin is TRUE, house ALWAYS wins, overriding any cycle.
-  if (settings.forceHouseWin) {
-    logger.info(`[HouseBot] ${roomType} — HouseSettings.forceHouseWin is TRUE → House Wins 100%`);
-    return true;
-  }
-
-  // ─── 9/10 CYCLE LOGIC ───
+  // ─── DYNAMIC CYCLE LOGIC ───
   // Upsert cycle record
   let cycle = await prisma.gameCycle.upsert({
     where: { roomType },
@@ -91,15 +84,22 @@ export async function shouldHouseWinThisGame(roomType: string): Promise<boolean>
   cachedCycles[roomType] = cycle.totalGames;
 
   // ─── STRICT WIN QUOTA ENFORCEMENT ───
-  // This forces the house bot to win the first 9 games of the cycle.
-  // Real players are ONLY allowed to potentially win on the 10th game (totalGames === 9).
-  if (cycle.totalGames < HOUSE_WIN_QUOTA) {
-    logger.info(`[HouseBot] ${roomType} — Strict Quota Active: Game ${cycle.totalGames + 1}/10. Forcing House Win.`);
+  // We use settings.bingoWinRate (0 to 10). If it's 9, house wins the first 9 games of the cycle.
+  const quota = settings.bingoWinRate ?? 9;
+
+  // If forceHouseWin is TRUE or quota is 10, house ALWAYS wins.
+  if (settings.forceHouseWin || quota >= CYCLE_LENGTH) {
+    logger.info(`[HouseBot] ${roomType} — Quota is ${quota}/10 or forceHouseWin is TRUE → House Wins 100%`);
     return true;
   }
 
-  // 10th game: we allow a real player to potentially win
-  logger.info(`[HouseBot] ${roomType} — Cycle 10th Game Reached. Real players are allowed to win.`);
+  if (cycle.totalGames < quota) {
+    logger.info(`[HouseBot] ${roomType} — Strict Quota Active: Game ${cycle.totalGames + 1}/10 (Quota ${quota}/10). Forcing House Win.`);
+    return true;
+  }
+
+  // Games after the quota (e.g. game 10 if quota is 9, games 6-10 if quota is 5): real players can potentially win.
+  logger.info(`[HouseBot] ${roomType} — Cycle Quota Met (Game ${cycle.totalGames + 1}/10). Real players are allowed to win.`);
   return false;
 }
 

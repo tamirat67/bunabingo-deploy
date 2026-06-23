@@ -87,7 +87,7 @@ export default function SettingsPage() {
   const [removeImage, setRemoveImage] = useState<boolean>(false);
 
   // ─── House Win Rate Protection ───
-  const [houseProtection, setHouseProtection] = useState({ forceHouseWin: true, rouletteFix: true });
+  const [houseProtection, setHouseProtection] = useState({ forceHouseWin: true, rouletteFix: true, bingoWinRate: 10 });
   const [savingProtection, setSavingProtection] = useState(false);
   const [protectionSaved, setProtectionSaved] = useState(false);
 
@@ -96,7 +96,7 @@ export default function SettingsPage() {
     fetchSettings();
     fetchPromotions();
     api.get('/admin/house-settings')
-      .then(r => setHouseProtection({ forceHouseWin: r.data.forceHouseWin, rouletteFix: r.data.rouletteFix }))
+      .then(r => setHouseProtection({ forceHouseWin: r.data.forceHouseWin, rouletteFix: r.data.rouletteFix, bingoWinRate: r.data.bingoWinRate ?? 9 }))
       .catch(e => console.error('Failed to load house settings:', e));
   }, []);
 
@@ -575,17 +575,28 @@ export default function SettingsPage() {
 
               {/* Bingo Row */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-                <div>
-                  <div style={{ fontSize: '14px', fontWeight: '700', color: '#1f2937' }}>🎰 Bingo Bot Protection</div>
-                  <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '3px' }}>
-                    {houseProtection.forceHouseWin ? '✅ Bots always win — 10th game rule overridden.' : '⚠️ 9/10 cycle active — real players can win game 10.'}
+                <div style={{ flex: 1, paddingRight: '20px' }}>
+                  <div style={{ fontSize: '14px', fontWeight: '700', color: '#1f2937', marginBottom: '6px' }}>🎰 Bingo Bot Protection Cycle</div>
+                  <div style={{ fontSize: '12px', color: '#6b7280', lineHeight: '1.4' }}>
+                    {houseProtection.bingoWinRate === 10 ? '✅ 10/10 Cycle — Bots always win, real players cannot win.' :
+                     houseProtection.bingoWinRate === 0  ? '🚨 0/10 Cycle — Fully random, no house bot injection.' :
+                     `⚠️ ${houseProtection.bingoWinRate}/10 Cycle Active — real players can potentially win ${10 - houseProtection.bingoWinRate} game(s) every 10 games.`}
                   </div>
                 </div>
-                <div
-                  onClick={() => setHouseProtection(s => ({ ...s, forceHouseWin: !s.forceHouseWin }))}
-                  style={{ width: '52px', height: '28px', background: houseProtection.forceHouseWin ? '#10b981' : '#d1d5db', borderRadius: '99px', position: 'relative', cursor: 'pointer', transition: 'background 0.3s', flexShrink: 0 }}
-                >
-                  <div style={{ position: 'absolute', top: '4px', left: houseProtection.forceHouseWin ? '28px' : '4px', width: '20px', height: '20px', background: '#fff', borderRadius: '50%', transition: 'left 0.3s', boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }} />
+                <div style={{ flexShrink: 0 }}>
+                  <select
+                    className="login-input"
+                    style={{ width: '140px', padding: '10px 14px', fontSize: '14px', fontWeight: '800', cursor: 'pointer', background: houseProtection.bingoWinRate === 10 ? '#dcfce7' : houseProtection.bingoWinRate === 0 ? '#fee2e2' : '#fff' }}
+                    value={houseProtection.bingoWinRate}
+                    onChange={(e) => {
+                      const rate = parseInt(e.target.value);
+                      setHouseProtection(s => ({ ...s, bingoWinRate: rate, forceHouseWin: rate === 10 }));
+                    }}
+                  >
+                    {[10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0].map(n => (
+                      <option key={n} value={n}>{n === 10 ? '10/10 (Always)' : n === 0 ? '0/10 (Never)' : `${n}/10 Cycle`}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
