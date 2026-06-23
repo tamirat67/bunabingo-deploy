@@ -324,7 +324,6 @@ export function rigDrawSequence(
         const playerWon = playerWinners.length > 0;
 
         if (botWon && !playerWon) {
-          // Check if bot wins with the TARGET win mode (for pattern variety)
           if (houseShouldWin) {
             const botWinsWithTarget = botWinners.some(t => {
               const rows = parseCardRows(t.card);
@@ -332,11 +331,12 @@ export function rigDrawSequence(
               const result = checkWin(rows, drawnSoFar);
               return result.won && result.modes.includes(targetWinMode as any);
             });
-            if (!botWinsWithTarget) {
-              // Wrong pattern — reject this ENTIRE shuffle, try next attempt
+            // If we are early in attempts, we can try to hold out for the target mode
+            if (!botWinsWithTarget && attempt < 1000) {
               firstWinnerIsBot = null;
               break;
             }
+            // Otherwise (or if it matched), we just accept any bot win to prevent exhaustion
             firstWinnerIsBot = true;
           } else {
             firstWinnerIsBot = true;
