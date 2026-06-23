@@ -555,7 +555,7 @@ export default function SettingsPage() {
                   <h2 style={{ fontSize: '16px', fontWeight: '900', color: '#3d2b1f', margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
                     🤖 Win Rate Control
                   </h2>
-                  <p style={{ color: '#78716c', margin: '6px 0 0', fontSize: '13px' }}>Live house protection for Bingo and Roulette.</p>
+                  <p style={{ color: '#78716c', margin: '6px 0 0', fontSize: '13px' }}>Live house protection for Bingo.</p>
                 </div>
                 <button
                   onClick={handleSaveProtection}
@@ -589,21 +589,7 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              {/* Roulette Row */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0 0' }}>
-                <div>
-                  <div style={{ fontSize: '14px', fontWeight: '700', color: '#1f2937' }}>🎡 Roulette Protection</div>
-                  <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '3px' }}>
-                    {houseProtection.rouletteFix ? '✅ Spin avoids all real player bets — house always wins.' : '🚨 Fully random — real players can win.'}
-                  </div>
-                </div>
-                <div
-                  onClick={() => setHouseProtection(s => ({ ...s, rouletteFix: !s.rouletteFix }))}
-                  style={{ width: '52px', height: '28px', background: houseProtection.rouletteFix ? '#10b981' : '#d1d5db', borderRadius: '99px', position: 'relative', cursor: 'pointer', transition: 'background 0.3s', flexShrink: 0 }}
-                >
-                  <div style={{ position: 'absolute', top: '4px', left: houseProtection.rouletteFix ? '28px' : '4px', width: '20px', height: '20px', background: '#fff', borderRadius: '50%', transition: 'left 0.3s', boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }} />
-                </div>
-              </div>
+
             </div>
 
             {/* Game Room Pricing */}
