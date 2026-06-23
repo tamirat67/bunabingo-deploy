@@ -1632,6 +1632,7 @@ function GameContent() {
                     {(() => {
                       const m = gameFinished.mode || 'ROW';
                       if (m === 'FULL_HOUSE') return 'FULL HOUSE BINGO';
+                      if (m === 'FOUR_CORNERS') return 'FOUR CORNERS BINGO';
                       if (m === 'DIAGONAL') return 'DIAGONAL BINGO';
                       if (m === 'COLUMN') return 'COLUMN BINGO';
                       if (m === 'ROW') return 'ROW BINGO';

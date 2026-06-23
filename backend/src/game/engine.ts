@@ -629,8 +629,15 @@ async function checkAllTickets(gameId: string, drawnNumbers: number[]): Promise<
              state.pendingBotClaim = true;
            }
 
-           // Pick the winning mode from the result
+           // Pick the highest priority winning mode from the result
+           const priority = ['FULL_HOUSE', 'FOUR_CORNERS', 'DIAGONAL', 'COLUMN', 'ROW'];
            let capturedWinMode = result.modes[0];
+           for (const p of priority) {
+             if (result.modes.includes(p as any)) {
+               capturedWinMode = p as any;
+               break;
+             }
+           }
 
            // 200ms delay — enough for clients to render the last ball, but impossibly
            // short for any human finger to tap and submit a claim.
