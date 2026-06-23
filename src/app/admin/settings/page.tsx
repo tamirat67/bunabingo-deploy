@@ -615,7 +615,7 @@ export default function SettingsPage() {
                 </div>
               ) : (
                 <div style={{ display: 'grid', gap: '12px' }}>
-                  {rooms.map(room => (
+                  {rooms.filter(room => !room.type.startsWith('SPIN_')).map(room => (
                     <div key={room.id} className="stat-card-m" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
                       <div className="user-avatar" style={{ width: '46px', height: '46px', background: '#3d2b1f', color: '#d4af37', flexShrink: 0 }}>
                         <FiDollarSign size={18} />
