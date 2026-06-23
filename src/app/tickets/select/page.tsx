@@ -36,6 +36,7 @@ function SelectionContent() {
   const [occupied, setOccupied] = useState<number[]>([]);
   const [joining, setJoining] = useState(false);
   const [playerCount, setPlayerCount] = useState(0);
+  const [ticketCount, setTicketCount] = useState(0);
   const [game, setGame] = useState<any>(null);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [endTime, setEndTime] = useState<number | null>(null);
@@ -217,6 +218,7 @@ function SelectionContent() {
               if (res.occupiedIds) setOccupied(res.occupiedIds);
               if (res.playerCount !== undefined) {
                 setPlayerCount(res.playerCount);
+                if (res.ticketCount !== undefined) setTicketCount(res.ticketCount);
                 if (res.realPlayerCount !== undefined) setRealPlayerCount(res.realPlayerCount);
               }
             } else {
@@ -265,6 +267,7 @@ function SelectionContent() {
       if (res?.occupiedIds) setOccupied(res.occupiedIds);
       if (res?.playerCount !== undefined) {
         setPlayerCount(res.playerCount);
+        if (res.ticketCount !== undefined) setTicketCount(res.ticketCount);
         if (res.realPlayerCount !== undefined) setRealPlayerCount(res.realPlayerCount);
       }
     }).catch(() => {
@@ -558,6 +561,7 @@ function SelectionContent() {
       setOccupied(res.occupiedIds || []);
       prevOccupied.current = res.occupiedIds || [];
       setPlayerCount(res.playerCount || 0);
+      setTicketCount(res.ticketCount || 0);
       setRealPlayerCount(res.realPlayerCount || 0);
       if (res.expectedBotCount !== undefined) {
         setExpectedBotCount(res.expectedBotCount);
@@ -616,6 +620,7 @@ function SelectionContent() {
         }
         if (data.playerCount !== undefined) {
           setPlayerCount(data.playerCount);
+          if (data.ticketCount !== undefined) setTicketCount(data.ticketCount);
           if (data.realPlayerCount !== undefined) setRealPlayerCount(data.realPlayerCount);
         }
       });
@@ -711,8 +716,9 @@ function SelectionContent() {
         }
         // Auto-buy logic moved to useEffect to ensure it fires reliably
 
-        if (typeof d.playerCount === 'number') {
+        if (d.playerCount !== undefined) {
           setPlayerCount(d.playerCount);
+          if (d.ticketCount !== undefined) setTicketCount(d.ticketCount);
           if (d.realPlayerCount !== undefined) setRealPlayerCount(d.realPlayerCount);
         }
       });
@@ -764,6 +770,7 @@ function SelectionContent() {
           }
           setOccupied(res.occupiedIds || []);
           setPlayerCount(res.playerCount || 0);
+          setTicketCount(res.ticketCount || 0);
           setRealPlayerCount(res.realPlayerCount || 0);
           if (res.expectedBotCount !== undefined) {
             setExpectedBotCount(res.expectedBotCount);
@@ -801,6 +808,7 @@ function SelectionContent() {
           }
           setOccupied(res.occupiedIds || []);
           setPlayerCount(res.playerCount || 0);
+          setTicketCount(res.ticketCount || 0);
           setRealPlayerCount(res.realPlayerCount || 0);
           if (res.expectedBotCount !== undefined) {
             setExpectedBotCount(res.expectedBotCount);
@@ -959,6 +967,7 @@ function SelectionContent() {
         if (res.occupiedIds) setOccupied(res.occupiedIds);
         if (res.playerCount !== undefined) {
           setPlayerCount(res.playerCount);
+          if (res.ticketCount !== undefined) setTicketCount(res.ticketCount);
           if (res.realPlayerCount !== undefined) setRealPlayerCount(res.realPlayerCount);
         }
 
@@ -1229,8 +1238,9 @@ const balance = Number(user?.wallet?.balance || 0);
   const totalOccupiedList = Array.from(new Set([...occupied]));
   const occupiedCount = totalOccupiedList.filter(id => !ownedCardIds.includes(id)).length;
 
-  // Server-reported real player total (real tickets in DB)
-  const serverReportedPlayers = Math.max(game?.currentPlayers || 0, playerCount || 0);
+  // Server-reported real player total (real users)
+  const serverReportedPlayers = Math.max(game?.playerCount || 0, playerCount || 0);
+  const serverReportedTickets = Math.max(game?.ticketCount || 0, ticketCount || 0);
 
   let displayPlayerCount;
   
@@ -1252,7 +1262,7 @@ const balance = Number(user?.wallet?.balance || 0);
   // Add `selected.length` if the user hasn't bought them yet to show accurate preview
   let totalVisualCards = 0;
   if (isGameRunning) {
-    totalVisualCards = game?.tickets?.length || serverReportedPlayers;
+    totalVisualCards = serverReportedTickets;
   } else {
     const unboughtSelected = selected.filter(id => !ownedCardIds.includes(id)).length;
     // occupied.length contains BOTH bot tickets and real player tickets.
@@ -1261,7 +1271,7 @@ const balance = Number(user?.wallet?.balance || 0);
     const realPlayerTickets = Math.max(0, occupied.length - botCountForRoom);
     totalVisualCards = simulatedBotCount + realPlayerTickets + unboughtSelected;
     // Fallback if somehow it's less than players
-    totalVisualCards = Math.max(totalVisualCards, displayPlayerCount);
+    totalVisualCards = Math.max(totalVisualCards, displayPlayerCount, serverReportedTickets);
   }
 
   const totalStake = totalVisualCards * stake;

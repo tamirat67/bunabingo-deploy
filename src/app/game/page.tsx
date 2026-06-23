@@ -342,7 +342,7 @@ function GameContent() {
       try {
         sessionStorage.setItem(`game_state_${gameId}`, JSON.stringify({
           status: g.status, totalPrize: g.totalPrize, room: g.room,
-          drawHistory: g.drawHistory, currentPlayers: g.currentPlayers,
+          drawHistory: g.drawHistory, playerCount: g.playerCount, ticketCount: g.ticketCount,
         }));
       } catch (e) {}
 
@@ -705,7 +705,8 @@ function GameContent() {
         if (!p) return p;
         return {
           ...p,
-          currentPlayers: d.playerCount,
+          playerCount: d.playerCount !== undefined ? d.playerCount : p.playerCount,
+          ticketCount: d.ticketCount !== undefined ? d.ticketCount : p.ticketCount,
           totalPrize: d.totalPrize || p.totalPrize,
         };
       });
@@ -716,7 +717,8 @@ function GameContent() {
         if (!p) return p;
         return {
           ...p,
-          currentPlayers: d.playerCount,
+          playerCount: d.playerCount !== undefined ? d.playerCount : p.playerCount,
+          ticketCount: d.ticketCount !== undefined ? d.ticketCount : p.ticketCount,
           totalPrize: d.totalPrize || p.totalPrize,
         };
       });
@@ -1031,14 +1033,14 @@ function GameContent() {
   const GUARANTEED_PRIZES: Record<string, number> = { CASUAL: 50, STANDARD: 100, PRO: 250, JACKPOT: 500, VIP: 1000 };
   const roomTypeName = game?.room?.type || spType || 'STANDARD';
 
-  // allCards: prefer the backend's real ticket count (game.currentPlayers = _count.tickets from API)
+  // allCards: prefer the backend's real ticket count
   // Fallback: our own tickets length + a small bot estimate — only when API hasn't loaded yet
   const BOT_COUNTS_FRONTEND: Record<string, number> = { CASUAL: 30, STANDARD: 30, PRO: 30, JACKPOT: 10, VIP: 20 };
   const fallbackBotCount = BOT_COUNTS_FRONTEND[roomTypeName] ?? 30;
   const fallbackCards = fallbackBotCount + tickets.length;
-  // PRIORITY: game.currentPlayers is set by the backend to _count.tickets (real total)
-  const allCards = game?.currentPlayers && game.currentPlayers > 0
-    ? game.currentPlayers
+  // PRIORITY: game.ticketCount is set by the backend explicitly
+  const allCards = game?.ticketCount && game.ticketCount > 0
+    ? game.ticketCount
     : (fallbackCards || 1);
   const totalStake = isDemo ? 0 : allCards * stake;
 

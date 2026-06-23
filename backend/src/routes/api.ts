@@ -684,6 +684,7 @@ router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
       gameId, 
       roomId: room.id, 
       playerCount,
+      ticketCount: tickets.length,
       realPlayerCount: realUserIds.size,
       botPlayerCount: botUserIds.size,
       expectedBotCount: getExpectedBotCount(room.type),
@@ -826,11 +827,15 @@ router.get('/games/:gameId', async (req: Request, res: Response) => {
       }
     }
   }
-  
+  // Calculate true unique player count
+  const uniqueUsers = await prisma.ticket.findMany({ where: { gameId: game.id }, select: { userId: true }, distinct: ['userId'] });
+  const pCount = uniqueUsers.length;
+
   res.json({
     ...gameData,
     countdownSeconds: state?.secondsRemaining ?? gameData.countdownSeconds,
-    currentPlayers: state?.secondsRemaining !== undefined ? _count.tickets : gameData.currentPlayers,
+    playerCount: pCount,
+    ticketCount: _count.tickets,
     endTime: state?.secondsRemaining ? (Date.now() + state.secondsRemaining * 1000) : undefined,
     serverTime: Date.now()
   });

@@ -1241,11 +1241,12 @@ export async function createWaitingGame(roomId: string): Promise<string> {
             await Promise.all([
               triggerGameEvent(newGame.id, 'player-joined', {
                 userId: 'bots',
-                playerCount: fullCount,
+                playerCount: expectedBots, // Bots each have a unique user ID, so playerCount = expectedBots
                 numTickets: fullCount,
+                ticketCount: fullCount, // Explicitly separate ticketCount
                 serverTime: Date.now(),
               }),
-              triggerGameEvent(room.id, 'player-count-update', { playerCount: fullCount }),
+              triggerGameEvent(room.id, 'player-count-update', { playerCount: expectedBots, ticketCount: fullCount }),
             ]);
           }
         }
@@ -1498,15 +1499,19 @@ export async function joinGame(
                   const fullCount = await prisma.ticket.count({ where: { gameId } });
                   const botCount = expectedBots;
                   
+                  const uniqueUsers = await prisma.ticket.findMany({ where: { gameId }, select: { userId: true }, distinct: ['userId'] });
+                  const pCountWithBots = uniqueUsers.length;
+                  
                   await Promise.all([
                     triggerGameEvent(gameId, 'player-joined', {
                       userId: 'bots',
-                      playerCount: fullCount,
+                      playerCount: pCountWithBots,
                       numTickets: botCount,
+                      ticketCount: fullCount,
                       totalPrize: checkGame.totalPrize.toString(),
                       serverTime: Date.now(),
                     }),
-                    triggerGameEvent(checkGame.roomId, 'player-count-update', { playerCount: fullCount }),
+                    triggerGameEvent(checkGame.roomId, 'player-count-update', { playerCount: pCountWithBots, ticketCount: fullCount }),
                   ]);
                   await startCountdown(gameId, fullCount);
                   return;
@@ -1565,19 +1570,20 @@ export async function joinGame(
 
       // Run all broadcasts in parallel for maximum speed
       await Promise.all([
-        triggerGameEvent(gameId, 'occupied-sync', { tickets: ticketData, playerCount, gameId }),
-        triggerGameEvent(game.room.type, 'occupied-sync', { tickets: ticketData, playerCount, gameId }),
+        triggerGameEvent(gameId, 'occupied-sync', { tickets: ticketData, playerCount: playerCount, ticketCount: currentTicketCount, gameId }),
+        triggerGameEvent(game.room.type, 'occupied-sync', { tickets: ticketData, playerCount: playerCount, ticketCount: currentTicketCount, gameId }),
         triggerGameEvent(gameId, 'player-joined', { 
           userId, 
-          playerCount, 
+          playerCount: playerCount, // Use pre-calculated unique users
           numTickets,
+          ticketCount: currentTicketCount, // Send explicit total tickets
           totalPrize: totalPrize.toString(),
           secondsRemaining: currentState?.secondsRemaining,
           endTime,
           serverTime: Date.now()
         }),
         triggerUserEvent(userId, 'join-success', { gameId, numTickets }),
-        triggerGameEvent(game.roomId, 'player-count-update', { playerCount }),
+        triggerGameEvent(game.roomId, 'player-count-update', { playerCount: playerCount, ticketCount: currentTicketCount }),
         triggerAdminEvent('player-joined', {
           gameId,
           userId,
