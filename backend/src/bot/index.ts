@@ -199,8 +199,7 @@ export function createBot(): Telegraf {
             `🎉 <b>እንኳን ደስ አለዎ! ምዝገባዎ ተሳክቷል!</b>\n\n` +
             `☕️ <b>ቡና ቢንጎ</b> ቤተሰብ ሆነዋል!\n\n` +
             `🎁 <b>+100.00 ብር (ETB) የእንኳን ደህና ቦነስ</b> ወደ ሂሳብዎ ገቢ ተደርጓል!\n\n` +
-            `🎮 ቦነሱን ጨዋታ ለመጫወት ይጠቀሙ።\n` +
-            `💡 <i>ማስታወሻ፡ ቦነሱ ማውጣት አይቻልም — ለጨዋታ ብቻ ነው።</i>`,
+            `🎮 ቦነሱን ጨዋታ ለመጫወት ይጠቀሙ።`,
             { parse_mode: 'HTML' }
           );
           logger.info(`[WelcomeBonus] Notified user ${user.id} of 100 ETB welcome bonus`);
