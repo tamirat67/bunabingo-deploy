@@ -738,12 +738,13 @@ function GameContent() {
       if (isAlreadyWon || gameEnded) {
         // Game ended before claim was processed — show clear friendly message
         showAlert('ጨዋታ ተጠናቀቀ', 'Another player won this round. Better luck next time! 🍀', 'info');
-      } else if (isSomeoneElseClaimed) {
-        // Race condition: bot or another player claimed milliseconds before us — show bilingual message
-        showAlert(t('bingoClaimTitle') as string, t('bingoAlreadyClaimed') as string, 'info');
-      } else if (!isTooEarlyMsg) {
+      } else if (!isTooEarlyMsg && !isSomeoneElseClaimed) {
+        // Only show a dialog for genuine pattern errors — not for house secrets or race conditions
         showAlert(t('bingoClaimTitle') as string, msg || t('noBingoYetCheck') as string, 'info');
       }
+      // isTooEarlyMsg & isSomeoneElseClaimed are both absorbed silently:
+      // — isTooEarlyMsg: revealing the minimum is a house secret
+      // — isSomeoneElseClaimed: game-finished fires in <200ms showing the winner naturally
       // If too early: absorb silently — revealing the minimum is a house secret
     });
 
