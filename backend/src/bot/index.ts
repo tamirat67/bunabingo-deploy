@@ -179,8 +179,9 @@ export function createBot(): Telegraf {
     }
 
     try {
-      // updateUserPhone now also awards the referral bonus and returns referrer info
-      const { user, referrer } = await updateUserPhone(tgUser.id, contact.phone_number);
+      // updateUserPhone saves phone, fires referral bonus to referrer,
+      // and grants the one-time 100 ETB welcome bonus to the new player
+      const { user, referrer, welcomeBonusGranted } = await updateUserPhone(tgUser.id, contact.phone_number);
       logger.info(`[Bot] Phone verified for user ${tgUser.id}: ${contact.phone_number}`);
 
       await ctx.reply('✅ ስልክ ቁጥርዎ በተሳካ ሁኔታ ተረጋግጧል!', Markup.keyboard([
@@ -190,6 +191,24 @@ export function createBot(): Telegraf {
         ['💎 VIP ክፍል'],
         ['🆘 እርዳታ', '📜 ደንቦች']
       ]).resize());
+
+      // ── Welcome bonus notification (new player) ──────────────────────────────
+      if (welcomeBonusGranted) {
+        try {
+          await ctx.reply(
+            `🎉 <b>እንኳን ደስ አለዎ! ምዝገባዎ ተሳክቷል!</b>\n\n` +
+            `☕️ <b>ቡና ቢንጎ</b> ቤተሰብ ሆነዋል!\n\n` +
+            `🎁 <b>+100.00 ብር (ETB) የእንኳን ደህና ቦነስ</b> ወደ ሂሳብዎ ገቢ ተደርጓል!\n\n` +
+            `🎮 ቦነሱን ጨዋታ ለመጫወት ይጠቀሙ።\n` +
+            `💡 <i>ማስታወሻ፡ ቦነሱ ማውጣት አይቻልም — ለጨዋታ ብቻ ነው።</i>`,
+            { parse_mode: 'HTML' }
+          );
+          logger.info(`[WelcomeBonus] Notified user ${user.id} of 100 ETB welcome bonus`);
+        } catch {
+          // Non-fatal — just log
+          logger.warn(`[WelcomeBonus] Could not send bonus notification to user ${user.id}`);
+        }
+      }
 
       // ── Notify referrer (non-blocking) ───────────────────────────────────────
       if (referrer) {

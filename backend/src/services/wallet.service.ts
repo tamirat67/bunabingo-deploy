@@ -108,6 +108,59 @@ export async function creditBonus(
   await triggerUserEvent(userId, 'bonus-updated', { bonusBalance: newBonus.toFixed(2) });
 }
 
+// ── Welcome Bonus ────────────────────────────────────────────
+/** Amount of one-time welcome bonus credited to new players on first registration */
+export const WELCOME_BONUS_ETB = 100;
+
+/**
+ * Awards the one-time 100 ETB welcome bonus to a newly registered user.
+ *
+ * - Credits `bonusBalance` only (playable, NOT withdrawable).
+ * - Idempotent: will not double-credit if called more than once.
+ * - Returns `true` when the bonus is granted, `false` if already given.
+ */
+export async function grantWelcomeBonus(userId: string): Promise<boolean> {
+  // ── Idempotency guard ────────────────────────────────────────
+  const alreadyGranted = await prisma.transaction.findFirst({
+    where: { userId, type: 'WELCOME_BONUS' },
+  });
+  if (alreadyGranted) {
+    logger.info(`[WelcomeBonus] Skipped — already granted to user ${userId}`);
+    return false;
+  }
+
+  const wallet = await getOrCreateWallet(userId);
+  const amt = new Decimal(WELCOME_BONUS_ETB);
+  const balanceBefore = new Decimal(wallet.bonusBalance.toString());
+  const balanceAfter  = balanceBefore.add(amt);
+
+  await prisma.$transaction(async (tx) => {
+    // 1. Credit bonusBalance
+    await tx.wallet.update({
+      where: { userId },
+      data: { bonusBalance: balanceAfter },
+    });
+
+    // 2. Record transaction for full audit trail
+    await tx.transaction.create({
+      data: {
+        userId,
+        type:          'WELCOME_BONUS',
+        amount:        amt,
+        balanceBefore: balanceBefore,
+        balanceAfter:  balanceAfter,
+        status:        'completed',
+        description:   'Welcome bonus — new player registration (playable, non-withdrawable)',
+      },
+    });
+  });
+
+  logger.info(`[WelcomeBonus] Granted ${WELCOME_BONUS_ETB} ETB bonus to user ${userId}. bonusBalance: ${balanceBefore} → ${balanceAfter}`);
+  await triggerUserEvent(userId, 'bonus-updated', { bonusBalance: balanceAfter.toFixed(2) }).catch(() => {});
+
+  return true;
+}
+
 /** Credit referral commission balance (earned from friend activity) */
 export async function creditReferralCommission(
   userId: string,

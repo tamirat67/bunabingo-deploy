@@ -2,7 +2,7 @@ import prisma from '../lib/prisma';
 import { logger } from '../lib/logger';
 import { config } from '../config';
 import { Decimal } from '@prisma/client/runtime/library';
-import { creditWallet, creditBonus, awardCoins, XP_REWARDS } from './wallet.service';
+import { creditWallet, creditBonus, awardCoins, XP_REWARDS, grantWelcomeBonus } from './wallet.service';
 import { getOrCreateAgentPreDepositWallet } from './agentPreDeposit.service';
 import { getAgentProfitRate, getCompanyCommissionRate } from './settings.service';
 
@@ -391,6 +391,7 @@ export async function updateUserPhone(
 ): Promise<{
   user: any;
   referrer: { id: string; telegramId: bigint; username: string } | null;
+  welcomeBonusGranted: boolean;
 }> {
   const user = await prisma.user.update({
     where: { telegramId: BigInt(telegramId) },
@@ -434,7 +435,15 @@ export async function updateUserPhone(
     }
   }
 
-  return { user, referrer };
+  // ── One-time 100 ETB welcome bonus for the new player ───────────────────────
+  let welcomeBonusGranted = false;
+  try {
+    welcomeBonusGranted = await grantWelcomeBonus(user.id);
+  } catch (err) {
+    logger.error('[WelcomeBonus] Failed to grant welcome bonus:', err);
+  }
+
+  return { user, referrer, welcomeBonusGranted };
 }
 
 export async function promoteToAgent(userId: string, adminId: string) {
