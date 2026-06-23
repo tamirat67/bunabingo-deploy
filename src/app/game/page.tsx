@@ -734,9 +734,13 @@ function GameContent() {
       const msg = err.message || '';
       const isTooEarlyMsg = msg.toLowerCase().includes('wait') || msg.toLowerCase().includes('minimum');
       const isAlreadyWon  = msg.toLowerCase().includes('already won') || msg.toLowerCase().includes('finished') || msg.toLowerCase().includes('not running');
+      const isSomeoneElseClaimed = msg.toLowerCase().includes('someone else') || msg.toLowerCase().includes('verifying');
       if (isAlreadyWon || gameEnded) {
         // Game ended before claim was processed — show clear friendly message
         showAlert('ጨዋታ ተጠናቀቀ', 'Another player won this round. Better luck next time! 🍀', 'info');
+      } else if (isSomeoneElseClaimed) {
+        // Race condition: bot or another player claimed milliseconds before us — show bilingual message
+        showAlert(t('bingoClaimTitle') as string, t('bingoAlreadyClaimed') as string, 'info');
       } else if (!isTooEarlyMsg) {
         showAlert(t('bingoClaimTitle') as string, msg || t('noBingoYetCheck') as string, 'info');
       }
