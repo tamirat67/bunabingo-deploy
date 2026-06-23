@@ -70,7 +70,7 @@ function getDynamicMinBalls(totalCards: number, houseShouldWin: boolean = false)
   // 20 balls ≈ 60s game duration (natural Bingo length). At 20/75 balls, each player card
   // averages ~6-7 matched numbers — not enough to manually complete any full row/column.
   // The rig algorithm GUARANTEES no player ticket wins before the bot regardless.
-  if (houseShouldWin) return 20;
+  if (houseShouldWin) return 35;
   if (totalCards <= 40) return 30; // 90 seconds
   if (totalCards <= 80) return 25; // 75 seconds
   if (totalCards <= 150) return 22; // 66 seconds
