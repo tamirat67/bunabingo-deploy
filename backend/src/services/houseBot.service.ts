@@ -370,14 +370,14 @@ export function buildDeterministicSequence(
         for (const trigger of triggerCandidates) {
           const preWinNumbers = pattern.filter(n => n !== trigger);
           
-          const currentDrawn = new Set<number>();
+          const currentDrawnWithTrigger = new Set<number>([...preWinNumbers, trigger]);
+          const currentDrawnWithoutTrigger = new Set<number>([...preWinNumbers]);
           let impossible = false;
           
+          // Verify that pre-win numbers + trigger are safe for all real players natively
           for (const num of [...preWinNumbers, trigger]) {
-            if (currentDrawn.has(num)) continue;
-            currentDrawn.add(num);
             let safe = true;
-            const drawnArray = Array.from(currentDrawn);
+            const drawnArray = Array.from(currentDrawnWithTrigger);
             for (const rows of realPlayerCards) {
               if (checkWin(rows as any, drawnArray).won) {
                 safe = false; break;
@@ -392,31 +392,34 @@ export function buildDeterministicSequence(
 
           const safeFillers: number[] = [];
           
-          const isNumSafeForEveryone = (num: number, drawnSet: Set<number>) => {
-            if (drawnSet.has(num)) return true;
-            drawnSet.add(num);
-            let safe = true;
-            const drawnArray = Array.from(drawnSet);
-            
-            for (const rows of realPlayerCards) {
-              if (checkWin(rows as any, drawnArray).won) {
-                safe = false; break;
-              }
-            }
-            if (safe) {
-              if (checkWin(botRows as any, drawnArray).won) {
-                safe = false; 
-              }
-            }
-            
-            drawnSet.delete(num);
-            return safe;
-          };
-
           for (const filler of fillersPool) {
-            if (isNumSafeForEveryone(filler, currentDrawn)) {
+            // Check 1: Does adding this filler make any real player win (including the trigger)?
+            currentDrawnWithTrigger.add(filler);
+            let safeForRealPlayers = true;
+            const drawnWithTriggerArray = Array.from(currentDrawnWithTrigger);
+            for (const rows of realPlayerCards) {
+              if (checkWin(rows as any, drawnWithTriggerArray).won) {
+                safeForRealPlayers = false; break;
+              }
+            }
+            
+            // Check 2: Does adding this filler make the BOT win PREMATURELY (without the trigger)?
+            currentDrawnWithoutTrigger.add(filler);
+            let safeForBot = true;
+            if (safeForRealPlayers) {
+              const drawnWithoutTriggerArray = Array.from(currentDrawnWithoutTrigger);
+              if (checkWin(botRows as any, drawnWithoutTriggerArray).won) {
+                safeForBot = false;
+              }
+            }
+            
+            if (safeForRealPlayers && safeForBot) {
+              // It's completely safe, keep it in both sets
               safeFillers.push(filler);
-              currentDrawn.add(filler);
+            } else {
+              // Rollback this filler from our tracking sets
+              currentDrawnWithTrigger.delete(filler);
+              currentDrawnWithoutTrigger.delete(filler);
             }
           }
 
