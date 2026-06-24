@@ -1260,21 +1260,43 @@ const balance = Number(user?.wallet?.balance || 0);
   // PLAYERS: visibleTicketCount is the PRIORITY — it matches exactly what the backend used
   // to calculate totalPrize (real players + capped visible bots, max 30 for CASUAL).
   // game.ticketCount / ticketCount from sockets = RAW total (all 400+ bots) — do NOT use for display.
-  const serverReportedTickets = visibleTicketCount > 0
+  const baseCards = visibleTicketCount > 0
     ? visibleTicketCount
     : (ticketCount > 0 ? ticketCount : 0);
   const serverReportedPlayers = Math.max(game?.playerCount || 0, playerCount || 0);
 
-  // Display player count = visible count (matches prize pool)
-  const displayPlayerCount = serverReportedTickets > 0
-    ? serverReportedTickets
+  // Initial estimate before mathematical correction
+  let displayPlayerCount = baseCards > 0
+    ? baseCards
     : (occupied.length + (selected.filter(id => !occupied.includes(id)).length));
 
   // totalVisualCards: always the visible count — accurate for prize calculation
-  const totalVisualCards = serverReportedTickets > 0
-    ? serverReportedTickets
+  let totalVisualCards = baseCards > 0
+    ? baseCards
     : displayPlayerCount;
 
+  // PRIZE: always use backend totalPrize as the primary source of truth.
+  const backendPrize = game?.totalPrize && Number(game.totalPrize) > 0 ? Number(game.totalPrize) : 0;
+  const computedPrize = Math.round((totalVisualCards * stake) * 0.70);
+  const prize = backendPrize > 0 ? backendPrize : computedPrize;
+
+  // 100% REAL MATHEMATICAL CALCULATION
+  // Force the CARDS (players) count to perfectly match the displayed prize
+  const minPrize = GUARANTEED_PRIZES[roomType] || 50;
+  if (spType !== 'DEMO' && backendPrize > 0) {
+    if (backendPrize > minPrize) {
+      displayPlayerCount = Math.round(backendPrize / (stake * 0.70));
+    } else {
+      const maxCardsForMinPrize = Math.floor(minPrize / (stake * 0.70));
+      displayPlayerCount = Math.min(baseCards > 0 ? baseCards : displayPlayerCount, maxCardsForMinPrize);
+    }
+  }
+  
+  if (displayPlayerCount < selected.length) {
+    displayPlayerCount = selected.length;
+  }
+  
+  totalVisualCards = displayPlayerCount;
   const totalStake = totalVisualCards * stake;
 
   // House edge: 30% of total stake
@@ -1283,12 +1305,6 @@ const balance = Number(user?.wallet?.balance || 0);
   const companyComm = Math.round(totalStake * 0.20);
   // Agent gets 10% of stake
   const agentComm = Math.round(totalStake * 0.10);
-
-  // PRIZE: always use backend totalPrize as the primary source of truth.
-  // Fall back to computed 70% only when no backend value exists yet.
-  const backendPrize = game?.totalPrize && Number(game.totalPrize) > 0 ? Number(game.totalPrize) : 0;
-  const computedPrize = Math.round(totalStake * 0.70);
-  const prize = backendPrize > 0 ? backendPrize : computedPrize;
 
   const formatCountdown = (secs: number) => {
     const m = Math.floor(secs / 60);

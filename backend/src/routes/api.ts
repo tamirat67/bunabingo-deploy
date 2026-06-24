@@ -840,11 +840,17 @@ router.get('/games/:gameId', async (req: Request, res: Response) => {
   const uniqueUsers = await prisma.ticket.findMany({ where: { gameId: game.id }, select: { userId: true }, distinct: ['userId'] });
   const pCount = uniqueUsers.length;
 
+  // Calculate visible ticket count (same cap used in prize pool calc)
+  const allTixForVis = await prisma.ticket.findMany({ where: { gameId: game.id }, select: { userId: true, user: { select: { isBot: true } } } });
+  const { getVisibleTickets } = await import('../game/engine');
+  const visibleTicketCountForGame = getVisibleTickets(allTixForVis, game.room.type).length;
+
   res.json({
     ...gameData,
     countdownSeconds: state?.secondsRemaining ?? gameData.countdownSeconds,
     playerCount: pCount,
     ticketCount: _count.tickets,
+    visibleTicketCount: visibleTicketCountForGame,   // ← matches prize pool
     endTime: state?.secondsRemaining ? (Date.now() + state.secondsRemaining * 1000) : undefined,
     serverTime: Date.now()
   });

@@ -1082,23 +1082,37 @@ function GameContent() {
   const BOT_COUNTS_FRONTEND: Record<string, number> = { CASUAL: 30, STANDARD: 30, PRO: 30, JACKPOT: 10, VIP: 20 };
   const fallbackBotCount = BOT_COUNTS_FRONTEND[roomTypeName] ?? 30;
   const fallbackCards = fallbackBotCount + tickets.length;
+  
   // PRIORITY: visibleTicketCount → game.ticketCount → fallback
-  const allCards = (game?.visibleTicketCount && game.visibleTicketCount > 0)
+  const baseCards = (game?.visibleTicketCount && game.visibleTicketCount > 0)
     ? game.visibleTicketCount
     : (game?.ticketCount && game.ticketCount > 0)
       ? game.ticketCount
       : (fallbackCards || 1);
-  const totalStake = isDemo ? 0 : allCards * stake;
 
   const minPrize = GUARANTEED_PRIZES[roomTypeName] || 50;
-  const fallbackPrize = Math.max(minPrize, Math.round(allCards * stake * 0.70));
+  const fallbackPrize = Math.max(minPrize, Math.round(baseCards * stake * 0.70));
   
-  // PRIORITY: Always use the backend-computed totalPrize (accurate, based on real tickets)
+  // 1. Establish the accurate PRIZE first
   const prize = isDemo
     ? (game?.totalPrize ? Number(game.totalPrize) : 100)
     : (game?.totalPrize && Number(game.totalPrize) > 0
         ? Number(game.totalPrize)
         : fallbackPrize);
+
+  // 2. Mathematically derive CARDS from the prize so it is 100% "real calculation"
+  let allCards = baseCards;
+  if (!isDemo) {
+    if (prize > minPrize) {
+      // If prize > minimum, cards MUST exactly match the 70% formula
+      allCards = Math.round(prize / (stake * 0.70));
+    } else {
+      // If prize is at minimum, cards must not exceed what would generate that minimum
+      const maxCardsForMinPrize = Math.floor(minPrize / (stake * 0.70));
+      allCards = Math.min(baseCards, maxCardsForMinPrize);
+      if (allCards < tickets.length) allCards = tickets.length;
+    }
+  }
 
   const fallbackHouseComm = Math.round(allCards * stake * 0.30);
   const houseComm = isDemo
