@@ -685,7 +685,6 @@ function GameContent() {
       setGameEnded(true);
       // ── Fetch fresh game data in background (updates card/prize if server has more details) ──
       getGame(gameId).then((d: any) => {
-        if (!isMounted.current) return;
         setGame((p: any) => p ? {
           ...p,
           playerCount: d.playerCount !== undefined ? d.playerCount : p.playerCount,
