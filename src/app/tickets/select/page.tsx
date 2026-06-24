@@ -1836,7 +1836,7 @@ const balance = Number(user?.wallet?.balance || 0);
       >
         <div className="footer-cards-scroll">
           {selected.length === 0 ? (
-            <div className="footer-no-cards">Select cards to preview</div>
+            <div className="footer-no-cards"></div>
           ) : (
             selected.map(num => {
               const card = PREDEFINED_CARDS[num] || [];
