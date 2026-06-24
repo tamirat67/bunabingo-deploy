@@ -1731,11 +1731,11 @@ export async function joinGame(
                       totalPrize: updatedPrize.totalPrize,
                       serverTime: Date.now(),
                     }),
-                    triggerGameEvent(game.roomId, 'player-count-update', { playerCount: fullCount }),
+                    triggerGameEvent(game.roomId, 'player-count-update', { playerCount: fullVisible.length }),
                   ]);
 
                   // Start the proper 50s countdown — ticks every second, game launches at 0s
-                  await startCountdown(gameId, fullCount);
+                  await startCountdown(gameId, fullVisible.length);
                 } catch (e) {
                   gamesWithBotsInjectedPublic.delete(gameId);
                   logger.error('[HouseBot] Bot injection / auto-start error:', e);
