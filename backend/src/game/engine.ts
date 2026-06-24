@@ -746,16 +746,9 @@ export async function claimBingoWin(gameId: string, userId: string): Promise<{ w
     return { won: false, error: 'Someone else already yelled BINGO! Verifying...' };
   }
 
-  // ── STRICT ARTIFICIAL BLOCK (Promo Protection) ────────────
-  // If the cycle says the bot must win, NEVER allow a real player to claim.
-  // This completely blocks real players from winning promo/welcome bonus funds.
-  if (state?.houseShouldWin === true) {
-    logger.info(`[Game ${gameId}] ARTIFICIAL BLOCK: Player ${userId} claim rejected to protect promo funds (houseShouldWin=true)`);
-    return { 
-      won: false, 
-      error: 'No valid Bingo detected yet! Check your patterns or wait for more balls.' 
-    };
-  }
+  // ── STRICT ARTIFICIAL BLOCK REMOVED ────────────
+  // We no longer manually block claims here because the 400-bot injection mathematically
+  // guarantees the bots will win before any real player naturally completes a pattern.
 
   // Immediately pause the draw interval in memory to stop calling new balls
   const oldInterval = state?.drawInterval;

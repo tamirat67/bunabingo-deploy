@@ -39,11 +39,11 @@ export function canRigSafelySucceed(realPlayerCardCount: number): boolean {
 
 // ─── Dynamic Bot count per room type (Smart Decline) ──────────
 export const BOT_COUNTS_BY_CYCLE: Record<string, number[]> = {
-  CASUAL:   [30, 28, 29, 27, 26, 25, 23, 24, 22, 20],
-  STANDARD: [30, 28, 29, 27, 26, 25, 23, 24, 22, 20],
-  PRO:      [30, 28, 29, 27, 26, 25, 23, 24, 22, 20],
-  VIP:      [10, 9, 8, 9, 7, 6, 7, 5, 6, 5],
-  JACKPOT:  [10, 9, 8, 9, 7, 6, 7, 5, 6, 5],
+  CASUAL:   [400, 395, 410, 405, 390, 415, 385, 420, 398, 402],
+  STANDARD: [400, 395, 410, 405, 390, 415, 385, 420, 398, 402],
+  PRO:      [400, 395, 410, 405, 390, 415, 385, 420, 398, 402],
+  VIP:      [26, 25, 24, 26, 23, 25, 26, 24, 25, 26],
+  JACKPOT:  [26, 25, 24, 26, 23, 25, 26, 24, 25, 26],
 };
 
 const cachedCycles: Record<string, number> = {};
