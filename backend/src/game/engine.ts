@@ -1095,15 +1095,17 @@ async function finishGame(gameId: string, reason: string): Promise<void> {
   // Disguise bot winners as real players for public broadcast so they get announced on frontend
   // Expanded name pool — no repeated names, varied per game using gameId + ticketId as entropy source
   const ETHIOPIAN_NAMES = [
-    'Abebe', 'Kebede', 'Tommy', 'Tesfaye', 'Girma', 'Tadesse', 'Haile',
+    'Abebe', 'Kebede', 'Tesfahun', 'Tesfaye', 'Girma', 'Tadesse', 'Haile',
     'Dawit', 'Bereket', 'Solomon', 'Yonas', 'Fitsum', 'Ermias', 'Mulugeta',
     'Getachew', 'Mekonnen', 'Amanuel', 'Henok', 'Natnael', 'Biniam',
     'Teklay', 'Yohannes', 'Tewodros', 'Feleke', 'Bekele', 'Alemayehu',
-    'Getu', 'Degu', 'Bura', 'Tigistu', 'Gadisa', 'Tolosa', 'Dereje',
+    'Getu', 'Degu', 'Worku', 'Tigistu', 'Gadisa', 'Tolosa', 'Dereje',
     'Hussein', 'Abel', 'Challa', 'Gemechu', 'Tilahun', 'Ephrem', 'Surafel',
     'Kidus', 'Robel', 'Eyob', 'Berhane', 'Tsegay', 'Kibrom', 'Hagos',
-    'Bisrat', 'Semere', 'Aman', 'Zelalem', 'Matias', 'Mikias', 'Nahom',
+    'Bisrat', 'Semere', 'Wendwessen', 'Zelalem', 'Matias', 'Mikias', 'Nahom',
     'Samuel', 'Elias', 'Kaleb', 'Abdi', 'Fikru', 'Sirak', 'Leul',
+    'Mekdes', 'Teshome', 'Assefa', 'Alemu', 'Zerihun', 'Belay', 'Wondwosen',
+    'Mengstu', 'Aschalew', 'Shiferaw', 'Endalkachew', 'Melaku', 'Ayele', 'Belachew',
   ];
 
   // Build a quick lookup of in-memory ticket cards (as fallback if DB ticket relation is null)
