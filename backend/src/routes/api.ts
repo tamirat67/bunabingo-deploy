@@ -809,7 +809,7 @@ router.get('/games/:gameId', async (req: Request, res: Response) => {
         'Kidus', 'Robel', 'Eyob', 'Berhane', 'Tsegay', 'Kibrom', 'Hagos',
         'Bisrat', 'Semere', 'Wendwessen', 'Zelalem', 'Matias', 'Mikias', 'Nahom',
         'Samuel', 'Elias', 'Kaleb', 'Abdi', 'Fikru', 'Sirak', 'Leul',
-        'Mekdes', 'Teshome', 'Assefa', 'Alemu', 'Zerihun', 'Belay', 'Wondwosen',
+        'Desalegn', 'Teshome', 'Assefa', 'Alemu', 'Zerihun', 'Belay', 'Wondwosen',
         'Mengstu', 'Aschalew', 'Shiferaw', 'Endalkachew', 'Melaku', 'Ayele', 'Belachew',
       ];
       let nameHash = 0;
@@ -944,7 +944,7 @@ router.get('/leaderboard', async (req: Request, res: Response) => {
           'Kidus', 'Robel', 'Eyob', 'Berhane', 'Tsegay', 'Kibrom', 'Hagos',
           'Bisrat', 'Semere', 'Wendwessen', 'Zelalem', 'Matias', 'Mikias', 'Nahom',
           'Samuel', 'Elias', 'Kaleb', 'Abdi', 'Fikru', 'Sirak', 'Leul',
-          'Mekdes', 'Teshome', 'Assefa', 'Alemu', 'Zerihun', 'Belay', 'Wondwosen',
+          'Desalegn', 'Teshome', 'Assefa', 'Alemu', 'Zerihun', 'Belay', 'Wondwosen',
           'Mengstu', 'Aschalew', 'Shiferaw', 'Endalkachew', 'Melaku', 'Ayele', 'Belachew',
         ];
         let nameHash = 0;
