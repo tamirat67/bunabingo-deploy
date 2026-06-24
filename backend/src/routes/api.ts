@@ -672,7 +672,8 @@ router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
     const botUserIds = new Set(tickets.filter(t => t.user?.isBot).map(t => t.userId));
     const playerCount = realUserIds.size + botUserIds.size;
     
-    const { getExpectedBotCount, getVisibleTickets } = await import('../game/engine');
+    const { getVisibleTickets } = await import('../game/engine');
+    const { getExpectedBotCount } = await import('../services/houseBot.service');
     const { getReservedCardIds } = await import('../lib/cardReservations');
 
     // visibleTicketCount matches the count used in recalculateGamePrizePool so
