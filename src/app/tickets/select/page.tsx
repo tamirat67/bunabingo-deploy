@@ -396,9 +396,10 @@ function SelectionContent() {
   }, [isGameRunning, botCountForRoom, countdown]);
 
   // ── Player count drip-in: show players joining one-by-one ────────────────────
-  // Whenever the backend-derived target changes, tick dripPlayerCount toward it
-  // one player at a time (600ms interval). If game starts or countdown is near
-  // zero, snap immediately to the target so there's no stale low number shown.
+  // Drip speed adapts to urgency:
+  //   • No countdown   → 600ms per player (relaxed)
+  //   • Countdown > 2s → 80ms  per player (fast — finishes well before game starts)
+  //   • ≤ 2s or running → snap immediately to target
   useEffect(() => {
     // Compute backend target from available state (mirrors render-time calculation)
     const base = visibleTicketCount > 0 ? visibleTicketCount : (ticketCount > 0 ? ticketCount : 0);
@@ -423,14 +424,16 @@ function SelectionContent() {
       return;
     }
 
-    // Drip one player at a time every 600ms
+    // Adaptive speed: fast when countdown is ticking, slow while waiting
+    const interval = (countdown !== null && countdown > 2) ? 80 : 600;
+
     const timer = setInterval(() => {
       setDripPlayerCount(prev => {
         const t = targetPlayerCountRef.current;
         if (prev >= t) { clearInterval(timer); return t; }
         return prev + 1;
       });
-    }, 600);
+    }, interval);
 
     return () => clearInterval(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
