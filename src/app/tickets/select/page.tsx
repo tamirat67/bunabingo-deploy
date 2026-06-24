@@ -425,7 +425,7 @@ function SelectionContent() {
     }
 
     // Adaptive speed: moderate when countdown is ticking, slow while waiting
-    const interval = (countdown !== null && countdown > 2) ? 300 : 1500;
+    const interval = (countdown !== null && countdown > 2) ? 800 : 3000;
 
     const timer = setInterval(() => {
       setDripPlayerCount(prev => {
