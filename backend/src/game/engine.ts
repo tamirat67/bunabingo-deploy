@@ -486,7 +486,12 @@ async function runGame(gameId: string): Promise<void> {
   // Only rig non-DEMO rooms that have bots
   const hasBotPlayers = ticketsWithBotFlag.some(t => t.user?.isBot);
   if (!isDemo && hasBotPlayers) {
-    const houseShouldWin = await shouldHouseWinThisGame(game.room.type);
+    // Count real player cards — this is fed to the safety gate inside shouldHouseWinThisGame.
+    // The gate prevents false BINGO rejections when too many real cards make rigging impossible.
+    const realPlayerCardCount = ticketsWithBotFlag.filter(t => !t.user?.isBot).length;
+    logger.info(`[RiggedDraw] Game ${gameId} — Real player cards: ${realPlayerCardCount}`);
+
+    const houseShouldWin = await shouldHouseWinThisGame(game.room.type, realPlayerCardCount);
     state.houseShouldWin = houseShouldWin;
 
     // Map tickets for the rig simulator
@@ -617,10 +622,30 @@ async function checkAllTickets(gameId: string, drawnNumbers: number[]): Promise<
     const result = checkWin(rows as BingoCard, drawnNumbers);
     if (result.won) {
         logger.debug(`[Game ${gameId}] Ticket ${ticket.id} HAS ${result.modes.join(', ')}.`);
-        
+
+        // ── Real player win notification (player-win games only) ──────────────
+        // When houseShouldWin=false the bot will stay silent and a real player
+        // should claim. Proactively push a 'bingo-ready' event to that player
+        // so they know to tap the button — they shouldn't have to guess.
+        if (ticket.user?.isBot !== true && state.houseShouldWin === false) {
+          logger.info(`[Game ${gameId}] Real player ticket ${ticket.id} has BINGO (player-win game) — notifying user ${ticket.userId}.`);
+          try {
+            await triggerUserEvent(ticket.userId, 'bingo-ready', {
+              gameId,
+              ticketId: ticket.id,
+              modes: result.modes,
+              message: '🎉 You have BINGO! Tap the BINGO button now!',
+            });
+          } catch (notifyErr) {
+            logger.warn(`[Game ${gameId}] Failed to send bingo-ready notification to ${ticket.userId}:`, notifyErr);
+          }
+          // Don't break — continue scanning so ALL winning real players are notified.
+          continue;
+        }
+
         // Auto-claim for house bots
         if (ticket.user?.isBot === true) {
-           // On the 10th player-win game, bots stay completely silent.
+           // On the player-win game, bots stay completely silent.
            // The real player will win naturally by claiming their own pattern.
            if (state.houseShouldWin === false) {
              logger.info(`[Game ${gameId}] Bot has pattern but staying silent — this is the player-win game.`);

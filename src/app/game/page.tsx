@@ -102,6 +102,7 @@ function GameContent() {
   const [claiming,      setClaiming]      = useState(false);
   const [gameEnded,     setGameEnded]     = useState(false); // set true the instant game-finished fires
   const [calledHistory, setCalledHistory] = useState<number[]>([]);
+  const [bingoReadyTickets, setBingoReadyTickets] = useState<Set<string>>(new Set());
 
   const toastTimer           = useRef<any>(null);
   const lastStartAudioPlayed = useRef<number>(0);
@@ -744,20 +745,37 @@ function GameContent() {
       clearTimeout(claimTimeoutRef.current);
       setClaiming(false);
       const msg = err.message || '';
-      const isTooEarlyMsg = msg.toLowerCase().includes('wait') || msg.toLowerCase().includes('minimum');
+      const isTooEarlyMsg = msg.toLowerCase().includes('still too early') || msg.toLowerCase().includes('wait') || msg.toLowerCase().includes('minimum');
       const isAlreadyWon  = msg.toLowerCase().includes('already won') || msg.toLowerCase().includes('finished') || msg.toLowerCase().includes('not running');
       const isSomeoneElseClaimed = msg.toLowerCase().includes('someone else') || msg.toLowerCase().includes('verifying');
+      const isKeepWaiting = msg.toLowerCase().includes('keep watching') || msg.toLowerCase().includes('more numbers are coming');
       if (isAlreadyWon || gameEnded) {
         // Game ended before claim was processed — show clear friendly message
         showAlert('ጨዋታ ተጠናቀቀ', 'Another player won this round. Better luck next time! 🍀', 'info');
       } else if (isSomeoneElseClaimed) {
         // Explicitly show honest error message for the race condition
         showAlert(t('bingoClaimTitle') as string, t('bingoAlreadyClaimed') as string, 'info');
-      } else if (!isTooEarlyMsg) {
+      } else if (isTooEarlyMsg || isKeepWaiting) {
+        // Absorbed silently — just re-enable the button so they can try again
+        // Don't show a dialog: these are honest "not yet" cases, not card errors
+      } else {
         // Only show a dialog for genuine pattern errors — not for house secrets
         showAlert(t('bingoClaimTitle') as string, msg || t('noBingoYetCheck') as string, 'info');
       }
-      // isTooEarlyMsg is absorbed silently: revealing the minimum is a house secret
+    });
+
+    // ── bingo-ready: server tells this player their card just completed a pattern ──
+    // Fires only on player-win games (houseShouldWin=false) when the safety gate
+    // allowed a real player to win. Make the button pulse orange instead of showing a modal.
+    socket.on('bingo-ready', (d: any) => {
+      if (d.gameId !== gameId) return; // guard: belongs to THIS game
+      if (d.ticketId) {
+        setBingoReadyTickets(prev => {
+          const newSet = new Set(prev);
+          newSet.add(d.ticketId);
+          return newSet;
+        });
+      }
     });
 
     // Re-join and reload after reconnect (handles VPS socket drops)
@@ -778,6 +796,7 @@ function GameContent() {
       socket.off('player-left');
       socket.off('claim-success');
       socket.off('claim-error');
+      socket.off('bingo-ready');
       socket.off('connect');
       // Cancel any pending start-audio schedule on unmount / game change
       if (startAudioScheduled.current) clearTimeout(startAudioScheduled.current);
@@ -1524,7 +1543,14 @@ function GameContent() {
                 {/* Per-card BINGO! Action Claim Button */}
                 <div style={{ padding: '0 5px 6px 5px' }}>
                   <motion.button
-                    whileHover={game?.status === 'RUNNING' && !claiming ? { scale: 1.02 } : {}}
+                    animate={bingoReadyTickets.has(t.id) && game?.status === 'RUNNING' && !claiming ? { 
+                      scale: [1, 1.05, 1], 
+                      boxShadow: isVip 
+                        ? ["0px 0px 0px rgba(255,215,0,0)", "0px 0px 15px rgba(255,215,0,1)", "0px 0px 0px rgba(255,215,0,0)"]
+                        : ["0px 0px 0px rgba(243,156,18,0)", "0px 0px 15px rgba(243,156,18,1)", "0px 0px 0px rgba(243,156,18,0)"]
+                    } : undefined}
+                    transition={bingoReadyTickets.has(t.id) && game?.status === 'RUNNING' && !claiming ? { repeat: Infinity, duration: 1 } : undefined}
+                    whileHover={game?.status === 'RUNNING' && !claiming && !bingoReadyTickets.has(t.id) ? { scale: 1.02 } : {}}
                     whileTap={game?.status === 'RUNNING' && !claiming ? { scale: 0.94 } : {}}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -1553,7 +1579,7 @@ function GameContent() {
                       gap: '6px',
                     }}
                   >
-                    {claiming ? '⏳ CLAIMING...' : `☕ BINGO! (${cardId})`}
+                    {claiming ? '⏳ CLAIMING...' : (bingoReadyTickets.has(t.id) ? `🔥 CLAIM BINGO! (${cardId})` : `☕ BINGO! (${cardId})`)}
                   </motion.button>
                 </div>
               </div>

@@ -18,6 +18,25 @@ import { PREDEFINED_CARDS } from '../lib/predefinedCards';
 // Dynamic house bot win cycle logic (e.g. 9/10, 8/10, 5/10)
 const CYCLE_LENGTH = 10;
 
+// ─── Safety Gate Threshold ────────────────────────────────────
+// When real player card count EXCEEDS this number, the rig sequence
+// builder cannot mathematically guarantee blocking all players.
+// Rather than silently fail (causing false BINGO rejections), we let
+// one game be a real player win. House still wins the vast majority.
+const RIG_SAFETY_CARD_THRESHOLD = 20;
+
+/**
+ * Returns true if the house-win rig is mathematically feasible
+ * for the given number of real player cards.
+ *
+ * With many real player cards spread across 1–75, it becomes impossible
+ * to draw 15+ numbers without some card completing a row/column/diagonal.
+ * Beyond the threshold we stop trying to rig and let the game run honest.
+ */
+export function canRigSafelySucceed(realPlayerCardCount: number): boolean {
+  return realPlayerCardCount <= RIG_SAFETY_CARD_THRESHOLD;
+}
+
 // ─── Dynamic Bot count per room type (Smart Decline) ──────────
 export const BOT_COUNTS_BY_CYCLE: Record<string, number[]> = {
   CASUAL:   [30, 28, 29, 27, 26, 25, 23, 24, 22, 20],
@@ -54,7 +73,28 @@ const gamesWithBotsInjected = new Set<string>();
  * Check if the current cycle says the house should win this game.
  * Resets the cycle after every 10 games.
  */
-export async function shouldHouseWinThisGame(roomType: string): Promise<boolean> {
+export async function shouldHouseWinThisGame(
+  roomType: string,
+  realPlayerCardCount: number = 0
+): Promise<boolean> {
+  // ─── SAFETY GATE (checked FIRST, before any quota logic) ────────────────
+  // If there are too many real player cards, the deterministic rig algorithm
+  // cannot build a valid number sequence that blocks all real players.
+  // Attempting to rig will fail silently, causing valid BINGO claims to be
+  // rejected — which makes players rightfully angry.
+  //
+  // Solution: when the rig is mathematically impossible, yield this game
+  // as a player-win. The cycle records it normally so the house regains
+  // its quota advantage in the very next game.
+  if (!canRigSafelySucceed(realPlayerCardCount)) {
+    logger.info(
+      `[HouseBot] Safety Gate TRIGGERED for ${roomType}: ` +
+      `${realPlayerCardCount} real cards > threshold ${RIG_SAFETY_CARD_THRESHOLD}. ` +
+      `Rig is mathematically impossible — yielding player win to prevent false BINGO rejections.`
+    );
+    return false;
+  }
+
   // ─── DB CONFIG ───
   // Read dynamic win rate settings from DB
   let settings = await prisma.houseSettings.findUnique({ where: { id: 1 } });
