@@ -592,6 +592,7 @@ function GameContent() {
         setGame((prev: any) => prev ? {
           ...prev,
           ticketCount: d.ticketCount ?? prev.ticketCount,
+          visibleTicketCount: d.ticketCount ?? prev.visibleTicketCount,
           totalPrize: d.totalPrize ?? prev.totalPrize,
         } : prev);
       }
@@ -682,6 +683,18 @@ function GameContent() {
 
       // ── Immediately lock the BINGO button before anything else ──
       setGameEnded(true);
+      // ── Fetch fresh game data in background (updates card/prize if server has more details) ──
+      getGame(gameId).then((d: any) => {
+        if (!isMounted.current) return;
+        setGame((p: any) => p ? {
+          ...p,
+          playerCount: d.playerCount !== undefined ? d.playerCount : p.playerCount,
+          ticketCount: d.ticketCount !== undefined ? d.ticketCount : p.ticketCount,
+          visibleTicketCount: d.visibleTicketCount !== undefined ? d.visibleTicketCount : p.visibleTicketCount,
+          totalPrize: d.totalPrize || p.totalPrize,
+          houseEdge: d.houseEdge || p.houseEdge,
+        } : p);
+      }).catch(() => {});
 
       // ── Play stop.mp3, then show winner modal as soon as it finishes ──
       // Winner data is already built — we just wait for the audio to complete.
@@ -718,6 +731,7 @@ function GameContent() {
           ...p,
           playerCount: d.playerCount !== undefined ? d.playerCount : p.playerCount,
           ticketCount: d.ticketCount !== undefined ? d.ticketCount : p.ticketCount,
+          visibleTicketCount: d.ticketCount !== undefined ? d.ticketCount : p.visibleTicketCount,
           totalPrize: d.totalPrize || p.totalPrize,
         };
       });
@@ -730,6 +744,7 @@ function GameContent() {
           ...p,
           playerCount: d.playerCount !== undefined ? d.playerCount : p.playerCount,
           ticketCount: d.ticketCount !== undefined ? d.ticketCount : p.ticketCount,
+          visibleTicketCount: d.ticketCount !== undefined ? d.ticketCount : p.visibleTicketCount,
           totalPrize: d.totalPrize || p.totalPrize,
         };
       });
@@ -1062,15 +1077,18 @@ function GameContent() {
   const GUARANTEED_PRIZES: Record<string, number> = { CASUAL: 50, STANDARD: 100, PRO: 250, JACKPOT: 500, VIP: 1000 };
   const roomTypeName = game?.room?.type || spType || 'STANDARD';
 
-  // allCards: prefer the backend's real ticket count
-  // Fallback: our own tickets length + a small bot estimate — only when API hasn't loaded yet
+  // allCards: prefer the backend's visible ticket count (matches prize pool).
+  // game.visibleTicketCount = real players + capped visible bots (max 30 for CASUAL).
+  // game.ticketCount = RAW total (all 400+ bots) — never use for display.
   const BOT_COUNTS_FRONTEND: Record<string, number> = { CASUAL: 30, STANDARD: 30, PRO: 30, JACKPOT: 10, VIP: 20 };
   const fallbackBotCount = BOT_COUNTS_FRONTEND[roomTypeName] ?? 30;
   const fallbackCards = fallbackBotCount + tickets.length;
-  // PRIORITY: game.ticketCount is set by the backend explicitly
-  const allCards = game?.ticketCount && game.ticketCount > 0
-    ? game.ticketCount
-    : (fallbackCards || 1);
+  // PRIORITY: visibleTicketCount → game.ticketCount → fallback
+  const allCards = (game?.visibleTicketCount && game.visibleTicketCount > 0)
+    ? game.visibleTicketCount
+    : (game?.ticketCount && game.ticketCount > 0)
+      ? game.ticketCount
+      : (fallbackCards || 1);
   const totalStake = isDemo ? 0 : allCards * stake;
 
   const minPrize = GUARANTEED_PRIZES[roomTypeName] || 50;

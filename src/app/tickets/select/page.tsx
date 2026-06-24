@@ -1257,17 +1257,20 @@ const balance = Number(user?.wallet?.balance || 0);
   // We ALWAYS use authoritative server data (ticketCount, totalPrize from DB/API).
   // This prevents stale simulated values from showing the wrong prize.
 
-  // PLAYERS: use visibleTicketCount (same count the backend uses for prize pool).
-  // This ensures PLAYERS display always matches the PRIZE shown.
-  const serverReportedTickets = Math.max(game?.ticketCount || 0, visibleTicketCount || 0);
+  // PLAYERS: visibleTicketCount is the PRIORITY — it matches exactly what the backend used
+  // to calculate totalPrize (real players + capped visible bots, max 30 for CASUAL).
+  // game.ticketCount / ticketCount from sockets = RAW total (all 400+ bots) — do NOT use for display.
+  const serverReportedTickets = visibleTicketCount > 0
+    ? visibleTicketCount
+    : (ticketCount > 0 ? ticketCount : 0);
   const serverReportedPlayers = Math.max(game?.playerCount || 0, playerCount || 0);
 
-  // Display player count = visible server ticket count (matches prize pool)
+  // Display player count = visible count (matches prize pool)
   const displayPlayerCount = serverReportedTickets > 0
     ? serverReportedTickets
     : (occupied.length + (selected.filter(id => !occupied.includes(id)).length));
 
-  // totalVisualCards: use live visible count — accurate for prize calculation
+  // totalVisualCards: always the visible count — accurate for prize calculation
   const totalVisualCards = serverReportedTickets > 0
     ? serverReportedTickets
     : displayPlayerCount;

@@ -1728,6 +1728,7 @@ export async function joinGame(
                   await Promise.all([
                     triggerGameEvent(gameId, 'player-joined', {
                       userId: 'bots',
+                      ticketCount: fullVisible.length,
                       totalPrize: updatedPrize.totalPrize,
                       serverTime: Date.now(),
                     }),
