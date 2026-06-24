@@ -54,6 +54,7 @@ function SelectionContent() {
   }, []);
   const [realPlayerCount, setRealPlayerCount] = useState(0);
   const [simulatedBotCount, setSimulatedBotCount] = useState(0);
+  const [dripPlayerCount, setDripPlayerCount] = useState(0);
   const [expectedBotCount, setExpectedBotCount] = useState<number | null>(null);
 
   // isInitializing: true until the very first getOccupiedCards call resolves.
@@ -119,6 +120,8 @@ function SelectionContent() {
   const winnerRedirectRef = useRef<any>(null);
   // Stored in ref so recursive calls never get a stale closure
   const playNextSelectBallRef = useRef<() => void>(() => { });
+  // Tracks the server-derived player count target for the drip-in animation
+  const targetPlayerCountRef = useRef<number>(0);
 
   const selectedRef = useRef<number[]>([]);
   const ownedRef = useRef<number[]>([]);
@@ -391,6 +394,47 @@ function SelectionContent() {
 
     return () => clearInterval(timer);
   }, [isGameRunning, botCountForRoom, countdown]);
+
+  // ── Player count drip-in: show players joining one-by-one ────────────────────
+  // Whenever the backend-derived target changes, tick dripPlayerCount toward it
+  // one player at a time (600ms interval). If game starts or countdown is near
+  // zero, snap immediately to the target so there's no stale low number shown.
+  useEffect(() => {
+    // Compute backend target from available state (mirrors render-time calculation)
+    const base = visibleTicketCount > 0 ? visibleTicketCount : (ticketCount > 0 ? ticketCount : 0);
+    const backendP = game?.totalPrize && Number(game.totalPrize) > 0 ? Number(game.totalPrize) : 0;
+    const GPRIZES: Record<string, number> = { CASUAL: 50, STANDARD: 100, PRO: 250, JACKPOT: 500, VIP: 1000 };
+    const minP = GPRIZES[roomType] || 50;
+    let target = base > 0 ? base : (occupied.length + selected.length);
+    if (roomType !== 'DEMO' && backendP > 0) {
+      if (backendP > minP) {
+        target = Math.round(backendP / (stake * 0.70));
+      } else {
+        const maxC = Math.floor(minP / (stake * 0.70));
+        target = Math.min(base > 0 ? base : target, maxC);
+      }
+    }
+    if (target < selected.length) target = selected.length;
+    targetPlayerCountRef.current = target;
+
+    // Snap immediately when game is running or countdown almost done
+    if (isGameRunning || (countdown !== null && countdown <= 2)) {
+      setDripPlayerCount(target);
+      return;
+    }
+
+    // Drip one player at a time every 600ms
+    const timer = setInterval(() => {
+      setDripPlayerCount(prev => {
+        const t = targetPlayerCountRef.current;
+        if (prev >= t) { clearInterval(timer); return t; }
+        return prev + 1;
+      });
+    }, 600);
+
+    return () => clearInterval(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visibleTicketCount, ticketCount, game?.totalPrize, occupied.length, isGameRunning, countdown, stake, roomType]);
 
 
 
@@ -1548,7 +1592,7 @@ function SelectionContent() {
         <div className="capsule-white" style={{ position: 'relative', overflow: 'visible' }}>
           <div className="l">PLAYERS</div>
           <div className="v">
-            <span className="count-normal">{displayPlayerCount}</span>
+            <span className="count-normal">{dripPlayerCount}</span>
           </div>
         </div>
         {/* PRIZE capsule — number rolls up alongside player count */}
