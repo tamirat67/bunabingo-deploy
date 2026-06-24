@@ -92,6 +92,16 @@ function getCountdownSeconds(playerCount: number, roomType: string): number {
   return cdConfig.default ?? 30;
 }
 
+// ─── Visible Tickets Helper ───────────────────────────────────
+export function getVisibleTickets(allTickets: any[], roomType: string): any[] {
+  const realTix = allTickets.filter(t => !t.user?.isBot);
+  const botTix = allTickets.filter(t => t.user?.isBot);
+  const isVip = roomType === 'VIP' || roomType === 'JACKPOT';
+  const visibleBotCap = isVip ? 15 : 30;
+  const visibleBots = botTix.slice(0, visibleBotCap);
+  return [...realTix, ...visibleBots];
+}
+
 // ─── Start Countdown ──────────────────────────────────────────
 export async function startCountdown(gameId: string, playerCount: number): Promise<void> {
   const game = await prisma.game.findUnique({
@@ -409,7 +419,14 @@ async function runGame(gameId: string): Promise<void> {
   // ─── Mark game as RUNNING (both real and DEMO) ────────────────────────────
   // Re-fetch current ticket count from DB — this is the authoritative count AFTER any
   // insufficient-balance deletions in the charge loop above, and after any async bot injections.
-  const liveTicketCount = isDemo ? game.tickets.length : await prisma.ticket.count({ where: { gameId } });
+  let liveTicketCount = 0;
+  if (isDemo) {
+    liveTicketCount = game.tickets.length;
+  } else {
+    const allTix = await prisma.ticket.findMany({ where: { gameId }, include: { user: { select: { isBot: true } } } });
+    const visibleTix = getVisibleTickets(allTix, game.room.type);
+    liveTicketCount = visibleTix.length;
+  }
 
   // Prize pool = 70% of ALL tickets (real players + house bots both pay real money now)
   // House commission = 30% of ALL tickets
@@ -1231,7 +1248,10 @@ async function finishGame(gameId: string, reason: string): Promise<void> {
 export async function recalculateGamePrizePool(gameId: string, ticketPrice: Decimal | number): Promise<{ totalPrize: string; houseEdge: string }> {
   return await withRetry(async () => {
     return prisma.$transaction(async (tx) => {
-      const fullCount = await tx.ticket.count({ where: { gameId } });
+      const game = await tx.game.findUnique({ where: { id: gameId }, include: { room: true } });
+      const allTickets = await tx.ticket.findMany({ where: { gameId }, include: { user: { select: { isBot: true } } } });
+      const visibleTickets = getVisibleTickets(allTickets, game!.room.type);
+      const fullCount = visibleTickets.length;
       const houseEdgePercent = config.game.houseEdgePercent;
       
       const totalStakeAll = new Decimal(ticketPrice).mul(fullCount);
@@ -1478,10 +1498,13 @@ export async function joinGame(
       });
 
       // 6. Fetch all tickets for this game in a single query
-      const allTickets = await tx.ticket.findMany({ where: { gameId } });
-      const uniqueUsers = new Set(allTickets.map(t => t.userId));
+      const allTickets = await tx.ticket.findMany({ where: { gameId }, include: { user: { select: { isBot: true } } } });
+      const gameObj = await tx.game.findUnique({ where: { id: gameId }, include: { room: true } });
+      const visibleTickets = getVisibleTickets(allTickets, gameObj!.room.type);
+      
+      const uniqueUsers = new Set(visibleTickets.map(t => t.userId));
       const pCount = uniqueUsers.size;
-      const tCount = allTickets.length;
+      const tCount = visibleTickets.length; // UI shows visible tickets only
 
       // 7. Calculate & Update prize pool (All tickets — real + bots — contribute equally.
       //    Bots are now charged real money from SystemWallet in runGame(), so the prize
@@ -1694,7 +1717,8 @@ export async function joinGame(
                   const takenCardIds = currentTickets.map(t => (t.card as any).id as number);
 
                   await injectBotTickets(gameId, game.room.type, takenCardIds);
-                  const fullCount = await prisma.ticket.count({ where: { gameId } });
+                  const fullTickets = await prisma.ticket.findMany({ where: { gameId }, include: { user: { select: { isBot: true } } } });
+                  const fullVisible = getVisibleTickets(fullTickets, game.room.type);
                   const botCount = expectedBots;
                   
                   const updatedPrize = await recalculateGamePrizePool(gameId, game.room.ticketPrice);
@@ -1704,9 +1728,6 @@ export async function joinGame(
                   await Promise.all([
                     triggerGameEvent(gameId, 'player-joined', {
                       userId: 'bots',
-                      playerCount: fullCount,
-                      numTickets: botCount,
-                      ticketCount: fullCount, // ensure ticketCount explicitly sent too
                       totalPrize: updatedPrize.totalPrize,
                       serverTime: Date.now(),
                     }),
@@ -1763,8 +1784,9 @@ export async function leaveGame(userId: string, gameId: string): Promise<void> {
     await tx.ticket.deleteMany({ where: { userId, gameId } });
 
     // 3. Recalculate Prize Pool
-    const allTickets = await tx.ticket.findMany({ where: { gameId } });
-    const tCount = allTickets.length;
+    const allTickets = await tx.ticket.findMany({ where: { gameId }, include: { user: { select: { isBot: true } } } });
+    const visibleTickets = getVisibleTickets(allTickets, game.room.type);
+    const tCount = visibleTickets.length;
     const houseEdgePercent = config.game.houseEdgePercent;
     const totalSales = new Decimal(game.room.ticketPrice).mul(tCount);
     const houseEdge = totalSales.mul(houseEdgePercent).div(100);
