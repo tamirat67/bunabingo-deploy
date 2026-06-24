@@ -1825,39 +1825,7 @@ const balance = Number(user?.wallet?.balance || 0);
 
       <div style={{ height: '250px' }} />
 
-      {/* ── Footer ── */}
-      <div 
-        className="selection-footer-smart"
-        style={{
-          background: isDark ? 'rgba(15, 20, 25, 0.15)' : 'rgba(232, 220, 196, 0.15)',
-          backdropFilter: 'blur(3px)',
-          WebkitBackdropFilter: 'blur(3px)',
-        }}
-      >
-        <div className="footer-cards-scroll">
-          {selected.length === 0 ? (
-            <div className="footer-no-cards"></div>
-          ) : (
-            selected.map(num => {
-              const card = PREDEFINED_CARDS[num] || [];
-              return (
-                <div key={num} className="footer-card-item">
-                  <div className="flp-title">#{num}</div>
-                  <div className="pc-mini-grid">
-                    {card.map((row, ri) => row.map((cell: any, ci) => (
-                      <div key={`${ri}-${ci}`} className={`pc-mini-cell ${cell === 0 ? 'star' : ''}`}>
-                        {cell === 0 ? '★' : cell}
-                      </div>
-                    )))}
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
 
-
-      </div>
 
       {/* banner removed — mask is now inside grid-brown above */}
 
