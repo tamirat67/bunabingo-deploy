@@ -1661,7 +1661,7 @@ function SelectionContent() {
               textShadow: `0 0 20px ${urgencyColor}66`,
             }}
           >
-            <span className="count-normal">{prize.toFixed(0)} ETB</span>
+            <span className="count-normal">{dripPrize} ETB</span>
           </div>
         </div>
 
