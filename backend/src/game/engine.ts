@@ -407,6 +407,10 @@ async function runGame(gameId: string): Promise<void> {
   }
 
   // ─── Mark game as RUNNING (both real and DEMO) ────────────────────────────
+  // Re-fetch current ticket count from DB — this is the authoritative count AFTER any
+  // insufficient-balance deletions in the charge loop above, and after any async bot injections.
+  const liveTicketCount = isDemo ? game.tickets.length : await prisma.ticket.count({ where: { gameId } });
+
   // Prize pool = 70% of ALL tickets (real players + house bots both pay real money now)
   // House commission = 30% of ALL tickets
   // Agent pre-deposit covers company commission (20%) from real player stakes only
@@ -418,9 +422,8 @@ async function runGame(gameId: string): Promise<void> {
     displayPrizePool = new Decimal(100);
     displayHouseEdge = new Decimal(0);
   } else {
-    // All tickets (real + bots) contribute to the prize pool — bots now pay real money
-    const totalTicketsCount = game.tickets.length;
-    const totalStake = new Decimal(unitPrice).mul(totalTicketsCount);
+    // Use liveTicketCount — correctly reflects ALL tickets (real + bots) after all async ops settle
+    const totalStake = new Decimal(unitPrice).mul(liveTicketCount);
     
     displayHouseEdge = totalStake.mul(houseEdgePercent).div(100);
     const calculatedPrizePool = totalStake.sub(displayHouseEdge); // 70% of all tickets
@@ -430,7 +433,7 @@ async function runGame(gameId: string): Promise<void> {
     
     displayPrizePool = Decimal.max(new Decimal(minPrize), calculatedPrizePool);
     
-    logger.info(`[Game ${gameId}] Cards: ${totalTicketsCount} (${realPlayerCount} real + ${totalTicketsCount - realPlayerCount} bots) × ${unitPrice} ETB | Prize Pool: ${displayPrizePool} ETB | House Edge: ${displayHouseEdge} ETB`);
+    logger.info(`[Game ${gameId}] Cards: ${liveTicketCount} (${realPlayerCount} real + ${liveTicketCount - realPlayerCount} bots) × ${unitPrice} ETB | Prize Pool: ${displayPrizePool} ETB | House Edge: ${displayHouseEdge} ETB`);
   }
 
   await prisma.game.update({
@@ -460,8 +463,17 @@ async function runGame(gameId: string): Promise<void> {
     activeGames.set(gameId, state);
   }
 
-  await triggerGameEvent(gameId, 'game-started', { gameId, playerCount: game.tickets.length, prizePool: displayPrizePool.toFixed(2), serverTime: Date.now() });
-  logger.info(`[Game ${gameId}] Game RUNNING with ${ticketCount} tickets (real + bots). Prize pool: ${displayPrizePool} ETB (75% of all stakes)`);
+  // Broadcast game-started with accurate, final ticket count and prize pool
+  await triggerGameEvent(gameId, 'game-started', {
+    gameId,
+    playerCount: liveTicketCount,
+    ticketCount: liveTicketCount,
+    totalPrize: displayPrizePool.toFixed(0),
+    prizePool: displayPrizePool.toFixed(2),
+    serverTime: Date.now()
+  });
+  logger.info(`[Game ${gameId}] Game RUNNING with ${liveTicketCount} tickets (real + bots). Prize pool: ${displayPrizePool} ETB (70% of all stakes)`);
+
 
   // ─── Load tickets + Rig Draw Sequence (House Bot System) ────────────────────
   // Fetch all tickets including the isBot flag from the joined user
@@ -1184,6 +1196,27 @@ async function finishGame(gameId: string, reason: string): Promise<void> {
   await createWaitingGame(updatedGame.roomId);
 }
 
+// ─── Recalculate Prize Pool Helper ────────────────────────────
+export async function recalculateGamePrizePool(gameId: string, ticketPrice: Decimal | number): Promise<{ totalPrize: string; houseEdge: string }> {
+  return await withRetry(async () => {
+    return prisma.$transaction(async (tx) => {
+      const fullCount = await tx.ticket.count({ where: { gameId } });
+      const houseEdgePercent = config.game.houseEdgePercent;
+      
+      const totalStakeAll = new Decimal(ticketPrice).mul(fullCount);
+      const houseEdge = totalStakeAll.mul(houseEdgePercent).div(100);
+      const prizePool = totalStakeAll.sub(houseEdge);
+
+      await tx.game.update({
+        where: { id: gameId },
+        data: { totalPrize: prizePool, houseEdge: houseEdge }
+      });
+      
+      return { totalPrize: prizePool.toString(), houseEdge: houseEdge.toString() };
+    });
+  });
+}
+
 const createWaitingGameLocks = new Map<string, Promise<string>>();
 
 // ─── Create Waiting Game ──────────────────────────────────────
@@ -1236,6 +1269,8 @@ export async function createWaitingGame(roomId: string): Promise<string> {
             logger.info(`[Engine] Auto-injecting bots into new game ${newGame.id} (${room.type}).`);
             await injectBotTickets(newGame.id, room.type, []);
             fullCount = await prisma.ticket.count({ where: { gameId: newGame.id } });
+            
+            const updatedPrize = await recalculateGamePrizePool(newGame.id, room.ticketPrice);
             gamesWithBotsInjectedPublic.add(newGame.id);
 
             await Promise.all([
@@ -1244,6 +1279,7 @@ export async function createWaitingGame(roomId: string): Promise<string> {
                 playerCount: expectedBots, // Bots each have a unique user ID, so playerCount = expectedBots
                 numTickets: fullCount,
                 ticketCount: fullCount, // Explicitly separate ticketCount
+                totalPrize: updatedPrize.totalPrize,
                 serverTime: Date.now(),
               }),
               triggerGameEvent(room.id, 'player-count-update', { playerCount: expectedBots, ticketCount: fullCount }),
@@ -1499,6 +1535,8 @@ export async function joinGame(
                   const fullCount = await prisma.ticket.count({ where: { gameId } });
                   const botCount = expectedBots;
                   
+                  const updatedPrize = await recalculateGamePrizePool(gameId, checkGame.room.ticketPrice);
+                  
                   const uniqueUsers = await prisma.ticket.findMany({ where: { gameId }, select: { userId: true }, distinct: ['userId'] });
                   const pCountWithBots = uniqueUsers.length;
                   
@@ -1508,7 +1546,7 @@ export async function joinGame(
                       playerCount: pCountWithBots,
                       numTickets: botCount,
                       ticketCount: fullCount,
-                      totalPrize: checkGame.totalPrize.toString(),
+                      totalPrize: updatedPrize.totalPrize,
                       serverTime: Date.now(),
                     }),
                     triggerGameEvent(checkGame.roomId, 'player-count-update', { playerCount: pCountWithBots, ticketCount: fullCount }),
@@ -1627,6 +1665,9 @@ export async function joinGame(
                   await injectBotTickets(gameId, game.room.type, takenCardIds);
                   const fullCount = await prisma.ticket.count({ where: { gameId } });
                   const botCount = expectedBots;
+                  
+                  const updatedPrize = await recalculateGamePrizePool(gameId, game.room.ticketPrice);
+                  
                   logger.info(`[HouseBot] Real player joined. Injected ${botCount} bots. Starting 50s countdown for game ${gameId}.`);
 
                   await Promise.all([
@@ -1634,7 +1675,8 @@ export async function joinGame(
                       userId: 'bots',
                       playerCount: fullCount,
                       numTickets: botCount,
-                      totalPrize: totalPrize.toString(),
+                      ticketCount: fullCount, // ensure ticketCount explicitly sent too
+                      totalPrize: updatedPrize.totalPrize,
                       serverTime: Date.now(),
                     }),
                     triggerGameEvent(game.roomId, 'player-count-update', { playerCount: fullCount }),

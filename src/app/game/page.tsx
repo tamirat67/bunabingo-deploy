@@ -581,16 +581,26 @@ function GameContent() {
 
     socket.on('countdown-tick', onCountdownTick);
 
-    const onGameStarted = () => {
+    const onGameStarted = (d: any) => {
       // ✅ REAL-TIME: start.mp3 plays first, THEN loadData fetches balls and queues them one by one.
       setCountdown(null);
       setEndTime(null);
+      // Immediately patch game state with the final authoritative ticket count + prize
+      // so the CARDS and PRIZE header updates instantly when the game starts.
+      if (d?.ticketCount || d?.totalPrize) {
+        setGame((prev: any) => prev ? {
+          ...prev,
+          ticketCount: d.ticketCount ?? prev.ticketCount,
+          totalPrize: d.totalPrize ?? prev.totalPrize,
+        } : prev);
+      }
       playStartAudio(() => {
         loadData();
       });
     };
 
     socket.on('game-started', onGameStarted);
+
 
     const onGameFinished = (d: any) => {
       // ── Immediately stop the ball audio queue so no more balls are called ──

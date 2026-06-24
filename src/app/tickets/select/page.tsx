@@ -698,6 +698,20 @@ function SelectionContent() {
         }
       });
 
+      socket.on('player-joined', (d: any) => {
+        // Update ticket count and prize in real-time as players join
+        if (d.ticketCount !== undefined) {
+          setTicketCount(d.ticketCount);
+        }
+        if (d.playerCount !== undefined) {
+          setPlayerCount(d.playerCount);
+        }
+        // Update the game's totalPrize in real-time from the socket payload
+        if (d.totalPrize !== undefined) {
+          setGame((prev: any) => prev ? { ...prev, totalPrize: d.totalPrize, ticketCount: d.ticketCount ?? prev.ticketCount } : prev);
+        }
+      });
+
       socket.on('countdown-tick', (d: any) => {
         if (d.gameId && activeGameIdRef.current && d.gameId !== activeGameIdRef.current) return;
         let currentRem = 0;
@@ -1232,47 +1246,24 @@ const balance = Number(user?.wallet?.balance || 0);
 
   const isDark = activeThemeKey.includes('DARK') || activeThemeKey === 'GRAY';
 
-  // ─── Bot-Animated Player & Prize Calculations ────────────────────────────
-  // PLAYERS = server real count OR simulated bot drip (whichever is bigger)
-  // PRIZE   = PLAYERS × stake × 70%
-  const totalOccupiedList = Array.from(new Set([...occupied]));
-  const occupiedCount = totalOccupiedList.filter(id => !ownedCardIds.includes(id)).length;
+  // ─── Real-time Prize & Player Calculations ───────────────────────────────
+  // We ALWAYS use authoritative server data (ticketCount, totalPrize from DB/API).
+  // This prevents stale simulated values from showing the wrong prize.
 
-  // Server-reported real player total (real users)
-  const serverReportedPlayers = Math.max(game?.playerCount || 0, playerCount || 0);
+  // PLAYERS: real unique user count from server (bots + humans combined)
   const serverReportedTickets = Math.max(game?.ticketCount || 0, ticketCount || 0);
+  const serverReportedPlayers = Math.max(game?.playerCount || 0, playerCount || 0);
 
-  let displayPlayerCount;
-  
-  if (isGameRunning) {
-    displayPlayerCount = serverReportedPlayers;
-  } else {
-    // Instead of guessing real players from total player count, we just use the real numbers from the DB.
-    // If the API hasn't given us realPlayerCount yet, we fallback to 0.
-    const realPlayers = realPlayerCount || 0;
-    
-    // Add current user if they've bought/selected cards but the server hasn't counted them yet
-    const localHumanPending = (ownedCardIds.length > 0 || selected.length > 0) && realPlayers === 0 ? 1 : 0;
-    
-    // Smoothly animate bots up to limit, plus real humans
-    displayPlayerCount = simulatedBotCount + Math.max(realPlayers, localHumanPending);
-  }
+  // Display player count = real server ticket count (includes all bots + real players)
+  // During countdown: if the server hasn't reported yet, fall back to occupied card count
+  const displayPlayerCount = serverReportedTickets > 0
+    ? serverReportedTickets
+    : (occupied.length + (selected.filter(id => !occupied.includes(id)).length));
 
-  // Total cards = simulated bots (1 each) + real player cards taken so far
-  // Add `selected.length` if the user hasn't bought them yet to show accurate preview
-  let totalVisualCards = 0;
-  if (isGameRunning) {
-    totalVisualCards = serverReportedTickets;
-  } else {
-    const unboughtSelected = selected.filter(id => !ownedCardIds.includes(id)).length;
-    // occupied.length contains BOTH bot tickets and real player tickets.
-    // To preserve the smooth drip animation, we use simulatedBotCount for the bots,
-    // and extract the real player tickets by subtracting the total bot count.
-    const realPlayerTickets = Math.max(0, occupied.length - botCountForRoom);
-    totalVisualCards = simulatedBotCount + realPlayerTickets + unboughtSelected;
-    // Fallback if somehow it's less than players
-    totalVisualCards = Math.max(totalVisualCards, displayPlayerCount, serverReportedTickets);
-  }
+  // totalVisualCards: use live DB count — accurate for prize calculation
+  const totalVisualCards = serverReportedTickets > 0
+    ? serverReportedTickets
+    : displayPlayerCount;
 
   const totalStake = totalVisualCards * stake;
 
@@ -1282,11 +1273,12 @@ const balance = Number(user?.wallet?.balance || 0);
   const companyComm = Math.round(totalStake * 0.20);
   // Agent gets 10% of stake
   const agentComm = Math.round(totalStake * 0.10);
-  // Prize pool: 70% of total visual stake
-  const prize = Math.max(
-    game?.totalPrize && Number(game.totalPrize) > 0 ? Number(game.totalPrize) : 0,
-    Math.round(totalStake * 0.70)
-  );
+
+  // PRIZE: always use backend totalPrize as the primary source of truth.
+  // Fall back to computed 70% only when no backend value exists yet.
+  const backendPrize = game?.totalPrize && Number(game.totalPrize) > 0 ? Number(game.totalPrize) : 0;
+  const computedPrize = Math.round(totalStake * 0.70);
+  const prize = backendPrize > 0 ? backendPrize : computedPrize;
 
   const formatCountdown = (secs: number) => {
     const m = Math.floor(secs / 60);
