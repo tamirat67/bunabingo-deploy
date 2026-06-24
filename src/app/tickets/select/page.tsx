@@ -1354,6 +1354,11 @@ function SelectionContent() {
   // Agent gets 10% of stake
   const agentComm = Math.round(totalStake * 0.10);
 
+  // Prize that stays in sync with the drip animation:
+  // while players are counting up one-by-one, prize grows proportionally.
+  // Once drip reaches target, it equals the real backend prize.
+  const dripPrize = Math.round(dripPlayerCount * stake * 0.70);
+
   const formatCountdown = (secs: number) => {
     const m = Math.floor(secs / 60);
     const s = secs % 60;
@@ -1602,7 +1607,7 @@ function SelectionContent() {
         <div className="capsule-brown total-box">
           <div className="l" style={{ color: 'rgba(255,255,255,0.5)' }}>PRIZE</div>
           <div className="v">
-            <span className="count-normal">{prize.toFixed(0)}</span>
+            <span className="count-normal">{dripPrize}</span>
           </div>
         </div>
       </div>
