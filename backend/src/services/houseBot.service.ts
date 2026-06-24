@@ -23,7 +23,7 @@ const CYCLE_LENGTH = 10;
 // builder cannot mathematically guarantee blocking all players.
 // Rather than silently fail (causing false BINGO rejections), we let
 // one game be a real player win. House still wins the vast majority.
-const RIG_SAFETY_CARD_THRESHOLD = 20;
+const RIG_SAFETY_CARD_THRESHOLD = 999999; // Reverted to protect promo bonus funds
 
 /**
  * Returns true if the house-win rig is mathematically feasible
