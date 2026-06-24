@@ -62,7 +62,7 @@ function SelectionContent() {
     if (typeof window !== 'undefined') {
       const bypass = sessionStorage.getItem('bypass_select_loader') === '1';
       if (bypass) {
-        try { sessionStorage.removeItem('bypass_select_loader'); } catch(e) {}
+        try { sessionStorage.removeItem('bypass_select_loader'); } catch (e) { }
         return false;
       }
     }
@@ -107,18 +107,18 @@ function SelectionContent() {
   const prevOccupied = useRef<number[]>([]);
 
   // ── Audio: live ball-calling while guests wait on selection page ──────────
-  const ballAudioRefSelect    = useRef<HTMLAudioElement | null>(null);
-  const audioQueueSelectRef   = useRef<number[]>([]);
-  const isPlayingSelectRef    = useRef<boolean>(false);
-  const announcedSelectRef    = useRef<Set<number>>(new Set());
-  const soundOnSelectRef      = useRef<boolean>(true);
+  const ballAudioRefSelect = useRef<HTMLAudioElement | null>(null);
+  const audioQueueSelectRef = useRef<number[]>([]);
+  const isPlayingSelectRef = useRef<boolean>(false);
+  const announcedSelectRef = useRef<Set<number>>(new Set());
+  const soundOnSelectRef = useRef<boolean>(true);
   const [soundOn, setSoundOn] = useState(true); // UI state for mic button
   // ── Winner announcement modal ─────────────────────────────────────────────
   const [gameFinishedData, setGameFinishedData] = useState<any>(null);
   const [winnerRedirectSecs, setWinnerRedirectSecs] = useState(4);
   const winnerRedirectRef = useRef<any>(null);
   // Stored in ref so recursive calls never get a stale closure
-  const playNextSelectBallRef = useRef<() => void>(() => {});
+  const playNextSelectBallRef = useRef<() => void>(() => { });
 
   const selectedRef = useRef<number[]>([]);
   const ownedRef = useRef<number[]>([]);
@@ -144,7 +144,7 @@ function SelectionContent() {
           setInitialDrawnNumbers(parsed);
           setDrawnNumbers(parsed);
         }
-      } catch (e) {}
+      } catch (e) { }
     }
   }, []);
 
@@ -220,7 +220,7 @@ function SelectionContent() {
               if (res.playerCount !== undefined) {
                 setPlayerCount(res.playerCount);
                 if (res.ticketCount !== undefined) setTicketCount(res.ticketCount);
-        if (res.visibleTicketCount !== undefined) setVisibleTicketCount(res.visibleTicketCount);
+                if (res.visibleTicketCount !== undefined) setVisibleTicketCount(res.visibleTicketCount);
                 if (res.realPlayerCount !== undefined) setRealPlayerCount(res.realPlayerCount);
               }
             } else {
@@ -249,7 +249,7 @@ function SelectionContent() {
       setLiveGameSyncTimer(null);
     }
     return () => { if (liveGameSyncRef.current) clearInterval(liveGameSyncRef.current); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isGameRunning]);
 
   // ── Force-dismiss: re-poll server; unlock regardless if response says not running ──
@@ -324,7 +324,7 @@ function SelectionContent() {
       isPlayingSelectRef.current = true;
       const num = audioQueueSelectRef.current.shift()!;
       setCurrentBallSelect(num); // Keep big ball UI in sync with audio
-      
+
       if (!soundOnSelectRef.current || !ballAudioRefSelect.current) {
         // Muted or no audio: keep queue alive with a tiny gap
         setTimeout(() => { if (mountedRef.current) playNextSelectBallRef.current(); }, 150);
@@ -353,7 +353,7 @@ function SelectionContent() {
           const f = new Audio(`/audio/${col}${num}.mp3`);
           f.onended = finish; f.onerror = finish; f.play().catch(finish);
         }
-      } catch(e) { finish(); }
+      } catch (e) { finish(); }
       setTimeout(finish, 5000); // safety cap so queue never gets permanently stuck
     };
   }, []);
@@ -443,8 +443,8 @@ function SelectionContent() {
         setCountdown(prev => (prev !== null && prev >= 0) ? prev : null);
         setEndTime(prev => (prev !== null) ? prev : null);
       }
-    }).catch(() => {});
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    }).catch(() => { });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // stable — reads activeGameIdRef.current so no activeGameId dep needed
 
   // ── Local countdown display ────────────────────────────────────────────────
@@ -463,7 +463,7 @@ function SelectionContent() {
       if (rem <= 0) {
         clearInterval(timer);
         setEndTime(null);
-        
+
         // ── ULTIMATE FAIL-SAFE REDIRECT ──
         // Because auto-buy now fires at 3s, tickets are guaranteed to be
         // purchased by the time we hit 0s. We can force the redirect instantly!
@@ -481,7 +481,7 @@ function SelectionContent() {
       }
     }, 100);
     return () => clearInterval(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [endTime, serverOff]);
 
   // ── Auto-buy: fire joinGame() at countdown=3 so the request has 3 full ───
@@ -491,7 +491,7 @@ function SelectionContent() {
   const gameStartedDataRef = useRef<any>(null);
   useEffect(() => {
     if (countdown !== null && countdown <= 3 && countdown >= 0 &&
-        selectedRef.current.length > 0 && !joining && !launchedRef.current) {
+      selectedRef.current.length > 0 && !joining && !launchedRef.current) {
       launchedRef.current = true;
       setJoining(true);
       pendingJoinRef.current = true;
@@ -501,16 +501,16 @@ function SelectionContent() {
           setOwnedCardIds(ownedRef.current);
           setSelected([]);
           if (res.gameId && typeof window !== 'undefined') {
-            try { sessionStorage.setItem(`game_tickets_${res.gameId}`, JSON.stringify(res.tickets)); } catch(e) {}
+            try { sessionStorage.setItem(`game_tickets_${res.gameId}`, JSON.stringify(res.tickets)); } catch (e) { }
           }
         }
         if (res?.gameId) {
           joinedGameIdRef.current = res.gameId;
-          try { sessionStorage.setItem('joined_game_id', res.gameId); } catch(e) {}
+          try { sessionStorage.setItem('joined_game_id', res.gameId); } catch (e) { }
         }
         // If game-started already fired before this resolved, redirect now
         if (gameStartedRef.current && !redirectedRef.current &&
-            (ownedRef.current.length > 0 || res?.tickets?.length > 0)) {
+          (ownedRef.current.length > 0 || res?.tickets?.length > 0)) {
           redirectedRef.current = true;
           const d = gameStartedDataRef.current;
           const destId = joinedGameIdRef.current || res?.gameId || d?.gameId || activeGameIdRef.current;
@@ -522,12 +522,12 @@ function SelectionContent() {
             }
           }
         }
-      }).catch(() => {}).finally(() => {
+      }).catch(() => { }).finally(() => {
         pendingJoinRef.current = false;
         setTimeout(() => setJoining(false), 3000);
       });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [countdown]);
 
   useEffect(() => {
@@ -546,7 +546,7 @@ function SelectionContent() {
 
   useEffect(() => {
     if (roomType.toUpperCase().includes('SPIN')) return;
-    getMe().then(setUser).catch(() => {});
+    getMe().then(setUser).catch(() => { });
     loadGameData();
 
     const handleConnect = () => {
@@ -583,7 +583,7 @@ function SelectionContent() {
       // NOTE: isGameRunning is NOT set here — syncRunningState (polling) is the
       // single source of truth. Setting it here causes a race condition where
       // stale cached backend data can lock the UI permanently.
-    }).catch(() => {});
+    }).catch(() => { });
 
     // 2. High-Performance WebSocket Sync (Real-time & Zero Network Overhead)
     if (socket) {
@@ -606,7 +606,7 @@ function SelectionContent() {
           const ticketList = data.tickets;
           const myCardIds = ticketList.filter((t: any) => t.userId === userRef.current?.id).map((t: any) => t.cardId);
           const otherOccupiedIds = ticketList.filter((t: any) => t.userId !== userRef.current?.id).map((t: any) => t.cardId);
-          
+
           const freshlyTaken = otherOccupiedIds.filter((id: number) => !prevOccupied.current.includes(id));
           if (freshlyTaken.length > 0) {
             setNewlyOccupied(freshlyTaken);
@@ -614,7 +614,7 @@ function SelectionContent() {
           }
           prevOccupied.current = otherOccupiedIds;
           setOccupied(otherOccupiedIds);
-          
+
           if (myCardIds.length > 0) {
             setOwnedCardIds(myCardIds);
           }
@@ -655,7 +655,7 @@ function SelectionContent() {
         const endTime = (d.serverTime || Date.now()) + 50000;
         liveGameEndTimeRef.current = endTime;
         setLiveGameEndTime(endTime);
-        
+
         // Save state for joinGame().then() to pick up if it's still joining
         gameStartedRef.current = true;
         gameStartedDataRef.current = d;
@@ -796,7 +796,7 @@ function SelectionContent() {
           }
           const myNewCardIds = res.myCardIds || [];
           setOwnedCardIds(myNewCardIds);
-        }).catch(() => {});
+        }).catch(() => { });
       });
 
       socket.on('game-cancelled', (d: any) => {
@@ -814,9 +814,9 @@ function SelectionContent() {
         setOwnedCardIds([]);
         setSelected([]);
         if (d.gameId) {
-          try { sessionStorage.removeItem(`game_tickets_${d.gameId}`); } catch (e) {}
+          try { sessionStorage.removeItem(`game_tickets_${d.gameId}`); } catch (e) { }
         }
-        
+
         // Fetch new state
         getOccupiedCards(roomType, activeGameIdRef.current).then(res => {
           if (res.gameId) {
@@ -833,7 +833,7 @@ function SelectionContent() {
           if (res.expectedBotCount !== undefined) {
             setExpectedBotCount(res.expectedBotCount);
           }
-        }).catch(() => {});
+        }).catch(() => { });
       });
     }
 
@@ -861,13 +861,13 @@ function SelectionContent() {
           ballAudioRefSelect.current.pause();
           ballAudioRefSelect.current.onended = null;
           ballAudioRefSelect.current.onerror = null;
-        } catch (_) {}
+        } catch (_) { }
       }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  // user?.id intentionally removed — we read userRef.current inside instead.
-  // Having user?.id here caused the effect to re-mount every time getMe() resolved
-  // (typically after 4-5 balls), killing all socket listeners and audio mid-game.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // user?.id intentionally removed — we read userRef.current inside instead.
+    // Having user?.id here caused the effect to re-mount every time getMe() resolved
+    // (typically after 4-5 balls), killing all socket listeners and audio mid-game.
   }, [roomType, socket, loadGameData, router, stake]);
   // NOTE: activeGameId intentionally omitted — we use activeGameIdRef.current inside
   // to prevent the entire socket effect from re-mounting on every game ID update.
@@ -949,7 +949,7 @@ function SelectionContent() {
             return;
           }
           lastGameRunningChangeTimeRef.current = Date.now();
-          
+
           isGameRunningRef.current = nowRunning;
           setIsGameRunning(nowRunning);
           if (!nowRunning && wasRunning) {
@@ -1008,7 +1008,7 @@ function SelectionContent() {
             if (prev.length === 0 && incoming.length > 0) {
               incoming.forEach(n => announcedSelectRef.current.add(n));
             }
-            
+
             // Fix: Only overwrite if the API array is newer/longer than our current state.
             // This prevents stale API cache responses from deleting newly drawn socket balls.
             if (incoming.length > prev.length) {
@@ -1042,7 +1042,7 @@ function SelectionContent() {
     }, isConnected ? 5000 : 2000);
 
     return () => clearInterval(poll);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomType, loadGameData, socket, isConnected]);
   // NOTE: activeGameId intentionally omitted — we use activeGameIdRef.current inside
   // so the polling interval is never re-created on game ID updates (would cause a flash).
@@ -1052,10 +1052,10 @@ function SelectionContent() {
   const toggleSelect = (num: number) => {
     // Hard block: never allow selection while a game is running
     if (isGameRunningRef.current || isInitializing) return;
-    
+
     if (!user && roomType !== 'DEMO') {
       showAlert('እባክዎ ይጠብቁ...', 'የኪስዎን ቀሪ ሂሳብ እያጣራን ነው...', 'info');
-      getMe().then(setUser).catch(() => {});
+      getMe().then(setUser).catch(() => { });
       return;
     }
 
@@ -1131,19 +1131,19 @@ function SelectionContent() {
     });
   };
 
-const balance = Number(user?.wallet?.balance || 0);
+  const balance = Number(user?.wallet?.balance || 0);
   const bonusBalance = Number(user?.wallet?.bonusBalance || 0);
   const totalAvailable = balance + bonusBalance;
 
   const handleStart = async () => {
     if (isInitializing || selected.length === 0 || joining) return;
-    
+
     if (!user && roomType !== 'DEMO') {
       showAlert('እባክዎ ይጠብቁ...', 'የኪስዎን ቀሪ ሂሳብ እያጣራን ነው...', 'info');
-      getMe().then(setUser).catch(() => {});
+      getMe().then(setUser).catch(() => { });
       return;
     }
-    
+
     setJoining(true);
 
     const newCardsToBuy = selected.filter(id => !ownedCardIds.includes(id));
@@ -1198,9 +1198,9 @@ const balance = Number(user?.wallet?.balance || 0);
       if (typeof window !== 'undefined' && res.gameId && res.tickets) {
         sessionStorage.setItem(`game_tickets_${res.gameId}`, JSON.stringify(res.tickets));
       }
-      
+
       setOwnedCardIds(selected);
-      
+
       if (isGameRunning) {
         setModal({
           isOpen: true,
@@ -1282,8 +1282,9 @@ const balance = Number(user?.wallet?.balance || 0);
 
   // 100% REAL MATHEMATICAL CALCULATION
   // Force the CARDS (players) count to perfectly match the displayed prize
+  const GUARANTEED_PRIZES: Record<string, number> = { CASUAL: 50, STANDARD: 100, PRO: 250, JACKPOT: 500, VIP: 1000 };
   const minPrize = GUARANTEED_PRIZES[roomType] || 50;
-  if (spType !== 'DEMO' && backendPrize > 0) {
+  if (roomType !== 'DEMO' && backendPrize > 0) {
     if (backendPrize > minPrize) {
       displayPlayerCount = Math.round(backendPrize / (stake * 0.70));
     } else {
@@ -1291,11 +1292,11 @@ const balance = Number(user?.wallet?.balance || 0);
       displayPlayerCount = Math.min(baseCards > 0 ? baseCards : displayPlayerCount, maxCardsForMinPrize);
     }
   }
-  
+
   if (displayPlayerCount < selected.length) {
     displayPlayerCount = selected.length;
   }
-  
+
   totalVisualCards = displayPlayerCount;
   const totalStake = totalVisualCards * stake;
 
@@ -1534,8 +1535,8 @@ const balance = Number(user?.wallet?.balance || 0);
           </div>
         )}
         <div onClick={() => setLanguage(getLanguage() === 'en' ? 'am' : 'en')} style={{ marginLeft: 'auto', cursor: 'pointer', display: 'flex', border: `1px solid ${isVip ? '#C471ED' : (isDark ? T.gold : '#3D2B1F')}`, borderRadius: '6px', overflow: 'hidden', fontSize: '10px', fontWeight: 'bold' }}>
-           <div style={{ padding: '3px 8px', background: (!mounted || getLanguage() === 'en') ? (isVip ? '#C471ED' : (isDark ? T.gold : '#3D2B1F')) : 'transparent', color: (!mounted || getLanguage() === 'en') ? (isVip ? '#1C0A35' : (isDark ? T.header : '#FFF')) : (isVip ? '#C471ED' : (isDark ? T.gold : '#3D2B1F')) }}>EN</div>
-           <div style={{ padding: '3px 8px', background: (mounted && getLanguage() === 'am') ? (isVip ? '#C471ED' : (isDark ? T.gold : '#3D2B1F')) : 'transparent', color: (mounted && getLanguage() === 'am') ? (isVip ? '#1C0A35' : (isDark ? T.header : '#FFF')) : (isVip ? '#C471ED' : (isDark ? T.gold : '#3D2B1F')) }}>AM</div>
+          <div style={{ padding: '3px 8px', background: (!mounted || getLanguage() === 'en') ? (isVip ? '#C471ED' : (isDark ? T.gold : '#3D2B1F')) : 'transparent', color: (!mounted || getLanguage() === 'en') ? (isVip ? '#1C0A35' : (isDark ? T.header : '#FFF')) : (isVip ? '#C471ED' : (isDark ? T.gold : '#3D2B1F')) }}>EN</div>
+          <div style={{ padding: '3px 8px', background: (mounted && getLanguage() === 'am') ? (isVip ? '#C471ED' : (isDark ? T.gold : '#3D2B1F')) : 'transparent', color: (mounted && getLanguage() === 'am') ? (isVip ? '#1C0A35' : (isDark ? T.header : '#FFF')) : (isVip ? '#C471ED' : (isDark ? T.gold : '#3D2B1F')) }}>AM</div>
         </div>
       </div>
 
@@ -1618,8 +1619,8 @@ const balance = Number(user?.wallet?.balance || 0);
             {effectiveGameRunning
               ? 'LIVE GAME'
               : countdown !== null && countdown >= 0
-              ? 'STARTS IN'
-              : 'NEXT GAME'}
+                ? 'STARTS IN'
+                : 'NEXT GAME'}
           </div>
           {effectiveGameRunning ? (
             <div style={{ fontSize: '22px', fontWeight: '900', color: '#E74C3C', textShadow: '0 0 14px rgba(231,76,60,0.7)', letterSpacing: '-1px' }}>
@@ -1682,7 +1683,7 @@ const balance = Number(user?.wallet?.balance || 0);
 
       {/* \u2500\u2500 Card Grid \u2500\u2500 */}
       <div className="grid-brown" style={{ position: 'relative', overflow: 'hidden', pointerEvents: effectiveGameRunning ? 'none' : undefined }}>
-        
+
         {/* \u2550\u2550\u2550\u2550\u2550\u2550 GAME IN PROGRESS MASK \u2550\u2550\u2550\u2550\u2550\u2550 */}
         {effectiveGameRunning && (
           <div style={{
@@ -1705,64 +1706,64 @@ const balance = Number(user?.wallet?.balance || 0);
               padding: '24px',
               gap: '20px',
             }}>
-            {/* Pulsing ring animation */}
-            <motion.div
-              animate={{ scale: [1, 1.15, 1], opacity: [0.6, 1, 0.6] }}
-              transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
-              style={{
-                width: '80px',
-                height: '80px',
-                borderRadius: '50%',
-                border: `3px solid ${isVip ? '#FFD700' : '#D4AF37'}`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: `0 0 30px ${isVip ? 'rgba(255,215,0,0.4)' : 'rgba(212,175,55,0.3)'}`,
-              }}
-            >
-              <span style={{ fontSize: '40px' }}>🎱</span>
-            </motion.div>
-
-            {/* Title */}
-            <div style={{ textAlign: 'center' }}>
+              {/* Pulsing ring animation */}
               <motion.div
-                animate={{ opacity: [1, 0.5, 1] }}
-                transition={{ duration: 1.2, repeat: Infinity }}
+                animate={{ scale: [1, 1.15, 1], opacity: [0.6, 1, 0.6] }}
+                transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
                 style={{
-                  color: isVip ? '#FFD700' : '#D4AF37',
-                  fontSize: '20px',
-                  fontWeight: '900',
-                  letterSpacing: '1px',
-                  marginBottom: '8px',
+                  width: '80px',
+                  height: '80px',
+                  borderRadius: '50%',
+                  border: `3px solid ${isVip ? '#FFD700' : '#D4AF37'}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: `0 0 30px ${isVip ? 'rgba(255,215,0,0.4)' : 'rgba(212,175,55,0.3)'}`,
                 }}
               >
-                ⏳ GAME IN PROGRESS
+                <span style={{ fontSize: '40px' }}>🎱</span>
               </motion.div>
-              <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: '13px', fontWeight: '700', lineHeight: 1.6 }}>
-                {t('gameInProgressScreen') as string}
-              </div>
-              <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px', marginTop: '6px' }}>
-                {t('waitForGame') as string}
-              </div>
-              <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}>
-                {t('selectAfterGame') as string}
-              </div>
-            </div>
 
-            {/* Live game countdown if available */}
-            {liveGameSyncTimer !== null && liveGameSyncTimer > 0 && (
-              <div style={{
-                background: 'rgba(255,255,255,0.06)',
-                border: `1px solid ${isVip ? 'rgba(255,215,0,0.3)' : 'rgba(212,175,55,0.3)'}`,
-                borderRadius: '10px',
-                padding: '8px 20px',
-                textAlign: 'center',
-                marginTop: '10px'
-              }}>
-                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '10px', fontWeight: '700', marginBottom: '4px' }}>NEXT CHECK IN</div>
-                <div style={{ color: isVip ? '#FFD700' : '#D4AF37', fontSize: '24px', fontWeight: '900' }}>{liveGameSyncTimer}s</div>
+              {/* Title */}
+              <div style={{ textAlign: 'center' }}>
+                <motion.div
+                  animate={{ opacity: [1, 0.5, 1] }}
+                  transition={{ duration: 1.2, repeat: Infinity }}
+                  style={{
+                    color: isVip ? '#FFD700' : '#D4AF37',
+                    fontSize: '20px',
+                    fontWeight: '900',
+                    letterSpacing: '1px',
+                    marginBottom: '8px',
+                  }}
+                >
+                  ⏳ GAME IN PROGRESS
+                </motion.div>
+                <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: '13px', fontWeight: '700', lineHeight: 1.6 }}>
+                  {t('gameInProgressScreen') as string}
+                </div>
+                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px', marginTop: '6px' }}>
+                  {t('waitForGame') as string}
+                </div>
+                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}>
+                  {t('selectAfterGame') as string}
+                </div>
               </div>
-            )}
+
+              {/* Live game countdown if available */}
+              {liveGameSyncTimer !== null && liveGameSyncTimer > 0 && (
+                <div style={{
+                  background: 'rgba(255,255,255,0.06)',
+                  border: `1px solid ${isVip ? 'rgba(255,215,0,0.3)' : 'rgba(212,175,55,0.3)'}`,
+                  borderRadius: '10px',
+                  padding: '8px 20px',
+                  textAlign: 'center',
+                  marginTop: '10px'
+                }}>
+                  <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '10px', fontWeight: '700', marginBottom: '4px' }}>NEXT CHECK IN</div>
+                  <div style={{ color: isVip ? '#FFD700' : '#D4AF37', fontSize: '24px', fontWeight: '900' }}>{liveGameSyncTimer}s</div>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1866,7 +1867,8 @@ const balance = Number(user?.wallet?.balance || 0);
         confirmText={modal.type === 'balance' ? 'Deposit Now' : 'Confirm'}
       />
 
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         @keyframes ballPop {
           0%   { transform: scale(0) rotate(-20deg); opacity: 0; }
           60%  { transform: scale(1.25) rotate(5deg); opacity: 1; }
@@ -2032,7 +2034,7 @@ const balance = Number(user?.wallet?.balance || 0);
                     </div>
                     {/* BINGO header row */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: '3px', marginBottom: '3px' }}>
-                      {['B','I','N','G','O'].map(l => (
+                      {['B', 'I', 'N', 'G', 'O'].map(l => (
                         <div key={l} style={{
                           background: COL_COLOR[l], color: 'white',
                           textAlign: 'center', fontSize: '12px', fontWeight: '900',
@@ -2050,37 +2052,37 @@ const balance = Number(user?.wallet?.balance || 0);
                       };
                       const winningCells = new Set<string>();
                       if (mode === 'FULL_HOUSE') {
-                        for (let r = 0; r < 5; r++) for (let c = 0; c < 5; c++) if(isDaubed(r,c)) winningCells.add(`${r}-${c}`);
+                        for (let r = 0; r < 5; r++) for (let c = 0; c < 5; c++) if (isDaubed(r, c)) winningCells.add(`${r}-${c}`);
                       } else if (mode === 'ROW') {
                         for (let r = 0; r < 5; r++) {
-                          if ([0,1,2,3,4].every(c => isDaubed(r,c))) {
+                          if ([0, 1, 2, 3, 4].every(c => isDaubed(r, c))) {
                             for (let c = 0; c < 5; c++) winningCells.add(`${r}-${c}`);
                           }
                         }
                       } else if (mode === 'COLUMN') {
                         for (let c = 0; c < 5; c++) {
-                          if ([0,1,2,3,4].every(r => isDaubed(r,c))) {
+                          if ([0, 1, 2, 3, 4].every(r => isDaubed(r, c))) {
                             for (let r = 0; r < 5; r++) winningCells.add(`${r}-${c}`);
                           }
                         }
                       } else if (mode === 'DIAGONAL') {
-                        if ([0,1,2,3,4].every(i => isDaubed(i,i))) for (let i=0;i<5;i++) winningCells.add(`${i}-${i}`);
-                        if ([0,1,2,3,4].every(i => isDaubed(i,4-i))) for (let i=0;i<5;i++) winningCells.add(`${i}-${4-i}`);
+                        if ([0, 1, 2, 3, 4].every(i => isDaubed(i, i))) for (let i = 0; i < 5; i++) winningCells.add(`${i}-${i}`);
+                        if ([0, 1, 2, 3, 4].every(i => isDaubed(i, 4 - i))) for (let i = 0; i < 5; i++) winningCells.add(`${i}-${4 - i}`);
                       }
                       // Fallback: if we still have no winning cells, highlight a deterministic row
                       if (winningCells.size === 0) {
                         const pRand = ((gameFinishedData.cardNo || 1) * 7) % 100;
                         if (mode === 'ROW') {
-                          const rows = [0,1,3,4]; const fr = rows[pRand % rows.length];
-                          for (let c=0;c<5;c++) { winningCells.add(`${fr}-${c}`); drawnSet.add(Number((gameFinishedData.card as any[][])[fr][c])); }
+                          const rows = [0, 1, 3, 4]; const fr = rows[pRand % rows.length];
+                          for (let c = 0; c < 5; c++) { winningCells.add(`${fr}-${c}`); drawnSet.add(Number((gameFinishedData.card as any[][])[fr][c])); }
                         } else if (mode === 'COLUMN') {
                           const fc = pRand % 5;
-                          for (let r=0;r<5;r++) { winningCells.add(`${r}-${fc}`); drawnSet.add(Number((gameFinishedData.card as any[][])[r][fc])); }
+                          for (let r = 0; r < 5; r++) { winningCells.add(`${r}-${fc}`); drawnSet.add(Number((gameFinishedData.card as any[][])[r][fc])); }
                         } else if (mode === 'FULL_HOUSE') {
-                          for (let r=0;r<5;r++) for (let c=0;c<5;c++) { winningCells.add(`${r}-${c}`); drawnSet.add(Number((gameFinishedData.card as any[][])[r][c])); }
+                          for (let r = 0; r < 5; r++) for (let c = 0; c < 5; c++) { winningCells.add(`${r}-${c}`); drawnSet.add(Number((gameFinishedData.card as any[][])[r][c])); }
                         } else {
-                          const fr = [0,1,3,4][pRand%4];
-                          for (let c=0;c<5;c++) { winningCells.add(`${fr}-${c}`); drawnSet.add(Number((gameFinishedData.card as any[][])[fr][c])); }
+                          const fr = [0, 1, 3, 4][pRand % 4];
+                          for (let c = 0; c < 5; c++) { winningCells.add(`${fr}-${c}`); drawnSet.add(Number((gameFinishedData.card as any[][])[fr][c])); }
                         }
                       }
                       return (gameFinishedData.card as any[][]).map((row: any[], ri: number) => (
