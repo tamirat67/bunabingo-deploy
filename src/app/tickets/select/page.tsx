@@ -1592,7 +1592,7 @@ function SelectionContent() {
         <div className="capsule-white" style={{ position: 'relative', overflow: 'visible' }}>
           <div className="l">PLAYERS</div>
           <div className="v">
-            <span className="count-normal">{displayPlayerCount}</span>
+            <span className="count-normal">{dripPlayerCount}</span>
           </div>
         </div>
         {/* PRIZE capsule — number rolls up alongside player count */}
