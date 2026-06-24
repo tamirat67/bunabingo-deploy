@@ -672,8 +672,13 @@ router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
     const botUserIds = new Set(tickets.filter(t => t.user?.isBot).map(t => t.userId));
     const playerCount = realUserIds.size + botUserIds.size;
     
-    const { getExpectedBotCount } = await import('../services/houseBot.service');
+    const { getExpectedBotCount, getVisibleTickets } = await import('../game/engine');
     const { getReservedCardIds } = await import('../lib/cardReservations');
+
+    // visibleTicketCount matches the count used in recalculateGamePrizePool so
+    // the PLAYERS display and PRIZE pool are always in sync.
+    const visibleTickets = getVisibleTickets(tickets, room.type);
+    const visibleTicketCount = visibleTickets.length;
 
     const reservedByOthers = gameId ? getReservedCardIds(gameId, user?.id) : [];
     const allOccupiedIds = Array.from(new Set([...otherOccupiedIds, ...reservedByOthers]));
@@ -685,6 +690,7 @@ router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
       roomId: room.id, 
       playerCount,
       ticketCount: tickets.length,
+      visibleTicketCount,          // ← matches prize pool calculation
       realPlayerCount: realUserIds.size,
       botPlayerCount: botUserIds.size,
       expectedBotCount: getExpectedBotCount(room.type),

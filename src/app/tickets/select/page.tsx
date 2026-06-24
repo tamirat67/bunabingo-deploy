@@ -37,6 +37,7 @@ function SelectionContent() {
   const [joining, setJoining] = useState(false);
   const [playerCount, setPlayerCount] = useState(0);
   const [ticketCount, setTicketCount] = useState(0);
+  const [visibleTicketCount, setVisibleTicketCount] = useState(0); // matches prize pool
   const [game, setGame] = useState<any>(null);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [endTime, setEndTime] = useState<number | null>(null);
@@ -219,6 +220,7 @@ function SelectionContent() {
               if (res.playerCount !== undefined) {
                 setPlayerCount(res.playerCount);
                 if (res.ticketCount !== undefined) setTicketCount(res.ticketCount);
+        if (res.visibleTicketCount !== undefined) setVisibleTicketCount(res.visibleTicketCount);
                 if (res.realPlayerCount !== undefined) setRealPlayerCount(res.realPlayerCount);
               }
             } else {
@@ -268,6 +270,7 @@ function SelectionContent() {
       if (res?.playerCount !== undefined) {
         setPlayerCount(res.playerCount);
         if (res.ticketCount !== undefined) setTicketCount(res.ticketCount);
+        if (res.visibleTicketCount !== undefined) setVisibleTicketCount(res.visibleTicketCount);
         if (res.realPlayerCount !== undefined) setRealPlayerCount(res.realPlayerCount);
       }
     }).catch(() => {
@@ -562,6 +565,7 @@ function SelectionContent() {
       prevOccupied.current = res.occupiedIds || [];
       setPlayerCount(res.playerCount || 0);
       setTicketCount(res.ticketCount || 0);
+      setVisibleTicketCount(res.visibleTicketCount || res.ticketCount || 0);
       setRealPlayerCount(res.realPlayerCount || 0);
       if (res.expectedBotCount !== undefined) {
         setExpectedBotCount(res.expectedBotCount);
@@ -785,6 +789,7 @@ function SelectionContent() {
           setOccupied(res.occupiedIds || []);
           setPlayerCount(res.playerCount || 0);
           setTicketCount(res.ticketCount || 0);
+          setVisibleTicketCount(res.visibleTicketCount || res.ticketCount || 0);
           setRealPlayerCount(res.realPlayerCount || 0);
           if (res.expectedBotCount !== undefined) {
             setExpectedBotCount(res.expectedBotCount);
@@ -823,6 +828,7 @@ function SelectionContent() {
           setOccupied(res.occupiedIds || []);
           setPlayerCount(res.playerCount || 0);
           setTicketCount(res.ticketCount || 0);
+          setVisibleTicketCount(res.visibleTicketCount || res.ticketCount || 0);
           setRealPlayerCount(res.realPlayerCount || 0);
           if (res.expectedBotCount !== undefined) {
             setExpectedBotCount(res.expectedBotCount);
@@ -982,6 +988,7 @@ function SelectionContent() {
         if (res.playerCount !== undefined) {
           setPlayerCount(res.playerCount);
           if (res.ticketCount !== undefined) setTicketCount(res.ticketCount);
+          if (res.visibleTicketCount !== undefined) setVisibleTicketCount(res.visibleTicketCount);
           if (res.realPlayerCount !== undefined) setRealPlayerCount(res.realPlayerCount);
         }
 
@@ -1250,17 +1257,17 @@ const balance = Number(user?.wallet?.balance || 0);
   // We ALWAYS use authoritative server data (ticketCount, totalPrize from DB/API).
   // This prevents stale simulated values from showing the wrong prize.
 
-  // PLAYERS: real unique user count from server (bots + humans combined)
-  const serverReportedTickets = Math.max(game?.ticketCount || 0, ticketCount || 0);
+  // PLAYERS: use visibleTicketCount (same count the backend uses for prize pool).
+  // This ensures PLAYERS display always matches the PRIZE shown.
+  const serverReportedTickets = Math.max(game?.ticketCount || 0, visibleTicketCount || 0);
   const serverReportedPlayers = Math.max(game?.playerCount || 0, playerCount || 0);
 
-  // Display player count = real server ticket count (includes all bots + real players)
-  // During countdown: if the server hasn't reported yet, fall back to occupied card count
+  // Display player count = visible server ticket count (matches prize pool)
   const displayPlayerCount = serverReportedTickets > 0
     ? serverReportedTickets
     : (occupied.length + (selected.filter(id => !occupied.includes(id)).length));
 
-  // totalVisualCards: use live DB count — accurate for prize calculation
+  // totalVisualCards: use live visible count — accurate for prize calculation
   const totalVisualCards = serverReportedTickets > 0
     ? serverReportedTickets
     : displayPlayerCount;
