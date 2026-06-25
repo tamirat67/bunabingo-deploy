@@ -66,11 +66,11 @@ router.use('/auth', authRouter);
 
 router.get('/rooms', async (_req: Request, res: Response) => {
   try {
-    const { getExpectedBotCount } = await import('../services/houseBot.service');
+    const { getVisibleBotCount } = await import('../services/houseBot.service');
     const rooms = await withRetry(() => getRooms());
     const augmentedRooms = rooms.map(r => ({
       ...r,
-      expectedBotCount: getExpectedBotCount(r.type)
+      expectedBotCount: getVisibleBotCount(r.type)
     }));
     res.json(augmentedRooms);
   } catch (err) {
@@ -673,7 +673,7 @@ router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
     const playerCount = realUserIds.size + botUserIds.size;
     
     const { getVisibleTickets } = await import('../game/engine');
-    const { getExpectedBotCount } = await import('../services/houseBot.service');
+    const { getVisibleBotCount } = await import('../services/houseBot.service');
     const { getReservedCardIds } = await import('../lib/cardReservations');
 
     // visibleTicketCount matches the count used in recalculateGamePrizePool so
@@ -694,7 +694,7 @@ router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
       visibleTicketCount,          // ← matches prize pool calculation
       realPlayerCount: realUserIds.size,
       botPlayerCount: botUserIds.size,
-      expectedBotCount: getExpectedBotCount(room.type),
+      expectedBotCount: getVisibleBotCount(room.type),  // ← cyclical cap for this game
       isGameRunning,
       hasTicketsInRunningGame,
       runningGameId,

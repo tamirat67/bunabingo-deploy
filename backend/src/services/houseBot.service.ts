@@ -66,6 +66,22 @@ export function getExpectedBotCount(roomType: string): number {
   return arr[cycleIndex % arr.length] ?? 30;
 }
 
+// ─── Dynamic Visible Bot count per room type (Cyclical UI Display) ──────────
+export const VISIBLE_BOTS_BY_CYCLE: Record<string, number[]> = {
+  CASUAL:   [30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20],
+  STANDARD: [30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20],
+  PRO:      [30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20],
+  VIP:      [15, 14, 13, 12, 11, 10],
+  JACKPOT:  [15, 14, 13, 12, 11, 10],
+};
+
+export function getVisibleBotCount(roomType: string): number {
+  const safeType = (roomType || '').toUpperCase().trim();
+  const arr = VISIBLE_BOTS_BY_CYCLE[safeType] || [30];
+  const cycleIndex = cachedCycles[safeType] || 0;
+  return arr[cycleIndex % arr.length] ?? 30;
+}
+
 // ─── In-memory set to prevent double-injecting bots ───────────
 const gamesWithBotsInjected = new Set<string>();
 

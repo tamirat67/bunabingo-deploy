@@ -18,6 +18,7 @@ import {
   debitBunaWallet,
   recordCycleResult,
   getExpectedBotCount,
+  getVisibleBotCount,
 } from '../services/houseBot.service';
 
 interface ActiveGame {
@@ -96,8 +97,8 @@ function getCountdownSeconds(playerCount: number, roomType: string): number {
 export function getVisibleTickets(allTickets: any[], roomType: string): any[] {
   const realTix = allTickets.filter(t => !t.user?.isBot);
   const botTix = allTickets.filter(t => t.user?.isBot);
-  const isVip = roomType === 'VIP' || roomType === 'JACKPOT';
-  const visibleBotCap = isVip ? 15 : 30;
+  // Use dynamic cyclical visible bot cap — decrements each game (30→20, 15→10)
+  const visibleBotCap = getVisibleBotCount(roomType);
   const visibleBots = botTix.slice(0, visibleBotCap);
   return [...realTix, ...visibleBots];
 }
