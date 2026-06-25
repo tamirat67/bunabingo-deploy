@@ -428,7 +428,7 @@ function SelectionContent() {
       return;
     }
 
-    // Stable 3-second drip — countdown is read via ref inside the interval
+    // Stable 1.5-second drip — countdown is read via ref inside the interval
     // so the timer never restarts on every countdown tick
     const timer = setInterval(() => {
       const cd = dripCountdownRef.current;
@@ -443,7 +443,7 @@ function SelectionContent() {
         if (prev >= t) { clearInterval(timer); return t; }
         return prev + 1;
       });
-    }, 3000);
+    }, 1500);
 
     return () => clearInterval(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
