@@ -413,7 +413,7 @@ function SelectionContent() {
         if (prev >= t) return t; // Stop when we reach the target
         return prev + 1;
       });
-    }, 1500);
+    }, 1000);
 
     return () => clearInterval(timer);
   }, []);
