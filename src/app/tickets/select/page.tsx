@@ -69,6 +69,16 @@ function SelectionContent() {
     }
   }, [dripPlayerCount]);
 
+  // Reset drip count if we've switched to a completely new game
+  useEffect(() => {
+    if (!game?.id || typeof window === 'undefined') return;
+    const savedGameId = sessionStorage.getItem('drip_game_id');
+    if (savedGameId && savedGameId !== game.id) {
+      setDripPlayerCount(0);
+    }
+    sessionStorage.setItem('drip_game_id', game.id);
+  }, [game?.id]);
+
   // isInitializing: true until the very first getOccupiedCards call resolves.
   // While true the grid stays covered so there's no flash of unlocked UI on refresh.
   const [isInitializing, setIsInitializing] = useState(() => {
