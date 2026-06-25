@@ -396,53 +396,27 @@ function SelectionContent() {
   useEffect(() => { dripCountdownRef.current = countdown; }, [countdown]);
 
   // ── Player count drip-in: show players joining one-by-one ────────────────────
-  // NOTE: countdown and occupied.length are intentionally NOT in the dep array.
-  // They are read via refs inside the interval to avoid restarting the timer
-  // every second (which caused the number to flicker/bubble as it neared the target).
+  // We run a single, persistent interval that smoothly ticks up toward targetPlayerCountRef.
+  // targetPlayerCountRef is updated during render to perfectly match displayPlayerCount.
   useEffect(() => {
-    // Compute backend target from available state
-    const base = visibleTicketCount > 0 ? visibleTicketCount : (ticketCount > 0 ? ticketCount : 0);
-    const backendP = game?.totalPrize && Number(game.totalPrize) > 0 ? Number(game.totalPrize) : 0;
-    const GPRIZES: Record<string, number> = { CASUAL: 50, STANDARD: 100, PRO: 250, JACKPOT: 500, VIP: 1000 };
-    const minP = GPRIZES[roomType] || 50;
-    let target = base > 0 ? base : selected.length;
-    if (roomType !== 'DEMO' && backendP > 0) {
-      if (backendP > minP) {
-        target = Math.round(backendP / (stake * 0.70));
-      } else {
-        const maxC = Math.floor(minP / (stake * 0.70));
-        target = Math.min(base > 0 ? base : target, maxC);
-      }
-    }
-    if (target < selected.length) target = selected.length;
-    targetPlayerCountRef.current = target;
-
-    // Snap immediately when game is running
-    if (isGameRunning) {
-      setDripPlayerCount(target);
-      return;
-    }
-
-    // Stable 1.5-second drip — countdown is read via ref inside the interval
-    // so the timer never restarts on every countdown tick
     const timer = setInterval(() => {
       const cd = dripCountdownRef.current;
       const t = targetPlayerCountRef.current;
-      // Snap if countdown is almost done
-      if (cd !== null && cd <= 2) {
+      
+      // Snap instantly if countdown is almost done, or if game is running (and target is valid > 0)
+      if ((cd !== null && cd <= 2) || (isGameRunningRef.current && t > 0)) {
         setDripPlayerCount(t);
-        clearInterval(timer);
         return;
       }
+      
       setDripPlayerCount(prev => {
-        if (prev >= t) { clearInterval(timer); return t; }
+        if (prev >= t) return t; // Stop when we reach the target
         return prev + 1;
       });
     }, 1500);
 
     return () => clearInterval(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visibleTicketCount, ticketCount, game?.totalPrize, isGameRunning, stake, roomType]);
+  }, []);
 
 
 
@@ -1344,6 +1318,9 @@ function SelectionContent() {
       displayPlayerCount = Math.min(baseCards > 0 ? baseCards : displayPlayerCount, maxCardsForMinPrize);
     }
   }
+
+  // Keep the target ref perfectly in sync with the real calculated displayPlayerCount
+  targetPlayerCountRef.current = displayPlayerCount;
 
   if (displayPlayerCount < selected.length) {
     displayPlayerCount = selected.length;
