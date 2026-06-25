@@ -53,9 +53,21 @@ function SelectionContent() {
     return () => window.removeEventListener('languageChange', handleLangChange);
   }, []);
   const [realPlayerCount, setRealPlayerCount] = useState(0);
-  const [simulatedBotCount, setSimulatedBotCount] = useState(0);
-  const [dripPlayerCount, setDripPlayerCount] = useState(0);
+  const [dripPlayerCount, setDripPlayerCount] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem('drip_player_count');
+      if (saved) return parseInt(saved, 10);
+    }
+    return 0;
+  });
   const [expectedBotCount, setExpectedBotCount] = useState<number | null>(null);
+
+  // Save dripPlayerCount to sessionStorage whenever it updates to persist across refreshes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('drip_player_count', dripPlayerCount.toString());
+    }
+  }, [dripPlayerCount]);
 
   // isInitializing: true until the very first getOccupiedCards call resolves.
   // While true the grid stays covered so there's no flash of unlocked UI on refresh.
