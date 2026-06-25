@@ -1812,7 +1812,8 @@ function SelectionContent() {
           </div>
         )}
         {Array.from({ length: isVip ? 50 : 250 }, (_, i) => i + 1).map(num => {
-          const isOccupied = occupied.includes(num);
+          const visuallyOccupied = isGameRunning ? occupied : occupied.slice(0, dripPlayerCount);
+          const isOccupied = visuallyOccupied.includes(num);
           const isSelected = selected.includes(num);
           const isOwned = ownedCardIds.includes(num);
           const isNewlySnatched = newlyOccupied.includes(num);
