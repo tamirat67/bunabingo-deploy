@@ -774,7 +774,9 @@ function GameContent() {
         // Don't show a dialog: these are honest "not yet" cases, not card errors
       } else {
         // Only show a dialog for genuine pattern errors — not for house secrets
-        showAlert(t('bingoClaimTitle') as string, msg || t('noBingoYetCheck') as string, 'info');
+        setToast('ገና አልተሟላም! 😅');
+        if (toastTimer.current) clearTimeout(toastTimer.current);
+        toastTimer.current = setTimeout(() => setToast(null), 3000);
       }
     });
 
@@ -1050,12 +1052,16 @@ function GameContent() {
         // Silently absorb early-tap backend rejections — never reveal the minimum rule
         const isTooEarlyMsg = res.error?.toLowerCase().includes('wait') || res.error?.toLowerCase().includes('minimum');
         if (!isTooEarlyMsg) {
-          showAlert(t('bingoClaimTitle') as string, res.error || t('noBingoYetCheck') as string, 'info');
+          setToast('ገና አልተሟላም! 😅');
+          if (toastTimer.current) clearTimeout(toastTimer.current);
+          toastTimer.current = setTimeout(() => setToast(null), 3000);
         }
       }
     }
     catch (e: any) { 
-      showAlert(t('errorTitle') as string, e.response?.data?.error || t('noBingoYetContinue') as string, 'error'); 
+      setToast('ገና አልተሟላም! 😅');
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+      toastTimer.current = setTimeout(() => setToast(null), 3000);
     } finally {
       setClaiming(false);
     }
