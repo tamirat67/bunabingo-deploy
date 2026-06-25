@@ -391,23 +391,6 @@ function SelectionContent() {
   // Real bot count per room type (must match backend houseBot.service.ts)
   const botCountForRoom = expectedBotCount ?? (safeRoomType === 'VIP' || safeRoomType === 'JACKPOT' ? 10 : 30);
 
-  // ── Bot drip-in simulation ────────────────────────────────────────────────
-  // A simple interval that slowly increments the simulated bots up to botCountForRoom
-  useEffect(() => {
-    if (isGameRunning || (countdown !== null && countdown <= 2)) {
-      setSimulatedBotCount(botCountForRoom);
-      return;
-    }
-
-    const timer = setInterval(() => {
-      setSimulatedBotCount(prev => {
-        if (prev >= botCountForRoom) return botCountForRoom;
-        return prev + 1;
-      });
-    }, 500); // 1 bot every 0.5s -> takes 15s to reach 30
-
-    return () => clearInterval(timer);
-  }, [isGameRunning, botCountForRoom, countdown]);
 
   // Keep dripCountdownRef in sync so the drip interval can read it without being in deps
   useEffect(() => { dripCountdownRef.current = countdown; }, [countdown]);
