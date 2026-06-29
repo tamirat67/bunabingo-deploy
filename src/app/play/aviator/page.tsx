@@ -17,12 +17,12 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Unity, { UnityContext } from 'react-unity-webgl';
 
-const unityContext = new UnityContext({
+const unityContext = typeof window !== 'undefined' ? new UnityContext({
   loaderUrl:    '/unity/AirCrash.loader.js',
   dataUrl:      '/unity/AirCrash.data.unityweb',
   frameworkUrl: '/unity/AirCrash.framework.js.unityweb',
   codeUrl:      '/unity/AirCrash.wasm.unityweb',
-});
+}) : null as any;
 
 import { ArrowLeft, Wallet as WalletIcon, TrendingUp, Plane, History, Users, AlertCircle, CheckCircle } from 'lucide-react';
 import { useSocket } from '../../../context/SocketContext';
@@ -70,6 +70,7 @@ export default function AviatorPage() {
   const [loadingProgression, setLoadingProgression] = useState(0);
 
   useEffect(() => {
+    if (!unityContext) return;
     const handleProgress = (progression: number) => setLoadingProgression(progression);
     const handleLoaded = () => setIsLoaded(true);
 
@@ -106,7 +107,7 @@ export default function AviatorPage() {
 
   // ── Unity multiplier sync ──────────────────────────────
   useEffect(() => {
-    if (!isLoaded) return;
+    if (!isLoaded || !unityContext) return;
     const phase = gameState.GameState;
     const mult  = parseFloat(gameState.currentNum.toFixed(2));
 
@@ -347,7 +348,7 @@ export default function AviatorPage() {
           </div>
         )}
 
-        <Unity unityContext={unityContext} style={{ width: '100%', height: '220px' }} />
+        {unityContext && <Unity unityContext={unityContext} style={{ width: '100%', height: '220px' }} />}
 
         {/* Live multiplier overlay */}
         {(phase === 'PLAY' || phase === 'ENDED') && (
