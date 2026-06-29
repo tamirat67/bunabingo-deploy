@@ -321,13 +321,26 @@ export default function AviatorPage() {
   }, []);
 
   // Sync Unity
+  const prevPhaseRef = useRef('');
   useEffect(() => {
     if (!isLoaded || !unityContext) return;
     const { GameState: phase, currentNum } = gameState;
     const m = parseFloat(currentNum.toFixed(2));
-    if (phase === 'PLAY')  { unityContext.send('GameController', 'SetMultiplier', m.toString()); unityContext.send('GameController', 'StartGame', ''); }
-    if (phase === 'ENDED') { unityContext.send('GameController', 'CrashGame', m.toString()); }
-    if (phase === 'BET')   { unityContext.send('GameController', 'ResetGame', ''); }
+    
+    if (phase === 'PLAY') {
+      unityContext.send('GameController', 'SetMultiplier', m.toString());
+      if (prevPhaseRef.current !== 'PLAY') {
+        unityContext.send('GameController', 'StartGame', '');
+      }
+    }
+    if (phase === 'ENDED' && prevPhaseRef.current !== 'ENDED') {
+      unityContext.send('GameController', 'CrashGame', m.toString());
+    }
+    if (phase === 'BET' && prevPhaseRef.current !== 'BET') {
+      unityContext.send('GameController', 'ResetGame', '');
+    }
+    
+    prevPhaseRef.current = phase;
   }, [isLoaded, gameState]);
 
   // Init user

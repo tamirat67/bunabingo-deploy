@@ -16,6 +16,15 @@
           "value": "*"
         }
       ]
+    },
+    {
+      "source": "/unity/(.*)\\.unityweb",
+      "headers": [
+        {
+          "key": "Content-Encoding",
+          "value": "gzip"
+        }
+      ]
     }
   ]
 }
