@@ -410,7 +410,7 @@ export default function AviatorPage() {
     const { GameState: phase, currentNum } = gameState;
     const m = parseFloat((currentNum ?? 1).toFixed(2));
 
-    if (phase === 'BET') {
+    if (phase === 'BET' || phase === 'WAIT') {
       sendFlag(1);
     } else if (phase === 'PLAY') {
       if (m > 10)      sendFlag(4);
@@ -564,34 +564,7 @@ export default function AviatorPage() {
           />
         )}
 
-        {/* Overlay for text (WAITING, MULTIPLIER, FLEW AWAY) */}
-        {isLoaded && (
-          <div style={{
-            position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
-            alignItems: 'center', justifyContent: 'center', pointerEvents: 'none',
-            zIndex: 5,
-          }}>
-            {phase === 'BET' || phase === 'WAIT' || phase === '' ? (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
-                <style>{`@keyframes _spin { 100% { transform: rotate(360deg); } }`}</style>
-                <div style={{ width: '80px', height: '80px', animation: '_spin 1.5s linear infinite' }}>
-                  <img src="/propeller.png" alt="WAITING" style={{ width: '100%', height: '100%' }} />
-                </div>
-                <div style={{
-                  color: '#e50b1e', fontSize: '20px', fontWeight: '900', marginTop: '10px',
-                  textShadow: '0 2px 8px rgba(0,0,0,0.9)',
-                }}>WAITING FOR NEXT ROUND</div>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                {phase === 'ENDED' && <div style={{ color: '#e50b1e', fontSize: '32px', fontWeight: '900', marginBottom: '-10px', textShadow: '0 0 10px rgba(0,0,0,0.7)' }}>FLEW AWAY!</div>}
-                <div style={{ color: phase === 'ENDED' ? '#e50b1e' : '#fff', fontSize: '64px', fontWeight: '900', textShadow: '0 0 10px rgba(0,0,0,0.7)' }}>
-                  {mult >= 1 ? mult.toFixed(2) : "1.00"} <span style={{ fontSize: '40px' }}>x</span>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+
       </div>
 
       {/* ── Bet Controls ── */}
