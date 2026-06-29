@@ -296,16 +296,26 @@ export default function AviatorPage() {
     });
   });
 
-  // Cleanup Unity event listeners and fully quit the engine when component unmounts
+  // Cleanup Unity and suppress the native WebGL unmount crash alert
   useEffect(() => {
     return () => {
-      if (unityCtx) {
-        if (typeof (unityCtx as any).removeAllEventListeners === 'function') {
-          (unityCtx as any).removeAllEventListeners();
-        }
-        if (typeof unityCtx.quitUnityInstance === 'function') {
-          try { unityCtx.quitUnityInstance(); } catch (e) { /* ignore */ }
-        }
+      // When leaving the page via soft-navigation, Unity's Emscripten thread often 
+      // crashes trying to read 'onwheel' from the destroyed canvas, causing a blocking alert.
+      if (typeof window !== 'undefined') {
+        const originalAlert = window.alert;
+        window.alert = function (msg: any) {
+          if (typeof msg === 'string' && msg.includes('An error occurred running the Unity content')) {
+            console.warn('Suppressed Unity unmount crash alert:', msg);
+            return;
+          }
+          originalAlert(msg);
+        };
+        // Restore alert after Unity fully dies in the background
+        setTimeout(() => { window.alert = originalAlert; }, 2000);
+      }
+
+      if (unityCtx && typeof unityCtx.quitUnityInstance === 'function') {
+        try { unityCtx.quitUnityInstance(); } catch (e) { /* ignore */ }
       }
     };
   }, [unityCtx]);
