@@ -1360,11 +1360,11 @@ staffRouter.get('/aviator-finance', staffMiddleware, async (req, res) => {
           { username: '@Luel1616' }
         ]
       },
-      include: { Wallet: true }
+      include: { wallet: true }
     });
 
-    const aviatorBalance = masterAgent?.Wallet?.aviatorBalance 
-      ? Number(masterAgent.Wallet.aviatorBalance) 
+    const aviatorBalance = masterAgent?.wallet?.aviatorBalance 
+      ? Number(masterAgent.wallet.aviatorBalance) 
       : 0;
 
     // 2. Global Statistics
