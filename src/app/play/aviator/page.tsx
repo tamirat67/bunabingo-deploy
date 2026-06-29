@@ -293,14 +293,27 @@ export default function AviatorPage() {
 
   useEffect(() => {
     if (!unityContext) return;
-    const onProgress = (p: number) => setLoadingProgress(p);
+    const onProgress = (p: number) => {
+      setLoadingProgress(p);
+      if (p === 1) setIsLoaded(true);
+    };
     const onLoaded   = ()          => setIsLoaded(true);
+    const onGameReady = (msg: string) => {
+      if (msg === 'Ready') {
+        setIsLoaded(true);
+        setLoadingProgress(1);
+      }
+    };
+    
     unityContext.on('progress', onProgress);
     unityContext.on('loaded',   onLoaded);
+    unityContext.on('GameController', onGameReady);
+    
     return () => {
       if (unityContext && typeof unityContext.removeEventListener === 'function') {
         unityContext.removeEventListener('progress', onProgress);
         unityContext.removeEventListener('loaded', onLoaded);
+        unityContext.removeEventListener('GameController', onGameReady);
       }
     };
   }, []);
@@ -451,37 +464,48 @@ export default function AviatorPage() {
           <div style={{
             position: 'absolute', inset: 0, background: '#0d0d1c',
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            gap: '14px', zIndex: 10,
+            zIndex: 10,
           }}>
-            {/* Plane icon */}
-            <svg width="60" height="30" viewBox="0 0 120 60" fill="none" style={{ filter: 'drop-shadow(0 0 12px #ff3333)' }}>
-              <path d="M0 35 L70 20 L120 40 L70 35 L60 55 Z" fill="#cc1111"/>
-              <path d="M70 20 L100 5 L110 20 L70 20 Z" fill="#ff3333"/>
-              <path d="M60 55 L70 35 L50 35 Z" fill="#aa0000"/>
-            </svg>
-            <div style={{ color: '#fff', fontWeight: '700', fontSize: '14px' }}>Loading Aviator...</div>
-            <div style={{ width: '160px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', height: '4px', overflow: 'hidden' }}>
+            <style>{`@keyframes spin { 100% { transform: rotate(360deg); } }`}</style>
+            <div style={{ width: '150px', height: '150px', animation: 'spin 1.5s linear infinite', marginBottom: '15px' }}>
+              <img src="/propeller.png" alt="Loading" style={{ width: '100%', height: '100%' }} />
+            </div>
+            <div style={{ width: '160px', background: 'rgba(255,255,255,0.1)', borderRadius: '10px', height: '10px', overflow: 'hidden' }}>
               <div style={{
                 width: `${Math.round(loadingProgress * 100)}%`, height: '100%',
-                background: 'linear-gradient(90deg,#ff3333,#ff8800)',
-                borderRadius: '4px', transition: 'width 0.3s',
+                background: '#e50b1e', borderRadius: '10px', transition: 'width 0.3s',
               }}/>
             </div>
-            <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px' }}>{Math.round(loadingProgress * 100)}%</div>
+            <div style={{ color: '#fff', fontWeight: '700', fontSize: '18px', marginTop: '10px' }}>
+              {Math.min(100, Math.round(loadingProgress * 100)).toFixed(2)}%
+            </div>
           </div>
         )}
 
         {unityContext && <Unity unityContext={unityContext} style={{ width: '100%', height: '100%' }} />}
 
-        {/* Live multiplier overlay — only shown while loaded but Unity isn't showing it */}
-        {isLoaded && (phase === 'WAIT' || phase === '') && (
+        {/* Live multiplier overlay */}
+        {isLoaded && (
           <div style={{
             position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
             alignItems: 'center', justifyContent: 'center', pointerEvents: 'none',
           }}>
-            <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '12px', fontWeight: '700' }}>
-              ⏳ Next round starting...
-            </div>
+            {phase === 'BET' || phase === 'WAIT' || phase === '' ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
+                <style>{`@keyframes spin { 100% { transform: rotate(360deg); } }`}</style>
+                <div style={{ width: '100px', height: '100px', animation: 'spin 1.5s linear infinite' }}>
+                  <img src="/propeller.png" alt="WAITING" style={{ width: '100%', height: '100%' }} />
+                </div>
+                <div style={{ color: '#e50b1e', fontSize: '24px', fontWeight: '900', marginTop: '10px' }}>WAITING FOR NEXT ROUND</div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                {phase === 'ENDED' && <div style={{ color: '#e50b1e', fontSize: '40px', fontWeight: '900', marginBottom: '-10px', textShadow: '0 0 10px rgba(0,0,0,0.5)' }}>FLEW AWAY!</div>}
+                <div style={{ color: phase === 'ENDED' ? '#e50b1e' : '#fff', fontSize: '80px', fontWeight: '900', textShadow: '0 0 10px rgba(0,0,0,0.5)' }}>
+                  {mult >= 1 ? mult.toFixed(2) : "1.00"} <span style={{ fontSize: '50px' }}>x</span>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
