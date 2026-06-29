@@ -287,6 +287,19 @@ export default function AviatorPage() {
   const router = useRouter();
   const { socket } = useSocket();
 
+  // ── Double-RAF delay (from original aviator-crash) ────────────────────────
+  // Unity 2021.2+ throws "onwheel null reference" if canvas is not yet in DOM
+  // with proper pixel dimensions. Two animation frames guarantee layout is done.
+  const [canvasReady, setCanvasReady] = useState(false);
+  useEffect(() => {
+    let rafId1: number;
+    let rafId2: number;
+    rafId1 = requestAnimationFrame(() => {
+      rafId2 = requestAnimationFrame(() => setCanvasReady(true));
+    });
+    return () => { cancelAnimationFrame(rafId1); cancelAnimationFrame(rafId2); };
+  }, []);
+
   // Unity loading
   const [isLoaded, setIsLoaded]               = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
@@ -488,10 +501,11 @@ export default function AviatorPage() {
       {/* ── Unity Game Canvas ── */}
       <div style={{
         position: 'relative', background: '#000',
-        flexShrink: 0, height: '42vw', minHeight: '200px', maxHeight: '320px',
+        flexShrink: 0, height: '42vw', minHeight: '220px', maxHeight: '340px',
         overflow: 'hidden',
       }}>
-        {/* ── Loading overlay: covers Unity until it is ready ── */}
+
+        {/* Loading overlay always on top until isLoaded */}
         {!isLoaded && (
           <div style={{
             position: 'absolute', inset: 0, background: '#0d0d1c',
@@ -514,26 +528,33 @@ export default function AviatorPage() {
           </div>
         )}
 
-        {/* ── Unity canvas — always mounted so it can initialize ── */}
-        {unityContext && (
-          <div style={{ width: '100%', height: '100%', visibility: isLoaded ? 'visible' : 'hidden' }}>
-            <Unity unityContext={unityContext} style={{ width: '100%', height: '100%' }} />
-          </div>
+        {/*
+          Unity canvas — only mounted after double-RAF (canvasReady).
+          The original aviator-crash uses the exact same pattern to prevent
+          Unity 2021.2+ "onwheel null reference" crash that happens when
+          the canvas has 0×0 pixel dimensions during WebGL init.
+        */}
+        {canvasReady && unityContext && (
+          <Unity
+            unityContext={unityContext}
+            matchWebGLToCanvasSize={true}
+            style={{ width: '100%', height: '100%', display: 'block' }}
+          />
         )}
 
-        {/* ── BET/WAIT overlay: transparent bg so Unity canvas shows through ── */}
+        {/* BET/WAIT overlay — transparent bg so Unity canvas shows through */}
         {isLoaded && (phase === 'BET' || phase === 'WAIT' || phase === '') && (
           <div style={{
             position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
             alignItems: 'center', justifyContent: 'center', pointerEvents: 'none',
+            zIndex: 5,
           }}>
-            <style>{`@keyframes _spin { 100% { transform: rotate(360deg); } }`}</style>
             <div style={{ width: '80px', height: '80px', animation: '_spin 1.5s linear infinite' }}>
               <img src="/propeller.png" alt="" style={{ width: '100%', height: '100%' }} />
             </div>
             <div style={{
               color: '#e50b1e', fontSize: '16px', fontWeight: '900', marginTop: '8px',
-              textShadow: '0 0 8px rgba(0,0,0,0.9)',
+              textShadow: '0 2px 8px rgba(0,0,0,0.9)',
             }}>WAITING FOR NEXT ROUND</div>
           </div>
         )}
