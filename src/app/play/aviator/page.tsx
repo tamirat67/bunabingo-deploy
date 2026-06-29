@@ -390,6 +390,8 @@ export default function AviatorPage() {
   const [bettedUsers, setBettedUsers] = useState<BettedUser[]>([]);
   const [toast, setToast]           = useState<{ msg: string; ok: boolean } | null>(null);
   const toastRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [showHowToPlay, setShowHowToPlay] = useState(false);
+  const [htpLang, setHtpLang]             = useState<'en' | 'am'>('en');
 
   const showToast = useCallback((msg: string, ok: boolean) => {
     setToast({ msg, ok });
@@ -482,6 +484,144 @@ export default function AviatorPage() {
         input[type=number] { -moz-appearance: textfield; }
       `}</style>
 
+      {/* ── How To Play Modal ── */}
+      {showHowToPlay && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 10000,
+          background: 'rgba(0,0,0,0.88)',
+          display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+        }} onClick={() => setShowHowToPlay(false)}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: '#1a1a2e', borderRadius: '18px 18px 0 0',
+            width: '100%', maxWidth: '520px', maxHeight: '90vh',
+            overflowY: 'auto', padding: '0 0 24px 0',
+            boxShadow: '0 -8px 40px rgba(0,0,0,0.7)',
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '16px 20px 12px',
+              background: 'rgba(229,11,30,0.15)',
+              borderBottom: '1px solid rgba(229,11,30,0.2)',
+            }}>
+              <div style={{ fontWeight: '900', fontSize: '16px', color: '#e50b1e', letterSpacing: '1px' }}>
+                ✈️ HOW TO PLAY?
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {/* Language toggle */}
+                <div style={{ display: 'flex', background: 'rgba(255,255,255,0.07)', borderRadius: '20px', padding: '2px' }}>
+                  <button onClick={() => setHtpLang('en')} style={{
+                    background: htpLang === 'en' ? '#e50b1e' : 'transparent',
+                    border: 'none', borderRadius: '18px', padding: '4px 12px',
+                    color: '#fff', fontWeight: '700', fontSize: '12px', cursor: 'pointer', transition: 'all 0.2s',
+                  }}>EN</button>
+                  <button onClick={() => setHtpLang('am')} style={{
+                    background: htpLang === 'am' ? '#e50b1e' : 'transparent',
+                    border: 'none', borderRadius: '18px', padding: '4px 12px',
+                    color: '#fff', fontWeight: '700', fontSize: '12px', cursor: 'pointer', transition: 'all 0.2s',
+                  }}>አማ</button>
+                </div>
+                <button onClick={() => setShowHowToPlay(false)} style={{
+                  background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%',
+                  width: '28px', height: '28px', color: '#fff', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px',
+                }}>✕</button>
+              </div>
+            </div>
+
+            {/* YouTube Video */}
+            <div style={{ padding: '14px 16px 8px' }}>
+              <div style={{
+                position: 'relative', width: '100%', paddingBottom: '56.25%',
+                borderRadius: '12px', overflow: 'hidden', background: '#000',
+              }}>
+                <iframe
+                  src="https://www.youtube.com/embed/PZejs3XDCSY?rel=0&modestbranding=1"
+                  title="Aviator How to Play"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  style={{
+                    position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                    border: 'none',
+                  }}
+                />
+              </div>
+              {/* Open in YouTube link */}
+              <a
+                href="https://youtu.be/PZejs3XDCSY"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                  marginTop: '8px', color: '#ff4444', fontSize: '12px', fontWeight: '700',
+                  textDecoration: 'none',
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="#ff4444">
+                  <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/>
+                </svg>
+                {htpLang === 'am' ? 'ዩቱብ ላይ ክፈት' : 'Watch on YouTube'}
+              </a>
+            </div>
+
+            {/* Steps */}
+            {[
+              {
+                num: '01',
+                icon: '🎰',
+                en: 'Place a bet (or two at the same time) and wait for the round to start.',
+                am: 'ውርርድ ያቁሙ (ወይም ሁለት በአንድ ጊዜ) እና ዙሩ እስኪጀምር ይጠብቁ።',
+              },
+              {
+                num: '02',
+                icon: '✈️',
+                en: 'Watch the lucky plane — your win is your bet multiplied by the multiplier. Cash out before the plane flies away!',
+                am: 'መልካም እድሉ አውሮፕላን ይከታተሉ — ትርፍዎ ውርርድዎን ብዜት ነው። አውሮፕላኑ ከመብረቁ በፊት ጥሬ ገንዘብ ያውጡ!',
+              },
+              {
+                num: '03',
+                icon: '💰',
+                en: 'Cash out before the plane flies away and the winnings are yours!',
+                am: 'አውሮፕላኑ ከመብረቁ በፊት ጥሬ ገንዘብ ያውጡ እና ሽልማቱ የእርስዎ ነው!',
+              },
+            ].map(step => (
+              <div key={step.num} style={{
+                display: 'flex', alignItems: 'flex-start', gap: '14px',
+                padding: '14px 16px',
+                borderBottom: '1px solid rgba(255,255,255,0.05)',
+              }}>
+                <div style={{ minWidth: '40px' }}>
+                  <div style={{
+                    width: '40px', height: '40px', borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #e50b1e, #ff6b35)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontWeight: '900', fontSize: '13px', color: '#fff',
+                  }}>{step.num}</div>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '20px', marginBottom: '4px' }}>{step.icon}</div>
+                  <div style={{ color: '#fff', fontSize: '13px', lineHeight: '1.5', fontWeight: '500' }}>
+                    {htpLang === 'am' ? step.am : step.en}
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {/* Footer note */}
+            <div style={{
+              margin: '16px 16px 0',
+              background: 'rgba(229,11,30,0.1)', border: '1px solid rgba(229,11,30,0.2)',
+              borderRadius: '10px', padding: '12px 14px',
+              color: 'rgba(255,255,255,0.7)', fontSize: '12px', lineHeight: '1.6',
+            }}>
+              {htpLang === 'am'
+                ? '⚠️ ዝቅተኛ ውርርድ፡ 5 ETB | ከፍተኛ ውርርድ፡ 5,000 ETB. ሃላፊነት ሊወስዱ በሚችሉበት ደረጃ ብቻ ይጫወቱ።'
+                : '⚠️ Min bet: 5 ETB | Max bet: 5,000 ETB. Play responsibly and only bet what you can afford.'}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Toast ── */}
       {toast && (
         <div style={{
@@ -504,7 +644,7 @@ export default function AviatorPage() {
         <div style={{ fontWeight: '900', fontSize: '20px', letterSpacing: '-1px' }}>
           <span style={{ color: '#ff3333', fontStyle: 'italic', fontFamily: 'Georgia, serif' }}>Aviator</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <button onClick={() => router.push('/')} style={{
             background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)',
             borderRadius: '6px', padding: '4px 10px', color: 'rgba(255,255,255,0.6)',
@@ -515,6 +655,20 @@ export default function AviatorPage() {
             borderRadius: '20px', padding: '4px 12px',
             color: '#2ecc71', fontWeight: '900', fontSize: '13px',
           }}>{balance.toFixed(2)} ETB</div>
+          {/* How to Play button */}
+          <button
+            onClick={() => setShowHowToPlay(true)}
+            title="How to Play"
+            style={{
+              background: 'linear-gradient(135deg, #e50b1e, #ff6b35)',
+              border: 'none', borderRadius: '50%',
+              width: '30px', height: '30px',
+              color: '#fff', fontWeight: '900', fontSize: '15px',
+              cursor: 'pointer', flexShrink: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 2px 10px rgba(229,11,30,0.5)',
+            }}
+          >?</button>
         </div>
       </div>
 
