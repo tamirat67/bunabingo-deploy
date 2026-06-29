@@ -4,7 +4,7 @@ import { getRooms, getWallet, getMe } from '../lib/api';
 import { initTelegram, getLanguage, setLanguage } from '../lib/telegram';
 import t from '../lib/i18n';
 import { useRouter } from 'next/navigation';
-import { Trophy, Gift, Wallet as WalletIcon, Target, Play, Dices, ExternalLink, ShieldCheck, History, User, ChevronDown, MoreVertical, X, Coffee } from 'lucide-react';
+import { Trophy, Gift, Wallet as WalletIcon, Target, Play, Dices, ExternalLink, ShieldCheck, History, User, ChevronDown, MoreVertical, X, Coffee, Plane } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { useTheme } from '../context/ThemeContext';
@@ -260,6 +260,51 @@ export default function LobbyPage() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* ── AVIATOR CARD ── */}
+        <div style={{ padding: '0 15px', marginBottom: '12px' }}>
+          <div
+            onClick={() => router.push('/play/aviator')}
+            style={{
+              background: 'linear-gradient(135deg, #1a0a2e 0%, #0d1b2a 60%, #1a0a1a 100%)',
+              borderRadius: '12px',
+              padding: '14px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              cursor: 'pointer',
+              border: '1px solid rgba(231,76,60,0.3)',
+              boxShadow: '0 4px 20px rgba(231,76,60,0.15)',
+              position: 'relative',
+              overflow: 'hidden',
+            }}
+          >
+            {/* Glow accent */}
+            <div style={{
+              position: 'absolute', top: 0, left: 0, right: 0, height: '2px',
+              background: 'linear-gradient(90deg, transparent, #e74c3c, transparent)',
+            }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                width: '44px', height: '44px', borderRadius: '50%',
+                background: 'rgba(231,76,60,0.15)', border: '1px solid rgba(231,76,60,0.4)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <Plane size={22} color="#e74c3c" />
+              </div>
+              <div>
+                <div style={{ fontWeight: '900', fontSize: '15px', color: '#fff', letterSpacing: '0.5px' }}>AVIATOR</div>
+                <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', fontWeight: '700' }}>Crash game — ቁማር & Cash Out!</div>
+              </div>
+            </div>
+            <div style={{
+              background: 'linear-gradient(90deg, #e74c3c, #c0392b)',
+              color: '#fff', fontSize: '12px', fontWeight: '900',
+              padding: '8px 16px', borderRadius: '8px',
+              boxShadow: '0 3px 0 #922b21',
+            }}>FLY ✈️</div>
+          </div>
+        </div>
 
         {/* ── BINGO GAMES ── */}
         <div style={{ padding: '0 15px' }}>

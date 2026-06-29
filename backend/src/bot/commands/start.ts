@@ -208,7 +208,8 @@ export async function handleStart(ctx: Context) {
         ],
         // ── Row 1: Games ─────────────────────────────────────────────────────
         [
-          Markup.button.callback('Bingo ይጫወቱ 🎮', 'cmd_play_bingo'),
+          Markup.button.callback('Bingo ይጫወቱ 🎮',   'cmd_play_bingo'),
+          Markup.button.callback('Aviator ✈️',        'cmd_play_aviator'),
         ],
 
         // ── Row 3: Account ───────────────────────────────────────────────────
@@ -243,7 +244,8 @@ export async function handleStart(ctx: Context) {
             Markup.button.webApp('🚀 Open App / አፕ ክፈት', config.bot.miniAppUrl),
           ],
           [
-            Markup.button.callback('Bingo ይጫወቱ 🎮', 'cmd_play_bingo'),
+            Markup.button.callback('Bingo ይጫወቱ 🎮',   'cmd_play_bingo'),
+            Markup.button.callback('Aviator ✈️',        'cmd_play_aviator'),
           ],
 
           [

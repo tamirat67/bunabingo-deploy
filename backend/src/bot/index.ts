@@ -23,6 +23,7 @@ import { handleTransfer,
          handleTransferCancel,
          handleTransferMessage }               from './commands/transfer';
 import { handleCmd }                            from './commands/cmd';
+import { handlePlayAviator }                    from './commands/aviator';
 
 // ─── Deposit flow ─────────────────────────────────────────────────────────────
 import {
@@ -100,6 +101,7 @@ export function createBot(): Telegraf {
   // ─── Main menu ────────────────────────────────────────────────────────────
   bot.action('cmd_start',          ctx => handleStart(ctx));
   bot.action('cmd_play_bingo',     ctx => handlePlayBingoMenu(ctx));
+  bot.action('cmd_play_aviator',   ctx => handlePlayAviator(ctx));
   bot.action('cmd_register',       ctx => handleRegister(ctx));
   bot.action('cmd_vip',            ctx => handleVipRoom(ctx));
 

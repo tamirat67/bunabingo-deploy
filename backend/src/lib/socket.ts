@@ -309,3 +309,68 @@ export function triggerSocketGlobalEvent(event: string, data: any) {
   if (!io) return;
   io.emit(event, data);
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  AVIATOR SOCKET NAMESPACE  (additive — does NOT touch any Bingo logic)
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// All Aviator events are prefixed "aviator:" on the server side so they
+// can never collide with existing Bingo events (join-game, card-select…).
+// The frontend sends "aviator:enterRoom", "aviator:playBet", etc.
+//
+// The AviatorService manages its own in-memory game state and only reads
+// from / writes to the aviator_games + aviator_bets tables in Prisma.
+//
+export function initAviatorSocketHandlers(ioServer: SocketServer) {
+  ioServer.on('connection', (socket) => {
+    // ── Aviator: enter room ────────────────────────────────────────────────
+    socket.on('aviator:enterRoom', async (data: { token?: string; userId?: string }) => {
+      try {
+        const { aviatorEnterRoom } = await import('../services/aviator.service');
+        const userId = (data?.userId ?? socket.handshake.query.userId) as string;
+        if (!userId) return;
+        await aviatorEnterRoom(socket.id, userId, ioServer);
+      } catch (err: any) {
+        logger.warn('[Aviator Socket] enterRoom error:', err.message);
+      }
+    });
+
+    // ── Aviator: place bet ─────────────────────────────────────────────────
+    socket.on('aviator:playBet', async (data: {
+      betAmount: number;
+      target: number;
+      type: 'f' | 's';
+      auto?: boolean;
+    }) => {
+      try {
+        const userId = socket.handshake.query.userId as string;
+        if (!userId) return;
+        const { aviatorPlaceBet } = await import('../services/aviator.service');
+        const result = await aviatorPlaceBet(userId, data.betAmount, data.target ?? 0, data.type ?? 'f');
+        if (!result.success) {
+          socket.emit('aviator:error', { index: data.type ?? 'f', message: result.error });
+        }
+      } catch (err: any) {
+        logger.warn('[Aviator Socket] playBet error:', err.message);
+        socket.emit('aviator:error', { message: err.message });
+      }
+    });
+
+    // ── Aviator: cash out ──────────────────────────────────────────────────
+    socket.on('aviator:cashOut', async (data: { endTarget: number; type: 'f' | 's' }) => {
+      try {
+        const userId = socket.handshake.query.userId as string;
+        if (!userId) return;
+        const { aviatorCashOut } = await import('../services/aviator.service');
+        const result = await aviatorCashOut(userId, data.endTarget, data.type ?? 'f');
+        if (!result.success) {
+          socket.emit('aviator:error', { index: data.type ?? 'f', message: result.error });
+        }
+      } catch (err: any) {
+        logger.warn('[Aviator Socket] cashOut error:', err.message);
+        socket.emit('aviator:error', { message: err.message });
+      }
+    });
+  });
+}
+

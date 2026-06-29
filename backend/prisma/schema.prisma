@@ -71,6 +71,7 @@ model User {
   agentCommissionLogs  AgentCommissionLog[]
   agentSettlements     AgentSettlement[] @relation("AgentSettlements")
   adminSettlements     AgentSettlement[] @relation("AdminSettlements")
+  aviatorBets          AviatorBet[]
 
   // Self-relation for referrals
   referrer         User?    @relation("UserReferrals", fields: [referredBy], references: [id])
@@ -375,4 +376,36 @@ model AgentSettlement {
 
   @@index([agentId])
   @@map("agent_settlements")
+}
+
+model AviatorGame {
+  id               String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  status           GameStatus  @default(WAITING)
+  crashMultiplier  Decimal?    @db.Decimal(10, 4) @map("crash_multiplier")
+  startedAt        DateTime?   @db.Timestamptz(6) @map("started_at")
+  finishedAt       DateTime?   @db.Timestamptz(6) @map("finished_at")
+  createdAt        DateTime    @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  bets             AviatorBet[]
+
+  @@map("aviator_games")
+}
+
+model AviatorBet {
+  id                String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  gameId            String      @db.Uuid @map("game_id")
+  userId            String      @db.Uuid @map("user_id")
+  betAmount         Decimal     @db.Decimal(20, 4) @map("bet_amount")
+  targetMultiplier  Decimal?    @db.Decimal(10, 4) @map("target_multiplier") // auto-cashout target
+  cashoutMultiplier Decimal?    @db.Decimal(10, 4) @map("cashout_multiplier") // actual cashout
+  winAmount         Decimal?    @db.Decimal(20, 4) @map("win_amount")
+  status            String      @default("PENDING") // PENDING, WON, LOST
+  createdAt         DateTime    @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  game              AviatorGame @relation(fields: [gameId], references: [id])
+  user              User        @relation(fields: [userId], references: [id])
+
+  @@index([gameId])
+  @@index([userId])
+  @@map("aviator_bets")
 }

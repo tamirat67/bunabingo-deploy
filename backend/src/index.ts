@@ -52,9 +52,11 @@ async function main() {
   
   // ─── HTTP Server & Socket.io ─────────────────────────────
   const { createServer } = await import('http');
-  const { initSocket } = await import('./lib/socket');
+  const { initSocket, initAviatorSocketHandlers, getIO } = await import('./lib/socket');
   const httpServer = createServer(app);
   initSocket(httpServer);
+  // ─── Aviator Socket Handlers (additive — isolated from Bingo) ────────────
+  initAviatorSocketHandlers(getIO());
 
   httpServer.listen(port, host, () => {
     logger.info(`🚀 API server running on ${host}:${port} (HTTP + Socket.io)`);
@@ -91,6 +93,15 @@ async function main() {
     logger.info('✅ Active running games resumed');
   } catch (resumeErr) {
     logger.error('❌ Failed to resume countdowns/games:', resumeErr);
+  }
+
+  // ─── Aviator Game Loop (additive — runs independently of Bingo) ──────────
+  try {
+    const { startAviatorLoop } = await import('./services/aviator.service');
+    startAviatorLoop();
+    logger.info('✅ Aviator game loop started');
+  } catch (aviErr) {
+    logger.error('❌ Aviator game loop failed to start (non-fatal):', aviErr);
   }
 
   // ─── Background Jobs ─────────────────────────────────────
