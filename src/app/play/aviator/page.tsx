@@ -11,14 +11,8 @@ import { useSocket } from '../../../context/SocketContext';
 import { getMe } from '../../../lib/api';
 import { initTelegram } from '../../../lib/telegram';
 
-// ── Unity context (client-side only) ──────────────────────────────────────────
-// Fetching via /api/unity/ to ensure Next.js standalone mode serves .unityweb files with GZIP headers
-const unityContext = typeof window !== 'undefined' ? new UnityContext({
-  loaderUrl:    '/unity/AirCrash.loader.js', // This is plain JS, served from public folder
-  dataUrl:      '/api/unity/AirCrash.data.unityweb',
-  frameworkUrl: '/api/unity/AirCrash.framework.js.unityweb',
-  codeUrl:      '/api/unity/AirCrash.wasm.unityweb',
-}) : null as any;
+// unityContext is created inside the component via useState (lazy init).
+// See AviatorPage below — this prevents the Unity onwheel null crash on re-mount.
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type GamePhase = 'WAIT' | 'BET' | 'PLAY' | 'ENDED' | '';
@@ -123,31 +117,31 @@ function BetPanel({
       </div>
 
       {/* Amount row */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
         <button
           onClick={() => setBetAmount(a => Math.max(5, a - 1))}
           disabled={hasBet}
           style={{
-            width: '28px', height: '28px', borderRadius: '50%', border: '1px solid rgba(255,255,255,0.2)',
-            background: 'rgba(255,255,255,0.06)', color: '#fff', fontSize: '18px',
-            cursor: hasBet ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
+            width: '24px', height: '24px', borderRadius: '50%', border: '1px solid rgba(255,255,255,0.2)',
+            background: 'rgba(255,255,255,0.06)', color: '#fff', fontSize: '16px',
+            cursor: hasBet ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, flexShrink: 0,
           }}>−</button>
         <input
           type="number" value={betAmount} disabled={hasBet}
           onChange={e => setBetAmount(Math.max(5, parseInt(e.target.value) || 5))}
           style={{
-            flex: 1, textAlign: 'center', background: 'rgba(255,255,255,0.06)',
+            flex: 1, minWidth: 0, textAlign: 'center', background: 'rgba(255,255,255,0.06)',
             border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px',
-            color: '#fff', fontWeight: '900', fontSize: '16px', padding: '5px 0', outline: 'none',
+            color: '#fff', fontWeight: '900', fontSize: '14px', padding: '4px 0', outline: 'none',
           }}
         />
         <button
           onClick={() => setBetAmount(a => Math.min(balance, a + 1))}
           disabled={hasBet}
           style={{
-            width: '28px', height: '28px', borderRadius: '50%', border: '1px solid rgba(255,255,255,0.2)',
-            background: 'rgba(255,255,255,0.06)', color: '#fff', fontSize: '18px',
-            cursor: hasBet ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
+            width: '24px', height: '24px', borderRadius: '50%', border: '1px solid rgba(255,255,255,0.2)',
+            background: 'rgba(255,255,255,0.06)', color: '#fff', fontSize: '16px',
+            cursor: hasBet ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, flexShrink: 0,
           }}>+</button>
       </div>
 
@@ -288,9 +282,31 @@ export default function AviatorPage() {
   const router = useRouter();
   const { socket } = useSocket();
 
-  // ── Double-RAF delay (from original aviator-crash) ────────────────────────
-  // Unity 2021.2+ throws "onwheel null reference" if canvas is not yet in DOM
-  // with proper pixel dimensions. Two animation frames guarantee layout is done.
+  // ── Unity context: lazy per-mount creation ─────────────────────────────────
+  // CRITICAL: Must NOT be at module level. Each React mount creates a fresh
+  // UnityContext. If reused across unmount/remount, Unity's WASM loop calls
+  // canvas.onwheel on a null/stale canvas => visible TypeError crash.
+  const [unityCtx] = useState<UnityContext | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return new UnityContext({
+      loaderUrl:    '/unity/AirCrash.loader.js',
+      dataUrl:      '/api/unity/AirCrash.data.unityweb',
+      frameworkUrl: '/api/unity/AirCrash.framework.js.unityweb',
+      codeUrl:      '/api/unity/AirCrash.wasm.unityweb',
+    });
+  });
+
+  // Cleanup Unity event listeners when component unmounts
+  useEffect(() => {
+    return () => {
+      if (unityCtx && typeof (unityCtx as any).removeAllEventListeners === 'function') {
+        (unityCtx as any).removeAllEventListeners();
+      }
+    };
+  }, [unityCtx]);
+
+  // ── Double-RAF canvas mount delay ───────────────────────────────────────────
+  // Ensures the canvas div has real pixel dimensions before Unity WebGL init.
   const [canvasReady, setCanvasReady] = useState(false);
   useEffect(() => {
     let rafId1: number;
@@ -309,7 +325,7 @@ export default function AviatorPage() {
   const progressRef = useRef(0);
 
   useEffect(() => {
-    if (!unityContext) return;
+    if (!unityCtx) return;
 
     let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -337,19 +353,19 @@ export default function AviatorPage() {
       if (msg === 'Ready') { clearFallback(); forceLoaded(); }
     };
 
-    unityContext.on('progress',       onProgress);
-    unityContext.on('loaded',         onLoaded);
-    unityContext.on('GameController', onGameReady);
+    unityCtx.on('progress',       onProgress);
+    unityCtx.on('loaded',         onLoaded);
+    unityCtx.on('GameController', onGameReady);
 
     return () => {
       clearFallback();
-      if (unityContext && typeof unityContext.removeEventListener === 'function') {
-        unityContext.removeEventListener('progress',       onProgress);
-        unityContext.removeEventListener('loaded',         onLoaded);
-        unityContext.removeEventListener('GameController', onGameReady);
+      if (unityCtx && typeof (unityCtx as any).removeEventListener === 'function') {
+        (unityCtx as any).removeEventListener('progress',       onProgress);
+        (unityCtx as any).removeEventListener('loaded',         onLoaded);
+        (unityCtx as any).removeEventListener('GameController', onGameReady);
       }
     };
-  }, []);
+  }, [unityCtx]);
 
   // Game state
   const [userId, setUserId]         = useState('');
@@ -377,12 +393,12 @@ export default function AviatorPage() {
   const prevPhaseRef  = useRef('');
 
   const sendFlag = useCallback((flag: number) => {
-    if (!unityContext || flag === unityFlagRef.current) return;
+    if (!unityCtx || flag === unityFlagRef.current) return;
     unityFlagRef.current = flag;
     try {
-      unityContext.send('GameManager', 'RequestToken', JSON.stringify({ gameState: flag }));
+      unityCtx.send('GameManager', 'RequestToken', JSON.stringify({ gameState: flag }));
     } catch (e) { /* Unity not ready yet */ }
-  }, []);
+  }, [unityCtx]);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -535,9 +551,9 @@ export default function AviatorPage() {
           Unity 2021.2+ "onwheel null reference" crash that happens when
           the canvas has 0×0 pixel dimensions during WebGL init.
         */}
-        {canvasReady && unityContext && (
+        {canvasReady && unityCtx && (
           <Unity
-            unityContext={unityContext}
+            unityContext={unityCtx}
             matchWebGLToCanvasSize={true}
             style={{ width: '100%', height: '100%', display: 'block' }}
           />
