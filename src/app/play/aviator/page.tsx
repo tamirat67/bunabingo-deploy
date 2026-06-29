@@ -216,7 +216,13 @@ function BetPanel({
         </button>
       )}
 
-
+      {hasBet && !cashedOut && phase === 'PLAY' && (
+        <button onClick={() => { setHasBet(false); showToast('Cancelled', false); }} style={{
+          width: '100%', padding: '6px 0', borderRadius: '6px',
+          background: 'rgba(255,60,60,0.15)', border: '1px solid rgba(255,60,60,0.3)',
+          color: '#ff6666', fontWeight: '700', fontSize: '11px', cursor: 'pointer',
+        }}>CANCEL</button>
+      )}
     </div>
   );
 }
