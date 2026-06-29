@@ -20,8 +20,8 @@ const nextConfig = {
           }
         ],
       },
-      // ── Unity WebGL: Brotli-compressed assets ──────────────────────
-      // The .unityweb files (data, framework, wasm) are all Brotli-
+      // ── Unity WebGL: Gzip-compressed assets ──────────────────────
+      // The .unityweb files (data, framework, wasm) are all Gzip-
       // compressed by the Unity build. The browser must receive the
       // Content-Encoding header so it decompresses them correctly.
       // Without this header the loader downloads the file but stalls
@@ -29,7 +29,7 @@ const nextConfig = {
       {
         source: '/unity/:path*.unityweb',
         headers: [
-          { key: 'Content-Encoding', value: 'br' },
+          { key: 'Content-Encoding', value: 'gzip' },
           { key: 'Cache-Control',    value: 'public, max-age=31536000, immutable' },
         ],
       },
@@ -37,7 +37,7 @@ const nextConfig = {
         source: '/unity/AirCrash.wasm.unityweb',
         headers: [
           { key: 'Content-Type',     value: 'application/wasm' },
-          { key: 'Content-Encoding', value: 'br' },
+          { key: 'Content-Encoding', value: 'gzip' },
           { key: 'Cache-Control',    value: 'public, max-age=31536000, immutable' },
         ],
       },
@@ -45,7 +45,7 @@ const nextConfig = {
         source: '/unity/AirCrash.framework.js.unityweb',
         headers: [
           { key: 'Content-Type',     value: 'application/javascript' },
-          { key: 'Content-Encoding', value: 'br' },
+          { key: 'Content-Encoding', value: 'gzip' },
           { key: 'Cache-Control',    value: 'public, max-age=31536000, immutable' },
         ],
       },

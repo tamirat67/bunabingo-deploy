@@ -297,7 +297,12 @@ export default function AviatorPage() {
     const onLoaded   = ()          => setIsLoaded(true);
     unityContext.on('progress', onProgress);
     unityContext.on('loaded',   onLoaded);
-    return () => { unityContext.removeAllEventListeners(); };
+    return () => {
+      if (unityContext && typeof unityContext.removeEventListener === 'function') {
+        unityContext.removeEventListener('progress', onProgress);
+        unityContext.removeEventListener('loaded', onLoaded);
+      }
+    };
   }, []);
 
   // Game state
