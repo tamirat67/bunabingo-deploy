@@ -3416,4 +3416,60 @@ router.post('/admin/fix-historical-bonus', telegramAuthMiddleware, adminMiddlewa
   }
 });
 
+// ── Aviator: My Bets (historical for logged-in user) ──────────────────────────
+router.get('/aviator/my-bets', telegramAuthMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId as string;
+    const limit = parseInt(req.query.limit as string) || 30;
+    const bets = await prisma.aviatorBet.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      include: { game: { select: { crashMultiplier: true } } },
+    });
+    res.json(bets.map(b => ({
+      id:                b.id,
+      date:              b.createdAt,
+      betAmount:         parseFloat(b.betAmount.toString()),
+      cashoutMultiplier: b.cashoutMultiplier ? parseFloat(b.cashoutMultiplier.toString()) : null,
+      winAmount:         b.winAmount ? parseFloat(b.winAmount.toString()) : null,
+      status:            b.status,
+      crashMultiplier:   b.game.crashMultiplier ? parseFloat(b.game.crashMultiplier.toString()) : null,
+    })));
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Aviator: Top Bets (Day / Month / Year) ─────────────────────────────────────
+router.get('/aviator/top-bets', telegramAuthMiddleware, async (req: Request, res: Response) => {
+  try {
+    const period = (req.query.period as string) || 'day';
+    const now = new Date();
+    let since: Date;
+    if (period === 'month') {
+      since = new Date(now.getFullYear(), now.getMonth(), 1);
+    } else if (period === 'year') {
+      since = new Date(now.getFullYear(), 0, 1);
+    } else {
+      since = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    }
+    const bets = await prisma.aviatorBet.findMany({
+      where: { status: 'WON', createdAt: { gte: since } },
+      orderBy: { winAmount: 'desc' },
+      take: 20,
+      include: { user: { select: { username: true, firstName: true, telegramUsername: true } } },
+    });
+    res.json(bets.map(b => ({
+      id:                b.id,
+      username:          b.user.username || b.user.firstName || b.user.telegramUsername || 'Player',
+      betAmount:         parseFloat(b.betAmount.toString()),
+      cashoutMultiplier: b.cashoutMultiplier ? parseFloat(b.cashoutMultiplier.toString()) : null,
+      winAmount:         b.winAmount ? parseFloat(b.winAmount.toString()) : null,
+    })));
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;

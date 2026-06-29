@@ -242,37 +242,193 @@ function HistoryPill({ x }: { x: number }) {
 }
 
 // ── All Bets table ────────────────────────────────────────────────────────────
-function BetsTable({ users }: { users: BettedUser[] }) {
-  const [tab, setTab] = useState<'all' | 'top'>('all');
+function BetsTable({
+  users, userId, socket, previousHand,
+}: {
+  users: BettedUser[];
+  userId: string;
+  socket: any;
+  previousHand: BettedUser[];
+}) {
+  const [tab, setTab] = useState<'all' | 'my' | 'top'>('all');
+  const [topPeriod, setTopPeriod] = useState<'day' | 'month' | 'year'>('day');
+  const [showPrev, setShowPrev] = useState(false);
+  const [myBets, setMyBets]     = useState<any[]>([]);
+  const [topBets, setTopBets]   = useState<any[]>([]);
+  const [loading, setLoading]   = useState(false);
+
+  const API = process.env.NEXT_PUBLIC_API_URL || 'https://api.bunatechhub.net';
+
+  const getInitData = () => {
+    try { return (window as any).Telegram?.WebApp?.initData || ''; } catch { return ''; }
+  };
+
+  const fetchMyBets = async () => {
+    if (!userId) return;
+    setLoading(true);
+    try {
+      const r = await fetch(`${API}/api/aviator/my-bets?limit=30`, {
+        headers: { 'x-telegram-init-data': getInitData() },
+      });
+      if (r.ok) setMyBets(await r.json());
+    } catch {}
+    setLoading(false);
+  };
+
+  const fetchTopBets = async (period: string) => {
+    setLoading(true);
+    try {
+      const r = await fetch(`${API}/api/aviator/top-bets?period=${period}`, {
+        headers: { 'x-telegram-init-data': getInitData() },
+      });
+      if (r.ok) setTopBets(await r.json());
+    } catch {}
+    setLoading(false);
+  };
+
+  useEffect(() => { if (tab === 'my') fetchMyBets(); }, [tab, userId]);
+  useEffect(() => { if (tab === 'top') fetchTopBets(topPeriod); }, [tab, topPeriod]);
+
+  const displayUsers = showPrev ? previousHand : users;
+
+  const tabStyle = (active: boolean) => ({
+    flex: 1, padding: '6px 0', borderRadius: '20px', border: 'none', cursor: 'pointer',
+    background: active ? '#fff' : 'transparent',
+    color:      active ? '#111' : 'rgba(255,255,255,0.5)',
+    fontWeight: '700' as const, fontSize: '11px', transition: 'all 0.2s',
+  });
+
+  const headerCell = (text: string, align: 'left' | 'center' | 'right' = 'left') => (
+    <span style={{ textAlign: align, color: 'rgba(255,255,255,0.3)', fontSize: '10px' }}>{text}</span>
+  );
+
+  const Spinner = () => (
+    <div style={{ textAlign: 'center', padding: '20px 0' }}>
+      <div style={{
+        width: '24px', height: '24px', borderRadius: '50%',
+        border: '2px solid rgba(229,11,30,0.3)', borderTopColor: '#e50b1e',
+        animation: '_spin 0.8s linear infinite', display: 'inline-block',
+      }}/>
+    </div>
+  );
+
   return (
-    <div style={{ flex: 1, overflowY: 'auto', padding: '0 12px 12px' }}>
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', justifyContent: 'center' }}>
-        {(['all', 'top'] as const).map(t => (
-          <button key={t} onClick={() => setTab(t)} style={{
-            padding: '5px 16px', borderRadius: '20px', border: 'none', cursor: 'pointer',
-            background: tab === t ? '#fff' : 'rgba(255,255,255,0.07)',
-            color:      tab === t ? '#111' : 'rgba(255,255,255,0.5)',
-            fontWeight: '700', fontSize: '11px',
-          }}>{t === 'all' ? 'All Bets' : 'Top'}</button>
-        ))}
+    <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+      {/* Tab bar */}
+      <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', borderRadius: '24px', padding: '3px', margin: '10px 12px 6px' }}>
+        <button style={tabStyle(tab === 'all')} onClick={() => setTab('all')}>All Bets</button>
+        <button style={tabStyle(tab === 'my')}  onClick={() => setTab('my')}>My Bets</button>
+        <button style={tabStyle(tab === 'top')} onClick={() => setTab('top')}>Top</button>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 80px', gap: '2px', fontSize: '10px', color: 'rgba(255,255,255,0.3)', marginBottom: '6px', padding: '0 4px' }}>
-        <span>User</span><span style={{ textAlign: 'center' }}>Bet, ETB</span><span style={{ textAlign: 'right' }}>Cash out</span>
-      </div>
-      {users.length === 0 && <div style={{ color: 'rgba(255,255,255,0.2)', fontSize: '11px', textAlign: 'center', marginTop: '20px' }}>No bets yet</div>}
-      {[...users]
-        .sort(tab === 'top' ? (a, b) => b.cashOut - a.cashOut : () => 0)
-        .map((u, i) => (
-          <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 80px 80px', gap: '2px', padding: '5px 4px', borderBottom: '1px solid rgba(255,255,255,0.04)', fontSize: '11px' }}>
-            <span style={{ color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {u.name?.slice(0, 10) || 'Player'}
-            </span>
-            <span style={{ textAlign: 'center', color: '#f1c40f', fontWeight: '700' }}>{u.betAmount}</span>
-            <span style={{ textAlign: 'right', color: u.cashouted ? '#2ecc71' : 'rgba(255,255,255,0.3)', fontWeight: '700' }}>
-              {u.cashouted ? `${u.cashOut.toFixed(2)}×` : '—'}
-            </span>
+
+      {/* ── ALL BETS ── */}
+      {tab === 'all' && (
+        <div style={{ flex: 1, padding: '0 12px 12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+            <div>
+              <div style={{ fontWeight: '900', fontSize: '11px', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px' }}>All Bets</div>
+              <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>{displayUsers.length}</div>
+            </div>
+            {previousHand.length > 0 && (
+              <button
+                onClick={() => setShowPrev(p => !p)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '5px',
+                  background: showPrev ? 'rgba(229,11,30,0.2)' : 'rgba(255,255,255,0.07)',
+                  border: showPrev ? '1px solid rgba(229,11,30,0.4)' : '1px solid rgba(255,255,255,0.12)',
+                  borderRadius: '16px', padding: '4px 10px',
+                  color: showPrev ? '#e50b1e' : 'rgba(255,255,255,0.6)',
+                  fontSize: '10px', fontWeight: '700', cursor: 'pointer',
+                }}
+              >
+                🕐 {showPrev ? 'Current' : 'Previous hand'}
+              </button>
+            )}
           </div>
-        ))}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 70px 40px 80px', gap: '2px', marginBottom: '6px', padding: '0 2px' }}>
+            {headerCell('User')} {headerCell('Bet, ETB', 'center')} {headerCell('X', 'center')} {headerCell('Cash out', 'right')}
+          </div>
+          {displayUsers.length === 0 && <div style={{ color: 'rgba(255,255,255,0.2)', fontSize: '11px', textAlign: 'center', marginTop: '20px' }}>No bets yet</div>}
+          {displayUsers.map((u, i) => (
+            <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 70px 40px 80px', gap: '2px', padding: '5px 2px', borderBottom: '1px solid rgba(255,255,255,0.04)', fontSize: '11px' }}>
+              <span style={{ color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {u.name?.slice(0, 10) || 'Player'}
+              </span>
+              <span style={{ textAlign: 'center', color: '#f1c40f', fontWeight: '700' }}>{u.betAmount}</span>
+              <span style={{ textAlign: 'center', color: u.cashouted ? '#2ecc71' : 'rgba(255,255,255,0.3)', fontWeight: '700' }}>
+                {u.cashouted ? `${u.cashOut.toFixed(2)}` : '—'}
+              </span>
+              <span style={{ textAlign: 'right', color: u.cashouted ? '#2ecc71' : 'rgba(255,60,60,0.6)', fontWeight: '700' }}>
+                {u.cashouted ? `${(u.betAmount * u.cashOut).toFixed(2)}` : 'Lost'}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── MY BETS ── */}
+      {tab === 'my' && (
+        <div style={{ flex: 1, padding: '0 12px 12px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 60px 36px 75px', gap: '2px', marginBottom: '6px', padding: '0 2px' }}>
+            {headerCell('Date')} {headerCell('Bet', 'center')} {headerCell('X', 'center')} {headerCell('Cash out', 'right')}
+          </div>
+          {loading && <Spinner />}
+          {!loading && myBets.length === 0 && (
+            <div style={{ color: 'rgba(255,255,255,0.2)', fontSize: '11px', textAlign: 'center', marginTop: '20px' }}>No bets yet</div>
+          )}
+          {!loading && myBets.map((b, i) => {
+            const d = new Date(b.date);
+            const dateStr = `${d.getMonth()+1}/${d.getDate()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+            return (
+              <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 60px 36px 75px', gap: '2px', padding: '5px 2px', borderBottom: '1px solid rgba(255,255,255,0.04)', fontSize: '11px' }}>
+                <span style={{ color: 'rgba(255,255,255,0.5)' }}>{dateStr}</span>
+                <span style={{ textAlign: 'center', color: '#f1c40f', fontWeight: '700' }}>{b.betAmount.toFixed(2)}</span>
+                <span style={{ textAlign: 'center', color: b.status === 'WON' ? '#2ecc71' : 'rgba(255,60,60,0.7)', fontWeight: '700' }}>
+                  {b.cashoutMultiplier ? `${b.cashoutMultiplier.toFixed(2)}` : '—'}
+                </span>
+                <span style={{ textAlign: 'right', color: b.status === 'WON' ? '#2ecc71' : 'rgba(255,60,60,0.7)', fontWeight: '700' }}>
+                  {b.status === 'WON' && b.winAmount ? b.winAmount.toFixed(2) : 'Lost'}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── TOP ── */}
+      {tab === 'top' && (
+        <div style={{ flex: 1, padding: '0 12px 12px' }}>
+          {/* Day/Month/Year sub-tabs */}
+          <div style={{ display: 'flex', gap: '4px', marginBottom: '10px' }}>
+            {(['day','month','year'] as const).map(p => (
+              <button key={p} onClick={() => setTopPeriod(p)} style={{
+                flex: 1, padding: '5px 0', borderRadius: '16px', border: 'none', cursor: 'pointer',
+                background: topPeriod === p ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.05)',
+                color: topPeriod === p ? '#fff' : 'rgba(255,255,255,0.4)',
+                fontWeight: '700', fontSize: '11px', transition: 'all 0.2s',
+              }}>{p.charAt(0).toUpperCase() + p.slice(1)}</button>
+            ))}
+          </div>
+          {loading && <Spinner />}
+          {!loading && topBets.length === 0 && (
+            <div style={{ color: 'rgba(255,255,255,0.2)', fontSize: '11px', textAlign: 'center', marginTop: '20px' }}>No top bets yet</div>
+          )}
+          {!loading && topBets.map((b, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 2px', borderBottom: '1px solid rgba(255,255,255,0.04)', fontSize: '11px' }}>
+              <div style={{
+                width: '22px', height: '22px', borderRadius: '50%', flexShrink: 0,
+                background: i === 0 ? 'linear-gradient(135deg,#FFD700,#FFA500)' : i === 1 ? 'linear-gradient(135deg,#C0C0C0,#888)' : i === 2 ? 'linear-gradient(135deg,#CD7F32,#8B4513)' : 'rgba(255,255,255,0.1)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontWeight: '900', fontSize: '10px', color: i < 3 ? '#111' : 'rgba(255,255,255,0.5)',
+              }}>{i + 1}</div>
+              <span style={{ flex: 1, color: 'rgba(255,255,255,0.8)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.username}</span>
+              <span style={{ color: '#f1c40f', fontWeight: '700' }}>{b.betAmount.toFixed(0)}</span>
+              <span style={{ color: '#2ecc71', fontWeight: '700', minWidth: '32px', textAlign: 'center' }}>{b.cashoutMultiplier ? `${b.cashoutMultiplier.toFixed(2)}×` : '—'}</span>
+              <span style={{ color: '#2ecc71', fontWeight: '900', minWidth: '50px', textAlign: 'right' }}>{b.winAmount ? b.winAmount.toFixed(2) : '—'}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -388,6 +544,7 @@ export default function AviatorPage() {
   const [gameState, setGameState]   = useState<GameState>({ GameState: '', currentNum: 1, time: 0 });
   const [history, setHistory]       = useState<number[]>([]);
   const [bettedUsers, setBettedUsers] = useState<BettedUser[]>([]);
+  const [previousHand, setPreviousHand] = useState<BettedUser[]>([]);
   const [toast, setToast]           = useState<{ msg: string; ok: boolean } | null>(null);
   const toastRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
@@ -455,13 +612,14 @@ export default function AviatorPage() {
     socket.emit('aviator:enterRoom', { userId });
     socket.on('gameState',      (s: GameState)    => setGameState(s));
     socket.on('bettedUserInfo', (u: BettedUser[]) => setBettedUsers(u));
+    socket.on('previousHand',   (h: BettedUser[]) => setPreviousHand(h));
     socket.on('history',        (h: number[])      => setHistory(h.slice(0, 25)));
     socket.on('success',        (msg: string)      => showToast(msg, true));
     socket.on('aviator:error',  (d: any)           => showToast(d?.message ?? 'Error', false));
     socket.on('balance-updated', (d: any)          => setBalance(parseFloat(d.newBalance)));
     socket.on('myInfo',         (u: any)           => setBalance(parseFloat((u.balance ?? 0).toString())));
     return () => {
-      ['gameState','bettedUserInfo','history','success','aviator:error','balance-updated','myInfo']
+      ['gameState','bettedUserInfo','previousHand','history','success','aviator:error','balance-updated','myInfo']
         .forEach(e => socket.off(e));
     };
   }, [socket, userId, showToast]);
@@ -747,7 +905,7 @@ export default function AviatorPage() {
         borderTop: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden',
         display: 'flex', flexDirection: 'column',
       }}>
-        <BetsTable users={bettedUsers} />
+        <BetsTable users={bettedUsers} userId={userId} socket={socket} previousHand={previousHand} />
       </div>
     </div>
   );
