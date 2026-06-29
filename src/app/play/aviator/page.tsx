@@ -12,11 +12,12 @@ import { getMe } from '../../../lib/api';
 import { initTelegram } from '../../../lib/telegram';
 
 // ── Unity context (client-side only) ──────────────────────────────────────────
+// Fetching via /api/unity/ to ensure Next.js standalone mode serves .unityweb files with GZIP headers
 const unityContext = typeof window !== 'undefined' ? new UnityContext({
-  loaderUrl:    '/unity/AirCrash.loader.js',
-  dataUrl:      '/unity/AirCrash.data.unityweb',
-  frameworkUrl: '/unity/AirCrash.framework.js.unityweb',
-  codeUrl:      '/unity/AirCrash.wasm.unityweb',
+  loaderUrl:    '/unity/AirCrash.loader.js', // This is plain JS, served from public folder
+  dataUrl:      '/api/unity/AirCrash.data.unityweb',
+  frameworkUrl: '/api/unity/AirCrash.framework.js.unityweb',
+  codeUrl:      '/api/unity/AirCrash.wasm.unityweb',
 }) : null as any;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -542,20 +543,32 @@ export default function AviatorPage() {
           />
         )}
 
-        {/* BET/WAIT overlay — transparent bg so Unity canvas shows through */}
-        {isLoaded && (phase === 'BET' || phase === 'WAIT' || phase === '') && (
+        {/* Overlay for text (WAITING, MULTIPLIER, FLEW AWAY) */}
+        {isLoaded && (
           <div style={{
             position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
             alignItems: 'center', justifyContent: 'center', pointerEvents: 'none',
             zIndex: 5,
           }}>
-            <div style={{ width: '80px', height: '80px', animation: '_spin 1.5s linear infinite' }}>
-              <img src="/propeller.png" alt="" style={{ width: '100%', height: '100%' }} />
-            </div>
-            <div style={{
-              color: '#e50b1e', fontSize: '16px', fontWeight: '900', marginTop: '8px',
-              textShadow: '0 2px 8px rgba(0,0,0,0.9)',
-            }}>WAITING FOR NEXT ROUND</div>
+            {phase === 'BET' || phase === 'WAIT' || phase === '' ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
+                <style>{`@keyframes _spin { 100% { transform: rotate(360deg); } }`}</style>
+                <div style={{ width: '80px', height: '80px', animation: '_spin 1.5s linear infinite' }}>
+                  <img src="/propeller.png" alt="WAITING" style={{ width: '100%', height: '100%' }} />
+                </div>
+                <div style={{
+                  color: '#e50b1e', fontSize: '20px', fontWeight: '900', marginTop: '10px',
+                  textShadow: '0 2px 8px rgba(0,0,0,0.9)',
+                }}>WAITING FOR NEXT ROUND</div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                {phase === 'ENDED' && <div style={{ color: '#e50b1e', fontSize: '32px', fontWeight: '900', marginBottom: '-10px', textShadow: '0 0 10px rgba(0,0,0,0.7)' }}>FLEW AWAY!</div>}
+                <div style={{ color: phase === 'ENDED' ? '#e50b1e' : '#fff', fontSize: '64px', fontWeight: '900', textShadow: '0 0 10px rgba(0,0,0,0.7)' }}>
+                  {mult >= 1 ? mult.toFixed(2) : "1.00"} <span style={{ fontSize: '40px' }}>x</span>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
