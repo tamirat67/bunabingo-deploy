@@ -352,28 +352,41 @@ export default function AviatorPage() {
     toastRef.current = setTimeout(() => setToast(null), 3500);
   }, []);
 
-  // Sync Unity
-  const prevPhaseRef = useRef('');
+  // ── Unity flag sync (matches original aviator-crash source exactly) ───────────
+  // GameManager.RequestToken({ gameState: N }) where:
+  //   1 = BET / waiting
+  //   2 = PLAY started (multiplier 1.00–2.00)
+  //   3 = PLAY multiplier >2
+  //   4 = PLAY multiplier >10
+  //   5 = ENDED / crashed
+  const unityFlagRef  = useRef(0);
+  const prevPhaseRef  = useRef('');
+
+  const sendFlag = useCallback((flag: number) => {
+    if (!unityContext || flag === unityFlagRef.current) return;
+    unityFlagRef.current = flag;
+    try {
+      unityContext.send('GameManager', 'RequestToken', JSON.stringify({ gameState: flag }));
+    } catch (e) { /* Unity not ready yet */ }
+  }, []);
+
   useEffect(() => {
-    if (!isLoaded || !unityContext) return;
+    if (!isLoaded) return;
     const { GameState: phase, currentNum } = gameState;
-    const m = parseFloat(currentNum.toFixed(2));
-    
-    if (phase === 'PLAY') {
-      unityContext.send('GameController', 'SetMultiplier', m.toString());
-      if (prevPhaseRef.current !== 'PLAY') {
-        unityContext.send('GameController', 'StartGame', '');
-      }
+    const m = parseFloat((currentNum ?? 1).toFixed(2));
+
+    if (phase === 'BET') {
+      sendFlag(1);
+    } else if (phase === 'PLAY') {
+      if (m > 10)      sendFlag(4);
+      else if (m > 2)  sendFlag(3);
+      else             sendFlag(2);
+    } else if (phase === 'ENDED') {
+      sendFlag(5);
     }
-    if (phase === 'ENDED' && prevPhaseRef.current !== 'ENDED') {
-      unityContext.send('GameController', 'CrashGame', m.toString());
-    }
-    if (phase === 'BET' && prevPhaseRef.current !== 'BET') {
-      unityContext.send('GameController', 'ResetGame', '');
-    }
-    
+
     prevPhaseRef.current = phase;
-  }, [isLoaded, gameState]);
+  }, [isLoaded, gameState, sendFlag]);
 
   // Init user
   useEffect(() => {
@@ -474,57 +487,54 @@ export default function AviatorPage() {
 
       {/* ── Unity Game Canvas ── */}
       <div style={{
-        position: 'relative', background: '#0d0d1c',
-        flexShrink: 0, height: '42vw', minHeight: '200px', maxHeight: '280px',
+        position: 'relative', background: '#000',
+        flexShrink: 0, height: '42vw', minHeight: '200px', maxHeight: '320px',
         overflow: 'hidden',
       }}>
-        {/* Loading overlay */}
+        {/* ── Loading overlay: covers Unity until it is ready ── */}
         {!isLoaded && (
           <div style={{
             position: 'absolute', inset: 0, background: '#0d0d1c',
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
             zIndex: 10,
           }}>
-            <style>{`@keyframes spin { 100% { transform: rotate(360deg); } }`}</style>
-            <div style={{ width: '150px', height: '150px', animation: 'spin 1.5s linear infinite', marginBottom: '15px' }}>
+            <style>{`@keyframes _spin { 100% { transform: rotate(360deg); } }`}</style>
+            <div style={{ width: '150px', height: '150px', animation: '_spin 1.5s linear infinite', marginBottom: '15px' }}>
               <img src="/propeller.png" alt="Loading" style={{ width: '100%', height: '100%' }} />
             </div>
-            <div style={{ width: '160px', background: 'rgba(255,255,255,0.1)', borderRadius: '10px', height: '10px', overflow: 'hidden' }}>
+            <div style={{ width: '200px', background: 'rgba(255,255,255,0.1)', borderRadius: '10px', height: '12px', overflow: 'hidden' }}>
               <div style={{
                 width: `${Math.round(loadingProgress * 100)}%`, height: '100%',
                 background: '#e50b1e', borderRadius: '10px', transition: 'width 0.3s',
               }}/>
             </div>
-            <div style={{ color: '#fff', fontWeight: '700', fontSize: '18px', marginTop: '10px' }}>
+            <div style={{ color: '#fff', fontWeight: '700', fontSize: '18px', marginTop: '12px' }}>
               {Math.min(100, Math.round(loadingProgress * 100)).toFixed(2)}%
             </div>
           </div>
         )}
 
-        {unityContext && <Unity unityContext={unityContext} style={{ width: '100%', height: '100%' }} />}
+        {/* ── Unity canvas — always mounted so it can initialize ── */}
+        {unityContext && (
+          <div style={{ width: '100%', height: '100%', visibility: isLoaded ? 'visible' : 'hidden' }}>
+            <Unity unityContext={unityContext} style={{ width: '100%', height: '100%' }} />
+          </div>
+        )}
 
-        {/* Live multiplier overlay */}
-        {isLoaded && (
+        {/* ── BET/WAIT overlay: transparent bg so Unity canvas shows through ── */}
+        {isLoaded && (phase === 'BET' || phase === 'WAIT' || phase === '') && (
           <div style={{
             position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
             alignItems: 'center', justifyContent: 'center', pointerEvents: 'none',
           }}>
-            {phase === 'BET' || phase === 'WAIT' || phase === '' ? (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
-                <style>{`@keyframes spin { 100% { transform: rotate(360deg); } }`}</style>
-                <div style={{ width: '100px', height: '100px', animation: 'spin 1.5s linear infinite' }}>
-                  <img src="/propeller.png" alt="WAITING" style={{ width: '100%', height: '100%' }} />
-                </div>
-                <div style={{ color: '#e50b1e', fontSize: '24px', fontWeight: '900', marginTop: '10px' }}>WAITING FOR NEXT ROUND</div>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                {phase === 'ENDED' && <div style={{ color: '#e50b1e', fontSize: '40px', fontWeight: '900', marginBottom: '-10px', textShadow: '0 0 10px rgba(0,0,0,0.5)' }}>FLEW AWAY!</div>}
-                <div style={{ color: phase === 'ENDED' ? '#e50b1e' : '#fff', fontSize: '80px', fontWeight: '900', textShadow: '0 0 10px rgba(0,0,0,0.5)' }}>
-                  {mult >= 1 ? mult.toFixed(2) : "1.00"} <span style={{ fontSize: '50px' }}>x</span>
-                </div>
-              </div>
-            )}
+            <style>{`@keyframes _spin { 100% { transform: rotate(360deg); } }`}</style>
+            <div style={{ width: '80px', height: '80px', animation: '_spin 1.5s linear infinite' }}>
+              <img src="/propeller.png" alt="" style={{ width: '100%', height: '100%' }} />
+            </div>
+            <div style={{
+              color: '#e50b1e', fontSize: '16px', fontWeight: '900', marginTop: '8px',
+              textShadow: '0 0 8px rgba(0,0,0,0.9)',
+            }}>WAITING FOR NEXT ROUND</div>
           </div>
         )}
       </div>
