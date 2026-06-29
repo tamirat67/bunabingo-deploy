@@ -296,11 +296,16 @@ export default function AviatorPage() {
     });
   });
 
-  // Cleanup Unity event listeners when component unmounts
+  // Cleanup Unity event listeners and fully quit the engine when component unmounts
   useEffect(() => {
     return () => {
-      if (unityCtx && typeof (unityCtx as any).removeAllEventListeners === 'function') {
-        (unityCtx as any).removeAllEventListeners();
+      if (unityCtx) {
+        if (typeof (unityCtx as any).removeAllEventListeners === 'function') {
+          (unityCtx as any).removeAllEventListeners();
+        }
+        if (typeof unityCtx.quitUnityInstance === 'function') {
+          try { unityCtx.quitUnityInstance(); } catch (e) { /* ignore */ }
+        }
       }
     };
   }, [unityCtx]);
