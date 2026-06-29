@@ -1341,6 +1341,85 @@ staffRouter.get('/agents', staffMiddleware, async (req, res) => {
   res.json(await getAgents(page, 20, agentIds));
 });
 
+// ─── Aviator Finance Report ─────────────────────────────────────
+staffRouter.get('/aviator-finance', staffMiddleware, async (req, res) => {
+  try {
+    const admin = (req as any).user;
+    // Only allow ADMIN role for global Aviator finance (not Staff)
+    if (admin.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'Forbidden. Admin only.' });
+    }
+
+    // 1. Get Master Agent @Luel1616 Wallet Balance
+    const masterAgent = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { telegramUsername: 'Luel1616' },
+          { username: 'Luel1616' },
+          { telegramUsername: '@Luel1616' },
+          { username: '@Luel1616' }
+        ]
+      },
+      include: { Wallet: true }
+    });
+
+    const aviatorBalance = masterAgent?.Wallet?.aviatorBalance 
+      ? Number(masterAgent.Wallet.aviatorBalance) 
+      : 0;
+
+    // 2. Global Statistics
+    const allBetsAgg = await prisma.aviatorBet.aggregate({
+      _sum: { betAmount: true, winAmount: true },
+      _count: { id: true },
+    });
+    
+    const totalVolume = Number(allBetsAgg._sum.betAmount || 0);
+    const totalPayout = Number(allBetsAgg._sum.winAmount || 0);
+    const netProfit = totalVolume - totalPayout;
+    const totalBetsCount = allBetsAgg._count.id;
+
+    // 3. Recent Transactions (last 50 completed bets)
+    const recentBets = await prisma.aviatorBet.findMany({
+      where: { status: { in: ['WON', 'LOST'] } },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+      include: {
+        user: { select: { username: true, firstName: true, telegramUsername: true } },
+        game: { select: { crashMultiplier: true } }
+      }
+    });
+
+    res.json({
+      masterAgent: {
+        id: masterAgent?.id,
+        name: masterAgent?.firstName || 'Luel1616',
+        username: masterAgent?.telegramUsername || 'Luel1616',
+        aviatorBalance
+      },
+      stats: {
+        totalVolume,
+        totalPayout,
+        netProfit,
+        totalBetsCount
+      },
+      recentBets: recentBets.map(b => ({
+        id: b.id,
+        date: b.createdAt,
+        username: b.user.username || b.user.firstName || b.user.telegramUsername || 'Player',
+        betAmount: Number(b.betAmount),
+        cashoutMultiplier: b.cashoutMultiplier ? Number(b.cashoutMultiplier) : null,
+        crashMultiplier: b.game?.crashMultiplier ? Number(b.game.crashMultiplier) : null,
+        winAmount: b.winAmount ? Number(b.winAmount) : null,
+        status: b.status,
+        profit: b.status === 'WON' && b.winAmount ? Number(b.betAmount) - Number(b.winAmount) : Number(b.betAmount)
+      }))
+    });
+  } catch (err: any) {
+    logger.error(`[Aviator Finance] Error: ${err.message}`);
+    res.status(500).json({ error: 'Failed to fetch Aviator finance data.' });
+  }
+});
+
 // ─── Company Profit Summary (All Agents) ────────────────────
 staffRouter.get('/company-profit', staffMiddleware, async (req, res) => {
   try {
