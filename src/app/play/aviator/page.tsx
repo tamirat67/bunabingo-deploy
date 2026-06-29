@@ -291,28 +291,47 @@ export default function AviatorPage() {
   const [isLoaded, setIsLoaded]               = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
 
+  // Track progress to fire fallback timer
+  const progressRef = useRef(0);
+
   useEffect(() => {
     if (!unityContext) return;
+
+    let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const clearFallback = () => {
+      if (fallbackTimer) { clearTimeout(fallbackTimer); fallbackTimer = null; }
+    };
+
+    const forceLoaded = () => { setIsLoaded(true); setLoadingProgress(1); };
+
     const onProgress = (p: number) => {
+      progressRef.current = p;
       setLoadingProgress(p);
-      if (p === 1) setIsLoaded(true);
-    };
-    const onLoaded   = ()          => setIsLoaded(true);
-    const onGameReady = (msg: string) => {
-      if (msg === 'Ready') {
-        setIsLoaded(true);
-        setLoadingProgress(1);
+      if (p >= 0.9) {
+        // Unity always stops at 90% while WASM compiles.
+        // If neither 'loaded' nor GameController 'Ready' fires within 3s, force-unlock.
+        clearFallback();
+        fallbackTimer = setTimeout(forceLoaded, 3000);
       }
+      if (p === 1) forceLoaded();
     };
-    
-    unityContext.on('progress', onProgress);
-    unityContext.on('loaded',   onLoaded);
+
+    const onLoaded = () => { clearFallback(); forceLoaded(); };
+
+    const onGameReady = (msg: string) => {
+      if (msg === 'Ready') { clearFallback(); forceLoaded(); }
+    };
+
+    unityContext.on('progress',       onProgress);
+    unityContext.on('loaded',         onLoaded);
     unityContext.on('GameController', onGameReady);
-    
+
     return () => {
+      clearFallback();
       if (unityContext && typeof unityContext.removeEventListener === 'function') {
-        unityContext.removeEventListener('progress', onProgress);
-        unityContext.removeEventListener('loaded', onLoaded);
+        unityContext.removeEventListener('progress',       onProgress);
+        unityContext.removeEventListener('loaded',         onLoaded);
         unityContext.removeEventListener('GameController', onGameReady);
       }
     };
