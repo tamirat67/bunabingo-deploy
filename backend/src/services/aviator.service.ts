@@ -434,7 +434,7 @@ export async function aviatorPlaceBet(
   betAmount: number,
   target: number,
   type: 'f' | 's'
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; balance?: number }> {
   if (gameState.phase !== 'COUNTDOWN') {
     return { success: false, error: 'Bets are only accepted during the countdown phase' };
   }
@@ -494,7 +494,12 @@ export async function aviatorPlaceBet(
     broadcast('bettedUserInfo', bettedUsersArr);
 
     logger.info(`[Aviator] Bet placed userId=${userId} amount=${betAmount} target=${target}`);
-    return { success: true };
+    
+    // Fetch updated balance to return for real-time socket update
+    const wallet = await prisma.wallet.findUnique({ where: { userId: dbUserId } });
+    const newBalance = wallet ? parseFloat(new Decimal(wallet.balance.toString()).add(new Decimal(wallet.bonusBalance.toString())).toFixed(2)) : 0;
+    
+    return { success: true, balance: newBalance };
   } catch (err: any) {
     logger.error(`[Aviator] Bet failed for user ${userId}: ${err.message}`);
     return { success: false, error: err.message };
@@ -508,7 +513,7 @@ export async function aviatorCashOut(
   userId: string,
   at: number,
   index: 'f' | 's'
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; balance?: number }> {
   if (gameState.phase !== 'FLYING') {
     return { success: false, error: 'You can only cash out while the plane is flying' };
   }
@@ -520,7 +525,16 @@ export async function aviatorCashOut(
 
   const cashoutAt = parseFloat(gameState.multiplier.toFixed(2));
   await performCashout(bet, cashoutAt);
-  return { success: true };
+  
+  // Fetch updated balance to return for real-time socket update
+  try {
+    const dbUserId = await resolveDbUserId(userId);
+    const wallet = await prisma.wallet.findUnique({ where: { userId: dbUserId } });
+    const newBalance = wallet ? parseFloat(new Decimal(wallet.balance.toString()).add(new Decimal(wallet.bonusBalance.toString())).toFixed(2)) : 0;
+    return { success: true, balance: newBalance };
+  } catch (e) {
+    return { success: true };
+  }
 }
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────────

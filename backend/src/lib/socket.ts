@@ -349,6 +349,8 @@ export function initAviatorSocketHandlers(ioServer: SocketServer) {
         const result = await aviatorPlaceBet(userId, data.betAmount, data.target ?? 0, data.type ?? 'f');
         if (!result.success) {
           socket.emit('aviator:error', { index: data.type ?? 'f', message: result.error });
+        } else if (result.balance !== undefined) {
+          socket.emit('balance-updated', { newBalance: result.balance });
         }
       } catch (err: any) {
         logger.warn('[Aviator Socket] playBet error:', err.message);
@@ -365,6 +367,8 @@ export function initAviatorSocketHandlers(ioServer: SocketServer) {
         const result = await aviatorCashOut(userId, data.endTarget, data.type ?? 'f');
         if (!result.success) {
           socket.emit('aviator:error', { index: data.type ?? 'f', message: result.error });
+        } else if (result.balance !== undefined) {
+          socket.emit('balance-updated', { newBalance: result.balance });
         }
       } catch (err: any) {
         logger.warn('[Aviator Socket] cashOut error:', err.message);
