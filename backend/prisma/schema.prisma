@@ -88,6 +88,7 @@ model Wallet {
   commissionRate   Decimal  @default(0.25) @db.Decimal(5, 4) @map("commission_rate")
   referralBalance  Decimal  @default(0) @db.Decimal(20, 4) @map("referral_balance")
   bonusBalance     Decimal  @default(0) @db.Decimal(20, 4) @map("bonus_balance")
+  aviatorBalance   Decimal  @default(0) @db.Decimal(20, 4) @map("aviator_balance")
   coins            Int      @default(0)
   totalDeposited   Decimal  @default(0) @db.Decimal(20, 4) @map("total_deposited")
   totalWithdrawn   Decimal  @default(0) @db.Decimal(20, 4) @map("total_withdrawn")

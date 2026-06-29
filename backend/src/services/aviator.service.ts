@@ -130,7 +130,6 @@ async function runWaiting() {
   gameState.phase      = 'WAITING';
   gameState.multiplier = 1.00;
   gameState.startedAt  = null;
-  gameState.bets.clear();
   gameState.gameId     = null;
   broadcastState();
 
@@ -138,6 +137,9 @@ async function runWaiting() {
 }
 
 async function runCountdown() {
+  // Clear previous round bets when new betting phase starts
+  gameState.bets.clear();
+
   // Create DB record
   const game = await prisma.aviatorGame.create({
     data: { status: 'WAITING' },
@@ -210,6 +212,43 @@ async function runCrash() {
       finishedAt:      new Date(),
     },
   });
+
+  // Calculate Company Profit for this round and deposit to Master Agent
+  try {
+    let totalBets = 0;
+    let totalWins = 0;
+    for (const bet of gameState.bets.values()) {
+      totalBets += bet.betAmount;
+      if (bet.cashedOut && bet.cashoutMultiplier) {
+        totalWins += bet.betAmount * bet.cashoutMultiplier;
+      }
+    }
+    const profit = totalBets - totalWins;
+
+    // Find master agent Luel1616
+    const masterAgent = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { username: "Luel1616" },
+          { telegramUsername: "Luel1616" },
+          { username: "@Luel1616" },
+          { telegramUsername: "@Luel1616" }
+        ]
+      }
+    });
+
+    if (masterAgent) {
+      await prisma.wallet.update({
+        where: { userId: masterAgent.id },
+        data: { aviatorBalance: { increment: profit } }
+      });
+      logger.info(`[Aviator] Deposited ${profit} ETB profit to Master Agent @Luel1616`);
+    } else {
+      logger.warn(`[Aviator] Master Agent @Luel1616 not found. Profit of ${profit} ETB was not deposited.`);
+    }
+  } catch (err: any) {
+    logger.error(`[Aviator] Error depositing company profit: ${err.message}`);
+  }
 
   // Build previous hand for history display
   const previousHand = Array.from(gameState.bets.values()).map(b => ({
