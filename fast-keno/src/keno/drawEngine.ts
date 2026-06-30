@@ -115,6 +115,7 @@ export class DrawEngine extends EventEmitter {
       status: "BETTING",
     };
 
+    console.log(`[DrawEngine] 🎰 Round #${round.id} started (code: ${roundCode}) — betting open for ${countdownConfig}s`);
     this.emitUpdate("BETTING", countdownConfig, []);
   }
 
@@ -129,12 +130,14 @@ export class DrawEngine extends EventEmitter {
       data: { status: "DRAWING", drawnNumbers: drawn, drawnAt: new Date() },
     });
 
+    console.log(`[DrawEngine] 🎲 Round #${round.id} drawing: [${drawn.join(", ")}]`);
     this.emitUpdate("DRAWING", 0, drawn);
 
     await this.settleTickets(round.id, drawn);
 
     await this.prisma.kenoRound.update({ where: { id: round.id }, data: { status: "COMPLETED" } });
 
+    console.log(`[DrawEngine] ✅ Round #${round.id} completed.`);
     this.emitUpdate("COMPLETED", 0, drawn, round.serverSeed);
 
     this.current = null;
@@ -145,7 +148,11 @@ export class DrawEngine extends EventEmitter {
       where: { roundId, status: "PLACED" },
     });
 
-    if (tickets.length === 0) return; // Nobody played
+    if (tickets.length === 0) {
+      console.log(`[DrawEngine] Round #${roundId} — no tickets, company keeps full pool.`);
+      return;
+    }
+    console.log(`[DrawEngine] Round #${roundId} — settling ${tickets.length} ticket(s)...`);
 
     // 1. Calculate the total pool
     let totalStakeCents = 0;
@@ -181,12 +188,14 @@ export class DrawEngine extends EventEmitter {
     });
 
     // 5. Settle each ticket
+    console.log(`[DrawEngine] Pool: total=${totalStakeCents}¢  rake=${houseRakeCents}¢  prize=${prizePoolCents}¢  totalShares=${totalShares}`);
     for (const ticket of scoredTickets) {
       let payoutCents = 0;
       if (totalShares > 0 && ticket.shares > 0) {
         // Distribute proportionally. Math.floor ensures we don't over-distribute due to rounding.
         payoutCents = Math.floor(prizePoolCents * (ticket.shares / totalShares));
       }
+      console.log(`[DrawEngine]   ticket #${ticket.id} user=${ticket.userId} hits=${ticket.hits} payout=${payoutCents}¢ (${(payoutCents/100).toFixed(2)} ETB)`);
       await this.settleSingleTicket(ticket, payoutCents);
     }
   }
