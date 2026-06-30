@@ -51,6 +51,7 @@ services:
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.bunatechhub.net}
+        NEXT_PUBLIC_KENO_WS_URL: ${NEXT_PUBLIC_KENO_WS_URL:-wss://api.bunatechhub.net/keno-ws}
     container_name: buna-frontend
     restart: always
     ports:

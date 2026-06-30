@@ -60,7 +60,6 @@ export default function FastKenoBoard({ userId }: { userId: string }) {
             setTicketPlaced(false);
             prevDrawn.current = [];
           }
-          // Animate newly drawn balls
           const newBalls = update.drawnNumbers.filter(n => !prevDrawn.current.includes(n));
           if (newBalls.length > 0) {
             setAnimatingBalls(prev => new Set([...prev, ...newBalls]));
@@ -135,7 +134,7 @@ export default function FastKenoBoard({ userId }: { userId: string }) {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'linear-gradient(180deg, #120008 0%, #1a000d 40%, #0d0005 100%)',
+      background: '#09090b', // Deep zinc black
       color: '#fff',
       fontFamily: "'Inter', sans-serif",
       display: 'flex', flexDirection: 'column',
@@ -143,156 +142,140 @@ export default function FastKenoBoard({ userId }: { userId: string }) {
       position: 'relative', overflow: 'hidden'
     }}>
 
-      {/* Background glow effects */}
-      <div style={{ position: 'absolute', top: '-80px', left: '50%', transform: 'translateX(-50%)', width: '300px', height: '300px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(220,20,60,0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', bottom: '0', right: '-60px', width: '200px', height: '200px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(180,0,30,0.1) 0%, transparent 70%)', pointerEvents: 'none' }} />
+      {/* Modern Ambient Glows */}
+      <div style={{ position: 'absolute', top: '-100px', left: '-50px', width: '300px', height: '300px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', bottom: '100px', right: '-100px', width: '300px', height: '300px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(16,185,129,0.1) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
       {/* ── HEADER ── */}
       <div style={{
-        background: 'linear-gradient(135deg, #1e0010 0%, #2d0015 100%)',
-        padding: '14px 16px',
+        background: 'rgba(24,24,27,0.8)',
+        backdropFilter: 'blur(12px)',
+        padding: '12px 16px',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        borderBottom: '1px solid rgba(220,20,60,0.25)',
-        boxShadow: '0 2px 20px rgba(220,20,60,0.12)'
+        borderBottom: '1px solid rgba(255,255,255,0.05)',
+        zIndex: 10
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{
-            width: '42px', height: '42px', borderRadius: '12px',
-            background: 'linear-gradient(135deg, #dc143c, #8b0000)',
+            width: '40px', height: '40px', borderRadius: '10px',
+            background: 'linear-gradient(135deg, #4f46e5, #3b82f6)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '22px', boxShadow: '0 0 16px rgba(220,20,60,0.5)'
+            fontSize: '20px', boxShadow: '0 4px 12px rgba(59,130,246,0.3)'
           }}>🎱</div>
           <div>
             <div style={{
-              fontWeight: '900', fontSize: '20px', letterSpacing: '-0.5px',
-              background: 'linear-gradient(90deg, #ff4d6d, #ff8fa3)',
+              fontWeight: '800', fontSize: '18px', letterSpacing: '-0.5px',
+              background: 'linear-gradient(90deg, #fff, #94a3b8)',
               WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
             }}>Fast Keno</div>
-            <div style={{ fontSize: '10px', color: '#9f4455', letterSpacing: '0.08em', textTransform: 'uppercase' }}>ቡና ቢንጎ · Instant Draw</div>
+            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '500' }}>Smart Draw System</div>
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <div style={{
               width: '8px', height: '8px', borderRadius: '50%',
-              background: wsConnected ? '#22c55e' : '#ef4444',
-              boxShadow: wsConnected ? '0 0 8px #22c55e' : '0 0 8px #ef4444',
-              animation: wsConnected ? 'livePulse 2s infinite' : 'none'
+              background: wsConnected ? '#10b981' : '#ef4444',
+              boxShadow: wsConnected ? '0 0 8px #10b981' : '0 0 8px #ef4444',
             }} />
-            <span style={{ fontSize: '11px', fontWeight: '700', color: wsConnected ? '#86efac' : '#fca5a5', letterSpacing: '0.05em' }}>
-              {wsConnected ? 'LIVE' : 'Connecting...'}
+            <span style={{ fontSize: '11px', fontWeight: '600', color: wsConnected ? '#34d399' : '#f87171' }}>
+              {wsConnected ? 'CONNECTED' : 'OFFLINE'}
             </span>
           </div>
-          {round && <span style={{ fontSize: '10px', color: '#6b2133', fontFamily: 'monospace' }}>#{round.roundCode}</span>}
+          {round && <span style={{ fontSize: '10px', color: '#475569', fontFamily: 'monospace' }}>#{round.roundCode}</span>}
         </div>
       </div>
 
-      {/* ── ROUND STATUS BAR ── */}
+      {/* ── ROUND STATUS ── */}
       <div style={{
-        padding: '10px 16px',
-        background: isBetting
-          ? 'linear-gradient(90deg, rgba(220,20,60,0.12), rgba(139,0,0,0.08))'
-          : isDrawing ? 'rgba(234,179,8,0.08)' : isCompleted ? 'rgba(34,197,94,0.08)' : 'rgba(30,0,15,0.6)',
-        borderBottom: `1px solid ${isBetting ? 'rgba(220,20,60,0.2)' : 'rgba(255,255,255,0.04)'}`,
+        margin: '12px',
+        padding: '12px 16px',
+        borderRadius: '12px',
+        background: isBetting ? 'rgba(59,130,246,0.1)' : isDrawing ? 'rgba(245,158,11,0.1)' : isCompleted ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.03)',
+        border: `1px solid ${isBetting ? 'rgba(59,130,246,0.2)' : isDrawing ? 'rgba(245,158,11,0.2)' : isCompleted ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.05)'}`,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{
-            width: '36px', height: '36px', borderRadius: '10px',
-            background: isBetting ? 'rgba(220,20,60,0.15)' : isDrawing ? 'rgba(234,179,8,0.15)' : 'rgba(34,197,94,0.15)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px'
-          }}>
-            {isBetting ? '🎯' : isDrawing ? '🎲' : isCompleted ? '✅' : '⏳'}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ fontSize: '20px' }}>
+            {isBetting ? '🎲' : isDrawing ? '🔮' : isCompleted ? '✨' : '⏳'}
           </div>
           <div>
             <div style={{
-              fontWeight: '800', fontSize: '13px', letterSpacing: '0.05em',
-              color: isBetting ? '#ff4d6d' : isDrawing ? '#facc15' : isCompleted ? '#4ade80' : '#9f4455'
+              fontWeight: '700', fontSize: '13px', letterSpacing: '0.05em',
+              color: isBetting ? '#60a5fa' : isDrawing ? '#fbbf24' : isCompleted ? '#34d399' : '#94a3b8'
             }}>
-              {isBetting ? 'BETTING OPEN' : isDrawing ? 'DRAWING NUMBERS...' : isCompleted ? 'ROUND COMPLETE' : 'Waiting for round...'}
+              {isBetting ? 'PLACE YOUR BETS' : isDrawing ? 'DRAW IN PROGRESS' : isCompleted ? 'ROUND FINISHED' : 'WAITING...'}
             </div>
-            {isBetting && <div style={{ fontSize: '10px', color: '#7f3344', marginTop: '1px' }}>Pick up to {MAX_PICKS} numbers</div>}
+            {isBetting && <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>Select up to {MAX_PICKS} numbers</div>}
           </div>
         </div>
         {isBetting && round && (
           <div style={{
-            minWidth: '54px', height: '54px', borderRadius: '50%',
-            background: timeUrgent
-              ? 'linear-gradient(135deg, #dc143c, #8b0000)'
-              : 'linear-gradient(135deg, #2d0015, #1e0010)',
-            border: `2px solid ${timeUrgent ? '#ff4d6d' : 'rgba(220,20,60,0.3)'}`,
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            boxShadow: timeUrgent ? '0 0 20px rgba(220,20,60,0.6)' : '0 0 10px rgba(220,20,60,0.2)',
-            animation: timeUrgent ? 'urgentPulse 0.5s infinite' : 'none'
+            background: timeUrgent ? 'rgba(239,68,68,0.15)' : 'rgba(30,41,59,0.8)',
+            border: `1px solid ${timeUrgent ? '#ef4444' : 'rgba(255,255,255,0.1)'}`,
+            padding: '6px 12px', borderRadius: '8px',
+            color: timeUrgent ? '#f87171' : '#fff',
+            fontWeight: '800', fontSize: '16px', fontVariantNumeric: 'tabular-nums'
           }}>
-            <div style={{ fontSize: '22px', fontWeight: '900', lineHeight: 1, fontVariantNumeric: 'tabular-nums', color: timeUrgent ? '#fff' : '#ff8fa3' }}>
-              {round.secondsRemaining}
-            </div>
-            <div style={{ fontSize: '8px', color: timeUrgent ? 'rgba(255,255,255,0.7)' : '#7f3344', letterSpacing: '0.05em' }}>SEC</div>
+            {round.secondsRemaining}s
           </div>
         )}
       </div>
 
-      {/* ── WIN / LOSS RESULT ── */}
+      {/* ── LAST TICKET RESULT ── */}
       {lastResult && isCompleted && (
         <div style={{
-          margin: '10px 12px',
-          padding: '14px',
-          borderRadius: '14px',
-          background: won ? 'linear-gradient(135deg, rgba(34,197,94,0.12), rgba(21,128,61,0.08))' : 'rgba(220,20,60,0.08)',
-          border: `1px solid ${won ? 'rgba(34,197,94,0.35)' : 'rgba(220,20,60,0.25)'}`,
-          animation: 'slideDown 0.4s ease'
+          margin: '0 12px 12px',
+          padding: '16px',
+          borderRadius: '12px',
+          background: won ? 'linear-gradient(135deg, rgba(16,185,129,0.15), rgba(5,150,105,0.05))' : 'rgba(255,255,255,0.03)',
+          border: `1px solid ${won ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.05)'}`,
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <div style={{ fontSize: '16px', fontWeight: '900', color: won ? '#4ade80' : '#ff8fa3' }}>
-                {won ? `🎉 YOU WON +${((lastResult.payoutCents ?? 0) / 100).toFixed(0)} ETB!` : `💔 ${hitCount} Hit${hitCount !== 1 ? 's' : ''} — Try Again!`}
+              <div style={{ fontSize: '16px', fontWeight: '800', color: won ? '#34d399' : '#94a3b8' }}>
+                {won ? `🎉 YOU WON ${((lastResult.payoutCents ?? 0) / 100).toFixed(0)} ETB!` : `No win (${hitCount} hits)`}
               </div>
-              <div style={{ fontSize: '11px', color: '#7f3344', marginTop: '3px' }}>
-                {hitCount} of {lastResult.picks.length} picks matched · Stake: {(lastResult.stakeCents / 100).toFixed(0)} ETB
+              <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
+                Stake: {(lastResult.stakeCents / 100).toFixed(0)} ETB
               </div>
             </div>
             <button
               onClick={() => window.open(`/api/keno/verify/${round?.roundCode}`, '_blank')}
               style={{
-                background: 'rgba(220,20,60,0.15)', border: '1px solid rgba(220,20,60,0.3)',
-                color: '#ff8fa3', fontSize: '10px', cursor: 'pointer',
-                padding: '5px 8px', borderRadius: '8px', fontWeight: '700', letterSpacing: '0.05em'
+                background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                color: '#94a3b8', fontSize: '11px', cursor: 'pointer',
+                padding: '6px 10px', borderRadius: '6px', fontWeight: '600'
               }}>
-              🛡️ VERIFY
+              Verify Fair
             </button>
           </div>
         </div>
       )}
 
-      {/* ── DRAWN NUMBERS ── */}
+      {/* ── DRAWN NUMBERS STRIP ── */}
       {(isDrawing || isCompleted) && round && round.drawnNumbers.length > 0 && (
         <div style={{
-          padding: '10px 12px',
-          background: 'rgba(30,0,15,0.6)',
-          borderBottom: '1px solid rgba(220,20,60,0.1)'
+          margin: '0 12px 12px', padding: '12px',
+          background: 'rgba(255,255,255,0.02)', borderRadius: '12px',
+          border: '1px solid rgba(255,255,255,0.05)'
         }}>
-          <div style={{ fontSize: '10px', color: '#7f3344', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: '700' }}>
-            Drawn Numbers · {round.drawnNumbers.length}/20
+          <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '8px', fontWeight: '600' }}>
+            Drawn Numbers ({round.drawnNumbers.length}/20)
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
             {round.drawnNumbers.map((n, i) => {
               const isHit = lastResult?.picks.includes(n);
               const isNew = animatingBalls.has(n);
               return (
                 <div key={i} style={{
-                  width: '30px', height: '30px', borderRadius: '50%',
+                  width: '28px', height: '28px', borderRadius: '50%',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '10px', fontWeight: '800',
-                  background: isHit
-                    ? 'linear-gradient(135deg, #dc143c, #8b0000)'
-                    : 'linear-gradient(135deg, #2d0015, #1e0010)',
-                  color: isHit ? '#fff' : '#ff8fa3',
-                  border: isHit ? '1.5px solid #ff4d6d' : '1.5px solid rgba(220,20,60,0.25)',
-                  boxShadow: isHit ? '0 0 12px rgba(220,20,60,0.6)' : 'none',
-                  animation: isNew ? 'ballBounce 0.4s cubic-bezier(0.175,0.885,0.32,1.275)' : 'none',
-                  transform: isHit ? 'scale(1.1)' : 'scale(1)',
-                  transition: 'all 0.2s'
+                  fontSize: '11px', fontWeight: '700',
+                  background: isHit ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'rgba(255,255,255,0.1)',
+                  color: isHit ? '#fff' : '#cbd5e1',
+                  boxShadow: isHit ? '0 0 12px rgba(245,158,11,0.4)' : 'none',
+                  animation: isNew ? 'popIn 0.3s cubic-bezier(0.175,0.885,0.32,1.275)' : 'none',
                 }}>
                   {n}
                 </div>
@@ -304,57 +287,57 @@ export default function FastKenoBoard({ userId }: { userId: string }) {
 
       {/* ── QUICK PICK ROW ── */}
       {isBetting && !ticketPlaced && (
-        <div style={{ padding: '8px 12px 4px', display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '10px', color: '#7f3344', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: '700', marginRight: '2px' }}>Quick:</span>
+        <div style={{ padding: '0 12px 12px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
           {QUICK_PICKS.map(n => (
             <button key={n} onClick={() => quickPick(n)} style={{
-              padding: '4px 10px', borderRadius: '20px',
-              border: n === 8 ? '1px solid rgba(220,20,60,0.6)' : '1px solid rgba(220,20,60,0.2)',
-              background: n === 8 ? 'rgba(220,20,60,0.2)' : 'rgba(220,20,60,0.07)',
-              color: n === 8 ? '#ff4d6d' : '#9f4455',
-              cursor: 'pointer', fontSize: '11px', fontWeight: '700',
-              transition: 'all 0.15s', position: 'relative'
+              flex: '1', minWidth: '40px', padding: '6px 0', borderRadius: '6px',
+              border: n === 8 ? '1px solid rgba(139,92,246,0.5)' : '1px solid rgba(255,255,255,0.05)',
+              background: n === 8 ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.03)',
+              color: n === 8 ? '#c4b5fd' : '#94a3b8',
+              cursor: 'pointer', fontSize: '11px', fontWeight: '600'
             }}>
-              {n}{n === 8 && <span style={{ position: 'absolute', top: '-6px', right: '-3px', background: '#dc143c', color: '#fff', fontSize: '7px', fontWeight: '900', padding: '1px 3px', borderRadius: '4px' }}>HOT</span>}
+              {n} Pick
             </button>
           ))}
           {picks.size > 0 && (
             <button onClick={() => setPicks(new Set())} style={{
-              padding: '4px 10px', borderRadius: '20px',
-              border: '1px solid rgba(220,20,60,0.3)',
-              background: 'rgba(220,20,60,0.08)',
-              color: '#ff6b81', cursor: 'pointer', fontSize: '11px', fontWeight: '700'
-            }}>✕ Clear</button>
+              padding: '6px 12px', borderRadius: '6px',
+              border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.1)',
+              color: '#f87171', cursor: 'pointer', fontSize: '11px', fontWeight: '600'
+            }}>Clear</button>
           )}
         </div>
       )}
 
-      {/* ── 80-NUMBER GRID ── */}
-      <div style={{ flex: 1, padding: '8px 12px', overflowY: 'auto' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: '3px' }}>
+      {/* ── 80-NUMBER SMART GRID ── */}
+      <div style={{ flex: 1, padding: '0 12px 12px', overflowY: 'auto' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: '4px' }}>
           {Array.from({ length: 80 }, (_, i) => i + 1).map((n) => {
             const isPicked = picks.has(n);
             const isDrawn = drawnSet.has(n);
             const isHit = isPicked && isDrawn;
             const canPick = isBetting && !ticketPlaced && (picks.size < MAX_PICKS || isPicked);
 
-            let bg = 'rgba(255,255,255,0.04)';
-            let color = '#5a2030';
+            // Default dark sleek style
+            let bg = 'rgba(255,255,255,0.03)';
+            let color = '#64748b';
+            let border = '1px solid rgba(255,255,255,0.03)';
             let shadow = 'none';
-            let border = '1px solid rgba(220,20,60,0.08)';
-            let scale = 'scale(1)';
 
             if (isHit) {
-              bg = 'linear-gradient(135deg, #dc143c, #8b0000)';
-              color = '#fff'; shadow = '0 0 14px rgba(220,20,60,0.7)';
-              border = '1px solid #ff4d6d'; scale = 'scale(1.08)';
+              // HIT: Gold/Amber
+              bg = 'linear-gradient(135deg, #f59e0b, #d97706)';
+              color = '#fff'; border = '1px solid #fbbf24';
+              shadow = '0 0 10px rgba(245,158,11,0.5)';
             } else if (isPicked) {
-              bg = 'linear-gradient(135deg, #8b0000, #5c0017)';
-              color = '#fff'; shadow = '0 0 10px rgba(220,20,60,0.4)';
-              border = '1px solid rgba(220,20,60,0.6)'; scale = 'scale(1.05)';
+              // PICKED: Electric Blue
+              bg = 'linear-gradient(135deg, #3b82f6, #2563eb)';
+              color = '#fff'; border = '1px solid #60a5fa';
+              shadow = '0 0 10px rgba(59,130,246,0.4)';
             } else if (isDrawn) {
-              bg = 'rgba(220,20,60,0.18)';
-              color = '#ff8fa3'; border = '1px solid rgba(220,20,60,0.25)';
+              // DRAWN (not picked): Emerald Green
+              bg = 'rgba(16,185,129,0.15)';
+              color = '#34d399'; border = '1px solid rgba(16,185,129,0.3)';
             }
 
             return (
@@ -363,15 +346,14 @@ export default function FastKenoBoard({ userId }: { userId: string }) {
                 onClick={() => togglePick(n)}
                 disabled={!canPick && !isPicked}
                 style={{
-                  height: '32px', width: '100%',
-                  borderRadius: '7px',
-                  fontSize: '11px', fontWeight: '800',
+                  height: '36px', width: '100%',
+                  borderRadius: '6px',
+                  fontSize: '13px', fontWeight: '700',
                   border, background: bg, color,
                   cursor: canPick || isPicked ? 'pointer' : 'default',
                   transition: 'all 0.15s',
                   boxShadow: shadow,
-                  transform: scale,
-                  opacity: !isBetting && !isDrawn && !isPicked ? 0.35 : 1,
+                  opacity: !isBetting && !isDrawn && !isPicked ? 0.4 : 1,
                 }}>
                 {n}
               </button>
@@ -380,107 +362,80 @@ export default function FastKenoBoard({ userId }: { userId: string }) {
         </div>
       </div>
 
-      {/* ── STAKE + BET CONTROLS ── */}
+      {/* ── STAKE + ACTION BAR ── */}
       <div style={{
-        padding: '10px 12px 12px',
-        background: 'linear-gradient(180deg, rgba(18,0,8,0.95) 0%, #120008 100%)',
-        borderTop: '1px solid rgba(220,20,60,0.15)',
-        boxShadow: '0 -4px 24px rgba(220,20,60,0.08)'
+        padding: '16px 12px 24px',
+        background: 'rgba(24,24,27,0.95)',
+        backdropFilter: 'blur(10px)',
+        borderTop: '1px solid rgba(255,255,255,0.05)',
       }}>
-        {/* Picks count */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', alignItems: 'center' }}>
-          <span style={{ fontSize: '12px', color: picks.size > 0 ? '#ff8fa3' : '#5a2030', fontWeight: '600' }}>
-            {picks.size > 0 ? `${picks.size}/${MAX_PICKS} spots selected` : 'Select your spots above'}
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+          <span style={{ fontSize: '12px', color: '#94a3b8' }}>
+            {picks.size > 0 ? `${picks.size}/${MAX_PICKS} numbers selected` : 'Select numbers'}
           </span>
-          {picks.size > 0 && (
-            <span style={{ fontSize: '11px', color: '#7f3344', fontWeight: '600', maxWidth: '55%', textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              [{Array.from(picks).sort((a, b) => a - b).join(', ')}]
-            </span>
-          )}
         </div>
 
-        {/* Stake buttons */}
-        <div style={{ display: 'flex', gap: '5px', marginBottom: '8px' }}>
+        {/* Stake Toggle */}
+        <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
           {STAKE_PRESETS.map(s => (
             <button key={s} onClick={() => setStake(s)} style={{
-              flex: '1', padding: '8px 2px', borderRadius: '9px',
-              background: stake === s
-                ? 'linear-gradient(135deg, #dc143c, #8b0000)'
-                : 'rgba(220,20,60,0.08)',
-              color: stake === s ? '#fff' : '#7f3344',
-              cursor: 'pointer', fontSize: '11px', fontWeight: '800',
-              boxShadow: stake === s ? '0 0 14px rgba(220,20,60,0.5)' : 'none',
-              border: stake === s ? '1px solid rgba(220,20,60,0.6)' : '1px solid rgba(220,20,60,0.12)',
-              transition: 'all 0.15s',
-              transform: stake === s ? 'scale(1.04)' : 'scale(1)'
+              flex: '1', padding: '10px 0', borderRadius: '8px',
+              background: stake === s ? '#fff' : 'rgba(255,255,255,0.05)',
+              color: stake === s ? '#09090b' : '#94a3b8',
+              border: stake === s ? '1px solid #fff' : '1px solid rgba(255,255,255,0.1)',
+              cursor: 'pointer', fontSize: '12px', fontWeight: '700',
+              transition: 'all 0.15s'
             }}>
               {s / 100}
             </button>
           ))}
         </div>
 
-        {/* Toast message */}
+        {/* Message Toast */}
         {message && (
           <div style={{
-            padding: '8px 12px', borderRadius: '9px', marginBottom: '8px', fontSize: '12px', fontWeight: '600',
-            background: message.type === 'success' ? 'rgba(34,197,94,0.12)' : message.type === 'error' ? 'rgba(220,20,60,0.12)' : 'rgba(220,20,60,0.08)',
-            border: `1px solid ${message.type === 'success' ? 'rgba(34,197,94,0.35)' : 'rgba(220,20,60,0.3)'}`,
-            color: message.type === 'success' ? '#4ade80' : message.type === 'error' ? '#ff8fa3' : '#ff8fa3',
-            animation: 'slideDown 0.3s ease'
+            padding: '10px 12px', borderRadius: '8px', marginBottom: '12px', fontSize: '12px', fontWeight: '600',
+            background: message.type === 'success' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
+            border: `1px solid ${message.type === 'success' ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`,
+            color: message.type === 'success' ? '#34d399' : '#f87171'
           }}>
             {message.text}
           </div>
         )}
 
-        {/* Place Bet / Waiting state */}
+        {/* Place Bet Button */}
         {!ticketPlaced ? (
           <button
             onClick={placeBet}
             disabled={!isBetting || isPlacing || picks.size === 0}
             style={{
-              width: '100%', padding: '15px', borderRadius: '13px', cursor: 'pointer',
+              width: '100%', padding: '16px', borderRadius: '10px', cursor: 'pointer',
               background: (!isBetting || picks.size === 0)
                 ? 'rgba(255,255,255,0.05)'
-                : isPlacing
-                ? 'linear-gradient(135deg, #6b0020, #4a0015)'
-                : 'linear-gradient(135deg, #dc143c 0%, #c0001e 50%, #8b0000 100%)',
-              color: (!isBetting || picks.size === 0) ? '#3a1020' : '#fff',
-              fontSize: '15px', fontWeight: '900', letterSpacing: '0.06em',
-              boxShadow: isBetting && picks.size > 0 ? '0 4px 24px rgba(220,20,60,0.5), inset 0 1px 0 rgba(255,255,255,0.1)' : 'none',
-              transition: 'all 0.2s',
-              transform: isBetting && picks.size > 0 && !isPlacing ? 'scale(1.01)' : 'scale(1)',
-              border: isBetting && picks.size > 0 ? '1px solid rgba(255,100,120,0.3)' : '1px solid transparent'
+                : 'linear-gradient(135deg, #4f46e5, #3b82f6)',
+              border: 'none',
+              color: (!isBetting || picks.size === 0) ? '#475569' : '#fff',
+              fontSize: '15px', fontWeight: '700',
+              boxShadow: isBetting && picks.size > 0 ? '0 4px 16px rgba(59,130,246,0.3)' : 'none',
             }}>
-            {isPlacing
-              ? '⏳ Placing Bet...'
-              : !isBetting
-              ? '⏸ Waiting for Next Round...'
-              : picks.size === 0
-              ? 'Select Numbers to Play'
-              : `🎱 PLACE BET — ${(stake / 100).toFixed(0)} ETB`}
+            {isPlacing ? 'Processing...' : !isBetting ? 'Waiting for Round...' : picks.size === 0 ? 'Pick Numbers' : `Place Bet · ${(stake / 100).toFixed(0)} ETB`}
           </button>
         ) : (
           <div style={{
-            width: '100%', padding: '15px', borderRadius: '13px',
-            background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)',
-            color: '#4ade80', fontSize: '14px', fontWeight: '800', textAlign: 'center',
-            animation: 'slideDown 0.3s ease'
+            width: '100%', padding: '16px', borderRadius: '10px',
+            background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)',
+            color: '#34d399', fontSize: '14px', fontWeight: '700', textAlign: 'center'
           }}>
-            ✅ Ticket Placed — Waiting for Draw...
+            Ticket Confirmed ✓
           </div>
         )}
       </div>
 
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        ::-webkit-scrollbar { width: 3px; }
-        ::-webkit-scrollbar-track { background: #120008; }
-        ::-webkit-scrollbar-thumb { background: rgba(220,20,60,0.3); border-radius: 2px; }
-        @keyframes livePulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.6;transform:scale(0.85)} }
-        @keyframes urgentPulse { 0%,100%{box-shadow:0 0 20px rgba(220,20,60,0.6)} 50%{box-shadow:0 0 32px rgba(220,20,60,1)} }
-        @keyframes slideDown { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
-        @keyframes ballBounce { 0%{opacity:0;transform:scale(0.3)} 60%{transform:scale(1.2)} 100%{opacity:1;transform:scale(1)} }
+        ::-webkit-scrollbar { width: 0px; }
+        @keyframes popIn { 0%{opacity:0;transform:scale(0.5)} 70%{transform:scale(1.1)} 100%{opacity:1;transform:scale(1)} }
       `}</style>
     </div>
   );
