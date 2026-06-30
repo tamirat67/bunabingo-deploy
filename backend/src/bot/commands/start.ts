@@ -211,6 +211,9 @@ export async function handleStart(ctx: Context) {
           Markup.button.callback('Bingo ይጫወቱ 🎮',   'cmd_play_bingo'),
           Markup.button.callback('Aviator ✈️',        'cmd_play_aviator'),
         ],
+        [
+          Markup.button.webApp('Fast Keno 🎱', `${config.bot.miniAppUrl}/keno`),
+        ],
 
         // ── Row 3: Account ───────────────────────────────────────────────────
         [
@@ -246,6 +249,9 @@ export async function handleStart(ctx: Context) {
           [
             Markup.button.callback('Bingo ይጫወቱ 🎮',   'cmd_play_bingo'),
             Markup.button.callback('Aviator ✈️',        'cmd_play_aviator'),
+          ],
+          [
+            Markup.button.webApp('Fast Keno 🎱', `${config.bot.miniAppUrl}/keno`),
           ],
 
           [

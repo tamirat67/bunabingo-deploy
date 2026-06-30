@@ -81,6 +81,31 @@ services:
     networks:
       - buna-network
 
+  # ─── 5. Fast Keno Worker ──────────────────────────────────────────────────
+  keno-worker:
+    build:
+      context: ./fast-keno
+      dockerfile: Dockerfile
+    container_name: buna-keno-worker
+    restart: always
+    ports:
+      - "8090:8090"   # Internal HTTP API (ticket placement, admin — not public)
+      - "8091:8091"   # WebSocket (real-time round updates to browser clients)
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Point to the shared Postgres database
+      DATABASE_URL: "postgresql://bunabingo_user:SecurePasswordHere123!@db:5432/bunabingo?schema=public"
+      DIRECT_URL: "postgresql://bunabingo_user:SecurePasswordHere123!@db:5432/bunabingo?schema=public"
+      KENO_HTTP_PORT: "8090"
+      KENO_WS_PORT: "8091"
+      # Change this to a long random secret in production
+      KENO_INTERNAL_SECRET: "change-me-in-production"
+      NODE_ENV: "production"
+    networks:
+      - buna-network
+
 
 volumes:
   postgres_data:

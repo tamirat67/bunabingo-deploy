@@ -1,0 +1,273 @@
+import { PrismaClient } from "@prisma/client";
+import { EventEmitter } from "events";
+import { randomUUID } from "crypto";
+import { generateServerSeed, hashSeed, drawNumbers } from "./generator";
+import { countMatches, defaultShares } from "./payoutEngine";
+import { WalletAdapter } from "./walletAdapter";
+
+export type RoundPhase = "BETTING" | "DRAWING" | "COMPLETED";
+
+export interface RoundUpdate {
+  roundCode: string;
+  phase: RoundPhase;
+  secondsRemaining: number;
+  drawnNumbers: number[];
+  serverSeedHash: string;
+  serverSeed?: string;
+}
+
+interface ActiveRound {
+  id: bigint;
+  roundCode: string;
+  serverSeed: string;
+  serverSeedHash: string;
+  clientSeed: string;
+  nonce: number;
+  bettingClosesAt: Date;
+  status: RoundPhase;
+}
+
+/**
+ * Runs the BETTING -> DRAWING -> COMPLETED loop for fast rounds.
+ *
+ * IMPORTANT — run this as a standalone long-lived Node process
+ * (e.g. `node dist/keno-worker.js`, managed by pm2/systemd/Docker),
+ * NOT inside a Next.js API route or serverless function. Serverless
+ * functions don't stay alive between requests, so setInterval-based
+ * timing and in-memory round state would break / duplicate rounds.
+ *
+ * Next.js talks to this engine over plain HTTP/WebSocket (see
+ * nextjs-integration/ for the API routes that proxy to it), or you
+ * can run it in the same long-lived process as your existing Telegraf
+ * bot if that process is already always-on.
+ */
+export class DrawEngine extends EventEmitter {
+  private current: ActiveRound | null = null;
+  private tickHandle: NodeJS.Timeout | null = null;
+  private countdownSeconds: number;
+
+  constructor(private prisma: PrismaClient, private wallet: WalletAdapter, opts?: { countdownSeconds?: number }) {
+    super();
+    this.countdownSeconds = opts?.countdownSeconds ?? 4;
+  }
+
+  start() {
+    if (this.tickHandle) return;
+    this.tickHandle = setInterval(() => this.tick().catch((e) => console.error("[DrawEngine] tick error", e)), 1000);
+  }
+
+  stop() {
+    if (this.tickHandle) clearInterval(this.tickHandle);
+    this.tickHandle = null;
+  }
+
+  getCurrentRound() {
+    return this.current;
+  }
+
+  private async tick() {
+    if (!this.current) {
+      await this.startNewRound();
+      return;
+    }
+
+    const secondsLeft = Math.ceil((this.current.bettingClosesAt.getTime() - Date.now()) / 1000);
+
+    if (secondsLeft > 0) {
+      this.emitUpdate("BETTING", secondsLeft, []);
+      return;
+    }
+
+    if (this.current.status === "BETTING") {
+      await this.drawAndSettle();
+    }
+  }
+
+  private async startNewRound() {
+    const countdownConfig = await this.getConfigInt("round.countdown_seconds", this.countdownSeconds);
+    const serverSeed = generateServerSeed();
+    const serverSeedHash = hashSeed(serverSeed);
+    const roundCode = randomUUID().slice(0, 8).toUpperCase();
+    const clientSeed = "public-seed";
+    const nonce = Date.now();
+    const bettingClosesAt = new Date(Date.now() + countdownConfig * 1000);
+
+    const round = await this.prisma.kenoRound.create({
+      data: {
+        roundCode,
+        status: "BETTING",
+        serverSeedHash,
+        serverSeed,
+        clientSeed,
+        nonce,
+        bettingClosesAt,
+      },
+    });
+
+    this.current = {
+      id: round.id,
+      roundCode,
+      serverSeed,
+      serverSeedHash,
+      clientSeed,
+      nonce,
+      bettingClosesAt,
+      status: "BETTING",
+    };
+
+    this.emitUpdate("BETTING", countdownConfig, []);
+  }
+
+  private async drawAndSettle() {
+    const round = this.current!;
+    round.status = "DRAWING";
+
+    const drawn = drawNumbers(round.serverSeed, round.clientSeed, round.nonce);
+
+    await this.prisma.kenoRound.update({
+      where: { id: round.id },
+      data: { status: "DRAWING", drawnNumbers: drawn, drawnAt: new Date() },
+    });
+
+    this.emitUpdate("DRAWING", 0, drawn);
+
+    await this.settleTickets(round.id, drawn);
+
+    await this.prisma.kenoRound.update({ where: { id: round.id }, data: { status: "COMPLETED" } });
+
+    this.emitUpdate("COMPLETED", 0, drawn, round.serverSeed);
+
+    this.current = null;
+  }
+
+  private async settleTickets(roundId: bigint, drawn: number[]) {
+    const tickets = await this.prisma.kenoTicket.findMany({
+      where: { roundId, status: "PLACED" },
+    });
+
+    if (tickets.length === 0) return; // Nobody played
+
+    // 1. Calculate the total pool
+    let totalStakeCents = 0;
+    for (const t of tickets) {
+      totalStakeCents += t.stakeCents;
+    }
+
+    // 2. Company takes 30% guaranteed rake
+    const houseRakeCents = Math.floor(totalStakeCents * 0.30);
+    const prizePoolCents = totalStakeCents - houseRakeCents;
+
+    // 3. Score tickets to find total winning shares
+    // A ticket's shares = (base shares from paytable) * (stakeCents)
+    // This ensures a 200 ETB bet gets double the pot slice of a 100 ETB bet.
+    let totalShares = 0;
+    const scoredTickets = await Promise.all(tickets.map(async (t) => {
+      const hits = countMatches(t.numbers, drawn);
+      const baseShares = await this.getPayoutShares(t.numbers.length, hits);
+      const shares = baseShares * t.stakeCents;
+      totalShares += shares;
+      return { ...t, hits, shares };
+    }));
+
+    // 4. Update the round with the financial data
+    await this.prisma.kenoRound.update({
+      where: { id: roundId },
+      data: { 
+        totalStakeCents, 
+        houseRakeCents, 
+        prizePoolCents, 
+        totalShares 
+      }
+    });
+
+    // 5. Settle each ticket
+    for (const ticket of scoredTickets) {
+      let payoutCents = 0;
+      if (totalShares > 0 && ticket.shares > 0) {
+        // Distribute proportionally. Math.floor ensures we don't over-distribute due to rounding.
+        payoutCents = Math.floor(prizePoolCents * (ticket.shares / totalShares));
+      }
+      await this.settleSingleTicket(ticket, payoutCents);
+    }
+  }
+
+  private async settleSingleTicket(
+    ticket: { id: bigint; userId: string; numbers: number[]; stakeCents: number; hits: number; shares: number },
+    payoutCents: number
+  ) {
+    const won = payoutCents > 0;
+
+    // Compare-and-swap guard
+    const result = await this.prisma.kenoTicket.updateMany({
+      where: { id: ticket.id, status: "PLACED" },
+      data: { hits: ticket.hits, payoutCents, status: won ? "WON" : "LOST" },
+    });
+    if (result.count === 0) return; // already settled
+
+    if (won) {
+      const idempotencyKey = `keno:payout:${ticket.id}`;
+      try {
+        const creditResult = await this.wallet.credit({
+          userId: ticket.userId,
+          amountCents: payoutCents,
+          idempotencyKey,
+          reason: `Fast Keno Pari-Mutuel payout (ticket #${ticket.id})`,
+        });
+
+        await this.prisma.kenoTicket.update({
+          where: { id: ticket.id },
+          data: { walletCreditRef: creditResult.reference },
+        });
+
+        await this.prisma.kenoAuditLog.create({
+          data: {
+            ticketId: ticket.id,
+            userId: ticket.userId,
+            action: "PAYOUT_CREDITED",
+            amountCents: payoutCents,
+            detail: { hits: ticket.hits, shares: ticket.shares },
+          },
+        });
+      } catch (err) {
+        console.error(`[DrawEngine] PAYOUT CREDIT FAILED for ticket ${ticket.id}`, err);
+        await this.prisma.kenoAuditLog.create({
+          data: {
+            ticketId: ticket.id,
+            userId: ticket.userId,
+            action: "DEBIT_FAILED",
+            amountCents: payoutCents,
+            detail: { error: String(err) },
+          },
+        });
+      }
+    }
+  }
+
+  private async getPayoutShares(picksCount: number, matches: number): Promise<number> {
+    const rule = await this.prisma.kenoPayoutRule.findUnique({
+      where: { spotCount_hits: { spotCount: picksCount, hits: matches } },
+    });
+    if (rule) return Number(rule.multiplier); // We can reuse the multiplier DB column to hold "shares"
+    return defaultShares(picksCount, matches);
+  }
+
+  private async getConfigInt(key: string, fallback: number): Promise<number> {
+    const row = await this.prisma.kenoConfig.findUnique({ where: { configKey: key } });
+    if (!row) return fallback;
+    const n = parseInt(row.configValue, 10);
+    return Number.isFinite(n) ? n : fallback;
+  }
+
+  private emitUpdate(phase: RoundPhase, secondsRemaining: number, drawnNumbers: number[], revealSeed?: string) {
+    if (!this.current) return;
+    const update: RoundUpdate = {
+      roundCode: this.current.roundCode,
+      phase,
+      secondsRemaining,
+      drawnNumbers,
+      serverSeedHash: this.current.serverSeedHash,
+      serverSeed: revealSeed,
+    };
+    this.emit("update", update);
+  }
+}

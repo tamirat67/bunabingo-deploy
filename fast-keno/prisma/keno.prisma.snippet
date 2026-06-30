@@ -1,0 +1,78 @@
+// ============================================================
+// Fast Keno models — add this block into your EXISTING prisma/schema.prisma
+// (don't create a second schema file; Prisma needs one schema per project).
+// Adjust the `user` relation below to match your real User model name/id type.
+// ============================================================
+
+model KenoRound {
+  id              BigInt   @id @default(autoincrement())
+  roundCode       String   @unique @map("round_code")
+  status          String   @default("BETTING") // BETTING | DRAWING | COMPLETED | CANCELLED
+  serverSeedHash  String   @map("server_seed_hash")
+  serverSeed      String?  @map("server_seed")
+  clientSeed      String   @map("client_seed")
+  nonce           BigInt
+  drawnNumbers    Int[]    @map("drawn_numbers")
+  bettingClosesAt DateTime @map("betting_closes_at")
+  drawnAt         DateTime? @map("drawn_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  tickets KenoTicket[]
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("keno_rounds")
+}
+
+model KenoTicket {
+  id              BigInt   @id @default(autoincrement())
+  roundId         BigInt   @map("round_id")
+  round           KenoRound @relation(fields: [roundId], references: [id])
+  userId          BigInt   @map("user_id")
+  // user            User     @relation(fields: [userId], references: [id])  // <-- uncomment & adjust to your real User model
+
+  picks           Int[]
+  stakeCents      BigInt   @map("stake_cents")
+  matches         Int?
+  payoutCents     BigInt   @default(0) @map("payout_cents")
+  status          String   @default("PENDING") // PENDING | WON | LOST | VOID
+  walletDebitRef  String?  @map("wallet_debit_ref")
+  walletCreditRef String?  @map("wallet_credit_ref")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@index([roundId])
+  @@index([userId, createdAt])
+  @@map("keno_tickets")
+}
+
+model KenoPayoutRule {
+  id                BigInt  @id @default(autoincrement())
+  picksCount        Int     @map("picks_count")
+  matchesCount      Int     @map("matches_count")
+  payoutMultiplier  Decimal @map("payout_multiplier") @db.Decimal(10, 2)
+
+  @@unique([picksCount, matchesCount])
+  @@map("keno_payout_table")
+}
+
+model KenoConfig {
+  configKey   String   @id @map("config_key")
+  configValue String   @map("config_value")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("keno_config")
+}
+
+model KenoAuditLog {
+  id          BigInt   @id @default(autoincrement())
+  ticketId    BigInt?  @map("ticket_id")
+  roundId     BigInt?  @map("round_id")
+  userId      BigInt   @map("user_id")
+  action      String   // BET_PLACED | DEBIT_FAILED | PAYOUT_CREDITED | VOID_REFUNDED
+  amountCents BigInt?  @map("amount_cents")
+  detail      Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([userId, createdAt])
+  @@map("keno_audit_log")
+}
