@@ -25,7 +25,7 @@ interface TicketResult {
 
 const KENO_WS_URL = process.env.NEXT_PUBLIC_KENO_WS_URL ?? 'ws://localhost:8091';
 const MAX_PICKS = 10;
-const STAKE_PRESETS = [100, 200, 500, 1000, 2000, 5000]; // in cents (1 ETB = 100 cents)
+const STAKE_PRESETS = [1000, 2000, 5000, 10000, 20000]; // in cents (1 ETB = 100 cents)
 const QUICK_PICKS = [1, 2, 3, 4, 5, 6, 8, 10];
 
 export default function FastKenoBoard({ userId }: { userId: string }) {
