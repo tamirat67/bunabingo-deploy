@@ -178,10 +178,13 @@ export default function FastKenoBoard({ userId }: { userId: string }) {
               background: wsConnected ? '#10b981' : '#ef4444',
               boxShadow: wsConnected ? '0 0 8px #10b981' : '0 0 8px #ef4444',
             }} />
-            <span style={{ fontSize: '11px', fontWeight: '600', color: wsConnected ? '#34d399' : '#f87171' }}>
-              {wsConnected ? 'CONNECTED' : 'OFFLINE'}
+            <span 
+              onClick={!wsConnected ? connectWS : undefined}
+              style={{ fontSize: '11px', fontWeight: '600', color: wsConnected ? '#34d399' : '#f87171', cursor: !wsConnected ? 'pointer' : 'default' }}>
+              {wsConnected ? 'CONNECTED' : 'RECONNECT'}
             </span>
           </div>
+          <span style={{ fontSize: '9px', color: '#475569', opacity: 0.5 }}>{KENO_WS_URL.replace('wss://', '')}</span>
           {round && <span style={{ fontSize: '10px', color: '#475569', fontFamily: 'monospace' }}>#{round.roundCode}</span>}
         </div>
       </div>
