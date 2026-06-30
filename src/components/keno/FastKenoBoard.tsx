@@ -438,7 +438,7 @@ export default function FastKenoBoard({ userId }: { userId: string }) {
             onClick={placeBet}
             disabled={!isBetting || isPlacing || picks.size === 0}
             style={{
-              width: '100%', padding: '15px', borderRadius: '13px', border: 'none', cursor: 'pointer',
+              width: '100%', padding: '15px', borderRadius: '13px', cursor: 'pointer',
               background: (!isBetting || picks.size === 0)
                 ? 'rgba(255,255,255,0.05)'
                 : isPlacing
