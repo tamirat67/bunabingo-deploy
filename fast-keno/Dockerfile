@@ -1,8 +1,9 @@
-FROM node:20-alpine
+FROM node:20-slim
+
+# Install OpenSSL for Prisma on Debian
+RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-
-RUN apk add --no-cache openssl
 
 COPY package*.json ./
 RUN npm install
