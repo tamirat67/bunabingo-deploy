@@ -403,7 +403,7 @@ export default function FastKenoBoard({ userId }: { userId: string }) {
         <div style={{ display: 'flex', gap: '5px', marginBottom: '8px' }}>
           {STAKE_PRESETS.map(s => (
             <button key={s} onClick={() => setStake(s)} style={{
-              flex: '1', padding: '8px 2px', borderRadius: '9px', border: 'none',
+              flex: '1', padding: '8px 2px', borderRadius: '9px',
               background: stake === s
                 ? 'linear-gradient(135deg, #dc143c, #8b0000)'
                 : 'rgba(220,20,60,0.08)',
