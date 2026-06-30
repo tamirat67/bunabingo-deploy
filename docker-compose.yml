@@ -89,8 +89,8 @@ services:
     container_name: buna-keno-worker
     restart: always
     ports:
-      - "8090:8090"   # Internal HTTP API (ticket placement, admin — not public)
-      - "8091:8091"   # WebSocket (real-time round updates to browser clients)
+      - "127.0.0.1:8090:8090"   # Internal HTTP API (ticket placement, admin — not public)
+      - "127.0.0.1:8092:8091"   # WebSocket (real-time round updates to browser clients)
     depends_on:
       db:
         condition: service_healthy
