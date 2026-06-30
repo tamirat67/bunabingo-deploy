@@ -5,7 +5,7 @@ services:
     container_name: buna-db
     restart: always
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"   # ⚠️ INTERNAL ONLY — never expose Postgres publicly
     environment:
       POSTGRES_USER: bunabingo_user
       POSTGRES_PASSWORD: SecurePasswordHere123!
@@ -28,7 +28,7 @@ services:
     container_name: buna-backend
     restart: always
     ports:
-      - "3001:3001"
+      - "127.0.0.1:3001:3001"   # Nginx proxies :443 → localhost:3001
     depends_on:
       db:
         condition: service_healthy
@@ -74,7 +74,7 @@ services:
     container_name: buna-scraper
     restart: always
     ports:
-      - "3005:3000"
+      - "127.0.0.1:3005:3000"   # ⚠️ INTERNAL ONLY — scraper must never be public
     environment:
       - BUNA_ENGINE_KEY=9f7a2d8e4c6b1a0f9e8d7c6b5a43210fe9
       - PORT=3000
@@ -100,8 +100,7 @@ services:
       DIRECT_URL: "postgresql://bunabingo_user:SecurePasswordHere123!@db:5432/bunabingo?schema=public"
       KENO_HTTP_PORT: "8090"
       KENO_WS_PORT: "8091"
-      # Change this to a long random secret in production
-      KENO_INTERNAL_SECRET: "change-me-in-production"
+      KENO_INTERNAL_SECRET: "buna-k3n0-s3cr3t-x9f2a7b4c1d8e5f6a3b0c9d2e7f4a1b8c"
       NODE_ENV: "production"
     networks:
       - buna-network
