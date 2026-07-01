@@ -45,18 +45,18 @@ const DEFAULT_STAKE = 10; // ETB
 const STAKE_STEP = 1;
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.bunatechhub.net';
 
-// Payout multipliers per spot count — matches backend payoutEngine.ts shares
+// Fixed Odds Payout Multipliers per spot count (Matches official Keno Rules)
 const PAYOUT_TABLE: Record<number, { match: number; mult: number }[]> = {
-  1: [{ match: 1, mult: 3 }],
-  2: [{ match: 2, mult: 10 }],
-  3: [{ match: 2, mult: 1 }, { match: 3, mult: 30 }],
-  4: [{ match: 2, mult: 1 }, { match: 3, mult: 3 }, { match: 4, mult: 80 }],
-  5: [{ match: 3, mult: 1 }, { match: 4, mult: 10 }, { match: 5, mult: 600 }],
-  6: [{ match: 3, mult: 1 }, { match: 4, mult: 3 }, { match: 5, mult: 70 }, { match: 6, mult: 1200 }],
-  7: [{ match: 4, mult: 1 }, { match: 5, mult: 15 }, { match: 6, mult: 300 }, { match: 7, mult: 4000 }],
-  8: [{ match: 5, mult: 8 }, { match: 6, mult: 60 }, { match: 7, mult: 1200 }, { match: 8, mult: 8000 }],
-  9: [{ match: 5, mult: 3 }, { match: 6, mult: 30 }, { match: 7, mult: 320 }, { match: 8, mult: 2000 }, { match: 9, mult: 15000 }],
-  10: [{ match: 5, mult: 1 }, { match: 6, mult: 15 }, { match: 7, mult: 60 }, { match: 8, mult: 500 }, { match: 9, mult: 3000 }, { match: 10, mult: 40000 }],
+  1: [{ match: 1, mult: 3.5 }],
+  2: [{ match: 1, mult: 1 }, { match: 2, mult: 10 }],
+  3: [{ match: 2, mult: 2 }, { match: 3, mult: 50 }],
+  4: [{ match: 2, mult: 1.5 }, { match: 3, mult: 10 }, { match: 4, mult: 80 }],
+  5: [{ match: 2, mult: 1 }, { match: 3, mult: 3 }, { match: 4, mult: 30 }, { match: 5, mult: 150 }],
+  6: [{ match: 3, mult: 2 }, { match: 4, mult: 15 }, { match: 5, mult: 60 }, { match: 6, mult: 500 }],
+  7: [{ match: 0, mult: 1 }, { match: 3, mult: 2 }, { match: 4, mult: 4 }, { match: 5, mult: 20 }, { match: 6, mult: 80 }, { match: 7, mult: 1000 }],
+  8: [{ match: 0, mult: 1 }, { match: 4, mult: 5 }, { match: 5, mult: 15 }, { match: 6, mult: 50 }, { match: 7, mult: 200 }, { match: 8, mult: 2000 }],
+  9: [{ match: 0, mult: 2 }, { match: 4, mult: 2 }, { match: 5, mult: 10 }, { match: 6, mult: 25 }, { match: 7, mult: 125 }, { match: 8, mult: 1000 }, { match: 9, mult: 5000 }],
+  10: [{ match: 0, mult: 2 }, { match: 5, mult: 5 }, { match: 6, mult: 30 }, { match: 7, mult: 100 }, { match: 8, mult: 300 }, { match: 9, mult: 2000 }, { match: 10, mult: 10000 }],
 };
 
 /* ═══════════════════════════════════════════════════════════════
@@ -668,7 +668,8 @@ function BettingArea({
   const hasPicks = picks.size > 0;
   const spotCount = spotChoice ?? (hasPicks ? picks.size : maxAllowed);
   const payoutRows = PAYOUT_TABLE[spotCount] ?? [];
-  const maxWin = payoutRows.length > 0 ? payoutRows[payoutRows.length - 1].mult * stake : 0;
+  const rawMaxWin = payoutRows.length > 0 ? payoutRows[payoutRows.length - 1].mult * stake : 0;
+  const maxWin = Math.floor(Math.min(rawMaxWin, 30000)); // Capped at Max Win - 30,000 ETB
   const picksArr = Array.from(picks).sort((a, b) => a - b);
 
   return (

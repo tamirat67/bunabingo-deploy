@@ -2,7 +2,7 @@ import type { PrismaClient } from "@prisma/client";
 import { EventEmitter } from "events";
 import { randomUUID } from "crypto";
 import { generateServerSeed, hashSeed, drawNumbers } from "./generator";
-import { countMatches, defaultShares } from "./payoutEngine";
+import { countMatches, getMultiplier } from "./payoutEngine";
 import { WalletAdapter } from "./walletAdapter";
 
 export type RoundPhase = "BETTING" | "DRAWING" | "COMPLETED";
@@ -160,34 +160,33 @@ export class DrawEngine extends EventEmitter {
     });
 
     if (tickets.length === 0) {
-      console.log(`[DrawEngine] Round #${roundId} — no tickets, company keeps full pool.`);
+      console.log(`[DrawEngine] Round #${roundId} — no tickets, nothing to settle.`);
       return;
     }
     console.log(`[DrawEngine] Round #${roundId} — settling ${tickets.length} ticket(s)...`);
 
-    // 1. Calculate the total pool
     let totalStakeCents = 0;
-    for (const t of tickets) {
-      totalStakeCents += t.stakeCents;
-    }
+    let totalPayoutCents = 0;
 
-    // 2. Company takes 30% guaranteed rake
-    const houseRakeCents = Math.floor(totalStakeCents * 0.30);
-    const prizePoolCents = totalStakeCents - houseRakeCents;
-
-    // 3. Score tickets to find total winning shares
-    // A ticket's shares = (base shares from paytable) * (stakeCents)
-    // This ensures a 200 ETB bet gets double the pot slice of a 100 ETB bet.
-    let totalShares = 0;
     const scoredTickets = await Promise.all(tickets.map(async (t) => {
+      totalStakeCents += t.stakeCents;
       const hits = countMatches(t.numbers, drawn);
-      const baseShares = await this.getPayoutShares(t.numbers.length, hits);
-      const shares = baseShares * t.stakeCents;
-      totalShares += shares;
-      return { ...t, hits, shares };
+      const multiplier = await this.getPayoutMultiplier(t.numbers.length, hits);
+      
+      // Fixed odds calculation with 30,000 ETB max win cap
+      const rawPayout = t.stakeCents * multiplier;
+      const maxPayoutCents = 30000 * 100; // 30,000 ETB
+      const payoutCents = Math.floor(Math.min(rawPayout, maxPayoutCents));
+      
+      totalPayoutCents += payoutCents;
+      return { ...t, hits, multiplier, payoutCents };
     }));
 
-    // 4. Update the round with the financial data
+    // Calculate house edge effectively
+    const houseRakeCents = Math.max(0, totalStakeCents - totalPayoutCents);
+    const prizePoolCents = totalPayoutCents;
+    const totalShares = 0; // Not used in fixed odds
+
     await this.prisma.kenoRound.update({
       where: { id: roundId },
       data: { 
@@ -198,21 +197,15 @@ export class DrawEngine extends EventEmitter {
       }
     });
 
-    // 5. Settle each ticket
-    console.log(`[DrawEngine] Pool: total=${totalStakeCents}¢  rake=${houseRakeCents}¢  prize=${prizePoolCents}¢  totalShares=${totalShares}`);
+    console.log(`[DrawEngine] Pool: totalStake=${totalStakeCents}¢  totalPayout=${totalPayoutCents}¢  houseDiff=${houseRakeCents}¢`);
     for (const ticket of scoredTickets) {
-      let payoutCents = 0;
-      if (totalShares > 0 && ticket.shares > 0) {
-        // Distribute proportionally. Math.floor ensures we don't over-distribute due to rounding.
-        payoutCents = Math.floor(prizePoolCents * (ticket.shares / totalShares));
-      }
-      console.log(`[DrawEngine]   ticket #${ticket.id} user=${ticket.userId} hits=${ticket.hits} payout=${payoutCents}¢ (${(payoutCents/100).toFixed(2)} ETB)`);
-      await this.settleSingleTicket(ticket, payoutCents);
+      console.log(`[DrawEngine]   ticket #${ticket.id} user=${ticket.userId} hits=${ticket.hits} payout=${ticket.payoutCents}¢ (${(ticket.payoutCents/100).toFixed(2)} ETB)`);
+      await this.settleSingleTicket(ticket, ticket.payoutCents);
     }
   }
 
   private async settleSingleTicket(
-    ticket: { id: bigint; userId: string; numbers: number[]; stakeCents: number; hits: number; shares: number },
+    ticket: { id: bigint; userId: string; numbers: number[]; stakeCents: number; hits: number; multiplier: number },
     payoutCents: number
   ) {
     const won = payoutCents > 0;
@@ -244,8 +237,8 @@ export class DrawEngine extends EventEmitter {
             ticketId: ticket.id,
             userId: ticket.userId,
             action: "PAYOUT_CREDITED",
-            amountCents: payoutCents,
-            detail: { hits: ticket.hits, shares: ticket.shares },
+            amountCents: ticket.payoutCents,
+            detail: { hits: ticket.hits, multiplier: ticket.multiplier },
           },
         });
       } catch (err) {
@@ -263,12 +256,12 @@ export class DrawEngine extends EventEmitter {
     }
   }
 
-  private async getPayoutShares(picksCount: number, matches: number): Promise<number> {
+  private async getPayoutMultiplier(picksCount: number, matches: number): Promise<number> {
     const rule = await this.prisma.kenoPayoutRule.findUnique({
       where: { spotCount_hits: { spotCount: picksCount, hits: matches } },
     });
-    if (rule) return Number(rule.multiplier); // We can reuse the multiplier DB column to hold "shares"
-    return defaultShares(picksCount, matches);
+    if (rule) return Number(rule.multiplier);
+    return getMultiplier(picksCount, matches);
   }
 
   private async getConfigInt(key: string, fallback: number): Promise<number> {
