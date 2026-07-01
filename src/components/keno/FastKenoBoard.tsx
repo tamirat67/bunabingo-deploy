@@ -51,7 +51,7 @@ const PAYOUT_TABLE: Record<number, { match: number; mult: number }[]> = {
   1: [{ match: 1, mult: 3.5 }],
   2: [{ match: 1, mult: 1 }, { match: 2, mult: 10 }],
   3: [{ match: 2, mult: 2 }, { match: 3, mult: 50 }],
-  4: [{ match: 2, mult: 1.5 }, { match: 3, mult: 10 }, { match: 4, mult: 80 }],
+  4: [{ match: 2, mult: 1 }, { match: 3, mult: 8 }, { match: 4, mult: 55 }],
   5: [{ match: 2, mult: 1 }, { match: 3, mult: 3 }, { match: 4, mult: 30 }, { match: 5, mult: 150 }],
   6: [{ match: 3, mult: 2 }, { match: 4, mult: 15 }, { match: 5, mult: 60 }, { match: 6, mult: 500 }],
   7: [{ match: 0, mult: 1 }, { match: 3, mult: 2 }, { match: 4, mult: 4 }, { match: 5, mult: 20 }, { match: 6, mult: 80 }, { match: 7, mult: 1000 }],
