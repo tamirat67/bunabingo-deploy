@@ -305,7 +305,53 @@ export default function LobbyPage() {
             }}>FLY ✈️</div>
           </div>
         </div>
-
+        {/* ── FAST KENO CARD ── */}
+        <div style={{ padding: '0 15px', marginBottom: '16px' }}>
+          <div
+            onClick={() => router.push('/keno')}
+            style={{
+              background: 'linear-gradient(135deg, #0a1f14 0%, #05100a 60%, #0c2618 100%)',
+              borderRadius: '12px',
+              padding: '14px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              cursor: 'pointer',
+              border: '1px solid rgba(34,197,94,0.3)',
+              boxShadow: '0 4px 20px rgba(34,197,94,0.15)',
+              position: 'relative',
+              overflow: 'hidden',
+            }}
+          >
+            {/* Glow accent */}
+            <div style={{
+              position: 'absolute', top: 0, left: 0, right: 0, height: '2px',
+              background: 'linear-gradient(90deg, transparent, #22c55e, transparent)',
+            }} />
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                width: '44px', height: '44px', borderRadius: '50%',
+                background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.4)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: 'inset 0 0 10px rgba(34,197,94,0.2)',
+              }}>
+                <Dices size={24} color="#4ade80" />
+              </div>
+              <div>
+                <div style={{ fontWeight: '900', fontSize: '15px', color: '#fff', letterSpacing: '0.5px' }}>FAST KENO</div>
+                <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', fontWeight: '700' }}>Draw every minute — Win up to 30,000!</div>
+              </div>
+            </div>
+            
+            <div style={{
+              background: 'linear-gradient(90deg, #22c55e, #16a34a)',
+              color: '#fff', fontSize: '12px', fontWeight: '900',
+              padding: '8px 16px', borderRadius: '8px',
+              boxShadow: '0 3px 0 #15803d',
+            }}>PLAY 🎱</div>
+          </div>
+        </div>
         {/* ── BINGO GAMES ── */}
         <div style={{ padding: '0 15px' }}>
           <div style={{ color: T.brownLobby, fontSize: '14px', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', textTransform: 'uppercase', opacity: 0.8 }}>
