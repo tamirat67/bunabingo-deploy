@@ -195,6 +195,13 @@ export default function FastKenoBoard({
   }, []);
 
   useEffect(() => {
+    if (showSplash) {
+      const timer = setTimeout(() => setShowSplash(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [showSplash]);
+
+  useEffect(() => {
     connectSocket();
     // Fetch current round immediately on mount (before socket update arrives)
     api.get('/keno/round/current').then(r => {
