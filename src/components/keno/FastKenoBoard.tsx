@@ -104,6 +104,10 @@ export default function FastKenoBoard({
   const [isPlacing, setIsPlacing] = useState(false);
   const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null);
 
+  /* ── smooth local countdown ── */
+  const [localSecondsLeft, setLocalSecondsLeft] = useState(0);
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   /* ── drawing animation ── */
   const [latestBall, setLatestBall] = useState<number | null>(null);
   const [animBalls, setAnimBalls] = useState<Set<number>>(new Set());
@@ -125,6 +129,7 @@ export default function FastKenoBoard({
   const reconnTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const msgTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevDrawn = useRef<number[]>([]);
+  const currentRoundCode = useRef<string | null>(null);
 
   /* ─────────── helpers ─────────── */
   function showMsg(text: string, ok: boolean) {
@@ -150,19 +155,29 @@ export default function FastKenoBoard({
         setRound(u);
         setPhase(u.phase as RoundPhase);
 
+        // Sync local countdown to server value
         if (u.phase === 'BETTING') {
-          setTicketPlaced(false);
-          setPicks(new Set());
-          setLiveTickets([]);
-          prevDrawn.current = [];
-          setLatestBall(null);
-          setBigBallVisible(false);
-          // Fetch latest balance from server when betting opens (in case of wins from previous round)
-          api.get('/me').then(res => {
-            if (res.data?.wallet?.balance) {
-              setLocalBalance(Number(res.data.wallet.balance));
-            }
-          }).catch(() => {});
+          setLocalSecondsLeft(u.secondsRemaining);
+
+          // Only reset picks/tickets when a BRAND NEW round starts (roundCode changes)
+          if (currentRoundCode.current !== u.roundCode) {
+            currentRoundCode.current = u.roundCode;
+            setTicketPlaced(false);
+            setPicks(new Set());
+            setLiveTickets([]);
+            prevDrawn.current = [];
+            setLatestBall(null);
+            setBigBallVisible(false);
+            // Fetch latest balance on new round (catches wins from prior round)
+            api.get('/me').then(res => {
+              if (res.data?.wallet?.balance) {
+                setLocalBalance(Number(res.data.wallet.balance));
+              }
+            }).catch(() => {});
+          }
+        } else {
+          // DRAWING or COMPLETED — stop countdown
+          setLocalSecondsLeft(0);
         }
 
         // New ball animation
@@ -201,19 +216,34 @@ export default function FastKenoBoard({
     }
   }, [showSplash]);
 
+  // Local 1s countdown tick for smooth timer display
+  useEffect(() => {
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    if (phase === 'BETTING' && localSecondsLeft > 0) {
+      countdownRef.current = setInterval(() => {
+        setLocalSecondsLeft(prev => Math.max(0, prev - 1));
+      }, 1000);
+    }
+    return () => { if (countdownRef.current) clearInterval(countdownRef.current); };
+  }, [phase, localSecondsLeft > 0 ? 'running' : 'stopped']);
+
   useEffect(() => {
     connectSocket();
     // Fetch current round immediately on mount (before socket update arrives)
     api.get('/keno/round/current').then(r => {
       if (r.data?.roundCode) {
         const phase = (r.data.phase ?? r.data.status ?? 'BETTING') as RoundPhase;
-        setRound({ ...r.data, phase, drawnNumbers: r.data.drawnNumbers ?? [], secondsRemaining: r.data.secondsRemaining ?? 0 });
+        const secs = r.data.secondsRemaining ?? 0;
+        setRound({ ...r.data, phase, drawnNumbers: r.data.drawnNumbers ?? [], secondsRemaining: secs });
         setPhase(phase);
+        setLocalSecondsLeft(secs);
+        currentRoundCode.current = r.data.roundCode;
       }
     }).catch(() => {});
     return () => {
       socketRef.current?.disconnect();
       if (reconnTimer.current) clearTimeout(reconnTimer.current);
+      if (countdownRef.current) clearInterval(countdownRef.current);
     };
   }, [connectSocket]);
 
@@ -303,7 +333,7 @@ export default function FastKenoBoard({
   const drawn = round?.drawnNumbers ?? [];
   const drawnSet = new Set(drawn);
   const drawnCount = drawn.length;
-  const timeLeft = round?.secondsRemaining ?? 0;
+  const timeLeft = localSecondsLeft;
   const isBetting = phase === 'BETTING';
   const isDrawing = phase === 'DRAWING';
   const isCompleted = phase === 'COMPLETED';
