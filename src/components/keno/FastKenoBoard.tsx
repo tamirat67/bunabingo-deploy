@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 
 /* ═══════════════════════════════════════════════════════════════
@@ -87,6 +88,7 @@ export default function FastKenoBoard({
   userId: string;
   balance?: number;
 }) {
+  const router = useRouter();
   /* ── phase & round ── */
   const [phase, setPhase] = useState<RoundPhase>('IDLE');
   const [round, setRound] = useState<RoundState | null>(null);
@@ -415,25 +417,25 @@ export default function FastKenoBoard({
 
       {/* ── TOP HEADER ── */}
       <div style={css.header}>
-        {/* Balance pill */}
-        <div style={css.balancePill}>
-          <span style={css.balanceDot} />
-          <span style={css.balanceAmt}>{localBalance}</span>
-          <span style={css.balanceCur}>&nbsp;ETB</span>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {/* Back Button */}
+          <button onClick={() => router.push('/')} style={css.backBtn}>
+            ← Back
+          </button>
+
+          {/* Balance pill */}
+          <div style={css.balancePill}>
+            <span style={css.balanceAmt}>{localBalance}</span>
+            <span style={css.balanceCur}>&nbsp;ETB</span>
+          </div>
         </div>
 
-        {/* Round ID */}
-        <div style={css.roundId}>
-          ID:&nbsp;<strong>{round?.roundCode ?? '——'}</strong>
-          &nbsp;<CheckSVG size={11} />
-        </div>
-
-        {/* Draw counter */}
-        <div style={css.drawCounter}>
-          <span style={{ color: '#22c55e', fontWeight: 800 }}>
-            {String(drawnCount).padStart(2, '0')}
-          </span>
-          <span style={{ color: '#334155' }}>&nbsp;/&nbsp;{TOTAL_DRAW}</span>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {/* Round ID */}
+          <div style={css.roundId}>
+            ID: {round?.roundCode ?? '——'}
+            &nbsp;<CheckSVG size={14} />
+          </div>
         </div>
       </div>
 
@@ -1368,24 +1370,26 @@ const css: Record<string, React.CSSProperties> = {
   header: {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     padding: '9px 12px',
-    background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(8px)',
-    borderBottom: '1px solid rgba(255,255,255,0.04)',
+    background: '#151c19', borderBottom: '1px solid rgba(255,255,255,0.02)',
     zIndex: 10, flexShrink: 0,
   },
+  backBtn: {
+    display: 'flex', alignItems: 'center', gap: 4,
+    padding: '6px 12px', borderRadius: 20,
+    background: 'rgba(255,255,255,0.06)', border: 'none',
+    color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+  },
   balancePill: {
-    display: 'flex', alignItems: 'center', gap: 5,
-    background: 'rgba(255,255,255,0.04)',
-    border: '1px solid rgba(255,255,255,0.07)',
+    display: 'flex', alignItems: 'center', gap: 4,
+    background: 'transparent',
+    border: '1px solid rgba(34,197,94,0.3)',
     borderRadius: 20, padding: '4px 10px',
   },
-  balanceDot: {
-    width: 7, height: 7, borderRadius: '50%', background: '#22c55e', display: 'block',
-  },
-  balanceAmt: { fontSize: 13, fontWeight: 800, color: '#e2e8f0' },
-  balanceCur: { fontSize: 11, color: '#64748b', fontWeight: 500 },
+  balanceAmt: { fontSize: 13, fontWeight: 800, color: '#fcd34d' },
+  balanceCur: { fontSize: 11, color: '#e2e8f0', fontWeight: 500 },
   roundId: {
-    fontSize: 11, color: '#64748b',
-    display: 'flex', alignItems: 'center', gap: 3,
+    fontSize: 13, color: '#f8fafc', fontWeight: 500,
+    display: 'flex', alignItems: 'center', gap: 4,
   },
   drawCounter: {
     fontSize: 14, fontWeight: 700, fontVariantNumeric: 'tabular-nums',
