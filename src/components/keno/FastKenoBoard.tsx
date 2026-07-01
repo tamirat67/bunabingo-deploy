@@ -1313,8 +1313,10 @@ const ROOT: React.CSSProperties = {
   maxWidth: 480,
   margin: '0 auto',
   position: 'relative',
-  overflow: 'hidden',
-  overscrollBehavior: 'none',
+  overflowX: 'hidden',
+  overflowY: 'auto',
+  WebkitOverflowScrolling: 'touch',
+  overscrollBehaviorY: 'contain',
 };
 
 const css: Record<string, React.CSSProperties> = {
