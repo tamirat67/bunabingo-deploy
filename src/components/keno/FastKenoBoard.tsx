@@ -48,16 +48,16 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.bunatechhub.
 
 // Fixed Odds Payout Multipliers per spot count (Matches official Keno Rules)
 const PAYOUT_TABLE: Record<number, { match: number; mult: number }[]> = {
-  1: [{ match: 1, mult: 3.5 }],
-  2: [{ match: 1, mult: 1 }, { match: 2, mult: 10 }],
-  3: [{ match: 2, mult: 2 }, { match: 3, mult: 50 }],
-  4: [{ match: 2, mult: 1 }, { match: 3, mult: 8 }, { match: 4, mult: 55 }],
-  5: [{ match: 2, mult: 1 }, { match: 3, mult: 3 }, { match: 4, mult: 30 }, { match: 5, mult: 150 }],
-  6: [{ match: 3, mult: 2 }, { match: 4, mult: 15 }, { match: 5, mult: 60 }, { match: 6, mult: 500 }],
-  7: [{ match: 0, mult: 1 }, { match: 3, mult: 2 }, { match: 4, mult: 4 }, { match: 5, mult: 20 }, { match: 6, mult: 80 }, { match: 7, mult: 1000 }],
-  8: [{ match: 0, mult: 1 }, { match: 4, mult: 5 }, { match: 5, mult: 15 }, { match: 6, mult: 50 }, { match: 7, mult: 200 }, { match: 8, mult: 2000 }],
-  9: [{ match: 0, mult: 2 }, { match: 4, mult: 2 }, { match: 5, mult: 10 }, { match: 6, mult: 25 }, { match: 7, mult: 125 }, { match: 8, mult: 1000 }, { match: 9, mult: 5000 }],
-  10: [{ match: 0, mult: 2 }, { match: 5, mult: 5 }, { match: 6, mult: 30 }, { match: 7, mult: 100 }, { match: 8, mult: 300 }, { match: 9, mult: 2000 }, { match: 10, mult: 10000 }],
+  1: [{ match: 1, mult: 2.8 }],
+  2: [{ match: 1, mult: 1 }, { match: 2, mult: 5 }],
+  3: [{ match: 2, mult: 1.5 }, { match: 3, mult: 35 }],
+  4: [{ match: 2, mult: 1 }, { match: 3, mult: 7 }, { match: 4, mult: 60 }],
+  5: [{ match: 3, mult: 3 }, { match: 4, mult: 25 }, { match: 5, mult: 250 }],
+  6: [{ match: 3, mult: 1 }, { match: 4, mult: 11 }, { match: 5, mult: 70 }, { match: 6, mult: 500 }],
+  7: [{ match: 0, mult: 1 }, { match: 3, mult: 1 }, { match: 4, mult: 3 }, { match: 5, mult: 20 }, { match: 6, mult: 100 }, { match: 7, mult: 1000 }],
+  8: [{ match: 0, mult: 1 }, { match: 4, mult: 3 }, { match: 5, mult: 12 }, { match: 6, mult: 40 }, { match: 7, mult: 200 }, { match: 8, mult: 2000 }],
+  9: [{ match: 0, mult: 1 }, { match: 4, mult: 2 }, { match: 5, mult: 6 }, { match: 6, mult: 20 }, { match: 7, mult: 100 }, { match: 8, mult: 1000 }, { match: 9, mult: 5000 }],
+  10: [{ match: 0, mult: 1 }, { match: 5, mult: 3 }, { match: 6, mult: 25 }, { match: 7, mult: 100 }, { match: 8, mult: 400 }, { match: 9, mult: 2000 }, { match: 10, mult: 10000 }],
 };
 
 /* ═══════════════════════════════════════════════════════════════
