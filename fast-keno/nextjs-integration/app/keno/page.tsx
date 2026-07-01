@@ -1,14 +1,15 @@
 import FastKenoBoard from "@/components/FastKenoBoard";
-// import { getServerSession } from "your-existing-auth"; // <-- get the real logged-in user here
+// import { getServerSession } from "your-existing-auth";
 
 export default async function KenoPage() {
   // const session = await getServerSession();
   // if (!session) redirect("/login");
-  const userId = 1; // TEMP — replace with session.user.id
+  const userId = "demo-user"; // TEMP — replace with session.user.id
+  const balance = 0;           // TEMP — pass real ETB balance from your wallet
 
   return (
-    <main className="min-h-screen bg-slate-950">
-      <FastKenoBoard userId={userId} />
+    <main style={{ minHeight: "100dvh", background: "#0c1a11" }}>
+      <FastKenoBoard userId={userId} balance={balance} />
     </main>
   );
 }
