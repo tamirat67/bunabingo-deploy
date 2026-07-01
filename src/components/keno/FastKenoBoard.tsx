@@ -482,9 +482,8 @@ export default function FastKenoBoard({
                 bg = 'linear-gradient(135deg,#22c55e,#16a34a)';
                 color = '#fff';
               } else if (isPicked) {
-                bg = 'rgba(34,197,94,0.15)';
+                bg = 'linear-gradient(180deg, #4ea764, #357643)';
                 color = '#fff';
-                border = '1px solid #22c55e';
                 dotColor = '#38bdf8'; // light blue
               } else if (isDrawn) {
                 bg = '#1f2429';
@@ -698,29 +697,30 @@ function BettingArea({
           /* ── PAYOUT & PICKS UI (replaces card) ── */
           <div style={{ position: 'relative', width: '100%', padding: '0 4px' }}>
             {/* Possible win header */}
-            <div style={{ fontSize: 16, fontWeight: 700, color: '#e2e8f0', marginBottom: 12 }}>
-              {spotCount} Possible win&nbsp;
-              <span style={{ color: '#4ade80' }}>{(maxWin * 100).toLocaleString()}</span>
+            <div style={{ fontSize: 17, color: '#9ca3af', marginBottom: 14, display: 'flex', alignItems: 'center' }}>
+              <span style={{ fontWeight: 800, color: '#fff', fontSize: 20, marginRight: 6 }}>{spotCount}</span>
+              <span style={{ fontWeight: 600 }}>Possible win&nbsp;</span>
+              <span style={{ color: '#4ade80', fontWeight: 700 }}>{maxWin.toLocaleString('fr-FR')}</span>
             </div>
             
             {/* Payout table */}
-            <div style={{ display: 'grid', gridTemplateColumns: `auto repeat(${payoutRows.length}, 1fr)`, gap: '4px 6px', fontSize: 12, color: '#94a3b8', marginBottom: 12 }}>
-              <div style={{ fontWeight: 600 }}>Match</div>
-              {payoutRows.map(r => <div key={`match-${r.match}`} style={{ textAlign: 'center', fontWeight: 600 }}>{r.match}</div>)}
-              <div style={{ fontWeight: 600 }}>Pays</div>
-              {payoutRows.map(r => <div key={`pays-${r.match}`} style={{ textAlign: 'center', color: '#e2e8f0', fontWeight: 700 }}>x{r.mult}</div>)}
+            <div style={{ display: 'grid', gridTemplateColumns: `auto repeat(${payoutRows.length}, 1fr)`, gap: '6px 4px', fontSize: 13, marginBottom: 14 }}>
+              <div style={{ fontWeight: 600, color: '#9ca3af' }}>Match</div>
+              {payoutRows.map(r => <div key={`match-${r.match}`} style={{ textAlign: 'center', fontWeight: 600, color: '#d1d5db' }}>{r.match}</div>)}
+              <div style={{ fontWeight: 600, color: '#9ca3af' }}>Pays</div>
+              {payoutRows.map(r => <div key={`pays-${r.match}`} style={{ textAlign: 'center', color: '#d1d5db', fontWeight: 700 }}>x{r.mult}</div>)}
             </div>
 
             {/* 10 Fixed Box Row for Picks */}
-            <div style={{ display: 'flex', gap: 4 }}>
+            <div style={{ display: 'flex', gap: 2 }}>
               {Array.from({ length: maxAllowed }).map((_, i) => {
                 const num = picksArr[i];
                 return (
                   <div key={i} style={{
-                    flex: 1, height: 32, borderRadius: 4,
-                    background: num ? '#334155' : 'rgba(255,255,255,0.03)',
+                    flex: 1, height: 38, borderRadius: 2,
+                    background: num ? '#374151' : '#1e293b',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 13, fontWeight: 700, color: '#f8fafc',
+                    fontSize: 16, fontWeight: 700, color: '#f8fafc',
                   }}>
                     {num || ''}
                   </div>
