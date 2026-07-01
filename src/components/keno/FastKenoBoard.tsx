@@ -579,7 +579,17 @@ function BettingArea({
       ) : (
         /* ── DEFAULT: ball + instruction ── */
         <div style={{ ...css.instructionRow, position: 'relative' }}>
-          <KenoBall number={picks.size || maxAllowed} size={46} />
+          <div style={{ position: 'relative', width: 60, height: 50, marginRight: 8 }}>
+            <div style={{ position: 'absolute', top: -4, left: 2, transform: 'scale(0.6)' }}>
+              <KenoBall number={80} size={40} />
+            </div>
+            <div style={{ position: 'absolute', top: -10, left: 24, transform: 'scale(0.8)' }}>
+              <KenoBall number={10} size={40} />
+            </div>
+            <div style={{ position: 'absolute', top: 10, left: -2, zIndex: 2 }}>
+              <KenoBall number={picks.size || maxAllowed} size={46} />
+            </div>
+          </div>
           <div style={{ flex: 1 }}>
             <div style={css.instrTitle}>Choose {maxAllowed} numbers</div>
             <div style={css.instrSub}>From 1 to 80</div>
@@ -594,29 +604,7 @@ function BettingArea({
         </div>
       )}
 
-      {/* spot selector */}
-      <div style={css.spotRow}>
-        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
-          <button
-            key={n}
-            id={`keno-spot-${n}`}
-            onClick={() => onSelectSpot(n)}
-            disabled={!isBetting || ticketPlaced}
-            style={{
-              ...css.spotBtn,
-              background: spotChoice === n
-                ? 'linear-gradient(135deg,#22c55e,#16a34a)'
-                : 'rgba(255,255,255,0.04)',
-              color: spotChoice === n ? '#fff' : '#475569',
-              border: spotChoice === n
-                ? '1px solid #22c55e'
-                : '1px solid rgba(255,255,255,0.07)',
-            }}
-          >
-            {n}
-          </button>
-        ))}
-      </div>
+      {/* spot selector removed to match Image 2 */}
     </div>
   );
 }
