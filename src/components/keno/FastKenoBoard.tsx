@@ -547,70 +547,72 @@ function BettingArea({
         </div>
       </div>
 
-      {/* ── IF PICKS SELECTED: show payout table ── */}
-      {hasPicks && isBetting ? (
-        <div style={{ padding: '0 12px 8px', position: 'relative' }}>
-          {/* Possible win header */}
-          <div style={{ fontSize: 15, fontWeight: 800, color: '#e2e8f0', marginBottom: 6 }}>
-            {spotCount} Possible win&nbsp;
-            <span style={{ color: '#22c55e' }}>{(maxWin * 100).toLocaleString()}</span>
-          </div>
-          {/* Payout table */}
-          <div style={{ display: 'grid', gridTemplateColumns: `auto repeat(${payoutRows.length}, 1fr)`, gap: '2px 6px', fontSize: 11, color: '#64748b', marginBottom: 8 }}>
-            <div style={{ fontWeight: 600 }}>Match</div>
-            {payoutRows.map(r => <div key={r.match} style={{ textAlign: 'center', fontWeight: 600 }}>{r.match}</div>)}
-            <div style={{ fontWeight: 600 }}>Pays</div>
-            {payoutRows.map(r => <div key={r.match} style={{ textAlign: 'center', color: '#22c55e', fontWeight: 700 }}>x{r.mult}</div>)}
-          </div>
-          {/* User's picks row */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-            {picksArr.map(n => (
-              <div key={n} style={{
-                width: 30, height: 30, borderRadius: 5,
-                background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 12, fontWeight: 700, color: '#e2e8f0',
-              }}>{n}</div>
-            ))}
-          </div>
-          {/* ? button */}
-          <button id="keno-open-rules" onClick={onOpenRules} style={{
-            position: 'absolute', top: 0, right: 12,
-            width: 24, height: 24, borderRadius: '50%',
-            background: 'rgba(34,197,94,0.15)', border: 'none',
-            color: '#22c55e', fontSize: 13, fontWeight: 800,
-            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>?</button>
-        </div>
-      ) : (
-        /* ── DEFAULT: ball + instruction ── */
-        <div style={{ ...css.instructionRow, position: 'relative', overflow: 'hidden' }}>
-          {/* Decorative faint circles matching the image */}
+      {/* ── INSTRUCTION CARD ── */}
+      <div style={{ ...css.instructionRow, position: 'relative' }}>
+        {/* Decorative faint circles matching the image */}
+        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', borderRadius: 12, zIndex: 0 }}>
           <div style={{ position: 'absolute', width: 200, height: 200, border: '1px solid rgba(255,255,255,0.03)', borderRadius: '50%', left: '30%', top: '-50%' }} />
           <div style={{ position: 'absolute', width: 300, height: 300, border: '1px solid rgba(255,255,255,0.03)', borderRadius: '50%', left: '20%', top: '-80%' }} />
-          
-          <div style={{ position: 'relative', width: 70, height: 60, marginRight: 6 }}>
-            <div style={{ position: 'absolute', top: -14, left: -4, transform: 'scale(0.55)', zIndex: 1 }}>
-              <KenoBall number={80} size={44} />
-            </div>
-            <div style={{ position: 'absolute', top: -20, left: 16, transform: 'scale(0.75)', zIndex: 2 }}>
-              <KenoBall number={10} size={44} />
-            </div>
-            <div style={{ position: 'absolute', top: 4, left: -6, zIndex: 3 }}>
-              <KenoBall number={picks.size || 1} size={54} />
-            </div>
+        </div>
+        
+        {/* Left side: Overlapping Balls */}
+        <div style={{ position: 'relative', width: 70, height: 60, marginRight: 6 }}>
+          <div style={{ position: 'absolute', top: -14, left: -4, transform: 'scale(0.55)', zIndex: 1 }}>
+            <KenoBall number={80} size={44} />
           </div>
-          <div style={{ flex: 1, zIndex: 4 }}>
-            <div style={css.instrTitle}>Choose {maxAllowed} numbers</div>
-            <div style={css.instrSub}>From 1 to 80</div>
+          <div style={{ position: 'absolute', top: -20, left: 16, transform: 'scale(0.75)', zIndex: 2 }}>
+            <KenoBall number={10} size={44} />
           </div>
-          <button id="keno-open-rules" onClick={onOpenRules} style={{
-            position: 'absolute', top: 12, right: 12, zIndex: 4,
-            width: 26, height: 26, borderRadius: '50%',
-            background: 'rgba(255,255,255,0.04)', border: 'none',
-            color: '#4ade80', fontSize: 14, fontWeight: 800,
-            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>?</button>
+          <div style={{ position: 'absolute', top: 4, left: -6, zIndex: 3 }}>
+            <KenoBall number={picks.size || 1} size={54} />
+          </div>
+        </div>
+
+        {/* Right side: Text or Payout table */}
+        <div style={{ flex: 1, zIndex: 4 }}>
+          {hasPicks && isBetting ? (
+            <div>
+              {/* Possible win header */}
+              <div style={{ fontSize: 15, fontWeight: 800, color: '#e2e8f0', marginBottom: 6 }}>
+                {spotCount} Possible win&nbsp;
+                <span style={{ color: '#22c55e' }}>{(maxWin * 100).toLocaleString()}</span>
+              </div>
+              {/* Payout table */}
+              <div style={{ display: 'grid', gridTemplateColumns: `auto repeat(${payoutRows.length}, 1fr)`, gap: '2px 6px', fontSize: 11, color: '#64748b' }}>
+                <div style={{ fontWeight: 600 }}>Match</div>
+                {payoutRows.map(r => <div key={`match-${r.match}`} style={{ textAlign: 'center', fontWeight: 600 }}>{r.match}</div>)}
+                <div style={{ fontWeight: 600 }}>Pays</div>
+                {payoutRows.map(r => <div key={`pays-${r.match}`} style={{ textAlign: 'center', color: '#22c55e', fontWeight: 700 }}>x{r.mult}</div>)}
+              </div>
+            </div>
+          ) : (
+            <div>
+              <div style={css.instrTitle}>Choose {maxAllowed} numbers</div>
+              <div style={css.instrSub}>From 1 to 80</div>
+            </div>
+          )}
+        </div>
+
+        <button id="keno-open-rules" onClick={onOpenRules} style={{
+          position: 'absolute', top: 12, right: 12, zIndex: 4,
+          width: 26, height: 26, borderRadius: '50%',
+          background: 'rgba(255,255,255,0.04)', border: 'none',
+          color: '#4ade80', fontSize: 14, fontWeight: 800,
+          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>?</button>
+      </div>
+
+      {/* User's picks row below the card */}
+      {hasPicks && isBetting && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 10, padding: '0 4px' }}>
+          {picksArr.map(n => (
+            <div key={n} style={{
+              width: 28, height: 28, borderRadius: 5,
+              background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 12, fontWeight: 700, color: '#e2e8f0',
+            }}>{n}</div>
+          ))}
         </div>
       )}
 
