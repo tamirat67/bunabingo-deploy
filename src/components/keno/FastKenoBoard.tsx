@@ -472,27 +472,24 @@ export default function FastKenoBoard({
               const isHit = isPicked && isDrawn;
               const canInteract = isBetting && !ticketPlaced;
 
-              let bg = 'rgba(20,30,45,0.65)';
-              let color = '#64748b';
-              let border = '1px solid rgba(255,255,255,0.04)';
+              let bg = '#2b2f36';
+              let color = '#9ca3af';
+              let border = 'none';
               let shadow = 'none';
               let dotColor: string | null = null;
 
               if (isHit) {
                 bg = 'linear-gradient(135deg,#22c55e,#16a34a)';
                 color = '#fff';
-                border = '1px solid #22c55e';
-                shadow = '0 0 10px rgba(34,197,94,0.5)';
               } else if (isPicked) {
-                bg = 'rgba(20,30,45,0.85)';
-                color = '#e2e8f0';
-                border = '1px solid rgba(255,255,255,0.08)';
-                dotColor = '#3b82f6';
+                bg = 'rgba(34,197,94,0.15)';
+                color = '#fff';
+                border = '1px solid #22c55e';
+                dotColor = '#38bdf8'; // light blue
               } else if (isDrawn) {
-                bg = 'rgba(10,15,25,0.9)';
-                color = '#94a3b8';
-                border = '1px solid rgba(255,255,255,0.05)';
-                dotColor = '#ef4444';
+                bg = '#1f2429';
+                color = '#64748b';
+                dotColor = '#f87171'; // red
               }
 
               return (
@@ -511,8 +508,8 @@ export default function FastKenoBoard({
                 >
                   {dotColor && (
                     <span style={{
-                      position: 'absolute', top: 2, right: 2,
-                      width: 5, height: 5, borderRadius: '50%',
+                      position: 'absolute', top: -2, left: -2,
+                      width: 6, height: 6, borderRadius: '50%',
                       background: dotColor, pointerEvents: 'none',
                     }} />
                   )}
@@ -528,9 +525,11 @@ export default function FastKenoBoard({
       {isBetting && (
         <div style={css.betControls}>
           <div style={css.stakeRow}>
-            <button id="keno-stake-minus" onClick={() => adjustStake(-STAKE_STEP)} style={css.stakeAdj}>−</button>
-            <div style={css.stakeVal}>{stake}</div>
-            <button id="keno-stake-plus" onClick={() => adjustStake(STAKE_STEP)} style={css.stakeAdj}>+</button>
+            <div style={css.stakeAdjGroup as any}>
+              <button id="keno-stake-minus" onClick={() => adjustStake(-STAKE_STEP)} style={css.stakeAdj}>−</button>
+              <div style={css.stakeVal}>{stake}</div>
+              <button id="keno-stake-plus" onClick={() => adjustStake(STAKE_STEP)} style={css.stakeAdj}>+</button>
+            </div>
             <button id="keno-stake-x2" onClick={doubleStake} style={css.stakeMod}>X2</button>
             <button id="keno-stake-max" onClick={maxStake} style={css.stakeMod}>MAX</button>
           </div>
@@ -554,10 +553,10 @@ export default function FastKenoBoard({
               style={{
                 ...css.betBtn,
                 background: picks.size === 0
-                  ? 'rgba(255,255,255,0.04)'
-                  : 'linear-gradient(135deg,#22c55e,#15803d)',
-                color: picks.size === 0 ? '#334155' : '#fff',
-                boxShadow: picks.size > 0 ? '0 4px 20px rgba(34,197,94,0.35)' : 'none',
+                  ? '#2b2f36'
+                  : 'linear-gradient(180deg, #3d6a4c, #264a34)',
+                color: picks.size === 0 ? '#64748b' : '#94a3b8',
+                boxShadow: picks.size > 0 ? '0 4px 15px rgba(34,197,94,0.2)' : 'none',
               }}
             >
               {isPlacing ? 'Processing...' : picks.size === 0 ? 'Pick Numbers First' : 'BET'}
@@ -678,14 +677,16 @@ function BettingArea({
       {/* countdown */}
       <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12, position: 'relative' }}>
         <div style={{
-          position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-          width: 120, height: 20, background: 'radial-gradient(ellipse, rgba(45,212,191,0.2) 0%, transparent 70%)',
+          position: 'absolute', top: 0, left: '50%', transform: 'translate(-50%, -50%)',
+          width: '60%', height: 1, background: '#2dd4bf',
+          boxShadow: '0 0 20px 5px #2dd4bf, 0 0 40px 10px rgba(45,212,191,0.5)',
+          opacity: 0.8,
           zIndex: 0,
         }} />
         <div style={{
           ...css.clock,
-          color: urgent ? '#ef4444' : '#ccfbf1',
-          textShadow: urgent ? '0 0 8px rgba(239,68,68,0.5)' : '0 0 8px rgba(45,212,191,0.5)',
+          color: urgent ? '#ef4444' : '#ffffff',
+          textShadow: urgent ? '0 0 8px rgba(239,68,68,0.5)' : 'none',
           zIndex: 1,
         }}>
           {isBetting ? fmtClock(timeLeft) : phase === 'IDLE' ? '00:00' : '—'}
@@ -1445,38 +1446,41 @@ const css: Record<string, React.CSSProperties> = {
   tabBody: { flex: 1, overflowY: 'auto', zIndex: 1 },
 
   /* ── grid ── */
-  gridWrap: { padding: '8px 9px 4px' },
-  grid: { display: 'grid', gridTemplateColumns: 'repeat(10,1fr)', gap: 3 },
+  gridWrap: { padding: '8px 6px 4px' },
+  grid: { display: 'grid', gridTemplateColumns: 'repeat(10,1fr)', gap: 1 },
   gridCell: {
-    height: 33, width: '100%', borderRadius: 5,
-    fontSize: 12, fontWeight: 700, transition: 'all 0.1s',
+    height: 38, width: '100%', borderRadius: 2,
+    fontSize: 16, fontWeight: 700, transition: 'all 0.1s',
     fontVariantNumeric: 'tabular-nums',
   },
 
   /* ── bet controls ── */
   betControls: {
-    padding: '6px 10px 8px', display: 'flex', flexDirection: 'column', gap: 7,
+    padding: '6px 6px 8px', display: 'flex', flexDirection: 'column', gap: 7,
   },
-  stakeRow: { display: 'flex', alignItems: 'center', gap: 5 },
+  stakeRow: { display: 'flex', alignItems: 'stretch', gap: 4 },
+  stakeAdjGroup: {
+    display: 'flex', flex: 1, background: '#2b2f36', borderRadius: 4, overflow: 'hidden'
+  },
   stakeAdj: {
-    width: 38, height: 44, borderRadius: 8, fontSize: 20, fontWeight: 700,
-    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)',
-    color: '#e2e8f0', cursor: 'pointer',
+    width: 48, fontSize: 24, fontWeight: 700,
+    background: 'transparent', border: 'none',
+    color: '#9ca3af', cursor: 'pointer',
   },
   stakeVal: {
-    flex: 1, textAlign: 'center' as const, fontSize: 22, fontWeight: 800,
-    color: '#fff', background: 'rgba(0,0,0,0.3)', borderRadius: 8,
-    padding: '9px 4px', fontVariantNumeric: 'tabular-nums',
+    flex: 1, textAlign: 'center' as const, fontSize: 20, fontWeight: 800,
+    color: '#fff', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    fontVariantNumeric: 'tabular-nums',
   },
   stakeMod: {
-    padding: '0 12px', height: 44, borderRadius: 8,
-    background: 'rgba(255,255,255,0.04)',
-    border: '1px solid rgba(34,197,94,0.2)',
-    color: '#22c55e', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+    padding: '0 16px', borderRadius: 4,
+    background: '#2b2f36',
+    border: 'none',
+    color: '#4ade80', fontSize: 13, fontWeight: 800, cursor: 'pointer',
   },
   betBtn: {
-    width: '100%', height: 52, borderRadius: 10,
-    fontSize: 18, fontWeight: 800, letterSpacing: 2, border: 'none',
+    width: '100%', height: 48, borderRadius: 4,
+    fontSize: 20, fontWeight: 900, letterSpacing: 1.5, border: 'none',
     transition: 'all 0.15s',
   },
   msgBar: {
