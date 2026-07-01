@@ -696,7 +696,7 @@ function BettingArea({
       <div style={{ minHeight: 125, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
         {hasPicks && isBetting ? (
           /* ── PAYOUT & PICKS UI (replaces card) ── */
-          <div style={{ position: 'relative', width: '100%' }}>
+          <div style={css.payoutCard}>
             {/* Possible win header */}
             <div style={{ fontSize: 17, color: '#9ca3af', marginBottom: 14, display: 'flex', alignItems: 'center' }}>
               <span style={{ fontWeight: 800, color: '#fff', fontSize: 20, marginRight: 6 }}>{spotCount}</span>
@@ -730,8 +730,8 @@ function BettingArea({
             </div>
 
             <button id="keno-open-rules" onClick={onOpenRules} style={{
-              position: 'absolute', top: -4, right: 4,
-              width: 24, height: 24, borderRadius: '50%',
+              position: 'absolute', top: 12, right: 12,
+              width: 26, height: 26, borderRadius: '50%',
               background: 'rgba(255,255,255,0.06)', border: 'none',
               color: '#4ade80', fontSize: 13, fontWeight: 800,
               cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1392,7 +1392,7 @@ const css: Record<string, React.CSSProperties> = {
   },
 
   /* ── betting area ── */
-  bettingArea: { padding: '8px 6px 4px', flexShrink: 0, zIndex: 1 },
+  bettingArea: { padding: '8px 12px 4px', flexShrink: 0, zIndex: 1 },
   clock: {
     fontFamily: 'monospace, sans-serif',
     fontSize: 16, fontWeight: 700, letterSpacing: 4,
@@ -1407,6 +1407,13 @@ const css: Record<string, React.CSSProperties> = {
     backgroundImage: 'radial-gradient(circle at 10% 50%, rgba(34,197,94,0.05) 0%, transparent 40%), radial-gradient(circle at 50% 120%, rgba(34,197,94,0.05) 0%, transparent 50%)',
     border: '1px solid rgba(255,255,255,0.02)', borderRadius: 12,
     overflow: 'visible',
+  },
+  payoutCard: {
+    position: 'relative' as const, width: '100%',
+    padding: '16px', marginBottom: 10,
+    backgroundColor: '#15231c',
+    backgroundImage: 'radial-gradient(circle at 10% 50%, rgba(34,197,94,0.05) 0%, transparent 40%), radial-gradient(circle at 50% 120%, rgba(34,197,94,0.05) 0%, transparent 50%)',
+    border: '1px solid rgba(255,255,255,0.02)', borderRadius: 12,
   },
   instrTitle: { fontSize: 20, fontWeight: 700, color: '#f8fafc', lineHeight: 1.2 },
   instrSub: { fontSize: 14, color: '#4ade80', fontWeight: 600, marginTop: 4 },
