@@ -125,6 +125,8 @@ export class DrawEngine extends EventEmitter {
       status: "BETTING",
     };
 
+    this._lastDrawn = [];
+
     console.log(`[DrawEngine] 🎰 Round #${round.id} started (code: ${roundCode}) — betting open for ${countdownConfig}s`);
     this.emitUpdate("BETTING", countdownConfig, []);
   }
@@ -141,8 +143,14 @@ export class DrawEngine extends EventEmitter {
     });
 
     console.log(`[DrawEngine] 🎲 Round #${round.id} drawing: [${drawn.join(", ")}]`);
-    this._lastDrawn = drawn;
-    this.emitUpdate("DRAWING", 0, drawn);
+    
+    // Trickle out the balls one by one (1 second per ball) so frontend animates them
+    for (let i = 1; i <= 20; i++) {
+      const partialDrawn = drawn.slice(0, i);
+      this._lastDrawn = partialDrawn;
+      this.emitUpdate("DRAWING", 0, partialDrawn);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
 
     await this.settleTickets(round.id, drawn);
 
@@ -150,6 +158,9 @@ export class DrawEngine extends EventEmitter {
 
     console.log(`[DrawEngine] ✅ Round #${round.id} completed.`);
     this.emitUpdate("COMPLETED", 0, drawn, round.serverSeed);
+
+    // Give players 5 seconds to review the results board before starting the next round
+    await new Promise(resolve => setTimeout(resolve, 5000));
 
     this.current = null;
   }
