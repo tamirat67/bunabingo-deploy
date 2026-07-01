@@ -432,6 +432,121 @@ export default function FastKenoBoard({
         />
       )}
 
+      {/* ── NUMBER GRID (Always visible unless DRAWING) ── */}
+      {(isBetting || phase === 'COMPLETED') && (
+        <div style={css.gridWrap}>
+          <div style={css.grid} id="keno-number-grid">
+            {Array.from({ length: 80 }, (_, i) => i + 1).map((n) => {
+              const isPicked = picks.has(n);
+              const isDrawn = drawnSet.has(n);
+              const isHit = isPicked && isDrawn;
+              const canInteract = isBetting && !ticketPlaced;
+
+              let bg = 'rgba(20,30,45,0.65)';
+              let color = '#64748b';
+              let border = '1px solid rgba(255,255,255,0.04)';
+              let shadow = 'none';
+              let dotColor: string | null = null;
+
+              if (isHit) {
+                bg = 'linear-gradient(135deg,#22c55e,#16a34a)';
+                color = '#fff';
+                border = '1px solid #22c55e';
+                shadow = '0 0 10px rgba(34,197,94,0.5)';
+              } else if (isPicked) {
+                bg = 'rgba(20,30,45,0.85)';
+                color = '#e2e8f0';
+                border = '1px solid rgba(255,255,255,0.08)';
+                dotColor = '#3b82f6';
+              } else if (isDrawn) {
+                bg = 'rgba(10,15,25,0.9)';
+                color = '#94a3b8';
+                border = '1px solid rgba(255,255,255,0.05)';
+                dotColor = '#ef4444';
+              }
+
+              return (
+                <button
+                  key={n}
+                  id={`keno-num-${n}`}
+                  onClick={() => togglePick(n)}
+                  disabled={!canInteract && !isPicked}
+                  style={{
+                    ...css.gridCell,
+                    background: bg, color, border, boxShadow: shadow,
+                    cursor: canInteract ? 'pointer' : 'default',
+                    opacity: !isBetting && !isDrawn && !isPicked ? 0.35 : 1,
+                    position: 'relative',
+                  }}
+                >
+                  {dotColor && (
+                    <span style={{
+                      position: 'absolute', top: 2, right: 2,
+                      width: 5, height: 5, borderRadius: '50%',
+                      background: dotColor, pointerEvents: 'none',
+                    }} />
+                  )}
+                  {n}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── BET CONTROLS (Always visible during BETTING) ── */}
+      {isBetting && (
+        <div style={css.betControls}>
+          <div style={css.stakeRow}>
+            <button id="keno-stake-minus" onClick={() => adjustStake(-STAKE_STEP)} style={css.stakeAdj}>−</button>
+            <div style={css.stakeVal}>{stake}</div>
+            <button id="keno-stake-plus" onClick={() => adjustStake(STAKE_STEP)} style={css.stakeAdj}>+</button>
+            <button id="keno-stake-x2" onClick={doubleStake} style={css.stakeMod}>X2</button>
+            <button id="keno-stake-max" onClick={maxStake} style={css.stakeMod}>MAX</button>
+          </div>
+
+          {msg && (
+            <div style={{
+              ...css.msgBar,
+              background: msg.ok ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
+              borderColor: msg.ok ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)',
+              color: msg.ok ? '#4ade80' : '#f87171',
+            }}>
+              {msg.text}
+            </div>
+          )}
+
+          {!ticketPlaced ? (
+            <button
+              id="keno-bet-btn"
+              onClick={placeBet}
+              disabled={isPlacing || picks.size === 0}
+              style={{
+                ...css.betBtn,
+                background: picks.size === 0
+                  ? 'rgba(255,255,255,0.04)'
+                  : 'linear-gradient(135deg,#22c55e,#15803d)',
+                color: picks.size === 0 ? '#334155' : '#fff',
+                boxShadow: picks.size > 0 ? '0 4px 20px rgba(34,197,94,0.35)' : 'none',
+              }}
+            >
+              {isPlacing ? 'Processing...' : picks.size === 0 ? 'Pick Numbers First' : 'BET'}
+            </button>
+          ) : (
+            <div style={css.ticketConfirmed}>
+              ✓ Ticket Confirmed — watching {picks.size} picks
+            </div>
+          )}
+
+          <div style={css.quickRow}>
+            <button id="keno-quick-pick" onClick={quickPick} style={css.quickBtn}>⚡ Quick Pick</button>
+            {picks.size > 0 && (
+              <button id="keno-clear" onClick={() => setPicks(new Set())} style={css.clearBtn}>✕ Clear</button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ── MAIN TABS ── */}
       <div style={css.tabs}>
         {(['GAME', 'HISTORY', 'RESULTS', 'STATISTICS', 'LEADERS'] as MainTab[]).map((t) => (
@@ -702,125 +817,6 @@ function GameTabContent({
 
   return (
     <div>
-      {/* ── NUMBER GRID ── */}
-      {showGrid && (
-        <div style={css.gridWrap}>
-          <div style={css.grid} id="keno-number-grid">
-            {Array.from({ length: 80 }, (_, i) => i + 1).map((n) => {
-              const isPicked = picks.has(n);
-              const isDrawn = drawnSet.has(n);
-              const isHit = isPicked && isDrawn;
-              const canInteract = isBetting && !ticketPlaced;
-
-              let bg = 'rgba(20,30,45,0.65)';
-              let color = '#64748b';
-              let border = '1px solid rgba(255,255,255,0.04)';
-              let shadow = 'none';
-              let dotColor: string | null = null;
-
-              if (isHit) {
-                bg = 'linear-gradient(135deg,#22c55e,#16a34a)';
-                color = '#fff';
-                border = '1px solid #22c55e';
-                shadow = '0 0 10px rgba(34,197,94,0.5)';
-              } else if (isPicked) {
-                bg = 'rgba(20,30,45,0.85)';
-                color = '#e2e8f0';
-                border = '1px solid rgba(255,255,255,0.08)';
-                dotColor = '#3b82f6';
-              } else if (isDrawn) {
-                bg = 'rgba(10,15,25,0.9)';
-                color = '#94a3b8';
-                border = '1px solid rgba(255,255,255,0.05)';
-                dotColor = '#ef4444';
-              }
-
-              return (
-                <button
-                  key={n}
-                  id={`keno-num-${n}`}
-                  onClick={() => onTogglePick(n)}
-                  disabled={!canInteract && !isPicked}
-                  style={{
-                    ...css.gridCell,
-                    background: bg, color, border, boxShadow: shadow,
-                    cursor: canInteract ? 'pointer' : 'default',
-                    opacity: !isBetting && !isDrawn && !isPicked ? 0.35 : 1,
-                    position: 'relative',
-                  }}
-                >
-                  {dotColor && (
-                    <span style={{
-                      position: 'absolute', top: 2, right: 2,
-                      width: 5, height: 5, borderRadius: '50%',
-                      background: dotColor, pointerEvents: 'none',
-                    }} />
-                  )}
-                  {n}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* ── BET CONTROLS (only during BETTING) ── */}
-      {isBetting && (
-        <div style={css.betControls}>
-          {/* stake row */}
-          <div style={css.stakeRow}>
-            <button id="keno-stake-minus" onClick={() => onAdjustStake(-STAKE_STEP)} style={css.stakeAdj}>−</button>
-            <div style={css.stakeVal}>{stake}</div>
-            <button id="keno-stake-plus" onClick={() => onAdjustStake(STAKE_STEP)} style={css.stakeAdj}>+</button>
-            <button id="keno-stake-x2" onClick={onDoubleStake} style={css.stakeMod}>X2</button>
-            <button id="keno-stake-max" onClick={onMaxStake} style={css.stakeMod}>MAX</button>
-          </div>
-
-          {/* message */}
-          {msg && (
-            <div style={{
-              ...css.msgBar,
-              background: msg.ok ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
-              borderColor: msg.ok ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)',
-              color: msg.ok ? '#4ade80' : '#f87171',
-            }}>
-              {msg.text}
-            </div>
-          )}
-
-          {/* BET / Confirmed */}
-          {!ticketPlaced ? (
-            <button
-              id="keno-bet-btn"
-              onClick={onBet}
-              disabled={isPlacing || picks.size === 0}
-              style={{
-                ...css.betBtn,
-                background: picks.size === 0
-                  ? 'rgba(255,255,255,0.04)'
-                  : 'linear-gradient(135deg,#22c55e,#15803d)',
-                color: picks.size === 0 ? '#334155' : '#fff',
-                boxShadow: picks.size > 0 ? '0 4px 20px rgba(34,197,94,0.35)' : 'none',
-              }}
-            >
-              {isPlacing ? 'Processing...' : picks.size === 0 ? 'Pick Numbers First' : 'BET'}
-            </button>
-          ) : (
-            <div style={css.ticketConfirmed}>
-              ✓ Ticket Confirmed — watching {picks.size} picks
-            </div>
-          )}
-
-          {/* quick pick + clear */}
-          <div style={css.quickRow}>
-            <button id="keno-quick-pick" onClick={onQuickPick} style={css.quickBtn}>⚡ Quick Pick</button>
-            {picks.size > 0 && (
-              <button id="keno-clear" onClick={onClear} style={css.clearBtn}>✕ Clear</button>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* ── LIVE FEED ── */}
       <div style={css.feed}>
         {/* sub-tabs */}
