@@ -45,6 +45,20 @@ const DEFAULT_STAKE = 10; // ETB
 const STAKE_STEP = 1;
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.bunatechhub.net';
 
+// Payout multipliers per spot count — matches backend payoutEngine.ts shares
+const PAYOUT_TABLE: Record<number, { match: number; mult: number }[]> = {
+  1: [{ match: 1, mult: 3 }],
+  2: [{ match: 2, mult: 10 }],
+  3: [{ match: 2, mult: 1 }, { match: 3, mult: 30 }],
+  4: [{ match: 2, mult: 1 }, { match: 3, mult: 3 }, { match: 4, mult: 80 }],
+  5: [{ match: 3, mult: 1 }, { match: 4, mult: 10 }, { match: 5, mult: 600 }],
+  6: [{ match: 3, mult: 1 }, { match: 4, mult: 3 }, { match: 5, mult: 70 }, { match: 6, mult: 1200 }],
+  7: [{ match: 4, mult: 1 }, { match: 5, mult: 15 }, { match: 6, mult: 300 }, { match: 7, mult: 4000 }],
+  8: [{ match: 5, mult: 8 }, { match: 6, mult: 60 }, { match: 7, mult: 1200 }, { match: 8, mult: 8000 }],
+  9: [{ match: 5, mult: 3 }, { match: 6, mult: 30 }, { match: 7, mult: 320 }, { match: 8, mult: 2000 }, { match: 9, mult: 15000 }],
+  10: [{ match: 5, mult: 1 }, { match: 6, mult: 15 }, { match: 7, mult: 60 }, { match: 8, mult: 500 }, { match: 9, mult: 3000 }, { match: 10, mult: 40000 }],
+};
+
 /* ═══════════════════════════════════════════════════════════════
    HELPERS
 ════════════════════════════════════════════════════════════════ */
@@ -329,7 +343,7 @@ export default function FastKenoBoard({
               <span style={{ color: '#22c55e', fontStyle: 'italic' }}>KEN</span>
               <span style={{ color: '#22c55e', fontSize: 20 }}>▶</span>
             </div>
-            <div style={css.splashGift}>GIFT BET</div>
+            <div style={css.splashGift}>BUNA BET</div>
           </div>
 
           <div style={css.splashTitle}>Fast Keno</div>
@@ -387,7 +401,7 @@ export default function FastKenoBoard({
       </div>
 
       {/* ── GAME AREA (phase-dependent) ── */}
-      {(isBetting || isCompleted || phase === 'IDLE') && (
+      {(isBetting || phase === 'IDLE') && (
         <BettingArea
           phase={phase}
           timeLeft={timeLeft}
@@ -395,6 +409,7 @@ export default function FastKenoBoard({
           spotChoice={spotChoice}
           maxAllowed={maxAllowed}
           ticketPlaced={ticketPlaced}
+          stake={stake}
           onSelectSpot={selectSpot}
           onOpenRules={() => setShowRules(true)}
         />
@@ -474,12 +489,14 @@ export default function FastKenoBoard({
         {mainTab === 'LEADERS' && <LeadersTab tickets={liveTickets} drawnSet={drawnSet} />}
       </div>
 
-      {/* ── FAIRNESS FOOTER ── */}
-      <div style={css.fairness}>
-        <div style={css.fairnessShield}><CheckSVG size={22} /></div>
-        <div style={css.fairnessLabel}>FAIRNESS</div>
-        <div style={css.fairnessBrand}>ATLAS V<br /><span style={{ fontSize: 8, letterSpacing: 3 }}>GAMING</span></div>
-      </div>
+      {/* ── FAIRNESS FOOTER — only shown when not actively drawing ── */}
+      {!isDrawing && (
+        <div style={css.fairness}>
+          <div style={css.fairnessShield}><CheckSVG size={22} /></div>
+          <div style={css.fairnessLabel}>FAIRNESS</div>
+          <div style={css.fairnessBrand}>ATLAS V<br /><span style={{ fontSize: 8, letterSpacing: 3 }}>GAMING</span></div>
+        </div>
+      )}
 
       <GlobalStyle />
     </div>
@@ -490,13 +507,19 @@ export default function FastKenoBoard({
    BETTING AREA — countdown clock + pick instruction + spot selector
 ════════════════════════════════════════════════════════════ */
 function BettingArea({
-  phase, timeLeft, picks, spotChoice, maxAllowed, ticketPlaced, onSelectSpot, onOpenRules,
+  phase, timeLeft, picks, spotChoice, maxAllowed, ticketPlaced, stake, onSelectSpot, onOpenRules,
 }: {
   phase: RoundPhase; timeLeft: number; picks: Set<number>; spotChoice: number | null;
-  maxAllowed: number; ticketPlaced: boolean; onSelectSpot: (n: number) => void; onOpenRules: () => void;
+  maxAllowed: number; ticketPlaced: boolean; stake: number;
+  onSelectSpot: (n: number) => void; onOpenRules: () => void;
 }) {
   const isBetting = phase === 'BETTING';
   const urgent = timeLeft <= 5 && isBetting;
+  const hasPicks = picks.size > 0;
+  const spotCount = spotChoice ?? (hasPicks ? picks.size : maxAllowed);
+  const payoutRows = PAYOUT_TABLE[spotCount] ?? [];
+  const maxWin = payoutRows.length > 0 ? payoutRows[payoutRows.length - 1].mult * stake : 0;
+  const picksArr = Array.from(picks).sort((a, b) => a - b);
 
   return (
     <div style={css.bettingArea}>
@@ -511,29 +534,58 @@ function BettingArea({
         </div>
       </div>
 
-      {/* ball + instruction row */}
-      <div style={{ ...css.instructionRow, position: 'relative' }}>
-        <KenoBall number={picks.size || maxAllowed} size={46} />
-        <div style={{ flex: 1 }}>
-          <div style={css.instrTitle}>
-            Choose {maxAllowed} numbers
+      {/* ── IF PICKS SELECTED: show payout table ── */}
+      {hasPicks && isBetting ? (
+        <div style={{ padding: '0 12px 8px', position: 'relative' }}>
+          {/* Possible win header */}
+          <div style={{ fontSize: 15, fontWeight: 800, color: '#e2e8f0', marginBottom: 6 }}>
+            {spotCount} Possible win&nbsp;
+            <span style={{ color: '#22c55e' }}>{(maxWin * 100).toLocaleString()}</span>
           </div>
-          <div style={css.instrSub}>From 1 to 80</div>
+          {/* Payout table */}
+          <div style={{ display: 'grid', gridTemplateColumns: `auto repeat(${payoutRows.length}, 1fr)`, gap: '2px 6px', fontSize: 11, color: '#64748b', marginBottom: 8 }}>
+            <div style={{ fontWeight: 600 }}>Match</div>
+            {payoutRows.map(r => <div key={r.match} style={{ textAlign: 'center', fontWeight: 600 }}>{r.match}</div>)}
+            <div style={{ fontWeight: 600 }}>Pays</div>
+            {payoutRows.map(r => <div key={r.match} style={{ textAlign: 'center', color: '#22c55e', fontWeight: 700 }}>x{r.mult}</div>)}
+          </div>
+          {/* User's picks row */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+            {picksArr.map(n => (
+              <div key={n} style={{
+                width: 30, height: 30, borderRadius: 5,
+                background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 12, fontWeight: 700, color: '#e2e8f0',
+              }}>{n}</div>
+            ))}
+          </div>
+          {/* ? button */}
+          <button id="keno-open-rules" onClick={onOpenRules} style={{
+            position: 'absolute', top: 0, right: 12,
+            width: 24, height: 24, borderRadius: '50%',
+            background: 'rgba(34,197,94,0.15)', border: 'none',
+            color: '#22c55e', fontSize: 13, fontWeight: 800,
+            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>?</button>
         </div>
-        <button
-          id="keno-open-rules"
-          onClick={onOpenRules}
-          style={{
+      ) : (
+        /* ── DEFAULT: ball + instruction ── */
+        <div style={{ ...css.instructionRow, position: 'relative' }}>
+          <KenoBall number={picks.size || maxAllowed} size={46} />
+          <div style={{ flex: 1 }}>
+            <div style={css.instrTitle}>Choose {maxAllowed} numbers</div>
+            <div style={css.instrSub}>From 1 to 80</div>
+          </div>
+          <button id="keno-open-rules" onClick={onOpenRules} style={{
             position: 'absolute', top: 10, right: 10,
             width: 24, height: 24, borderRadius: '50%',
             background: 'rgba(34,197,94,0.15)', border: 'none',
             color: '#22c55e', fontSize: 13, fontWeight: 800,
             cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}
-        >
-          ?
-        </button>
-      </div>
+          }}>?</button>
+        </div>
+      )}
 
       {/* spot selector */}
       <div style={css.spotRow}>
@@ -629,7 +681,7 @@ function GameTabContent({
   onAdjustStake: (d: number) => void; onDoubleStake: () => void; onMaxStake: () => void;
   onQuickPick: () => void; onBet: () => void; onClear: () => void;
 }) {
-  const showGrid = isBetting || phase === 'COMPLETED' || phase === 'BETTING_CLOSED' || phase === 'IDLE' || phase === 'DRAWING';
+  const showGrid = isBetting || phase === 'COMPLETED';
 
   return (
     <div>
