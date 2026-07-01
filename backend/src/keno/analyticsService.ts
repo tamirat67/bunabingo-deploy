@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "@prisma/client";
 
 export class AnalyticsService {
   constructor(private prisma: PrismaClient) {}

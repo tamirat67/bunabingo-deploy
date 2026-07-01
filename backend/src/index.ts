@@ -47,6 +47,25 @@ async function main() {
 
   app.use('/api', apiLimiter, apiRoutes);
 
+  // ─── Fast Keno Engine & Routes ─────────────────────────────
+  let kenoDrawEngine: any;
+  try {
+    const { DrawEngine } = await import('./keno/drawEngine');
+    const { TicketService } = await import('./keno/ticketService');
+    const { AnalyticsService } = await import('./keno/analyticsService');
+    const { RealWalletAdapter } = await import('./keno/walletAdapter');
+    const { createKenoRouter } = await import('./routes/keno');
+
+    const wallet = new RealWalletAdapter();
+    kenoDrawEngine = new DrawEngine(prisma, wallet, { countdownSeconds: 4 });
+    const ticketService = new TicketService(prisma, kenoDrawEngine, wallet);
+    const analytics = new AnalyticsService(prisma);
+
+    app.use('/api/keno', createKenoRouter(kenoDrawEngine, ticketService, analytics));
+  } catch (err) {
+    logger.error('❌ Failed to initialize Keno Engine:', err);
+  }
+
   const host = '0.0.0.0';
   const port = config.server.port;
   
@@ -104,6 +123,18 @@ async function main() {
     logger.error('❌ Aviator game loop failed to start (non-fatal):', aviErr);
   }
 
+  // ─── Fast Keno Game Loop ───────────────────────────────────────────────
+  if (kenoDrawEngine) {
+    try {
+      const { initKenoSocketHandlers, getIO } = await import('./lib/socket');
+      initKenoSocketHandlers(getIO(), kenoDrawEngine);
+      kenoDrawEngine.start();
+      logger.info('✅ Keno DrawEngine started');
+    } catch (err) {
+      logger.error('❌ Failed to start Keno DrawEngine:', err);
+    }
+  }
+
   // ─── Background Jobs ─────────────────────────────────────
   startJobs(bot);
 
@@ -122,6 +153,7 @@ async function main() {
           // Core / Gaming
           { command: 'start',             description: '👋 Start the bot' },
           { command: 'playbingo',         description: '🎮 Start playing Bingo' },
+          { command: 'playkeno',          description: '🎱 Start playing Fast Keno' },
           { command: 'register',          description: '📝 Register for an account' },
           // Wallet & Finance
           { command: 'balance',           description: '💰 Check account balance' },

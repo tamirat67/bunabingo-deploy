@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "@prisma/client";
 import { randomUUID } from "crypto";
 import { DrawEngine } from "./drawEngine";
 import { WalletAdapter } from "./walletAdapter";

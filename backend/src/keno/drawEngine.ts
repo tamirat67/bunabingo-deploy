@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "@prisma/client";
 import { EventEmitter } from "events";
 import { randomUUID } from "crypto";
 import { generateServerSeed, hashSeed, drawNumbers } from "./generator";

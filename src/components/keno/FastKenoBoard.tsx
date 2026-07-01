@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { getTgInitData } from '@/lib/telegram';
+import api from '@/lib/api';
 
 /* ═══════════════════════════════════════════════════════════════
    TYPES
@@ -39,11 +39,11 @@ interface HistoryRound {
 /* ═══════════════════════════════════════════════════════════════
    CONSTANTS
 ════════════════════════════════════════════════════════════════ */
-const KENO_WS_URL = process.env.NEXT_PUBLIC_KENO_WS_URL ?? 'ws://localhost:8091';
 const MAX_PICKS = 10;
 const TOTAL_DRAW = 20;
 const DEFAULT_STAKE = 10; // ETB
 const STAKE_STEP = 1;
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.bunatechhub.net';
 
 /* ═══════════════════════════════════════════════════════════════
    HELPERS
@@ -106,7 +106,7 @@ export default function FastKenoBoard({
   const [wsConnected, setWsConnected] = useState(false);
 
   /* ── refs ── */
-  const wsRef = useRef<WebSocket | null>(null);
+  const socketRef = useRef<any | null>(null);
   const reconnTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const msgTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevDrawn = useRef<number[]>([]);
@@ -118,80 +118,75 @@ export default function FastKenoBoard({
     msgTimer.current = setTimeout(() => setMsg(null), 3500);
   }
 
-  /* ─────────── WebSocket ─────────── */
-  const connectWS = useCallback(() => {
-    try {
-      const ws = new WebSocket(KENO_WS_URL);
-      wsRef.current = ws;
-      ws.onopen = () => setWsConnected(true);
-      ws.onclose = () => {
-        setWsConnected(false);
-        reconnTimer.current = setTimeout(connectWS, 3000);
-      };
-      ws.onerror = () => ws.close();
-      ws.onmessage = (ev) => {
-        try {
-          const payload = JSON.parse(ev.data);
+  /* ─────────── Socket.io (Keno real-time) ─────────── */
+  const connectSocket = useCallback(() => {
+    // Dynamically import socket.io-client to avoid SSR issues
+    import('socket.io-client').then(({ io }) => {
+      const socket = io(BACKEND_URL, {
+        transports: ['websocket'],
+        reconnectionDelay: 3000,
+      });
+      socketRef.current = socket;
 
-          if (payload.type === 'ROUND_UPDATE') {
-            const u: RoundState = payload.data;
-            setRound(u);
-            setPhase(u.phase as RoundPhase);
+      socket.on('connect', () => setWsConnected(true));
+      socket.on('disconnect', () => setWsConnected(false));
 
-            if (u.phase === 'BETTING') {
-              setTicketPlaced(false);
-              setPicks(new Set());
-              setLiveTickets([]);
-              prevDrawn.current = [];
-              setLatestBall(null);
-              setBigBallVisible(false);
-            }
+      socket.on('keno:ROUND_UPDATE', (u: RoundState) => {
+        setRound(u);
+        setPhase(u.phase as RoundPhase);
 
-            // New ball animation
-            const newBalls = u.drawnNumbers.filter(
-              (n) => !prevDrawn.current.includes(n)
-            );
-            if (newBalls.length > 0) {
-              const newest = newBalls[newBalls.length - 1];
-              setLatestBall(newest);
-              setBigBallVisible(false);
-              setTimeout(() => setBigBallVisible(true), 30);
-              setAnimBalls(new Set(newBalls));
-              setTimeout(() => setAnimBalls(new Set()), 700);
-            }
-            prevDrawn.current = u.drawnNumbers;
+        if (u.phase === 'BETTING') {
+          setTicketPlaced(false);
+          setPicks(new Set());
+          setLiveTickets([]);
+          prevDrawn.current = [];
+          setLatestBall(null);
+          setBigBallVisible(false);
+        }
+
+        // New ball animation
+        const newBalls = u.drawnNumbers.filter(
+          (n) => !prevDrawn.current.includes(n)
+        );
+        if (newBalls.length > 0) {
+          const newest = newBalls[newBalls.length - 1];
+          setLatestBall(newest);
+          setBigBallVisible(false);
+          setTimeout(() => setBigBallVisible(true), 30);
+          setAnimBalls(new Set(newBalls));
+          setTimeout(() => setAnimBalls(new Set()), 700);
+        }
+        prevDrawn.current = u.drawnNumbers;
+      });
+
+      socket.on('keno:TICKET_UPDATE', (t: LiveTicket) => {
+        setLiveTickets((prev) => {
+          const idx = prev.findIndex((x) => x.id === t.id);
+          if (idx >= 0) {
+            const next = [...prev];
+            next[idx] = t;
+            return next;
           }
-
-          if (payload.type === 'TICKET_UPDATE') {
-            const t: LiveTicket = payload.data;
-            setLiveTickets((prev) => {
-              const idx = prev.findIndex((x) => x.id === t.id);
-              if (idx >= 0) {
-                const next = [...prev];
-                next[idx] = t;
-                return next;
-              }
-              return [t, ...prev];
-            });
-          }
-        } catch { /* ignore */ }
-      };
-    } catch { /* ignore */ }
+          return [t, ...prev];
+        });
+      });
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {
-    connectWS();
+    connectSocket();
     return () => {
-      wsRef.current?.close();
+      socketRef.current?.disconnect();
       if (reconnTimer.current) clearTimeout(reconnTimer.current);
     };
-  }, [connectWS]);
+  }, [connectSocket]);
+
 
   /* ─────────── Tab data fetch ─────────── */
   useEffect(() => {
     if (mainTab === 'STATISTICS') {
-      fetch('/api/keno/analytics/hot-cold')
-        .then((r) => r.json())
+      api.get('/keno/analytics/hot-cold')
+        .then((r) => r.data)
         .then((d) => {
           if (d.hotNumbers) setHotNumbers(d.hotNumbers);
           if (d.coldNumbers) setColdNumbers(d.coldNumbers);
@@ -199,8 +194,8 @@ export default function FastKenoBoard({
         .catch(() => {});
     }
     if (mainTab === 'HISTORY') {
-      fetch('/api/keno/analytics/history?limit=25')
-        .then((r) => r.json())
+      api.get('/keno/analytics/history?limit=25')
+        .then((r) => r.data)
         .then((d) => { if (Array.isArray(d)) setHistoryRounds(d); })
         .catch(() => {});
     }
@@ -251,29 +246,15 @@ export default function FastKenoBoard({
     if (phase !== 'BETTING') { showMsg('Betting is closed for this round.', false); return; }
     setIsPlacing(true);
     try {
-      const initData = typeof window !== 'undefined' ? getTgInitData() : '';
-      const res = await fetch('/api/keno/ticket', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(initData ? { 'x-telegram-init-data': initData } : {}),
-        },
-        body: JSON.stringify({
-          userId,
-          picks: Array.from(picks),
-          stakeCents: stake * 100,
-          idempotencyKey: `keno-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-        }),
+      const res = await api.post('/keno/ticket', {
+        picks: Array.from(picks),
+        stakeCents: stake * 100,
       });
-      const data = await res.json();
-      if (!res.ok) {
-        showMsg(data.error ?? 'Bet failed. Try again.', false);
-      } else {
-        setTicketPlaced(true);
-        showMsg(`🎱 Ticket placed! ${picks.size} picks × ${stake} ETB`, true);
-      }
-    } catch {
-      showMsg('Network error. Try again.', false);
+      setTicketPlaced(true);
+      showMsg(`🎱 Ticket placed! ${picks.size} picks × ${stake} ETB`, true);
+    } catch (err: any) {
+      const errMsg = err?.response?.data?.error ?? 'Bet failed. Try again.';
+      showMsg(errMsg, false);
     } finally {
       setIsPlacing(false);
     }

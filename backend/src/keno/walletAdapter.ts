@@ -14,9 +14,7 @@
  *  - Credit (payout) happens only after the round is settled server-side —
  *    never trust a client-reported win.
  */
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '../lib/prisma';
 
 export interface WalletAdapter {
   debit(params: {

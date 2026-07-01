@@ -378,3 +378,13 @@ export function initAviatorSocketHandlers(ioServer: SocketServer) {
   });
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+//  KENO SOCKET NAMESPACE
+// ═══════════════════════════════════════════════════════════════════════════
+
+export function initKenoSocketHandlers(ioServer: SocketServer, drawEngine: any) {
+  drawEngine.on("update", (update: any) => {
+    ioServer.emit("keno:ROUND_UPDATE", update);
+  });
+}
+

@@ -24,6 +24,7 @@ import { handleTransfer,
          handleTransferMessage }               from './commands/transfer';
 import { handleCmd }                            from './commands/cmd';
 import { handlePlayAviator }                    from './commands/aviator';
+import { handlePlayKeno }                       from './commands/keno';
 
 // ─── Deposit flow ─────────────────────────────────────────────────────────────
 import {
@@ -57,6 +58,7 @@ export function createBot(): Telegraf {
   // ─── Core ─────────────────────────────────────────────────────────────────
   bot.command('start',             ctx => handleStart(ctx));
   bot.command('playbingo',         ctx => handlePlayBingoMenu(ctx));
+  bot.command('playkeno',          ctx => handlePlayKeno(ctx));
   bot.command('register',          ctx => handleRegister(ctx));
   bot.command('vip',               ctx => handleVipRoom(ctx));
 
@@ -102,8 +104,10 @@ export function createBot(): Telegraf {
   bot.action('cmd_start',          ctx => handleStart(ctx));
   bot.action('cmd_play_bingo',     ctx => handlePlayBingoMenu(ctx));
   bot.action('cmd_play_aviator',   ctx => handlePlayAviator(ctx));
+  bot.action('cmd_play_keno',      ctx => handlePlayKeno(ctx));
   bot.action('cmd_register',       ctx => handleRegister(ctx));
   bot.action('cmd_vip',            ctx => handleVipRoom(ctx));
+
 
   // ─── Wallet ───────────────────────────────────────────────────────────────
   bot.action('cmd_balance',        ctx => handleBalance(ctx));
