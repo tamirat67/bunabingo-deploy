@@ -32,11 +32,15 @@ export function createKenoRouter(
   router.get("/round/current", (req, res) => {
     const round = drawEngine.getCurrentRound();
     if (!round) return res.json({ status: "NO_ACTIVE_ROUND" });
+    const liveState = drawEngine.getLiveState();
     res.json({
       roundCode: round.roundCode,
+      phase: round.status,
       status: round.status,
       serverSeedHash: round.serverSeedHash,
       bettingClosesAt: round.bettingClosesAt,
+      drawnNumbers: liveState?.drawnNumbers ?? [],
+      secondsRemaining: liveState?.secondsRemaining ?? 0,
     });
   });
 

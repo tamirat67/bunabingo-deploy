@@ -67,6 +67,24 @@ export class TicketService {
         },
       });
 
+      // Fetch user to get username for broadcast
+      const user = await this.prisma.user.findUnique({ where: { id: input.userId } });
+      const username = user?.telegramUsername || user?.firstName || 'User';
+
+      // Broadcast live ticket to all connected clients
+      try {
+        const { getIO } = await import("../lib/socket");
+        getIO().emit("keno:TICKET_UPDATE", {
+          id: ticket.id,
+          username,
+          picks: ticket.numbers,
+          stakeCents: ticket.stakeCents,
+          status: ticket.status
+        });
+      } catch (err) {
+        console.error("[TicketService] Failed to broadcast ticket update", err);
+      }
+
       return { ticket, newBalanceCents: debitResult.newBalanceCents };
     } catch (dbErr) {
       // The debit already succeeded but the ticket insert failed.

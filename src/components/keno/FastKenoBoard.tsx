@@ -182,6 +182,14 @@ export default function FastKenoBoard({
 
   useEffect(() => {
     connectSocket();
+    // Fetch current round immediately on mount (before socket update arrives)
+    api.get('/keno/round/current').then(r => {
+      if (r.data?.roundCode) {
+        const phase = (r.data.phase ?? r.data.status ?? 'BETTING') as RoundPhase;
+        setRound({ ...r.data, phase, drawnNumbers: r.data.drawnNumbers ?? [], secondsRemaining: r.data.secondsRemaining ?? 0 });
+        setPhase(phase);
+      }
+    }).catch(() => {});
     return () => {
       socketRef.current?.disconnect();
       if (reconnTimer.current) clearTimeout(reconnTimer.current);
@@ -621,7 +629,7 @@ function GameTabContent({
   onAdjustStake: (d: number) => void; onDoubleStake: () => void; onMaxStake: () => void;
   onQuickPick: () => void; onBet: () => void; onClear: () => void;
 }) {
-  const showGrid = isBetting || phase === 'COMPLETED' || phase === 'BETTING_CLOSED';
+  const showGrid = isBetting || phase === 'COMPLETED' || phase === 'BETTING_CLOSED' || phase === 'IDLE' || phase === 'DRAWING';
 
   return (
     <div>

@@ -45,6 +45,7 @@ export class DrawEngine extends EventEmitter {
   private current: ActiveRound | null = null;
   private tickHandle: NodeJS.Timeout | null = null;
   private countdownSeconds: number;
+  private _lastDrawn: number[] = [];
 
   constructor(private prisma: PrismaClient, private wallet: WalletAdapter, opts?: { countdownSeconds?: number }) {
     super();
@@ -63,6 +64,15 @@ export class DrawEngine extends EventEmitter {
 
   getCurrentRound() {
     return this.current;
+  }
+
+  getLiveState(): { drawnNumbers: number[]; secondsRemaining: number } | null {
+    if (!this.current) return null;
+    const secondsLeft = Math.max(0, Math.ceil((this.current.bettingClosesAt.getTime() - Date.now()) / 1000));
+    return {
+      drawnNumbers: this._lastDrawn ?? [],
+      secondsRemaining: this.current.status === 'BETTING' ? secondsLeft : 0,
+    };
   }
 
   private async tick() {
@@ -131,6 +141,7 @@ export class DrawEngine extends EventEmitter {
     });
 
     console.log(`[DrawEngine] 🎲 Round #${round.id} drawing: [${drawn.join(", ")}]`);
+    this._lastDrawn = drawn;
     this.emitUpdate("DRAWING", 0, drawn);
 
     await this.settleTickets(round.id, drawn);
