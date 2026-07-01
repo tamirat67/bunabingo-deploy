@@ -77,9 +77,10 @@ export default function FastKenoBoard({
   const [phase, setPhase] = useState<RoundPhase>('IDLE');
   const [round, setRound] = useState<RoundState | null>(null);
 
-  /* ── splash ── */
+  /* ── splash & balance ── */
   const [showSplash, setShowSplash] = useState(true);
   const [showRules, setShowRules] = useState(false);
+  const [localBalance, setLocalBalance] = useState(balance);
 
   /* ── picks & betting ── */
   const [picks, setPicks] = useState<Set<number>>(new Set());
@@ -142,6 +143,12 @@ export default function FastKenoBoard({
           prevDrawn.current = [];
           setLatestBall(null);
           setBigBallVisible(false);
+          // Fetch latest balance from server when betting opens (in case of wins from previous round)
+          api.get('/me').then(res => {
+            if (res.data?.wallet?.balance) {
+              setLocalBalance(Number(res.data.wallet.balance));
+            }
+          }).catch(() => {});
         }
 
         // New ball animation
@@ -250,6 +257,9 @@ export default function FastKenoBoard({
         picks: Array.from(picks),
         stakeCents: stake * 100,
       });
+      if (res.data?.newBalanceCents !== undefined) {
+        setLocalBalance(res.data.newBalanceCents / 100);
+      }
       setTicketPlaced(true);
       showMsg(`🎱 Ticket placed! ${picks.size} picks × ${stake} ETB`, true);
     } catch (err: any) {
@@ -349,7 +359,7 @@ export default function FastKenoBoard({
         {/* Balance pill */}
         <div style={css.balancePill}>
           <span style={css.balanceDot} />
-          <span style={css.balanceAmt}>{balance}</span>
+          <span style={css.balanceAmt}>{localBalance}</span>
           <span style={css.balanceCur}>&nbsp;ETB</span>
         </div>
 

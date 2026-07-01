@@ -67,7 +67,7 @@ export class TicketService {
         },
       });
 
-      return ticket;
+      return { ticket, newBalanceCents: debitResult.newBalanceCents };
     } catch (dbErr) {
       // The debit already succeeded but the ticket insert failed.
       // Refund immediately rather than leaving the player short.
