@@ -743,15 +743,19 @@ function BettingArea({
               <div style={{ position: 'absolute', width: 300, height: 300, border: '1px solid rgba(255,255,255,0.03)', borderRadius: '50%', left: '20%', top: '-80%' }} />
             </div>
             
-            <div style={{ position: 'relative', width: 70, height: 60, marginRight: 6 }}>
-              <div style={{ position: 'absolute', top: -14, left: -4, transform: 'scale(0.55)', zIndex: 1 }}>
-                <KenoBall number={80} size={44} />
+            {/* 3-ball cluster: 80 (tiny, top-left), 10 (medium, top-right), 1 (large, front) */}
+            <div style={{ position: 'relative', width: 80, height: 72, flexShrink: 0 }}>
+              {/* Ball 80 — smallest, back-left */}
+              <div style={{ position: 'absolute', top: 0, left: 0, zIndex: 1 }}>
+                <KenoBall number={80} size={30} />
               </div>
-              <div style={{ position: 'absolute', top: -20, left: 16, transform: 'scale(0.75)', zIndex: 2 }}>
-                <KenoBall number={10} size={44} />
+              {/* Ball 10 — medium, top-right */}
+              <div style={{ position: 'absolute', top: 0, left: 22, zIndex: 2 }}>
+                <KenoBall number={10} size={38} />
               </div>
-              <div style={{ position: 'absolute', top: 4, left: -6, zIndex: 3 }}>
-                <KenoBall number={picks.size || 1} size={54} />
+              {/* Ball 1/picks — large, front-center */}
+              <div style={{ position: 'absolute', top: 22, left: 2, zIndex: 3 }}>
+                <KenoBall number={picks.size || 1} size={52} />
               </div>
             </div>
 
@@ -1396,9 +1400,11 @@ const css: Record<string, React.CSSProperties> = {
   instructionRow: {
     display: 'flex', alignItems: 'center', gap: 14, marginBottom: 10,
     padding: '18px 16px',
+    paddingLeft: 12,
     backgroundColor: '#15231c',
     backgroundImage: 'radial-gradient(circle at 10% 50%, rgba(34,197,94,0.05) 0%, transparent 40%), radial-gradient(circle at 50% 120%, rgba(34,197,94,0.05) 0%, transparent 50%)',
     border: '1px solid rgba(255,255,255,0.02)', borderRadius: 12,
+    overflow: 'visible',
   },
   instrTitle: { fontSize: 20, fontWeight: 700, color: '#f8fafc', lineHeight: 1.2 },
   instrSub: { fontSize: 14, color: '#4ade80', fontWeight: 600, marginTop: 4 },
