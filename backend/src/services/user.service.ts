@@ -437,11 +437,12 @@ export async function updateUserPhone(
 
   // ── One-time 100 ETB welcome bonus for the new player ───────────────────────
   let welcomeBonusGranted = false;
-  try {
-    welcomeBonusGranted = await grantWelcomeBonus(user.id);
-  } catch (err) {
-    logger.error('[WelcomeBonus] Failed to grant welcome bonus:', err);
-  }
+  // DISABLED: New comers welcome bonus is disabled
+  // try {
+  //   welcomeBonusGranted = await grantWelcomeBonus(user.id);
+  // } catch (err) {
+  //   logger.error('[WelcomeBonus] Failed to grant welcome bonus:', err);
+  // }
 
   return { user, referrer, welcomeBonusGranted };
 }
