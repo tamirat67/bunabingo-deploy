@@ -248,7 +248,7 @@ export class DrawEngine extends EventEmitter {
             ticketId: ticket.id,
             userId: ticket.userId,
             action: "PAYOUT_CREDITED",
-            amountCents: ticket.payoutCents,
+            amountCents: payoutCents,
             detail: { hits: ticket.hits, multiplier: ticket.multiplier },
           },
         });
