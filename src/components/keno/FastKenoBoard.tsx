@@ -704,24 +704,7 @@ function BettingArea({
 
   return (
     <div style={css.bettingArea}>
-      {/* countdown */}
-      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12, position: 'relative' }}>
-        <div style={{
-          position: 'absolute', top: 0, left: '50%', transform: 'translate(-50%, -50%)',
-          width: '60%', height: 1, background: '#2dd4bf',
-          boxShadow: '0 0 20px 5px #2dd4bf, 0 0 40px 10px rgba(45,212,191,0.5)',
-          opacity: 0.8,
-          zIndex: 0,
-        }} />
-        <div style={{
-          ...css.clock,
-          color: urgent ? '#ef4444' : '#ffffff',
-          textShadow: urgent ? '0 0 8px rgba(239,68,68,0.5)' : 'none',
-          zIndex: 1,
-        }}>
-          {isBetting ? fmtClock(timeLeft) : phase === 'IDLE' ? '00:00' : '—'}
-        </div>
-      </div>
+      <div style={{ minHeight: 12, width: '100%' }}></div>
 
       <div style={{ minHeight: 125, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
         {hasPicks && isBetting ? (
