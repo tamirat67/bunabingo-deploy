@@ -42,7 +42,13 @@ body {
   overflow-x: hidden;
 }
 
-/* ─── Typography ─── */
+/* Keno full-screen game — no bottom padding, natural document scroll */
+body.keno-page {
+  padding-bottom: 0 !important;
+  background-color: #0c1a11;
+}
+
+
 h1, h2, h3 {
   font-weight: 900;
   text-transform: uppercase;

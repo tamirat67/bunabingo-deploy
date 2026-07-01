@@ -20,6 +20,20 @@ export default function KenoPage() {
   const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Remove body padding-bottom (added for global navbar) since navbar is hidden on keno page
+  useEffect(() => {
+    const prevPadding = document.body.style.paddingBottom;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.paddingBottom = '0px';
+    document.body.style.overflow = 'auto';
+    document.body.classList.add('keno-page');
+    return () => {
+      document.body.style.paddingBottom = prevPadding;
+      document.body.style.overflow = prevOverflow;
+      document.body.classList.remove('keno-page');
+    };
+  }, []);
+
   useEffect(() => {
     // 1. Try reading the cached user from sessionStorage first.
     //    The lobby page always writes 'lobby_user' when it loads.
@@ -33,7 +47,7 @@ export default function KenoPage() {
         if (parsed?.id) {
           setUser(parsed);
           setLoading(false);
-          return; // skip the API call entirely
+          return; // skip the API call — FastKenoBoard re-fetches fresh balance on mount
         }
       }
     } catch (_) {}
@@ -106,7 +120,7 @@ export default function KenoPage() {
   return (
     <FastKenoBoard
       userId={user.id}
-      balance={typeof balanceETB === 'number' ? Math.floor(balanceETB) : 0}
+      balance={typeof balanceETB === 'number' ? Number(balanceETB) : 0}
     />
   );
 }

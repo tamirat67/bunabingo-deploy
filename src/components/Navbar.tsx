@@ -46,8 +46,12 @@ export default function Navbar() {
 
   if (!mounted) return null;
 
-  // Hide navbar on management pages
-  if (pathname?.startsWith('/admin') || pathname?.startsWith('/agent')) {
+  // Hide navbar on management and full-screen game pages
+  if (
+    pathname?.startsWith('/admin') ||
+    pathname?.startsWith('/agent') ||
+    pathname?.startsWith('/keno')
+  ) {
     return null;
   }
 

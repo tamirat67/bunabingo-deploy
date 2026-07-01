@@ -242,6 +242,12 @@ export default function FastKenoBoard({
         currentRoundCode.current = r.data.roundCode;
       }
     }).catch(() => {});
+    // Fetch REAL balance on mount — sessionStorage balance may be stale
+    api.get('/me').then(res => {
+      if (res.data?.wallet?.balance != null) {
+        setLocalBalance(Number(res.data.wallet.balance));
+      }
+    }).catch(() => {});
     return () => {
       socketRef.current?.disconnect();
       if (reconnTimer.current) clearTimeout(reconnTimer.current);
@@ -425,12 +431,34 @@ export default function FastKenoBoard({
 
           {/* Balance pill */}
           <div style={css.balancePill}>
-            <span style={css.balanceAmt}>{localBalance}</span>
+            <span style={css.balanceAmt}>{Number(localBalance).toFixed(2)}</span>
             <span style={css.balanceCur}>&nbsp;ETB</span>
           </div>
         </div>
 
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {/* TIMER — always visible in header */}
+          {isBetting && (
+            <div style={{
+              fontFamily: 'monospace', fontSize: 14, fontWeight: 800,
+              letterSpacing: 2, color: timeLeft <= 5 ? '#ef4444' : '#2dd4bf',
+              textShadow: timeLeft <= 5 ? '0 0 8px rgba(239,68,68,0.5)' : '0 0 8px rgba(45,212,191,0.4)',
+              background: 'rgba(0,0,0,0.25)', padding: '3px 8px',
+              borderRadius: 8, border: '1px solid rgba(45,212,191,0.2)',
+            }}>
+              {fmtClock(timeLeft)}
+            </div>
+          )}
+          {isDrawing && (
+            <div style={{
+              fontSize: 11, fontWeight: 700, color: '#facc15',
+              background: 'rgba(0,0,0,0.25)', padding: '3px 8px',
+              borderRadius: 8, border: '1px solid rgba(250,204,21,0.3)',
+              animation: 'pulse 1s infinite',
+            }}>
+              🎱 Drawing…
+            </div>
+          )}
           {/* Round ID */}
           <div style={css.roundId}>
             ID: {round?.roundCode ?? '——'}
@@ -794,9 +822,23 @@ function DrawingArea({
   animBalls: Set<number>; myPicks: number[];
 }) {
   return (
-    <div style={css.drawingArea}>
+    <div style={{ ...css.drawingArea, position: 'relative', minHeight: 180, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+      
+      {/* progress counter top right */}
+      <div style={{ position: 'absolute', top: 0, right: 10, fontSize: 11, color: '#94a3b8', fontWeight: 700, zIndex: 10, letterSpacing: 1 }}>
+        {drawn.length} / 20
+      </div>
+
+      {/* radar concentric rings behind big ball */}
+      <div style={{
+        position: 'absolute', top: '25%', left: '50%', transform: 'translate(-50%, -50%)',
+        width: 300, height: 300, borderRadius: '50%',
+        background: 'repeating-radial-gradient(circle, transparent 0, transparent 28px, rgba(56,189,248,0.06) 29px, rgba(56,189,248,0.06) 30px)',
+        zIndex: 0, pointerEvents: 'none'
+      }} />
+
       {/* large animated ball */}
-      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20, zIndex: 1 }}>
         <div style={{
           ...css.bigBallWrap,
           opacity: bigBallVisible ? 1 : 0,
@@ -1314,9 +1356,8 @@ const ROOT: React.CSSProperties = {
   margin: '0 auto',
   position: 'relative',
   overflowX: 'hidden',
-  overflowY: 'auto',
-  WebkitOverflowScrolling: 'touch',
-  overscrollBehaviorY: 'contain',
+  // No overflowY here — let the document/body scroll naturally
+  paddingBottom: 24,
 };
 
 const css: Record<string, React.CSSProperties> = {
