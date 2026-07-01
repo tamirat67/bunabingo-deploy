@@ -696,7 +696,7 @@ function BettingArea({
       <div style={{ minHeight: 125, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
         {hasPicks && isBetting ? (
           /* ── PAYOUT & PICKS UI (replaces card) ── */
-          <div style={{ position: 'relative', width: '100%', padding: '0 4px' }}>
+          <div style={{ position: 'relative', width: '100%' }}>
             {/* Possible win header */}
             <div style={{ fontSize: 17, color: '#9ca3af', marginBottom: 14, display: 'flex', alignItems: 'center' }}>
               <span style={{ fontWeight: 800, color: '#fff', fontSize: 20, marginRight: 6 }}>{spotCount}</span>
@@ -1392,7 +1392,7 @@ const css: Record<string, React.CSSProperties> = {
   },
 
   /* ── betting area ── */
-  bettingArea: { padding: '8px 12px 4px', flexShrink: 0, zIndex: 1 },
+  bettingArea: { padding: '8px 6px 4px', flexShrink: 0, zIndex: 1 },
   clock: {
     fontFamily: 'monospace, sans-serif',
     fontSize: 16, fontWeight: 700, letterSpacing: 4,
