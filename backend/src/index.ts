@@ -57,7 +57,7 @@ async function main() {
     const { createKenoRouter } = await import('./routes/keno');
 
     const wallet = new RealWalletAdapter();
-    kenoDrawEngine = new DrawEngine(prisma, wallet, { countdownSeconds: 4 });
+    kenoDrawEngine = new DrawEngine(prisma, wallet, { countdownSeconds: 60 });
     const ticketService = new TicketService(prisma, kenoDrawEngine, wallet);
     const analytics = new AnalyticsService(prisma);
 
