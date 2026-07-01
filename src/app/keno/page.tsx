@@ -21,6 +21,25 @@ export default function KenoPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // 1. Try reading the cached user from sessionStorage first.
+    //    The lobby page always writes 'lobby_user' when it loads.
+    //    This makes navigation from lobby → keno instant and reliable
+    //    because Telegram initData is only injected on the very first
+    //    page load and is NOT re-sent on client-side route changes.
+    try {
+      const cached = sessionStorage.getItem('lobby_user');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed?.id) {
+          setUser(parsed);
+          setLoading(false);
+          return; // skip the API call entirely
+        }
+      }
+    } catch (_) {}
+
+    // 2. Fallback: call the API (works when the user deep-links directly
+    //    to /keno or opens it fresh from the Telegram bot).
     getMe()
       .then((u) => { if (u?.id) setUser(u); })
       .finally(() => setLoading(false));
