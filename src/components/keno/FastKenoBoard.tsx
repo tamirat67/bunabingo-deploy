@@ -531,11 +531,17 @@ function BettingArea({
   return (
     <div style={css.bettingArea}>
       {/* countdown */}
-      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12, position: 'relative' }}>
+        <div style={{
+          position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+          width: 120, height: 20, background: 'radial-gradient(ellipse, rgba(45,212,191,0.2) 0%, transparent 70%)',
+          zIndex: 0,
+        }} />
         <div style={{
           ...css.clock,
-          color: urgent ? '#ef4444' : '#22c55e',
-          borderColor: urgent ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.15)',
+          color: urgent ? '#ef4444' : '#ccfbf1',
+          textShadow: urgent ? '0 0 8px rgba(239,68,68,0.5)' : '0 0 8px rgba(45,212,191,0.5)',
+          zIndex: 1,
         }}>
           {isBetting ? fmtClock(timeLeft) : phase === 'IDLE' ? '00:00' : '—'}
         </div>
@@ -578,27 +584,31 @@ function BettingArea({
         </div>
       ) : (
         /* ── DEFAULT: ball + instruction ── */
-        <div style={{ ...css.instructionRow, position: 'relative' }}>
-          <div style={{ position: 'relative', width: 60, height: 50, marginRight: 8 }}>
-            <div style={{ position: 'absolute', top: -4, left: 2, transform: 'scale(0.6)' }}>
-              <KenoBall number={80} size={40} />
+        <div style={{ ...css.instructionRow, position: 'relative', overflow: 'hidden' }}>
+          {/* Decorative faint circles matching the image */}
+          <div style={{ position: 'absolute', width: 200, height: 200, border: '1px solid rgba(255,255,255,0.03)', borderRadius: '50%', left: '30%', top: '-50%' }} />
+          <div style={{ position: 'absolute', width: 300, height: 300, border: '1px solid rgba(255,255,255,0.03)', borderRadius: '50%', left: '20%', top: '-80%' }} />
+          
+          <div style={{ position: 'relative', width: 70, height: 60, marginRight: 6 }}>
+            <div style={{ position: 'absolute', top: -14, left: -4, transform: 'scale(0.55)', zIndex: 1 }}>
+              <KenoBall number={80} size={44} />
             </div>
-            <div style={{ position: 'absolute', top: -10, left: 24, transform: 'scale(0.8)' }}>
-              <KenoBall number={10} size={40} />
+            <div style={{ position: 'absolute', top: -20, left: 16, transform: 'scale(0.75)', zIndex: 2 }}>
+              <KenoBall number={10} size={44} />
             </div>
-            <div style={{ position: 'absolute', top: 10, left: -2, zIndex: 2 }}>
-              <KenoBall number={picks.size || maxAllowed} size={46} />
+            <div style={{ position: 'absolute', top: 4, left: -6, zIndex: 3 }}>
+              <KenoBall number={picks.size || 1} size={54} />
             </div>
           </div>
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, zIndex: 4 }}>
             <div style={css.instrTitle}>Choose {maxAllowed} numbers</div>
             <div style={css.instrSub}>From 1 to 80</div>
           </div>
           <button id="keno-open-rules" onClick={onOpenRules} style={{
-            position: 'absolute', top: 10, right: 10,
-            width: 24, height: 24, borderRadius: '50%',
-            background: 'rgba(34,197,94,0.15)', border: 'none',
-            color: '#22c55e', fontSize: 13, fontWeight: 800,
+            position: 'absolute', top: 12, right: 12, zIndex: 4,
+            width: 26, height: 26, borderRadius: '50%',
+            background: 'rgba(255,255,255,0.04)', border: 'none',
+            color: '#4ade80', fontSize: 14, fontWeight: 800,
             cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>?</button>
         </div>
@@ -1340,20 +1350,20 @@ const css: Record<string, React.CSSProperties> = {
   /* ── betting area ── */
   bettingArea: { padding: '8px 12px 4px', flexShrink: 0, zIndex: 1 },
   clock: {
-    fontSize: 22, fontWeight: 800, letterSpacing: 3,
+    fontFamily: 'monospace, sans-serif',
+    fontSize: 16, fontWeight: 700, letterSpacing: 4,
     fontVariantNumeric: 'tabular-nums',
-    background: 'rgba(0,0,0,0.35)',
-    border: '1px solid',
-    padding: '4px 20px', borderRadius: 8,
+    padding: '2px 0',
   },
   instructionRow: {
     display: 'flex', alignItems: 'center', gap: 14, marginBottom: 10,
-    padding: '10px 12px',
-    background: 'rgba(255,255,255,0.02)',
-    border: '1px solid rgba(255,255,255,0.04)', borderRadius: 12,
+    padding: '18px 16px',
+    backgroundColor: '#15231c',
+    backgroundImage: 'radial-gradient(circle at 10% 50%, rgba(34,197,94,0.05) 0%, transparent 40%), radial-gradient(circle at 50% 120%, rgba(34,197,94,0.05) 0%, transparent 50%)',
+    border: '1px solid rgba(255,255,255,0.02)', borderRadius: 12,
   },
-  instrTitle: { fontSize: 17, fontWeight: 800, color: '#e2e8f0', lineHeight: 1.2 },
-  instrSub: { fontSize: 13, color: '#22c55e', fontWeight: 600, marginTop: 2 },
+  instrTitle: { fontSize: 20, fontWeight: 700, color: '#f8fafc', lineHeight: 1.2 },
+  instrSub: { fontSize: 14, color: '#4ade80', fontWeight: 600, marginTop: 4 },
   spotRow: {
     display: 'flex', gap: 3, overflowX: 'auto', paddingBottom: 2,
   },
