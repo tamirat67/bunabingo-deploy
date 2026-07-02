@@ -10,6 +10,7 @@ import Unity, { UnityContext } from 'react-unity-webgl';
 import { useSocket } from '../../../context/SocketContext';
 import { getMe } from '../../../lib/api';
 import { initTelegram } from '../../../lib/telegram';
+import FunModeBoard from '../../../components/aviator/FunModeBoard';
 
 // unityContext is created inside the component via useState (lazy init).
 // See AviatorPage below — this prevents the Unity onwheel null crash on re-mount.
@@ -548,6 +549,7 @@ export default function AviatorPage() {
   const [toast, setToast]           = useState<{ msg: string; ok: boolean } | null>(null);
   const toastRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
+  const [isFunMode, setIsFunMode]         = useState(true);
   const [htpLang, setHtpLang]             = useState<'en' | 'am'>('en');
 
   const showToast = useCallback((msg: string, ok: boolean) => {
@@ -813,6 +815,20 @@ export default function AviatorPage() {
             borderRadius: '20px', padding: '4px 12px',
             color: '#2ecc71', fontWeight: '900', fontSize: '13px',
           }}>{balance.toFixed(2)} ETB</div>
+          {/* Fun Mode Toggle */}
+          <button
+            onClick={() => setIsFunMode(!isFunMode)}
+            style={{
+              background: isFunMode ? 'linear-gradient(135deg, #e50b1e, #ff6b35)' : 'rgba(255,255,255,0.07)',
+              border: isFunMode ? 'none' : '1px solid rgba(255,255,255,0.1)',
+              borderRadius: '6px', padding: '4px 10px',
+              color: isFunMode ? '#fff' : 'rgba(255,255,255,0.6)',
+              fontSize: '11px', fontWeight: '900', cursor: 'pointer',
+              boxShadow: isFunMode ? '0 2px 10px rgba(229,11,30,0.4)' : 'none',
+            }}
+          >
+            {isFunMode ? '🎮 Fun Mode' : '✈️ 3D Mode'}
+          </button>
           {/* How to Play button */}
           <button
             onClick={() => setShowHowToPlay(true)}
@@ -842,14 +858,21 @@ export default function AviatorPage() {
         }
       </div>
 
-      {/* ── Unity Game Canvas ── */}
+      {/* ── Game Area ── */}
       <div style={{
         position: 'relative', background: '#000',
         flexShrink: 0, height: '42vw', minHeight: '220px', maxHeight: '340px',
         overflow: 'hidden',
+        display: 'flex', alignItems: 'center', justifyContent: 'center'
       }}>
+        {isFunMode && (
+          <div style={{ position: 'absolute', inset: 0, zIndex: 20 }}>
+            <FunModeBoard multiplier={mult} />
+          </div>
+        )}
 
-        {/* Loading overlay always on top until isLoaded */}
+        <div style={{ display: isFunMode ? 'none' : 'block', width: '100%', height: '100%' }}>
+          {/* Loading overlay always on top until isLoaded */}
         {!isLoaded && (
           <div style={{
             position: 'absolute', inset: 0, background: '#0d0d1c',
@@ -885,7 +908,7 @@ export default function AviatorPage() {
             style={{ width: '100%', height: '100%', display: 'block' }}
           />
         )}
-
+        </div>
 
       </div>
 
