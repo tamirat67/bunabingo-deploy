@@ -884,8 +884,8 @@ export default function AviatorPage() {
         letterSpacing: '2px',
         textTransform: 'uppercase',
         flexShrink: 0,
-        borderBottomLeftRadius: '18px',
-        borderBottomRightRadius: '18px',
+        borderTopLeftRadius: '18px',
+        borderTopRightRadius: '18px',
       }}>
         Fun Mode
       </div>
