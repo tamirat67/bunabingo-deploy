@@ -799,16 +799,18 @@ export default function AviatorPage() {
         padding: '8px 14px', background: '#141428', borderBottom: '1px solid rgba(255,255,255,0.07)',
         flexShrink: 0,
       }}>
-        {/* Aviator logo text */}
-        <div style={{ fontWeight: '900', fontSize: '20px', letterSpacing: '-1px' }}>
-          <span style={{ color: '#ff3333', fontStyle: 'italic', fontFamily: 'Georgia, serif' }}>Aviator</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <button onClick={() => router.push('/')} style={{
-            background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: '6px', padding: '4px 10px', color: 'rgba(255,255,255,0.6)',
-            fontSize: '11px', fontWeight: '700', cursor: 'pointer',
-          }}>← Back</button>
+        {/* Back Button */}
+        <button onClick={() => router.push('/')} style={{
+          background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: '6px', padding: '4px 10px', color: 'rgba(255,255,255,0.6)',
+          fontSize: '11px', fontWeight: '700', cursor: 'pointer',
+        }}>← Back</button>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {/* Aviator logo text */}
+          <div style={{ fontWeight: '900', fontSize: '20px', letterSpacing: '-1px' }}>
+            <span style={{ color: '#ff3333', fontStyle: 'italic', fontFamily: 'Georgia, serif' }}>Aviator</span>
+          </div>
           <div style={{
             background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)',
             borderRadius: '20px', padding: '4px 12px',
