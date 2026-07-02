@@ -37,6 +37,7 @@ interface AviatorGameState {
 interface ActiveBet {
   betId: string;
   userId: string;
+  slot: 'f' | 's';
   betAmount: number;
   targetMultiplier: number | null; // auto-cashout, null = manual
   cashedOut: boolean;
@@ -217,7 +218,7 @@ async function runCrash() {
   try {
     let totalBets = 0;
     let totalWins = 0;
-    for (const bet of gameState.bets.values()) {
+    for (const [betKey, bet] of gameState.bets.entries()) {
       totalBets += bet.betAmount;
       if (bet.cashedOut && bet.cashoutMultiplier) {
         totalWins += bet.betAmount * bet.cashoutMultiplier;
@@ -373,22 +374,31 @@ export async function aviatorEnterRoom(socketId: string, userId: string, io: any
     const user   = await prisma.user.findUnique({ where: { id: dbUserId }, select: { firstName: true, username: true, telegramUsername: true } });
 
     const balance = wallet ? parseFloat(new Decimal(wallet.balance.toString()).add(new Decimal(wallet.bonusBalance.toString())).toFixed(2)) : 0;
-    const existingBet = gameState.bets.get(userId);
+    
+    const betF = gameState.bets.get(`${userId}:f`);
+    const betS = gameState.bets.get(`${userId}:s`);
 
     socket.emit('myInfo', {
       balance,
       userType:  false,
       img:       '',
       userName:  user?.username ?? user?.telegramUsername ?? user?.firstName ?? userId,
-      f: existingBet && !existingBet.cashedOut ? {
-        auto: existingBet.targetMultiplier !== null,
+      f: betF && !betF.cashedOut ? {
+        auto: betF.targetMultiplier !== null,
         betted: true,
         cashouted: false,
-        betAmount: existingBet.betAmount,
+        betAmount: betF.betAmount,
         cashAmount: 0,
-        target: existingBet.targetMultiplier ?? 0,
+        target: betF.targetMultiplier ?? 0,
       } : { auto: false, betted: false, cashouted: false, betAmount: 20, cashAmount: 0, target: 2 },
-      s: { auto: false, betted: false, cashouted: false, betAmount: 20, cashAmount: 0, target: 2 },
+      s: betS && !betS.cashedOut ? {
+        auto: betS.targetMultiplier !== null,
+        betted: true,
+        cashouted: false,
+        betAmount: betS.betAmount,
+        cashAmount: 0,
+        target: betS.targetMultiplier ?? 0,
+      } : { auto: false, betted: false, cashouted: false, betAmount: 20, cashAmount: 0, target: 2 },
     });
 
     socket.emit('myBetState', {
@@ -396,8 +406,8 @@ export async function aviatorEnterRoom(socketId: string, userId: string, io: any
       userType:  false,
       img:       '',
       userName:  user?.username ?? user?.telegramUsername ?? user?.firstName ?? userId,
-      f: { auto: false, betted: existingBet && !existingBet.cashedOut, cashouted: false, betAmount: 20, cashAmount: 0, target: 2 },
-      s: { auto: false, betted: false, cashouted: false, betAmount: 20, cashAmount: 0, target: 2 },
+      f: { auto: false, betted: !!betF && !betF.cashedOut, cashouted: false, betAmount: 20, cashAmount: 0, target: 2 },
+      s: { auto: false, betted: !!betS && !betS.cashedOut, cashouted: false, betAmount: 20, cashAmount: 0, target: 2 },
     });
 
     // Send recent bet history
@@ -443,13 +453,9 @@ export async function aviatorPlaceBet(
     return { success: false, error: 'No active game' };
   }
 
-  // Only one active bet per user (simplified: first bet only)
-  if (type === 's') {
-    return { success: false, error: 'Second bet slot coming soon' };
-  }
-
-  if (gameState.bets.has(userId)) {
-    return { success: false, error: 'You already have an active bet' };
+  const betKey = `${userId}:${type}`;
+  if (gameState.bets.has(betKey)) {
+    return { success: false, error: 'You already have an active bet in this slot' };
   }
 
   if (betAmount < 5 || betAmount > 5000) {
@@ -475,12 +481,13 @@ export async function aviatorPlaceBet(
     const activeBet: ActiveBet = {
       betId:             bet.id,
       userId,
+      slot:              type,
       betAmount,
       targetMultiplier:  target > 1 ? target : null,
       cashedOut:         false,
       cashoutMultiplier: null,
     };
-    gameState.bets.set(userId, activeBet);
+    gameState.bets.set(betKey, activeBet);
 
     // Broadcast updated betted users to room
     const bettedUsersArr = Array.from(gameState.bets.values()).map(b => ({
@@ -518,7 +525,8 @@ export async function aviatorCashOut(
     return { success: false, error: 'You can only cash out while the plane is flying' };
   }
 
-  const bet = gameState.bets.get(userId);
+  const betKey = `${userId}:${index}`;
+  const bet = gameState.bets.get(betKey);
   if (!bet || bet.cashedOut) {
     return { success: false, error: 'No active bet to cash out' };
   }
