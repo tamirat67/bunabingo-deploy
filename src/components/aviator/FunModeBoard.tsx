@@ -75,8 +75,6 @@ export default function FunModeBoard({ multiplier = 1.0 }: FunModeBoardProps) {
       >
         <div
           style={{
-            fontSize: '14vw',
-            maxFontSize: '120px', // Fallback for very large screens (using clamp is better below)
             fontSize: 'clamp(60px, 14vw, 130px)',
             fontWeight: '900',
             color: '#FFFFFF',
