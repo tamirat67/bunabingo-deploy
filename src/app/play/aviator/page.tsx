@@ -10,7 +10,6 @@ import Unity, { UnityContext } from 'react-unity-webgl';
 import { useSocket } from '../../../context/SocketContext';
 import { getMe } from '../../../lib/api';
 import { initTelegram } from '../../../lib/telegram';
-import FunModeBoard from '../../../components/aviator/FunModeBoard';
 
 // unityContext is created inside the component via useState (lazy init).
 // See AviatorPage below — this prevents the Unity onwheel null crash on re-mount.
@@ -843,9 +842,6 @@ export default function AviatorPage() {
         }
       </div>
 
-      {/* ── Fun Mode Board ── */}
-      <FunModeBoard multiplier={mult} />
-
       {/* ── Unity Game Canvas ── */}
       <div style={{
         position: 'relative', background: '#000',
@@ -890,6 +886,48 @@ export default function AviatorPage() {
           />
         )}
 
+        {/* ── Fun Mode overlay: FUN MODE header + live multiplier text ── */}
+        {isLoaded && (
+          <>
+            {/* Golden header bar */}
+            <div style={{
+              position: 'absolute', top: 0, left: 0, right: 0,
+              backgroundColor: '#C68B1A',
+              padding: '4px 0',
+              textAlign: 'center',
+              fontWeight: '900',
+              fontSize: '12px',
+              color: '#FFFFFF',
+              letterSpacing: '2px',
+              textTransform: 'uppercase',
+              zIndex: 20,
+              pointerEvents: 'none',
+            }}>
+              Fun Mode
+            </div>
+
+            {/* Live multiplier text — centered bottom half */}
+            <div style={{
+              position: 'absolute',
+              bottom: '30%',
+              left: 0, right: 0,
+              textAlign: 'center',
+              zIndex: 20,
+              pointerEvents: 'none',
+            }}>
+              <span style={{
+                fontSize: 'clamp(32px, 8vw, 72px)',
+                fontWeight: '900',
+                color: '#FFFFFF',
+                fontFamily: "'Arial Black', Arial, sans-serif",
+                letterSpacing: '-1px',
+                textShadow: '0 2px 14px rgba(0,0,0,0.95), 0 0 30px rgba(0,0,0,0.7)',
+              }}>
+                {mult.toFixed(2)} x
+              </span>
+            </div>
+          </>
+        )}
 
       </div>
 
