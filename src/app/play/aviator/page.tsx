@@ -842,6 +842,23 @@ export default function AviatorPage() {
         }
       </div>
 
+      {/* ── Fun Mode Header — sits ABOVE the canvas, not inside it ── */}
+      <div style={{
+        backgroundColor: '#C68B1A',
+        padding: '5px 0',
+        textAlign: 'center',
+        fontWeight: '900',
+        fontSize: '13px',
+        color: '#FFFFFF',
+        letterSpacing: '2px',
+        textTransform: 'uppercase',
+        flexShrink: 0,
+        borderBottomLeftRadius: '18px',
+        borderBottomRightRadius: '18px',
+      }}>
+        Fun Mode
+      </div>
+
       {/* ── Unity Game Canvas ── */}
       <div style={{
         position: 'relative', background: '#000',
@@ -886,29 +903,10 @@ export default function AviatorPage() {
           />
         )}
 
-        {/* ── Fun Mode overlay: FUN MODE header + live multiplier text ── */}
+        {/* ── Fun Mode overlay: live multiplier text only ── */}
         {isLoaded && (
           <>
-            {/* Golden header bar */}
-            <div style={{
-              position: 'absolute', top: 0, left: 0, right: 0,
-              backgroundColor: '#C68B1A',
-              padding: '4px 0',
-              textAlign: 'center',
-              fontWeight: '900',
-              fontSize: '12px',
-              color: '#FFFFFF',
-              letterSpacing: '2px',
-              textTransform: 'uppercase',
-              zIndex: 20,
-              pointerEvents: 'none',
-              borderBottomLeftRadius: '16px',
-              borderBottomRightRadius: '16px',
-            }}>
-              Fun Mode
-            </div>
-
-            {/* Live multiplier text — centered bottom half */}
+            {/* Live multiplier text — centered */}
             <div style={{
               position: 'absolute',
               bottom: '30%',
