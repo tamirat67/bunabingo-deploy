@@ -902,6 +902,8 @@ export default function AviatorPage() {
               textTransform: 'uppercase',
               zIndex: 20,
               pointerEvents: 'none',
+              borderBottomLeftRadius: '16px',
+              borderBottomRightRadius: '16px',
             }}>
               Fun Mode
             </div>
