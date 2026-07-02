@@ -803,7 +803,7 @@ export default function AviatorPage() {
         {/* Left Side: Back Button & Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           {/* Back Button */}
-          <button onClick={() => router.push('/')} style={{
+          <button onClick={() => { window.location.href = '/'; }} style={{
             background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)',
             borderRadius: '6px', padding: '4px 10px', color: 'rgba(255,255,255,0.6)',
             fontSize: '11px', fontWeight: '700', cursor: 'pointer',
