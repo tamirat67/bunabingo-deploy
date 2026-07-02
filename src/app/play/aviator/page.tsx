@@ -548,6 +548,7 @@ export default function AviatorPage() {
   const [toast, setToast]           = useState<{ msg: string; ok: boolean } | null>(null);
   const toastRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
+  const [isHistoryExpanded, setIsHistoryExpanded] = useState(true);
   const [htpLang, setHtpLang]             = useState<'en' | 'am'>('en');
 
   const showToast = useCallback((msg: string, ok: boolean) => {
@@ -832,14 +833,44 @@ export default function AviatorPage() {
 
       {/* ── Crash History bar ── */}
       <div style={{
-        display: 'flex', gap: '4px', overflowX: 'auto', padding: '5px 10px',
-        background: '#141428', borderBottom: '1px solid rgba(255,255,255,0.05)',
-        flexShrink: 0, scrollbarWidth: 'none',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '5px 10px', background: '#141428', borderBottom: '1px solid rgba(255,255,255,0.05)',
+        flexShrink: 0,
       }}>
-        {history.length === 0
-          ? <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: '11px' }}>No history yet</span>
-          : history.map((h, i) => <HistoryPill key={i} x={h} />)
-        }
+        <div style={{
+          display: 'flex', gap: '4px', overflowX: 'auto', scrollbarWidth: 'none',
+          flex: 1, marginRight: '10px',
+          height: isHistoryExpanded ? 'auto' : '0px',
+          opacity: isHistoryExpanded ? 1 : 0,
+          pointerEvents: isHistoryExpanded ? 'auto' : 'none',
+          transition: 'all 0.2s ease-in-out',
+        }}>
+          {history.length === 0
+            ? <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: '11px', lineHeight: '20px' }}>No history yet</span>
+            : history.map((h, i) => <HistoryPill key={i} x={h} />)
+          }
+        </div>
+        
+        {/* Toggle Button with Chevron */}
+        <button
+          onClick={() => setIsHistoryExpanded(!isHistoryExpanded)}
+          style={{
+            background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '4px', width: '32px', height: '24px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', color: 'rgba(255,255,255,0.7)',
+            flexShrink: 0, transition: 'background 0.2s',
+          }}
+        >
+          <span style={{ 
+            display: 'inline-block', 
+            transform: isHistoryExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+            transition: 'transform 0.2s ease-in-out',
+            fontSize: '12px'
+          }}>
+            ▼
+          </span>
+        </button>
       </div>
 
       {/* ── Fun Mode Header — sits ABOVE the canvas, not inside it ── */}
