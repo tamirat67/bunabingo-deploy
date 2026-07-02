@@ -977,23 +977,7 @@ export default function AviatorPage() {
         borderTop: '1px solid rgba(255,255,255,0.06)',
       }}>
         <BetPanel slot="f" gameState={gameState} balance={balance} socket={socket} userId={userId} showToast={showToast} />
-        {/* Second Bet Panel disabled / Coming soon */}
-        <div style={{
-          flex: 1,
-          background: '#1a1a2e',
-          borderRadius: '8px',
-          border: '1px dashed rgba(255,255,255,0.1)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'rgba(255,255,255,0.3)',
-          fontSize: '14px',
-          fontWeight: '700',
-          textTransform: 'uppercase',
-          letterSpacing: '1px',
-        }}>
-          Coming Soon
-        </div>
+        <BetPanel slot="s" gameState={gameState} balance={balance} socket={socket} userId={userId} showToast={showToast} />
       </div>
 
       {/* ── All Bets / Top bets ── */}
