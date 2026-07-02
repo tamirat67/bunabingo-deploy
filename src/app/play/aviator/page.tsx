@@ -834,7 +834,7 @@ export default function AviatorPage() {
       {/* ── Crash History bar ── */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '5px 10px', background: '#141428', borderBottom: '1px solid rgba(255,255,255,0.05)',
+        padding: '2px 10px', background: '#141428', borderBottom: '1px solid rgba(255,255,255,0.05)',
         flexShrink: 0,
       }}>
         <div style={{
@@ -856,7 +856,7 @@ export default function AviatorPage() {
           onClick={() => setIsHistoryExpanded(!isHistoryExpanded)}
           style={{
             background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: '4px', width: '32px', height: '24px',
+            borderRadius: '4px', width: '28px', height: '20px',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'pointer', color: 'rgba(255,255,255,0.7)',
             flexShrink: 0, transition: 'background 0.2s',
@@ -876,10 +876,10 @@ export default function AviatorPage() {
       {/* ── Fun Mode Header — sits ABOVE the canvas, not inside it ── */}
       <div style={{
         backgroundColor: '#C68B1A',
-        padding: '5px 0',
+        padding: '3px 0',
         textAlign: 'center',
         fontWeight: '900',
-        fontSize: '13px',
+        fontSize: '11px',
         color: '#FFFFFF',
         letterSpacing: '2px',
         textTransform: 'uppercase',
