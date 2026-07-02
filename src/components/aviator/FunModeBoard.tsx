@@ -12,15 +12,10 @@ export default function FunModeBoard({ multiplier = 1.0 }: FunModeBoardProps) {
   return (
     <div
       style={{
-        position: 'relative',
-        width: '100%',
-        maxWidth: '800px',
-        margin: '0 auto',
-        aspectRatio: '16/11', // Slightly taller to match screenshot proportions better
+        position: 'absolute',
+        inset: 0,
         backgroundColor: '#0a0a0a',
-        borderRadius: '16px',
         overflow: 'hidden',
-        border: '2px solid #2a2a2a',
         fontFamily: 'system-ui, -apple-system, sans-serif',
       }}
     >
@@ -55,7 +50,7 @@ export default function FunModeBoard({ multiplier = 1.0 }: FunModeBoardProps) {
           textTransform: 'uppercase',
           letterSpacing: '1px',
           borderBottom: '2px solid #111',
-          zIndex: 10,
+          zIndex: 999, // Force to very top
         }}
       >
         Fun Mode
@@ -70,19 +65,19 @@ export default function FunModeBoard({ multiplier = 1.0 }: FunModeBoardProps) {
           alignItems: 'center',
           justifyContent: 'center',
           pointerEvents: 'none',
-          zIndex: 5,
+          zIndex: 999,
         }}
       >
         <div
           style={{
-            fontSize: 'clamp(60px, 14vw, 130px)',
+            fontSize: '80px', // Static size to guarantee rendering
             fontWeight: '900',
             color: '#FFFFFF',
             textShadow: '0 4px 10px rgba(0,0,0,0.8)',
             letterSpacing: '-2px',
           }}
         >
-          {multiplier.toFixed(2)} x
+          {typeof multiplier === 'number' && !isNaN(multiplier) ? multiplier.toFixed(2) : '1.00'} x
         </div>
       </div>
 
