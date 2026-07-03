@@ -10,6 +10,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
 import JackpotSplash from '../components/JackpotSplash';
 import BunaModal from '../components/BunaModal';
+import WeeklyBlastModal from '../components/WeeklyBlastModal';
+import api from '../lib/api';
 import { useSocket } from '../context/SocketContext';
 
 export default function LobbyPage() {
@@ -48,6 +50,24 @@ export default function LobbyPage() {
   const [showJackpot, setShowJackpot] = useState(false);
   const [modalConfig, setModalConfig] = useState({ isOpen: false, title: '', message: '', type: 'info' });
   const { socket } = useSocket();
+
+  // ── Weekly Blast ───────────────────────────────────────────────
+  const [weeklyBlastStatus, setWeeklyBlastStatus] = useState<{active: boolean, hasParticipated: boolean} | null>(null);
+  const [showWeeklyBlast, setShowWeeklyBlast] = useState(false);
+
+  useEffect(() => {
+    api.get('/weekly-blast/current')
+      .then(res => res.data)
+      .then(data => {
+        if (!data.error) {
+          setWeeklyBlastStatus(data);
+          if (data.active && !data.hasParticipated) {
+            setShowWeeklyBlast(true);
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -467,6 +487,37 @@ export default function LobbyPage() {
         onClose={() => setShowJackpot(false)}
         jackpotAmount={Number(user?.jackpot?.amount || 0).toFixed(2)}
       />
+
+      {/* Weekly Blast floating widget (shown after modal is closed without tapping) */}
+      {weeklyBlastStatus?.active && !weeklyBlastStatus.hasParticipated && !showWeeklyBlast && (
+        <motion.button
+          initial={{ scale: 0, rotate: -45 }}
+          animate={{ scale: 1, rotate: 0 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => setShowWeeklyBlast(true)}
+          style={{
+            position: 'fixed', bottom: '80px', right: '15px', zIndex: 50,
+            width: '58px', height: '58px', borderRadius: '50%',
+            background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+            border: '2px solid #fff',
+            boxShadow: '0 5px 20px rgba(255,165,0,0.6)',
+            fontSize: '28px', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}
+        >
+          🎁
+        </motion.button>
+      )}
+
+      {/* Weekly Blast Modal */}
+      {showWeeklyBlast && (
+        <WeeklyBlastModal
+          onClose={() => setShowWeeklyBlast(false)}
+          onRewardClaimed={() => {
+            setWeeklyBlastStatus(prev => prev ? { ...prev, hasParticipated: true } : null);
+          }}
+        />
+      )}
 
       <BunaModal
         isOpen={modalConfig.isOpen}
