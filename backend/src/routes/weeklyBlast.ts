@@ -1,11 +1,10 @@
 import { Router } from 'express';
 import { WeeklyBlastService } from '../services/weeklyBlast.service';
-import { authenticate } from '../middleware/auth'; // Ensure this matches existing auth middleware
 
 const router = Router();
 
 // Get current event status
-router.get('/current', authenticate, async (req: any, res: any) => {
+router.get('/current', async (req: any, res: any) => {
   try {
     const userId = req.user.id;
     const result = await WeeklyBlastService.getCurrentEvent(userId);
@@ -17,7 +16,7 @@ router.get('/current', authenticate, async (req: any, res: any) => {
 });
 
 // Draw for the weekly blast
-router.post('/draw', authenticate, async (req: any, res: any) => {
+router.post('/draw', async (req: any, res: any) => {
   try {
     const userId = req.user.id;
     const result = await WeeklyBlastService.draw(userId);
@@ -29,7 +28,7 @@ router.post('/draw', authenticate, async (req: any, res: any) => {
 });
 
 // Get leaderboard
-router.get('/leaderboard', authenticate, async (req: any, res: any) => {
+router.get('/leaderboard', async (req: any, res: any) => {
   try {
     const leaderboard = await WeeklyBlastService.getLeaderboard();
     res.json({ leaderboard });
