@@ -129,7 +129,7 @@ export const WeeklyBlastService = {
           eventId: activeEvent.id,
           userId,
           isWinner,
-          rewardAmount: isWinner ? 5 : 0,
+          rewardAmount: isWinner ? 500 : 0,
           depositScore,
           performanceScore,
         },
@@ -140,7 +140,7 @@ export const WeeklyBlastService = {
         // Update wallet
         const wallet = await tx.wallet.update({
           where: { userId },
-          data: { balance: { increment: 5 } },
+          data: { balance: { increment: 500 } },
         });
 
         // Log transaction
