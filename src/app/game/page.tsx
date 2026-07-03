@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState, useRef, Suspense, useCallback, Fragment } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { getGame, getMyCard, claimBingo, getMe } from '../../lib/api';
+import api, { getGame, getMyCard, claimBingo, getMe } from '../../lib/api';
 import { useSocket } from '../../context/SocketContext';
 import BunaModal from '../../components/BunaModal';
 import WeeklyBlastModal from '../../components/WeeklyBlastModal';
@@ -151,8 +151,8 @@ function GameContent() {
 
   useEffect(() => {
     // Only fetch if they haven't explicitly closed it today (optional, but let's just fetch once on mount)
-    fetch('/api/weekly-blast/current', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } })
-      .then(res => res.json())
+    api.get('/weekly-blast/current')
+      .then(res => res.data)
       .then(data => {
         if (!data.error) {
           setWeeklyBlastStatus(data);

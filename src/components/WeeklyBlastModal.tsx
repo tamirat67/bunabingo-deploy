@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Trophy, Coins, Star, Gift } from 'lucide-react';
-import { fetchAuth } from '../lib/api';
+import api from '../lib/api';
 
 interface LeaderboardEntry {
   rank: number;
@@ -37,8 +37,8 @@ export default function WeeklyBlastModal({ onClose, onRewardClaimed }: WeeklyBla
     try {
       setLoading(true);
       const [currentRes, lbRes] = await Promise.all([
-        fetchAuth('/api/weekly-blast/current'),
-        fetchAuth('/api/weekly-blast/leaderboard')
+        api.get('/weekly-blast/current').then(res => res.data),
+        api.get('/weekly-blast/leaderboard').then(res => res.data)
       ]);
 
       setActive(currentRes.active);
@@ -81,7 +81,7 @@ export default function WeeklyBlastModal({ onClose, onRewardClaimed }: WeeklyBla
     } catch (e) {}
 
     try {
-      const res = await fetchAuth('/api/weekly-blast/draw', { method: 'POST' });
+      const res = await api.post('/weekly-blast/draw').then(r => r.data);
       
       // Simulate blast animation delay
       setTimeout(() => {
