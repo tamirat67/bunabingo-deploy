@@ -7,6 +7,7 @@ import { PREDEFINED_CARDS } from '../../../lib/predefinedCards';
 import { useSocket } from '../../../context/SocketContext';
 import BunaModal from '../../../components/BunaModal';
 import WeeklyBlastModal from '../../../components/WeeklyBlastModal';
+import WeeklyBlastFab from '../../../components/WeeklyBlastFab';
 import { ChevronLeft, ShieldCheck, Trophy, Zap, Crown, Clock, Mic, MicOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { initTelegram, getLanguage, setLanguage } from '../../../lib/telegram';
@@ -2253,23 +2254,7 @@ function SelectionContent() {
 
       {/* Weekly Blast floating widget */}
       {weeklyBlastStatus?.active && !weeklyBlastStatus.hasParticipated && !showWeeklyBlast && (
-        <motion.button
-          initial={{ scale: 0, rotate: -45 }}
-          animate={{ scale: 1, rotate: 0 }}
-          whileTap={{ scale: 0.9 }}
-          onClick={() => setShowWeeklyBlast(true)}
-          style={{
-            position: 'fixed', bottom: '80px', right: '15px', zIndex: 50,
-            width: '58px', height: '58px', borderRadius: '50%',
-            background: 'linear-gradient(135deg, #FFD700, #FFA500)',
-            border: '2px solid #fff',
-            boxShadow: '0 5px 20px rgba(255,165,0,0.6)',
-            fontSize: '28px', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center'
-          }}
-        >
-          🎁
-        </motion.button>
+        <WeeklyBlastFab onClick={() => setShowWeeklyBlast(true)} />
       )}
 
       {/* Weekly Blast Modal */}

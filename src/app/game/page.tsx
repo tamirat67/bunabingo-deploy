@@ -5,6 +5,7 @@ import api, { getGame, getMyCard, claimBingo, getMe } from '../../lib/api';
 import { useSocket } from '../../context/SocketContext';
 import BunaModal from '../../components/BunaModal';
 import WeeklyBlastModal from '../../components/WeeklyBlastModal';
+import WeeklyBlastFab from '../../components/WeeklyBlastFab';
 import { Volume2, VolumeX, RefreshCw, LogOut, Plus, X, Bell, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -751,7 +752,7 @@ function GameContent() {
           ...p,
           playerCount: d.playerCount !== undefined ? d.playerCount : p.playerCount,
           ticketCount: d.ticketCount !== undefined ? d.ticketCount : p.ticketCount,
-          visibleTicketCount: d.ticketCount !== undefined ? d.ticketCount : p.visibleTicketCount,
+          visibleTicketCount: d.visibleTicketCount !== undefined ? d.visibleTicketCount : p.visibleTicketCount,
           totalPrize: d.totalPrize || p.totalPrize,
         };
       });
@@ -764,7 +765,7 @@ function GameContent() {
           ...p,
           playerCount: d.playerCount !== undefined ? d.playerCount : p.playerCount,
           ticketCount: d.ticketCount !== undefined ? d.ticketCount : p.ticketCount,
-          visibleTicketCount: d.ticketCount !== undefined ? d.ticketCount : p.visibleTicketCount,
+          visibleTicketCount: d.visibleTicketCount !== undefined ? d.visibleTicketCount : p.visibleTicketCount,
           totalPrize: d.totalPrize || p.totalPrize,
         };
       });
@@ -2018,25 +2019,7 @@ function GameContent() {
 
       {/* Weekly Blast Floating Widget & Modal */}
       {weeklyBlastStatus?.active && !weeklyBlastStatus.hasParticipated && !showWeeklyBlast && (
-        <motion.button 
-          initial={{ scale: 0, rotate: -45 }}
-          animate={{ scale: 1, rotate: 0 }}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          onClick={() => setShowWeeklyBlast(true)}
-          style={{ 
-            position: 'fixed', bottom: '85px', right: '15px', zIndex: 40,
-            width: '60px', height: '60px', borderRadius: '50%',
-            background: 'linear-gradient(135deg, #FFD700, #FFA500)',
-            border: '2px solid #fff',
-            boxShadow: '0 5px 15px rgba(255, 165, 0, 0.5), inset 0 -3px 5px rgba(0,0,0,0.2)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '30px'
-          }}
-          className="animate-[pulse_2s_infinite]"
-        >
-          🎁
-        </motion.button>
+        <WeeklyBlastFab onClick={() => setShowWeeklyBlast(true)} />
       )}
 
       {showWeeklyBlast && (
