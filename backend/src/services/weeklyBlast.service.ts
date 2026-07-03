@@ -129,7 +129,7 @@ export const WeeklyBlastService = {
           eventId: activeEvent.id,
           userId,
           isWinner,
-          rewardAmount: isWinner ? 500 : 0,
+          rewardAmount: isWinner ? 5 : 0,
           depositScore,
           performanceScore,
         },
@@ -140,7 +140,7 @@ export const WeeklyBlastService = {
         // Update wallet
         const wallet = await tx.wallet.update({
           where: { userId },
-          data: { balance: { increment: 500 } },
+          data: { balance: { increment: 5 } },
         });
 
         // Log transaction
@@ -148,8 +148,8 @@ export const WeeklyBlastService = {
           data: {
             userId,
             type: 'WEEKLY_BLAST_REWARD',
-            amount: 500,
-            balanceBefore: Number(wallet.balance) - 500,
+            amount: 5,
+            balanceBefore: Number(wallet.balance) - 5,
             balanceAfter: wallet.balance,
             status: 'completed',
             description: 'ሳምንታዊ ሽልማት ፍንዳታ (Weekly Reward Blast) Win',
@@ -173,7 +173,7 @@ export const WeeklyBlastService = {
 
       return {
         isWinner,
-        amount: isWinner ? 500 : 0,
+        amount: isWinner ? 5 : 0,
         totalWinners: activeEvent.totalWinners + (isWinner ? 1 : 0),
       };
     });

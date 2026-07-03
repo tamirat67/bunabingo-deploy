@@ -185,7 +185,7 @@ export default function WeeklyBlastModal({ onClose, onRewardClaimed }: WeeklyBla
               </motion.div>
             </div>
             <p className="text-xs text-white/50 text-center mt-3">
-              ጠቅላላ ሽልማት: <span className="text-[#ffb347] font-bold">5,000 ETB</span>
+              ጠቅላላ ሽልማት: <span className="text-[#ffb347] font-bold">50 ETB</span>
             </p>
           </div>
 
