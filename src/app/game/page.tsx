@@ -4,6 +4,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { getGame, getMyCard, claimBingo, getMe } from '../../lib/api';
 import { useSocket } from '../../context/SocketContext';
 import BunaModal from '../../components/BunaModal';
+import WeeklyBlastModal from '../../components/WeeklyBlastModal';
 import { Volume2, VolumeX, RefreshCw, LogOut, Plus, X, Bell, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -142,6 +143,26 @@ function GameContent() {
     getMe().then((user) => {
       if (!user) router.replace('/');
     }).catch(() => router.replace('/'));
+  }, []);
+
+  // ── Weekly Blast Event ───────────────────────────────────────────────
+  const [weeklyBlastStatus, setWeeklyBlastStatus] = useState<{active: boolean, hasParticipated: boolean} | null>(null);
+  const [showWeeklyBlast, setShowWeeklyBlast] = useState(false);
+
+  useEffect(() => {
+    // Only fetch if they haven't explicitly closed it today (optional, but let's just fetch once on mount)
+    fetch('/api/weekly-blast/current', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } })
+      .then(res => res.json())
+      .then(data => {
+        if (!data.error) {
+          setWeeklyBlastStatus(data);
+          // Auto-splash if active and not participated
+          if (data.active && !data.hasParticipated) {
+            setShowWeeklyBlast(true);
+          }
+        }
+      })
+      .catch(() => {});
   }, []);
 
   // ─── Audio helpers ────────────────────────────────────────────────────────────
@@ -1994,6 +2015,39 @@ function GameContent() {
         message={modal.message}
         type={modal.type}
       />
+
+      {/* Weekly Blast Floating Widget & Modal */}
+      {weeklyBlastStatus?.active && !weeklyBlastStatus.hasParticipated && !showWeeklyBlast && (
+        <motion.button 
+          initial={{ scale: 0, rotate: -45 }}
+          animate={{ scale: 1, rotate: 0 }}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => setShowWeeklyBlast(true)}
+          style={{ 
+            position: 'fixed', bottom: '85px', right: '15px', zIndex: 40,
+            width: '60px', height: '60px', borderRadius: '50%',
+            background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+            border: '2px solid #fff',
+            boxShadow: '0 5px 15px rgba(255, 165, 0, 0.5), inset 0 -3px 5px rgba(0,0,0,0.2)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '30px'
+          }}
+          className="animate-[pulse_2s_infinite]"
+        >
+          🎁
+        </motion.button>
+      )}
+
+      {showWeeklyBlast && (
+        <WeeklyBlastModal 
+          onClose={() => setShowWeeklyBlast(false)} 
+          onRewardClaimed={(amount) => {
+            // Optional: immediately update wallet state if we had it, but mostly we just mark participated
+            setWeeklyBlastStatus(prev => prev ? { ...prev, hasParticipated: true } : null);
+          }}
+        />
+      )}
     </motion.div>
   );
 }

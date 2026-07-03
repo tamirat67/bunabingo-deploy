@@ -80,6 +80,7 @@ model User {
   kenoTickets          KenoTicket[]
   kenoAuditLogs        KenoAuditLog[]
   kenoRgLimits         KenoRgLimit[]
+  weeklyRewardParticipants WeeklyRewardParticipant[]
 
   @@map("users")
 }
@@ -518,4 +519,34 @@ model KenoRgLimit {
 
   @@index([userId])
   @@map("keno_rg_limits")
+}
+
+model WeeklyRewardEvent {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  status       String   @default("OPEN") // OPEN | CLOSED
+  totalWinners Int      @default(0)
+  startedAt    DateTime @default(now()) @db.Timestamptz(6) @map("started_at")
+  closedAt     DateTime? @db.Timestamptz(6) @map("closed_at")
+
+  participants WeeklyRewardParticipant[]
+
+  @@map("weekly_reward_events")
+}
+
+model WeeklyRewardParticipant {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventId          String   @db.Uuid @map("event_id")
+  userId           String   @db.Uuid @map("user_id")
+  isWinner         Boolean  @default(false) @map("is_winner")
+  rewardAmount     Decimal  @default(0) @db.Decimal(20, 4) @map("reward_amount")
+  performanceScore Decimal  @default(0) @db.Decimal(20, 4) @map("performance_score")
+  depositScore     Decimal  @default(0) @db.Decimal(20, 4) @map("deposit_score")
+  createdAt        DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  event            WeeklyRewardEvent @relation(fields: [eventId], references: [id])
+  user             User              @relation(fields: [userId], references: [id])
+
+  @@index([eventId])
+  @@index([userId])
+  @@map("weekly_reward_participants")
 }

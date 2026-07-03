@@ -73,5 +73,25 @@ export function startJobs(bot: Telegraf): void {
     }
   });
 
-  logger.info('✅ Background jobs started (Auto-Deposit Scan every 1min, fraud scan every 30min, description update every 1h, cleanup every 1h, DB ping every 4min)');
+  // Weekly Saturday Reward Blast (09:00 EAT every Saturday)
+  cron.schedule('0 9 * * 6', async () => {
+    try {
+      const { launchWeeklyBlastEvent } = await import('./weeklyBlast.job');
+      await launchWeeklyBlastEvent();
+    } catch (err) {
+      logger.error('[Jobs] Weekly Blast launch error:', err);
+    }
+  }, { timezone: 'Africa/Addis_Ababa' });
+
+  // Auto-close Weekly Blast every hour if expired (24hrs limit)
+  cron.schedule('0 * * * *', async () => {
+    try {
+      const { autoCloseWeeklyBlast } = await import('./weeklyBlast.job');
+      await autoCloseWeeklyBlast();
+    } catch (err) {
+      logger.error('[Jobs] Weekly Blast auto-close error:', err);
+    }
+  });
+
+  logger.info('✅ Background jobs started (Auto-Deposit Scan every 1min, fraud scan every 30min, description update every 1h, cleanup every 1h, DB ping every 4min, Weekly Blast scheduled)');
 }

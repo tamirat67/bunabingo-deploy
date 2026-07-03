@@ -60,6 +60,7 @@ function runUpload(req: Request, res: Response, middleware: any): Promise<void> 
 }
 
 import authRouter from './auth';
+import weeklyBlastRouter from './weeklyBlast';
 
 // ─── PUBLIC Routes (no auth needed) ──────────────────────────
 router.use('/auth', authRouter);
@@ -3550,5 +3551,8 @@ router.get('/aviator/top-bets', telegramAuthMiddleware, async (req: Request, res
     res.status(500).json({ error: err.message });
   }
 });
+
+// ── Weekly Blast ────────────────────────────────────────────────────────
+router.use('/weekly-blast', telegramAuthMiddleware, weeklyBlastRouter);
 
 export default router;
