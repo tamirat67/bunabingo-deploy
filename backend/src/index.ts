@@ -47,6 +47,22 @@ async function main() {
 
   app.use('/api', apiLimiter, apiRoutes);
 
+  // ── TEST ONLY: Manually create a Weekly Blast event without auth ──────────
+  // Hit: POST https://api.bunatechhub.net/debug/weekly-blast-start
+  // REMOVE THIS AFTER TESTING!
+  app.post('/debug/weekly-blast-start', async (_req, res) => {
+    try {
+      await prisma.weeklyRewardEvent.updateMany({
+        where: { status: 'OPEN' },
+        data: { status: 'CLOSED', closedAt: new Date() }
+      });
+      const event = await prisma.weeklyRewardEvent.create({ data: { status: 'OPEN' } });
+      res.json({ success: true, message: '🎉 Test Weekly Blast event started!', eventId: event.id });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // ─── Fast Keno Engine & Routes ─────────────────────────────
   let kenoDrawEngine: any;
   try {

@@ -3449,35 +3449,6 @@ router.post('/admin/fix-historical-bonus', telegramAuthMiddleware, adminMiddlewa
           data: { balance: newBalance, totalDebited: newTotalDebited }
         });
 
-        totalRefunded += difference;
-        report.push({
-          type: 'REFUND',
-          agentName: log.agent.firstName,
-          gameId: log.gameId,
-          refundedETB: difference.toFixed(2),
-          note: `Commission overcharge corrected`
-        });
-        logger.info(`[FixHistorical] Refunded ${difference.toFixed(2)} ETB to ${log.agent.firstName} for game ${log.gameId}`);
-      } else if (log.type === 'BOT_WIN_DEBT_ADDED') {
-        totalDebtReduced += difference;
-        report.push({
-          type: 'DEBT_REDUCED',
-          agentName: log.agent.firstName,
-          gameId: log.gameId,
-          reducedETB: difference.toFixed(2),
-          note: `Bot debt overcharge corrected`
-        });
-        logger.info(`[FixHistorical] Reduced bot debt ${difference.toFixed(2)} ETB for ${log.agent.firstName} game ${log.gameId}`);
-      }
-    }
-
-    await prisma.adminLog.create({
-      data: {
-        adminId: (req as any).user!.id,
-        action: 'FIX_HISTORICAL_BONUS_REPORTS',
-        details: { totalRefunded: totalRefunded.toFixed(2), totalDebtReduced: totalDebtReduced.toFixed(2), corrections: report.length }
-      }
-    });
 
     logger.info(`[FixHistorical] Done. Refunded ${totalRefunded.toFixed(2)} ETB, reduced debt ${totalDebtReduced.toFixed(2)} ETB, ${report.length} corrections.`);
 
