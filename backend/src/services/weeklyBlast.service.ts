@@ -190,13 +190,8 @@ export const WeeklyBlastService = {
 
     if (!activeEvent) return [];
 
-    const topParticipants = await prisma.weeklyRewardParticipant.findMany({
+    const allParticipants = await prisma.weeklyRewardParticipant.findMany({
       where: { eventId: activeEvent.id },
-      orderBy: [
-        { performanceScore: 'desc' },
-        { depositScore: 'desc' },
-      ],
-      take: 10,
       include: {
         user: {
           select: { firstName: true, lastName: true, username: true, telegramUsername: true }
@@ -204,18 +199,26 @@ export const WeeklyBlastService = {
       }
     });
 
-    return topParticipants.map((p, index) => {
+    const enriched = allParticipants.map((p) => {
       // Prioritize identifying the user (some fields might be null)
       const name = p.user.firstName 
         ? `${p.user.firstName} ${p.user.lastName || ''}`.trim()
         : p.user.username || p.user.telegramUsername || 'Anonymous';
         
       return {
-        rank: index + 1,
         name,
         score: Number(p.performanceScore) + (Number(p.depositScore) / 10),
         isWinner: p.isWinner
       };
     });
+
+    // Sort by calculated score descending
+    enriched.sort((a, b) => b.score - a.score);
+
+    // Return top 10 with assigned ranks
+    return enriched.slice(0, 10).map((p, index) => ({
+      ...p,
+      rank: index + 1
+    }));
   }
 };
