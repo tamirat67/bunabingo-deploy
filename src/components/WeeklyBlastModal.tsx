@@ -29,9 +29,47 @@ export default function WeeklyBlastModal({ onClose, onRewardClaimed }: WeeklyBla
   const [showResult, setShowResult] = useState(false);
   const [drawResult, setDrawResult] = useState<{ isWinner: boolean; amount: number } | null>(null);
 
+  const [timeLeft, setTimeLeft] = useState<{days: number, hours: number, mins: number, secs: number} | null>(null);
+
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (active || hasParticipated) return;
+
+    // Run immediately once to avoid 1s delay, then setup interval
+    const calculateTime = () => {
+      const now = new Date();
+      let target = new Date();
+      target.setUTCHours(6, 0, 0, 0); // 09:00 EAT is 06:00 UTC
+
+      const dayOfWeek = target.getUTCDay();
+      const daysUntilSaturday = (6 - dayOfWeek + 7) % 7;
+      target.setUTCDate(target.getUTCDate() + daysUntilSaturday);
+
+      if (now >= target) {
+        target.setUTCDate(target.getUTCDate() + 7);
+      }
+
+      const diff = target.getTime() - now.getTime();
+      
+      if (diff <= 0) {
+        setTimeLeft({ days: 0, hours: 0, mins: 0, secs: 0 });
+      } else {
+        setTimeLeft({
+          days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+          hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
+          mins: Math.floor((diff / 1000 / 60) % 60),
+          secs: Math.floor((diff / 1000) % 60)
+        });
+      }
+    };
+    
+    calculateTime();
+    const interval = setInterval(calculateTime, 1000);
+    return () => clearInterval(interval);
+  }, [active, hasParticipated]);
 
   const fetchData = async () => {
     try {
@@ -117,25 +155,6 @@ export default function WeeklyBlastModal({ onClose, onRewardClaimed }: WeeklyBla
     );
   }
 
-  // If event is not active and they haven't participated, maybe auto-close or show message
-  // But usually, the button in game page won't open this if active=false, but just in case:
-  if (!active && !hasParticipated) {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-        <div className="bg-[#1C0A35] border border-white/10 rounded-3xl p-6 w-full max-w-sm text-center relative shadow-2xl">
-          <button onClick={onClose} className="absolute top-4 right-4 text-white/50 hover:text-white">
-            <X size={24} />
-          </button>
-          <Gift size={48} className="mx-auto text-white/30 mb-4" />
-          <h2 className="text-xl font-bold text-white mb-2">ዝግ ነው (Closed)</h2>
-          <p className="text-white/70">
-            የሳምንታዊ ሽልማት ፍንዳታ በአሁን ሰዓት ዝግ ነው። እባክዎ ቅዳሜ ይጠብቁ!
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   const progressPercent = Math.min((totalWinners / 10) * 100, 100);
 
   return (
@@ -196,12 +215,12 @@ export default function WeeklyBlastModal({ onClose, onRewardClaimed }: WeeklyBla
                 <motion.div 
                   key="blast-button"
                   exit={{ scale: 0, opacity: 0, rotate: 180 }}
-                  className="relative group cursor-pointer"
-                  onClick={handleBlast}
+                  className={`relative group ${active ? 'cursor-pointer' : 'opacity-90'}`}
+                  onClick={active ? handleBlast : undefined}
                 >
                   {/* Glowing rings */}
                   <div className="absolute inset-0 rounded-full bg-[#ffb347] opacity-20 blur-xl group-hover:opacity-40 group-hover:blur-2xl transition-all duration-500" />
-                  <div className={`absolute inset-0 rounded-full border-2 border-[#ffb347]/50 ${isBlasting ? 'animate-ping' : 'animate-[pulse_3s_infinite]'}`} />
+                  <div className={`absolute inset-0 rounded-full border-2 border-[#ffb347]/50 ${active && !isBlasting ? 'animate-[pulse_3s_infinite]' : isBlasting ? 'animate-ping' : ''}`} />
                   
                   {/* The Button */}
                   <motion.div 
@@ -218,10 +237,18 @@ export default function WeeklyBlastModal({ onClose, onRewardClaimed }: WeeklyBla
                     className="w-40 h-40 rounded-full bg-gradient-to-br from-[#ff6b6b] to-[#c0392b] border-4 border-[#ffb347] shadow-[0_10px_30px_rgba(192,57,43,0.5),inset_0_5px_15px_rgba(255,255,255,0.4)] flex flex-col items-center justify-center relative overflow-hidden"
                   >
                     <div className="absolute top-0 w-full h-1/2 bg-white/20 rounded-t-full" />
-                    <span className="text-5xl mb-1 filter drop-shadow-lg">💥</span>
-                    <span className="text-white font-black text-xl tracking-wider uppercase drop-shadow-[0_2px_2px_rgba(0,0,0,0.5)]">
+                    <span className={`text-5xl ${!active ? 'mb-0' : 'mb-1'} filter drop-shadow-lg`}>💥</span>
+                    <span className={`text-white font-black ${!active ? 'text-lg' : 'text-xl'} tracking-wider uppercase drop-shadow-[0_2px_2px_rgba(0,0,0,0.5)]`}>
                       ማፈንዳት
                     </span>
+                    {!active && timeLeft && (
+                      <div className="text-white font-bold text-[11px] tracking-wider mt-1 flex gap-[2px] bg-black/30 px-2 py-0.5 rounded-full backdrop-blur-sm shadow-inner border border-white/10">
+                        <span>{timeLeft.days}d</span>:
+                        <span>{timeLeft.hours.toString().padStart(2, '0')}h</span>:
+                        <span>{timeLeft.mins.toString().padStart(2, '0')}m</span>:
+                        <span>{timeLeft.secs.toString().padStart(2, '0')}s</span>
+                      </div>
+                    )}
                   </motion.div>
                 </motion.div>
               ) : (
