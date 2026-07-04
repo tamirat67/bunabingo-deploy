@@ -489,8 +489,8 @@ export default function LobbyPage() {
         jackpotAmount={Number(user?.jackpot?.amount || 0).toFixed(2)}
       />
 
-      {/* Weekly Blast floating widget (shown after modal is closed without tapping) */}
-      {weeklyBlastStatus?.active && !weeklyBlastStatus.hasParticipated && !showWeeklyBlast && (
+      {/* Weekly Blast floating widget (shown even after participating so they can see results) */}
+      {weeklyBlastStatus?.active && !showWeeklyBlast && (
         <WeeklyBlastFab onClick={() => setShowWeeklyBlast(true)} />
       )}
 

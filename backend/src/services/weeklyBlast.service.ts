@@ -162,13 +162,13 @@ export const WeeklyBlastService = {
           data: { totalWinners: { increment: 1 } },
         });
 
-        // If 10 winners reached, close event
-        if (updatedEvent.totalWinners >= 10) {
-          await tx.weeklyRewardEvent.update({
-            where: { id: activeEvent.id },
-            data: { status: 'CLOSED', closedAt: new Date() },
-          });
-        }
+        // If 10 winners reached, close event (Disabled for today's 24h special)
+        // if (updatedEvent.totalWinners >= 10) {
+        //   await tx.weeklyRewardEvent.update({
+        //     where: { id: activeEvent.id },
+        //     data: { status: 'CLOSED', closedAt: new Date() },
+        //   });
+        // }
       }
 
       return {
