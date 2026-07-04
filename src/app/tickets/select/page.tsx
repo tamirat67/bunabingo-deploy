@@ -2253,7 +2253,7 @@ function SelectionContent() {
       </AnimatePresence>
 
       {/* Weekly Blast floating widget */}
-      {weeklyBlastStatus?.active && !weeklyBlastStatus.hasParticipated && !showWeeklyBlast && (
+      {weeklyBlastStatus?.active && !showWeeklyBlast && (
         <WeeklyBlastFab onClick={() => setShowWeeklyBlast(true)} />
       )}
 

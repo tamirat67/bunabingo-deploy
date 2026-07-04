@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { getMe } from '@/lib/api';
+import api, { getMe } from '@/lib/api';
+import WeeklyBlastModal from '@/components/WeeklyBlastModal';
+import WeeklyBlastFab from '@/components/WeeklyBlastFab';
 
 // Dynamically import to avoid SSR issues with WebSocket
 const FastKenoBoard = dynamic(
@@ -19,6 +21,23 @@ interface UserData {
 export default function KenoPage() {
   const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const [weeklyBlastStatus, setWeeklyBlastStatus] = useState<{active: boolean, hasParticipated: boolean} | null>(null);
+  const [showWeeklyBlast, setShowWeeklyBlast] = useState(false);
+
+  useEffect(() => {
+    api.get('/weekly-blast/current')
+      .then(res => res.data)
+      .then(data => {
+        if (!data.error) {
+          setWeeklyBlastStatus(data);
+          if (data.active && !data.hasParticipated) {
+            setShowWeeklyBlast(true);
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Remove body padding-bottom (added for global navbar) since navbar is hidden on keno page
   useEffect(() => {
@@ -118,9 +137,26 @@ export default function KenoPage() {
   const balanceETB = user.wallet?.balance ?? user.balance ?? 0;
 
   return (
-    <FastKenoBoard
-      userId={user.id}
-      balance={typeof balanceETB === 'number' ? Number(balanceETB) : 0}
-    />
+    <>
+      <FastKenoBoard
+        userId={user.id}
+        balance={typeof balanceETB === 'number' ? Number(balanceETB) : 0}
+      />
+
+      {/* Weekly Blast floating widget */}
+      {weeklyBlastStatus?.active && !showWeeklyBlast && (
+        <WeeklyBlastFab onClick={() => setShowWeeklyBlast(true)} />
+      )}
+
+      {/* Weekly Blast Modal */}
+      {showWeeklyBlast && (
+        <WeeklyBlastModal
+          onClose={() => setShowWeeklyBlast(false)}
+          onRewardClaimed={() => {
+            setWeeklyBlastStatus(prev => prev ? { ...prev, hasParticipated: true } : null);
+          }}
+        />
+      )}
+    </>
   );
 }

@@ -8,8 +8,10 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Unity, { UnityContext } from 'react-unity-webgl';
 import { useSocket } from '../../../context/SocketContext';
-import { getMe } from '../../../lib/api';
+import api, { getMe } from '../../../lib/api';
 import { initTelegram } from '../../../lib/telegram';
+import WeeklyBlastModal from '../../../components/WeeklyBlastModal';
+import WeeklyBlastFab from '../../../components/WeeklyBlastFab';
 
 // unityContext is created inside the component via useState (lazy init).
 // See AviatorPage below — this prevents the Unity onwheel null crash on re-mount.
@@ -557,6 +559,23 @@ export default function AviatorPage() {
     toastRef.current = setTimeout(() => setToast(null), 3500);
   }, []);
 
+  const [weeklyBlastStatus, setWeeklyBlastStatus] = useState<{active: boolean, hasParticipated: boolean} | null>(null);
+  const [showWeeklyBlast, setShowWeeklyBlast] = useState(false);
+
+  useEffect(() => {
+    api.get('/weekly-blast/current')
+      .then(res => res.data)
+      .then(data => {
+        if (!data.error) {
+          setWeeklyBlastStatus(data);
+          if (data.active && !data.hasParticipated) {
+            setShowWeeklyBlast(true);
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   // ── Unity flag sync (matches original aviator-crash source exactly) ───────────
   // GameManager.RequestToken({ gameState: N }) where:
   //   1 = BET / waiting
@@ -791,6 +810,21 @@ export default function AviatorPage() {
           boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
           maxWidth: '80vw', textAlign: 'center', whiteSpace: 'nowrap',
         }}>{toast.msg}</div>
+      )}
+
+      {/* Weekly Blast floating widget */}
+      {weeklyBlastStatus?.active && !showWeeklyBlast && (
+        <WeeklyBlastFab onClick={() => setShowWeeklyBlast(true)} />
+      )}
+
+      {/* Weekly Blast Modal */}
+      {showWeeklyBlast && (
+        <WeeklyBlastModal
+          onClose={() => setShowWeeklyBlast(false)}
+          onRewardClaimed={() => {
+            setWeeklyBlastStatus(prev => prev ? { ...prev, hasParticipated: true } : null);
+          }}
+        />
       )}
 
       {/* ── Header ── */}
