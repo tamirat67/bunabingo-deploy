@@ -36,9 +36,7 @@ export default function WeeklyBlastModal({ onClose, onRewardClaimed }: WeeklyBla
   }, []);
 
   useEffect(() => {
-    if (active || hasParticipated) return;
-
-    // Run immediately once to avoid 1s delay, then setup interval
+    // Always calculate countdown (shown when not active OR already participated)
     const calculateTime = () => {
       const now = new Date();
       let target = new Date();
@@ -48,12 +46,13 @@ export default function WeeklyBlastModal({ onClose, onRewardClaimed }: WeeklyBla
       const daysUntilSaturday = (6 - dayOfWeek + 7) % 7;
       target.setUTCDate(target.getUTCDate() + daysUntilSaturday);
 
+      // If it's Saturday but the event is NOT yet open (before 9am) keep today as target
+      // Otherwise always push to NEXT Saturday
       if (now >= target) {
         target.setUTCDate(target.getUTCDate() + 7);
       }
 
       const diff = target.getTime() - now.getTime();
-      
       if (diff <= 0) {
         setTimeLeft({ days: 0, hours: 0, mins: 0, secs: 0 });
       } else {
@@ -69,7 +68,7 @@ export default function WeeklyBlastModal({ onClose, onRewardClaimed }: WeeklyBla
     calculateTime();
     const interval = setInterval(calculateTime, 1000);
     return () => clearInterval(interval);
-  }, [active, hasParticipated]);
+  }, [active]);
 
   const fetchData = async () => {
     try {
@@ -278,14 +277,31 @@ export default function WeeklyBlastModal({ onClose, onRewardClaimed }: WeeklyBla
                       </motion.div>
                     </div>
                   ) : (
-                    <div className="text-center bg-white/5 border border-white/10 rounded-3xl p-8">
+                    <div className="text-center bg-white/5 border border-white/10 rounded-3xl p-6">
                       <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/10 text-white/50 mb-4">
                         <Star size={32} />
                       </div>
-                      <h3 className="text-xl font-bold text-white mb-3">መልካም ዕድል</h3>
-                      <p className="text-white/70 leading-relaxed text-sm">
+                      <h3 className="text-xl font-bold text-white mb-2">መልካም ዕድል</h3>
+                      <p className="text-white/70 leading-relaxed text-sm mb-5">
                         ተሳትፎዎን ይቀጥሉ፤ በሚቀጥለው ሳምንታዊ ሽልማት ፍንዳታ ዕድልዎ ይጨምራል!
                       </p>
+
+                      {/* Countdown to next Saturday */}
+                      {timeLeft && (
+                        <div className="mt-2">
+                          <p className="text-[11px] text-white/40 uppercase tracking-widest mb-3">ቀጣይ ፍንዳታ</p>
+                          <div className="flex justify-center gap-2">
+                            {[{v: timeLeft.days, l: 'ቀን'}, {v: timeLeft.hours, l: 'ሰዓት'}, {v: timeLeft.mins, l: 'ደቂቃ'}, {v: timeLeft.secs, l: 'ሰኮንድ'}].map(({v, l}) => (
+                              <div key={l} className="flex flex-col items-center bg-black/40 border border-[#ffb347]/20 rounded-xl px-3 py-2 min-w-[48px]">
+                                <span className="text-2xl font-black text-[#ffb347] tabular-nums leading-none">
+                                  {v.toString().padStart(2, '0')}
+                                </span>
+                                <span className="text-[9px] text-white/40 mt-1 uppercase tracking-wider">{l}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </motion.div>
