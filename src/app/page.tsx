@@ -489,8 +489,8 @@ export default function LobbyPage() {
         jackpotAmount={Number(user?.jackpot?.amount || 0).toFixed(2)}
       />
 
-      {/* Weekly Blast floating widget (shown even after participating so they can see results) */}
-      {weeklyBlastStatus?.active && !showWeeklyBlast && (
+      {/* Weekly Blast floating widget — always visible so users can check Saturday rewards */}
+      {!showWeeklyBlast && (
         <WeeklyBlastFab onClick={() => setShowWeeklyBlast(true)} />
       )}
 

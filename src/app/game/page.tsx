@@ -2017,8 +2017,8 @@ function GameContent() {
         type={modal.type}
       />
 
-      {/* Weekly Blast Floating Widget & Modal */}
-      {weeklyBlastStatus?.active && !weeklyBlastStatus.hasParticipated && !showWeeklyBlast && (
+      {/* Weekly Blast Floating Widget & Modal — always visible */}
+      {!showWeeklyBlast && (
         <WeeklyBlastFab onClick={() => setShowWeeklyBlast(true)} />
       )}
 

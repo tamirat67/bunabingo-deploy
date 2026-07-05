@@ -812,8 +812,8 @@ export default function AviatorPage() {
         }}>{toast.msg}</div>
       )}
 
-      {/* Weekly Blast floating widget */}
-      {weeklyBlastStatus?.active && !showWeeklyBlast && (
+      {/* Weekly Blast floating widget — always visible */}
+      {!showWeeklyBlast && (
         <WeeklyBlastFab onClick={() => setShowWeeklyBlast(true)} />
       )}
 

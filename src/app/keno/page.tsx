@@ -143,8 +143,8 @@ export default function KenoPage() {
         balance={typeof balanceETB === 'number' ? Number(balanceETB) : 0}
       />
 
-      {/* Weekly Blast floating widget */}
-      {weeklyBlastStatus?.active && !showWeeklyBlast && (
+      {/* Weekly Blast floating widget — always visible */}
+      {!showWeeklyBlast && (
         <WeeklyBlastFab onClick={() => setShowWeeklyBlast(true)} />
       )}
 
