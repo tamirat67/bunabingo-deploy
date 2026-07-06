@@ -92,23 +92,38 @@ export class GhostBotEmitter {
     const ghosts: GhostTicket[] = Array.from({ length: botCount }, () => ({
       id: `ghost_${randomUUID()}`,
       username: this.randomItem(ETHIOPIAN_NAMES),
-      picks: this.randomPicks(Math.floor(Math.random() * 10) + 1), // 1–10
+      picks: this.randomPicks(this.randomItem([3, 4, 6, 7])), // Randomly 3, 4, 6, 7
       stakeCents: this.randomItem(STAKE_POOL_CENTS),
     }));
 
     this.pendingGhosts.set(roundCode, ghosts);
 
-    // Emit all bots instantly at once (in tiny micro-batches to prevent server lag, 
-    // but visually it appears completely instant to the user)
-    const timer = setTimeout(async () => {
+    // Distribute the ghosts randomly across 90% of the betting window
+    const joinTimes = ghosts.map(() => Math.random() * (bettingWindowSecs * 1000 * 0.9));
+    joinTimes.sort((a, b) => a - b);
+
+    let io: any = null;
+    const startDrip = async () => {
       try {
         const { getIO } = await import('../lib/socket');
-        const io = getIO();
-        
-        const BATCH = 50;
-        for (let i = 0; i < ghosts.length; i += BATCH) {
-          const batch = ghosts.slice(i, i + BATCH);
-          batch.forEach((ghost) => {
+        io = getIO();
+      } catch (e) {
+        console.error('[GhostBots] Failed to load socket for drip', e);
+        return;
+      }
+
+      const scheduleNext = (index: number) => {
+        if (index >= ghosts.length) return;
+        if (!this.pendingGhosts.has(roundCode)) return;
+
+        const delay = index === 0 ? joinTimes[0] : joinTimes[index] - joinTimes[index - 1];
+
+        const t = setTimeout(() => {
+          this.activeTimers = this.activeTimers.filter((timer) => timer !== t);
+          if (!this.pendingGhosts.has(roundCode)) return;
+
+          const ghost = ghosts[index];
+          try {
             io.emit('keno:TICKET_UPDATE', {
               id:         ghost.id,
               userId:     null,          // never matches any real user → isOwn = false
@@ -117,17 +132,21 @@ export class GhostBotEmitter {
               stakeCents: ghost.stakeCents,
               status:     'PLACED',      // renders as WAITING badge in frontend
             });
-          });
-          // 5ms micro-pause: lets the Node.js event loop breathe, but completes all 400 bots in <40ms (instant to humans)
-          await new Promise((r) => setTimeout(r, 5));
-        }
-      } catch (_) {}
-    }, 500); // Wait half a second after round starts, then dump them all in
+          } catch (_) {}
 
-    this.activeTimers.push(timer);
+          scheduleNext(index + 1);
+        }, Math.max(0, delay));
+
+        this.activeTimers.push(t);
+      };
+
+      scheduleNext(0);
+    };
+
+    startDrip();
 
     console.log(
-      `[GhostBots] Dropped ${botCount} ghost players instantly for round ${roundCode}`
+      `[GhostBots] Scheduled ${botCount} ghost players to join smoothly over ${Math.floor(bettingWindowSecs * 0.9)}s for round ${roundCode}`
     );
   }
 

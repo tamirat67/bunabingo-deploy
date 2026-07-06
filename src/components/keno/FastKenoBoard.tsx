@@ -365,6 +365,10 @@ export default function FastKenoBoard({
   const filteredTickets = liveTickets.filter((t) => {
     if (subTab === 'MY_TICKETS' || subTab === 'MY_BETS') return t.isOwn;
     return true;
+  }).sort((a, b) => {
+    if (a.isOwn && !b.isOwn) return -1;
+    if (!a.isOwn && b.isOwn) return 1;
+    return 0;
   });
 
   /* ════════════════════════════════════════════════════════════
