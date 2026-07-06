@@ -4,6 +4,7 @@ import { randomUUID } from "crypto";
 import { generateServerSeed, hashSeed, drawNumbers } from "./generator";
 import { countMatches, getMultiplier } from "./payoutEngine";
 import { WalletAdapter } from "./walletAdapter";
+import { ghostBotEmitter } from "./ghostBots";
 
 export type RoundPhase = "BETTING" | "DRAWING" | "COMPLETED";
 
@@ -129,6 +130,9 @@ export class DrawEngine extends EventEmitter {
 
     console.log(`[DrawEngine] 🎰 Round #${round.id} started (code: ${roundCode}) — betting open for ${countdownConfig}s`);
     this.emitUpdate("BETTING", countdownConfig, []);
+
+    // ── Ghost bots: schedule fake players to drip into the live feed ──
+    ghostBotEmitter.scheduleForRound(roundCode, countdownConfig);
   }
 
   private async drawAndSettle() {
@@ -153,6 +157,9 @@ export class DrawEngine extends EventEmitter {
     }
 
     await this.settleTickets(round.id, drawn);
+
+    // ── Ghost bots: settle all fake tickets as WON/LOST ──────────────
+    ghostBotEmitter.settleForRound(round.roundCode, drawn).catch(() => {});
 
     await this.prisma.kenoRound.update({ where: { id: round.id }, data: { status: "COMPLETED" } });
 
