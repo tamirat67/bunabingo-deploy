@@ -327,8 +327,11 @@ export default function FastKenoBoard({
   async function placeBet() {
     if (picks.size === 0) { showMsg('Pick at least 1 number!', false); return; }
     if (phase !== 'BETTING') { showMsg('Betting is closed for this round.', false); return; }
+    if (localBalance <= 0) { showMsg('⚠ Your balance is 0. Please deposit to play.', false); return; }
+    if (localBalance < stake) { showMsg(`⚠ Insufficient balance. Your balance is ${localBalance.toFixed(2)} ETB.`, false); return; }
     setIsPlacing(true);
     try {
+      const pickCount = picks.size;
       const res = await api.post('/keno/ticket', {
         picks: Array.from(picks),
         stakeCents: stake * 100,
@@ -337,7 +340,7 @@ export default function FastKenoBoard({
         setLocalBalance(res.data.newBalanceCents / 100);
       }
       setPicks(new Set());
-      showMsg(`🎱 Ticket placed! ${picks.size} picks × ${stake} ETB`, true);
+      showMsg(`🎱 Ticket placed! ${pickCount} picks × ${stake} ETB`, true);
     } catch (err: any) {
       const errMsg = err?.response?.data?.error ?? 'Bet failed. Try again.';
       showMsg(errMsg, false);
@@ -585,17 +588,23 @@ export default function FastKenoBoard({
           <button
             id="keno-bet-btn"
             onClick={placeBet}
-            disabled={isPlacing || picks.size === 0}
+            disabled={isPlacing || picks.size === 0 || localBalance < stake}
             style={{
               ...css.betBtn,
-              background: picks.size === 0
+              background: picks.size === 0 || localBalance < stake
                 ? '#2b2f36'
                 : 'linear-gradient(180deg, #3d6a4c, #264a34)',
-              color: picks.size === 0 ? '#64748b' : '#94a3b8',
-              boxShadow: picks.size > 0 ? '0 4px 15px rgba(34,197,94,0.2)' : 'none',
+              color: picks.size === 0 || localBalance < stake ? '#64748b' : '#94a3b8',
+              boxShadow: picks.size > 0 && localBalance >= stake ? '0 4px 15px rgba(34,197,94,0.2)' : 'none',
             }}
           >
-            {isPlacing ? 'Processing...' : picks.size === 0 ? 'Pick Numbers First' : 'BET'}
+            {isPlacing
+              ? 'Processing...'
+              : picks.size === 0
+                ? 'Pick Numbers First'
+                : localBalance < stake
+                  ? '⚠ Insufficient Balance'
+                  : 'BET'}
           </button>
 
           <div style={css.quickRow}>
