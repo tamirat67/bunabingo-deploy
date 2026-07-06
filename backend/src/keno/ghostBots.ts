@@ -61,7 +61,7 @@ interface GhostTicket {
 
 /* ═══════════════════════════════════════════════════════════════════
    GHOST BOT EMITTER
-   - Schedules 50–400 fake player entries per BETTING round
+   - Schedules 250–400 fake player entries per BETTING round
    - Settles them (WON/LOST) when the draw completes
    - Never touches the DB or any wallet
 ═══════════════════════════════════════════════════════════════════ */
@@ -76,7 +76,7 @@ export class GhostBotEmitter {
 
   /**
    * Call this right after a new BETTING round starts.
-   * Schedules 50–400 ghost bets to drip into the live feed
+   * Schedules 250–400 ghost bets to drip into the live feed
    * evenly across the betting window.
    *
    * @param roundCode         The round identifier (used as map key)
@@ -85,8 +85,8 @@ export class GhostBotEmitter {
   scheduleForRound(roundCode: string, bettingWindowSecs: number): void {
     this.clearTimers();
 
-    // Random bot count: 50–400
-    const botCount = Math.floor(Math.random() * (400 - 50 + 1)) + 50;
+    // Random bot count: 250–400
+    const botCount = Math.floor(Math.random() * (400 - 250 + 1)) + 250;
 
     // Generate all ghost tickets upfront
     const ghosts: GhostTicket[] = Array.from({ length: botCount }, () => ({
