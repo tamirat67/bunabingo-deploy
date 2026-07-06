@@ -20,17 +20,28 @@ export default function SecurityGuard({ children }: { children: React.ReactNode 
       return;
     }
 
-    // 3. Allow if running inside Telegram WebApp
-    const isTelegram = typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.initData;
+    // 3. Retry loop for Telegram WebApp (handles Android async load race condition)
+    let retries = 0;
+    const maxRetries = 10;
     
-    if (isTelegram) {
-      setIsAllowed(true);
-      return;
-    }
-
-    // 4. If none of the above, they are opening the app in a regular browser without admin rights.
-    // Redirect to the Telegram Bot.
-    setIsAllowed(false);
+    const checkTelegram = () => {
+      const isTelegram = typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.initData;
+      if (isTelegram) {
+        setIsAllowed(true);
+        return;
+      }
+      
+      retries++;
+      if (retries < maxRetries) {
+        setTimeout(checkTelegram, 100);
+      } else {
+        // 4. If none of the above, they are opening the app in a regular browser without admin rights.
+        // Redirect to the Telegram Bot.
+        setIsAllowed(false);
+      }
+    };
+    
+    checkTelegram();
   }, [pathname]);
 
 

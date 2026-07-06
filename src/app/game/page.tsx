@@ -501,6 +501,7 @@ function GameContent() {
 
   // ─── Initial Mount: load data + sound prefs ───────────────────────────────
   useEffect(() => {
+    initTelegram();
     setMounted(true);
     
     // Load local sound preference

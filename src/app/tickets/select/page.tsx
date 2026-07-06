@@ -603,6 +603,7 @@ function SelectionContent() {
 
   useEffect(() => {
     if (roomType.toUpperCase().includes('SPIN')) return;
+    initTelegram();
     getMe().then(setUser).catch(() => { });
     loadGameData();
 
