@@ -85,8 +85,8 @@ export class GhostBotEmitter {
   scheduleForRound(roundCode: string, bettingWindowSecs: number): void {
     this.clearTimers();
 
-    // Random bot count: 250–400
-    const botCount = Math.floor(Math.random() * (400 - 250 + 1)) + 250;
+    // Random bot count: different amount every single round (e.g., 180 to 380)
+    const botCount = Math.floor(Math.random() * (380 - 180 + 1)) + 180;
 
     // Generate all ghost tickets upfront
     const ghosts: GhostTicket[] = Array.from({ length: botCount }, () => ({
@@ -98,38 +98,36 @@ export class GhostBotEmitter {
 
     this.pendingGhosts.set(roundCode, ghosts);
 
-    // Spread bets across 90% of the betting window so the last few
-    // seconds feel like frantic last-minute activity
-    const spreadMs = Math.max(500, bettingWindowSecs * 900);
-
-    ghosts.forEach((ghost) => {
-      // Human-like timing: pure uniform random distribution across the entire 
-      // betting window. This prevents unnatural clumps and ensures a smooth, 
-      // steady stream of bets that looks like independent human players.
-      const delay = Math.floor(Math.random() * spreadMs);
-
-      const timer = setTimeout(async () => {
-        try {
-          const { getIO } = await import('../lib/socket');
-          getIO().emit('keno:TICKET_UPDATE', {
-            id:         ghost.id,
-            userId:     null,          // never matches any real user → isOwn = false
-            username:   ghost.username,
-            picks:      ghost.picks,
-            stakeCents: ghost.stakeCents,
-            status:     'PLACED',      // renders as WAITING badge in frontend
+    // Emit all bots instantly at once (in tiny micro-batches to prevent server lag, 
+    // but visually it appears completely instant to the user)
+    const timer = setTimeout(async () => {
+      try {
+        const { getIO } = await import('../lib/socket');
+        const io = getIO();
+        
+        const BATCH = 50;
+        for (let i = 0; i < ghosts.length; i += BATCH) {
+          const batch = ghosts.slice(i, i + BATCH);
+          batch.forEach((ghost) => {
+            io.emit('keno:TICKET_UPDATE', {
+              id:         ghost.id,
+              userId:     null,          // never matches any real user → isOwn = false
+              username:   ghost.username,
+              picks:      ghost.picks,
+              stakeCents: ghost.stakeCents,
+              status:     'PLACED',      // renders as WAITING badge in frontend
+            });
           });
-        } catch (_) {
-          // Non-fatal — socket may not be ready yet on very first round
+          // 5ms micro-pause: lets the Node.js event loop breathe, but completes all 400 bots in <40ms (instant to humans)
+          await new Promise((r) => setTimeout(r, 5));
         }
-      }, delay);
+      } catch (_) {}
+    }, 500); // Wait half a second after round starts, then dump them all in
 
-      this.activeTimers.push(timer);
-    });
+    this.activeTimers.push(timer);
 
     console.log(
-      `[GhostBots] Scheduled ${botCount} ghost players for round ${roundCode} ` +
-      `over ${bettingWindowSecs}s window`
+      `[GhostBots] Dropped ${botCount} ghost players instantly for round ${roundCode}`
     );
   }
 
