@@ -92,7 +92,7 @@ export class GhostBotEmitter {
     const ghosts: GhostTicket[] = Array.from({ length: botCount }, () => ({
       id: `ghost_${randomUUID()}`,
       username: this.randomItem(ETHIOPIAN_NAMES),
-      picks: this.randomPicks(this.randomItem([3, 4, 6])), // Randomly 3, 4, 6
+      picks: this.randomPicks(this.randomItem([1, 2, 3, 4, 6])), // Randomly 1, 2, 3, 4, 6
       stakeCents: this.randomItem(STAKE_POOL_CENTS),
     }));
 
