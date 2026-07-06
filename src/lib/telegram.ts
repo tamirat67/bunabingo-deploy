@@ -7,13 +7,15 @@ export const tg = () => {
   return null;
 };
 
-export const initTelegram = () => {
+export const initTelegram = (retryCount = 0) => {
   try {
     const app = tg();
-    if (app) {
-      if (typeof app.ready === 'function') app.ready();
+    if (app && typeof app.ready === 'function') {
+      app.ready();
       if (typeof app.expand === 'function') app.expand();
       if (app.enableClosingConfirmation) app.enableClosingConfirmation();
+    } else if (retryCount < 20) {
+      setTimeout(() => initTelegram(retryCount + 1), 100);
     }
   } catch (e) {
     console.warn('Telegram SDK init failed:', e);
