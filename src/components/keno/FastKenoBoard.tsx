@@ -815,24 +815,24 @@ function DrawingArea({
   animBalls: Set<number>; myPicks: number[];
 }) {
   return (
-    <div style={{ ...css.drawingArea, position: 'relative', minHeight: 200, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+    <div style={{ ...css.drawingArea, position: 'relative', minHeight: 250, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
       
       {/* progress counter top right */}
       <div style={{ position: 'absolute', top: 0, right: 10, fontSize: 11, color: '#94a3b8', fontWeight: 700, zIndex: 10, letterSpacing: 1 }}>
         {drawn.length} / 20
       </div>
 
-      {/* radar concentric rings behind big ball - made brighter green for visibility */}
+      {/* radar concentric rings behind big ball - perfectly centered */}
       <div style={{
-        position: 'absolute', top: '40%', left: '50%', transform: 'translate(-50%, -50%)',
+        position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
         width: 300, height: 300, borderRadius: '50%',
         background: 'repeating-radial-gradient(circle, transparent 0, transparent 28px, rgba(34,197,94,0.2) 28px, rgba(34,197,94,0.2) 30px)',
         zIndex: 0, pointerEvents: 'none',
         boxShadow: '0 0 40px rgba(34,197,94,0.1) inset' // subtle inner glow
       }} />
 
-      {/* large animated ball */}
-      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20, zIndex: 1 }}>
+      {/* large animated ball - perfectly centered in the remaining flex space */}
+      <div style={{ display: 'flex', justifyContent: 'center', zIndex: 1 }}>
         <div style={{
           ...css.bigBallWrap,
           opacity: bigBallVisible ? 1 : 0,
@@ -842,30 +842,32 @@ function DrawingArea({
         </div>
       </div>
 
-      {/* two rows: 10 balls each */}
-      {[0, 1].map((row) => (
-        <div key={row} style={css.drawnRow}>
-          {drawn.slice(row * 10, row * 10 + 10).map((n) => {
-            const isHit = myPicks.includes(n);
-            const isNew = animBalls.has(n);
-            return (
-              <div
-                key={n}
-                style={{
-                  animation: isNew ? 'popBall 0.4s cubic-bezier(.175,.885,.32,1.275)' : 'none',
-                }}
-              >
-                <KenoBall number={n} size={34} hit={isHit} mini />
-              </div>
-            );
-          })}
-          {/* placeholders so the row always fills */}
-          {drawn.slice(row * 10, row * 10 + 10).length < 10 &&
-            Array.from({ length: 10 - drawn.slice(row * 10, row * 10 + 10).length }).map((_, i) => (
-              <div key={`ph${i}`} style={css.ballPlaceholder} />
-            ))}
-        </div>
-      ))}
+      {/* two rows: 10 balls each, pushed to the absolute bottom */}
+      <div style={{ position: 'absolute', bottom: 12, left: 0, right: 0, zIndex: 2 }}>
+        {[0, 1].map((row) => (
+          <div key={row} style={css.drawnRow}>
+            {drawn.slice(row * 10, row * 10 + 10).map((n) => {
+              const isHit = myPicks.includes(n);
+              const isNew = animBalls.has(n);
+              return (
+                <div
+                  key={n}
+                  style={{
+                    animation: isNew ? 'popBall 0.4s cubic-bezier(.175,.885,.32,1.275)' : 'none',
+                  }}
+                >
+                  <KenoBall number={n} size={33} hit={isHit} mini />
+                </div>
+              );
+            })}
+            {/* placeholders so the row always fills */}
+            {drawn.slice(row * 10, row * 10 + 10).length < 10 &&
+              Array.from({ length: 10 - drawn.slice(row * 10, row * 10 + 10).length }).map((_, i) => (
+                <div key={`ph${i}`} style={{...css.ballPlaceholder, width: 33, height: 33}} />
+              ))}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
