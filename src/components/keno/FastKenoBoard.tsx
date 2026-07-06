@@ -179,13 +179,6 @@ export default function FastKenoBoard({
         } else {
           // DRAWING or COMPLETED — stop countdown
           setLocalSecondsLeft(0);
-
-          // ── Option B: silently sweep ghost bot tickets out of the feed ──
-          // Ghost bots (userId === null/undefined) disappear when draw starts.
-          // Only real player tickets remain visible.
-          if (u.phase === 'DRAWING') {
-            setLiveTickets(prev => prev.filter(t => !!t.userId));
-          }
         }
 
         // New ball animation
@@ -213,8 +206,6 @@ export default function FastKenoBoard({
             next[idx] = newTicket;
             return next;
           }
-          // Ignore incoming ghost tickets during DRAWING/COMPLETED — only real players shown
-          if (!t.userId) return prev;
           return [newTicket, ...prev];
         });
       });
