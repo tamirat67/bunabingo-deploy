@@ -9,6 +9,26 @@ export interface PlaceTicketInput {
   stakeCents: number;
 }
 
+/* ─── Per-spot maximum stake (cents) ───────────────────────────────
+   Higher multipliers → lower stake cap to bound worst-case payout.
+   Example: 10-spot max = 50 ETB × 10,000x = 500,000 ETB raw,
+   already hard-capped at 30,000 ETB by drawEngine — but we still
+   limit 10-spot bets to 100 ETB so a single lucky ticket can't
+   expose the house to more than 30,000 ETB.
+──────────────────────────────────────────────────────────────────── */
+const SPOT_MAX_STAKE_CENTS: Record<number, number> = {
+  1:  50000, // 500 ETB — 2.8x max, low risk
+  2:  50000, // 500 ETB — 5x max
+  3:  50000, // 500 ETB — 35x max
+  4:  30000, // 300 ETB — 60x max
+  5:  20000, // 200 ETB — 250x max
+  6:  10000, // 100 ETB — 500x max
+  7:  10000, // 100 ETB — 1000x max
+  8:   5000, //  50 ETB — 2000x max
+  9:   5000, //  50 ETB — 5000x max
+  10:  3000, //  30 ETB — 10000x max
+};
+
 export class TicketServiceError extends Error {
   constructor(message: string, public code: string) {
     super(message);
@@ -20,7 +40,7 @@ export class TicketService {
 
   async placeTicket(input: PlaceTicketInput) {
     this.validatePicks(input.picks);
-    await this.validateStake(input.stakeCents);
+    await this.validateStake(input.stakeCents, input.picks.length);
 
     const round = this.drawEngine.getCurrentRound();
     if (!round || round.status !== "BETTING") {
@@ -125,7 +145,7 @@ export class TicketService {
     }
   }
 
-  private async validateStake(stakeCents: number) {
+  private async validateStake(stakeCents: number, spotCount: number) {
     if (!Number.isInteger(stakeCents) || stakeCents <= 0) {
       throw new TicketServiceError("Invalid stake amount", "INVALID_STAKE");
     }
@@ -137,10 +157,21 @@ export class TicketService {
     for (const r of rows) map[r.configKey] = parseInt(r.configValue, 10);
 
     const min = map["round.min_stake_cents"] ?? 50;
-    const max = map["round.max_stake_cents"] ?? 50000;
+    const globalMax = map["round.max_stake_cents"] ?? 50000;
 
-    if (stakeCents < min || stakeCents > max) {
-      throw new TicketServiceError(`Stake must be between ${min} and ${max} cents`, "INVALID_STAKE");
+    if (stakeCents < min) {
+      throw new TicketServiceError(`Minimum stake is ${min / 100} ETB`, "INVALID_STAKE");
+    }
+
+    // Apply per-spot stake cap (protects house from high-multiplier jackpot exposure)
+    const spotMax = SPOT_MAX_STAKE_CENTS[spotCount] ?? globalMax;
+    const effectiveMax = Math.min(globalMax, spotMax);
+
+    if (stakeCents > effectiveMax) {
+      throw new TicketServiceError(
+        `Max stake for ${spotCount}-spot is ${effectiveMax / 100} ETB`,
+        "INVALID_STAKE"
+      );
     }
   }
 }

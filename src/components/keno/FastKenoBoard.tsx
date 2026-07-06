@@ -1170,8 +1170,11 @@ function RulesOverlay({ onClose }: { onClose: () => void }) {
         {tab === 'RULES' ? (
           <>
             <div style={{ marginBottom: 20 }}>
-              <div style={{ color: '#94a3b8' }}>RTP: 97%</div>
-              <div style={{ fontWeight: 700, fontSize: 14, marginTop: 8, color: '#e2e8f0' }}>Max Win - 30000 ETB</div>
+              <div style={{ color: '#94a3b8' }}>House Edge: ~25% · Fixed Odds</div>
+              <div style={{ fontWeight: 700, fontSize: 14, marginTop: 8, color: '#e2e8f0' }}>Max Win — 30,000 ETB per ticket</div>
+              <div style={{ marginTop: 10, fontSize: 11, color: '#475569', lineHeight: 1.7 }}>
+                Max stake per spot: 1–3 spot: 500 ETB · 4 spot: 300 ETB · 5 spot: 200 ETB · 6–7 spot: 100 ETB · 8–9 spot: 50 ETB · 10 spot: 30 ETB
+              </div>
             </div>
             
             <p style={{ marginBottom: 16 }}>

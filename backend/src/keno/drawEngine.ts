@@ -260,12 +260,15 @@ export class DrawEngine extends EventEmitter {
     if (won) {
       const idempotencyKey = `keno:payout:${ticket.id}`;
       try {
-        const creditResult = await this.wallet.credit({
-          userId: ticket.userId,
-          amountCents: payoutCents,
-          idempotencyKey,
-          reason: `Fast Keno Pari-Mutuel payout (ticket #${ticket.id})`,
-        });
+        const creditResult = await this.creditWithRetry(
+          {
+            userId: ticket.userId,
+            amountCents: payoutCents,
+            idempotencyKey,
+            reason: `Fast Keno payout (ticket #${ticket.id})`,
+          },
+          ticket.id
+        );
 
         await this.prisma.kenoTicket.update({
           where: { id: ticket.id },
@@ -281,19 +284,55 @@ export class DrawEngine extends EventEmitter {
             detail: { hits: ticket.hits, multiplier: ticket.multiplier },
           },
         });
+
+        console.log(`[DrawEngine] ✅ Payout credited: ticket #${ticket.id} → user ${ticket.userId} → ${payoutCents / 100} ETB`);
       } catch (err) {
-        console.error(`[DrawEngine] PAYOUT CREDIT FAILED for ticket ${ticket.id}`, err);
+        console.error(`[DrawEngine] ⚠️ PAYOUT CREDIT FAILED after all retries for ticket ${ticket.id}`, err);
+        // Log for mandatory manual recovery — player WON but money was not credited
         await this.prisma.kenoAuditLog.create({
           data: {
             ticketId: ticket.id,
             userId: ticket.userId,
-            action: "DEBIT_FAILED",
+            action: "PAYOUT_CREDIT_FAILED",
             amountCents: payoutCents,
-            detail: { error: String(err) },
+            detail: {
+              error: String(err),
+              requiresManualReview: true,
+              message: "Player won but credit failed — manual refund required",
+            },
           },
         });
       }
     }
+  }
+
+  /**
+   * Retry wallet credit up to maxRetries times with exponential backoff.
+   * Uses the same idempotencyKey on every attempt so duplicate credits
+   * are safe (the wallet adapter deduplicates by key).
+   */
+  private async creditWithRetry(
+    params: { userId: string; amountCents: number; idempotencyKey: string; reason: string },
+    ticketId: bigint,
+    maxRetries = 3
+  ): Promise<{ ok: boolean; reference: string; newBalanceCents?: number }> {
+    let lastErr: unknown;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const result = await this.wallet.credit(params);
+        if (result.ok) return result;
+        // credit returned ok:false (user not found, etc.) — no point retrying
+        console.warn(`[DrawEngine] credit returned ok:false for ticket ${ticketId} (attempt ${attempt})`);
+        return result;
+      } catch (err) {
+        lastErr = err;
+        console.warn(`[DrawEngine] credit attempt ${attempt}/${maxRetries} failed for ticket ${ticketId}`, err);
+        if (attempt < maxRetries) {
+          await new Promise((r) => setTimeout(r, attempt * 1500)); // 1.5s → 3s → 4.5s
+        }
+      }
+    }
+    throw lastErr;
   }
 
   private async getPayoutMultiplier(picksCount: number, matches: number): Promise<number> {
