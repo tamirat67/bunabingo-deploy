@@ -6,6 +6,21 @@ import { Markup } from 'telegraf';
 import { config } from '../config';
 
 /**
+ * In-memory store for full announcement messages.
+ * Key: short announcement ID (derived from the promotion URL)
+ * Value: { fullText, expiresAt }
+ * Entries are cleaned up automatically after 24 hours.
+ */
+export const announcementStore = new Map<string, { fullText: string; expiresAt: number }>();
+
+function storeFullAnnouncement(id: string, fullText: string): void {
+  const TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+  announcementStore.set(id, { fullText, expiresAt: Date.now() + TTL_MS });
+  // Schedule cleanup
+  setTimeout(() => announcementStore.delete(id), TTL_MS);
+}
+
+/**
  * Notifies an agent on Telegram about a new request from their referred player.
  * Now supports optional inline buttons for direct approval/rejection.
  */
@@ -86,10 +101,15 @@ export async function broadcastMessage(
       hasMore = true;
     }
 
-    // Build buttons: always show Play button; add Read More if truncated
+    // Build buttons: always show Play button; add Read More (callback) if truncated
     const buttonRows: any[] = [];
     if (hasMore && readMoreUrl) {
-      buttonRows.push([Markup.button.url('📖 Read Full Announcement', readMoreUrl)]);
+      // Extract the promotion ID from the URL (last path segment)
+      const announcementId = readMoreUrl.split('/').pop() || 'unknown';
+      // Store the full message so the callback handler can retrieve it
+      storeFullAnnouncement(announcementId, message);
+      // Use a callback button — sends the full text inline, no external link prompt
+      buttonRows.push([Markup.button.callback('📖 Read Full Announcement', `read_announcement_${announcementId}`)]);
     }
     buttonRows.push([Markup.button.url('Play Buna Bingo 🎮', 'https://t.me/buna_bingobot')]);
     const finalButtons = buttons ? buttons : Markup.inlineKeyboard(buttonRows);

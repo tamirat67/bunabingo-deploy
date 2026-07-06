@@ -47,6 +47,7 @@ import {
 // ─── Services ─────────────────────────────────────────────────────────────────
 import { updateUserPhone } from '../services/user.service';
 import { logger }          from '../lib/logger';
+import { announcementStore } from './notifier';
 
 export function createBot(): Telegraf {
   const bot = new Telegraf(config.bot.token);
@@ -172,6 +173,30 @@ export function createBot(): Telegraf {
   // ─── Withdrawal approve / reject (admin) ─────────────────────────────────
   bot.action(/^approve_wd_(.+)$/, ctx => handleApproveWithdrawal(ctx, ctx.match[1]));
   bot.action(/^reject_wd_(.+)$/,  ctx => handleRejectWithdrawal(ctx, ctx.match[1]));
+
+  // ─── Read Full Announcement (inline reply — no external link) ────────────
+  bot.action(/^read_announcement_(.+)$/, async (ctx) => {
+    const announcementId = ctx.match[1];
+    const entry = announcementStore.get(announcementId);
+
+    // Always acknowledge the callback query to remove the loading spinner
+    await ctx.answerCbQuery();
+
+    if (!entry) {
+      await ctx.reply('⚠️ ማስታወቂያው ጊዜ ያለፈ ወይም አይገኝም።\n(The announcement has expired or is no longer available.)');
+      return;
+    }
+
+    // Send the full announcement text directly in the chat
+    const MAX_TG = 4096;
+    const chunks: string[] = [];
+    for (let i = 0; i < entry.fullText.length; i += MAX_TG) {
+      chunks.push(entry.fullText.slice(i, i + MAX_TG));
+    }
+    for (const chunk of chunks) {
+      await ctx.reply(chunk, { parse_mode: 'HTML' });
+    }
+  });
 
   // ═══════════════════════════════════════════════════════════════════════════
   //  CONTACT — phone-number verification + referral bonus
