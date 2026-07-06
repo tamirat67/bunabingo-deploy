@@ -76,6 +76,7 @@ export class TicketService {
         const { getIO } = await import("../lib/socket");
         getIO().emit("keno:TICKET_UPDATE", {
           id: ticket.id,
+          userId: ticket.userId,
           username,
           picks: ticket.numbers,
           stakeCents: ticket.stakeCents,

@@ -228,6 +228,28 @@ export class DrawEngine extends EventEmitter {
     });
     if (result.count === 0) return; // already settled
 
+    // Fetch username for broadcast
+    let username = "User";
+    try {
+      const user = await this.prisma.user.findUnique({ where: { id: ticket.userId }, select: { telegramUsername: true, firstName: true } });
+      username = user?.telegramUsername || user?.firstName || "User";
+    } catch (_) {}
+
+    // Broadcast the settled ticket status to all connected clients
+    try {
+      const { getIO } = await import("../lib/socket");
+      getIO().emit("keno:TICKET_UPDATE", {
+        id: ticket.id.toString(),
+        userId: ticket.userId,
+        username,
+        picks: ticket.numbers,
+        stakeCents: ticket.stakeCents,
+        status: won ? "WON" : "LOST",
+        hits: ticket.hits,
+        payoutCents,
+      });
+    } catch (_) {}
+
     if (won) {
       const idempotencyKey = `keno:payout:${ticket.id}`;
       try {

@@ -29,10 +29,29 @@ export function createKenoRouter(
   });
 
   // Public stats routes (no auth required)
-  router.get("/round/current", (req, res) => {
+  router.get("/round/current", async (req, res) => {
     const round = drawEngine.getCurrentRound();
     if (!round) return res.json({ status: "NO_ACTIVE_ROUND" });
     const liveState = drawEngine.getLiveState();
+
+    const tickets = await prisma.kenoTicket.findMany({
+      where: { roundId: round.id },
+      include: { user: { select: { telegramUsername: true, firstName: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 100
+    });
+
+    const formattedTickets = tickets.map(t => ({
+      id: t.id.toString(),
+      userId: t.userId,
+      username: t.user?.telegramUsername || t.user?.firstName || 'User',
+      picks: t.numbers,
+      stakeCents: t.stakeCents,
+      status: t.status,
+      hits: t.hits,
+      payoutCents: t.payoutCents
+    }));
+
     res.json({
       roundCode: round.roundCode,
       phase: round.status,
@@ -41,6 +60,7 @@ export function createKenoRouter(
       bettingClosesAt: round.bettingClosesAt,
       drawnNumbers: liveState?.drawnNumbers ?? [],
       secondsRemaining: liveState?.secondsRemaining ?? 0,
+      tickets: formattedTickets
     });
   });
 

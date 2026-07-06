@@ -22,6 +22,7 @@ interface RoundState {
 
 interface LiveTicket {
   id: string;
+  userId?: string;
   username: string;
   picks: number[];
   stakeCents: number;
@@ -102,7 +103,6 @@ export default function FastKenoBoard({
   const [picks, setPicks] = useState<Set<number>>(new Set());
   const [spotChoice, setSpotChoice] = useState<number | null>(null);
   const [stake, setStake] = useState(DEFAULT_STAKE);
-  const [ticketPlaced, setTicketPlaced] = useState(false);
   const [isPlacing, setIsPlacing] = useState(false);
   const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null);
 
@@ -164,7 +164,6 @@ export default function FastKenoBoard({
           // Only reset picks/tickets when a BRAND NEW round starts (roundCode changes)
           if (currentRoundCode.current !== u.roundCode) {
             currentRoundCode.current = u.roundCode;
-            setTicketPlaced(false);
             setPicks(new Set());
             setLiveTickets([]);
             prevDrawn.current = [];
@@ -198,14 +197,16 @@ export default function FastKenoBoard({
       });
 
       socket.on('keno:TICKET_UPDATE', (t: LiveTicket) => {
+        const isOwn = String(t.userId || '').toLowerCase() === String(userId || '').toLowerCase();
+        const newTicket = { ...t, isOwn };
         setLiveTickets((prev) => {
-          const idx = prev.findIndex((x) => x.id === t.id);
+          const idx = prev.findIndex((x) => String(x.id) === String(newTicket.id));
           if (idx >= 0) {
             const next = [...prev];
-            next[idx] = t;
+            next[idx] = newTicket;
             return next;
           }
-          return [t, ...prev];
+          return [newTicket, ...prev];
         });
       });
     }).catch(() => {});
@@ -240,6 +241,14 @@ export default function FastKenoBoard({
         setPhase(phase);
         setLocalSecondsLeft(secs);
         currentRoundCode.current = r.data.roundCode;
+
+        if (r.data.tickets && Array.isArray(r.data.tickets)) {
+          const loadedTickets = r.data.tickets.map((t: any) => ({
+            ...t,
+            isOwn: String(t.userId || '').toLowerCase() === String(userId || '').toLowerCase()
+          }));
+          setLiveTickets(loadedTickets);
+        }
       }
     }).catch(() => {});
     // Fetch REAL balance on mount — sessionStorage balance may be stale
@@ -277,7 +286,7 @@ export default function FastKenoBoard({
 
   /* ─────────── Pick logic ─────────── */
   function togglePick(n: number) {
-    if (phase !== 'BETTING' || ticketPlaced) return;
+    if (phase !== 'BETTING') return;
     const limit = spotChoice ?? MAX_PICKS;
     setPicks((prev) => {
       const next = new Set(prev);
@@ -291,13 +300,13 @@ export default function FastKenoBoard({
   }
 
   function selectSpot(n: number) {
-    if (phase !== 'BETTING' || ticketPlaced) return;
+    if (phase !== 'BETTING') return;
     setSpotChoice(n);
     setPicks(new Set());
   }
 
   function quickPick() {
-    if (phase !== 'BETTING' || ticketPlaced) return;
+    if (phase !== 'BETTING') return;
     const limit = spotChoice ?? MAX_PICKS;
     const pool = Array.from({ length: 80 }, (_, i) => i + 1).sort(() => Math.random() - 0.5);
     setPicks(new Set(pool.slice(0, limit)));
@@ -327,7 +336,7 @@ export default function FastKenoBoard({
       if (res.data?.newBalanceCents !== undefined) {
         setLocalBalance(res.data.newBalanceCents / 100);
       }
-      setTicketPlaced(true);
+      setPicks(new Set());
       showMsg(`🎱 Ticket placed! ${picks.size} picks × ${stake} ETB`, true);
     } catch (err: any) {
       const errMsg = err?.response?.data?.error ?? 'Bet failed. Try again.';
@@ -475,7 +484,6 @@ export default function FastKenoBoard({
           picks={picks}
           spotChoice={spotChoice}
           maxAllowed={maxAllowed}
-          ticketPlaced={ticketPlaced}
           stake={stake}
           onSelectSpot={selectSpot}
           onOpenRules={() => setShowRules(true)}
@@ -500,7 +508,7 @@ export default function FastKenoBoard({
               const isPicked = picks.has(n);
               const isDrawn = drawnSet.has(n);
               const isHit = isPicked && isDrawn;
-              const canInteract = isBetting && !ticketPlaced;
+              const canInteract = isBetting;
 
               let bg = '#2b2f36';
               let color = '#9ca3af';
@@ -574,27 +582,21 @@ export default function FastKenoBoard({
             </div>
           )}
 
-          {!ticketPlaced ? (
-            <button
-              id="keno-bet-btn"
-              onClick={placeBet}
-              disabled={isPlacing || picks.size === 0}
-              style={{
-                ...css.betBtn,
-                background: picks.size === 0
-                  ? '#2b2f36'
-                  : 'linear-gradient(180deg, #3d6a4c, #264a34)',
-                color: picks.size === 0 ? '#64748b' : '#94a3b8',
-                boxShadow: picks.size > 0 ? '0 4px 15px rgba(34,197,94,0.2)' : 'none',
-              }}
-            >
-              {isPlacing ? 'Processing...' : picks.size === 0 ? 'Pick Numbers First' : 'BET'}
-            </button>
-          ) : (
-            <div style={css.ticketConfirmed}>
-              ✓ Ticket Confirmed — watching {picks.size} picks
-            </div>
-          )}
+          <button
+            id="keno-bet-btn"
+            onClick={placeBet}
+            disabled={isPlacing || picks.size === 0}
+            style={{
+              ...css.betBtn,
+              background: picks.size === 0
+                ? '#2b2f36'
+                : 'linear-gradient(180deg, #3d6a4c, #264a34)',
+              color: picks.size === 0 ? '#64748b' : '#94a3b8',
+              boxShadow: picks.size > 0 ? '0 4px 15px rgba(34,197,94,0.2)' : 'none',
+            }}
+          >
+            {isPlacing ? 'Processing...' : picks.size === 0 ? 'Pick Numbers First' : 'BET'}
+          </button>
 
           <div style={css.quickRow}>
             <button id="keno-quick-pick" onClick={quickPick} style={css.quickBtn}>⚡ Quick Pick</button>
@@ -634,7 +636,6 @@ export default function FastKenoBoard({
             hitPicks={hitPicks}
             stake={stake}
             isBetting={isBetting}
-            ticketPlaced={ticketPlaced}
             isPlacing={isPlacing}
             msg={msg}
             subTab={subTab}
@@ -687,10 +688,10 @@ export default function FastKenoBoard({
    BETTING AREA — countdown clock + pick instruction + spot selector
 ════════════════════════════════════════════════════════════ */
 function BettingArea({
-  phase, timeLeft, picks, spotChoice, maxAllowed, ticketPlaced, stake, onSelectSpot, onOpenRules,
+  phase, timeLeft, picks, spotChoice, maxAllowed, stake, onSelectSpot, onOpenRules,
 }: {
   phase: RoundPhase; timeLeft: number; picks: Set<number>; spotChoice: number | null;
-  maxAllowed: number; ticketPlaced: boolean; stake: number;
+  maxAllowed: number; stake: number;
   onSelectSpot: (n: number) => void; onOpenRules: () => void;
 }) {
   const isBetting = phase === 'BETTING';
@@ -863,13 +864,13 @@ function DrawingArea({
    GAME TAB — number grid + bet controls + live tickets
 ════════════════════════════════════════════════════════════ */
 function GameTabContent({
-  phase, picks, drawnSet, myPicks, hitPicks, stake, isBetting, ticketPlaced,
+  phase, picks, drawnSet, myPicks, hitPicks, stake, isBetting,
   isPlacing, msg, subTab, allCount, myCount, filteredTickets, maxAllowed,
   roundCode, onTogglePick, onSetSubTab, onAdjustStake, onDoubleStake,
   onMaxStake, onQuickPick, onBet, onClear,
 }: {
   phase: RoundPhase; picks: Set<number>; drawnSet: Set<number>; myPicks: number[];
-  hitPicks: number[]; stake: number; isBetting: boolean; ticketPlaced: boolean;
+  hitPicks: number[]; stake: number; isBetting: boolean;
   isPlacing: boolean; msg: { text: string; ok: boolean } | null; subTab: SubTab;
   allCount: number; myCount: number; filteredTickets: LiveTicket[]; maxAllowed: number;
   roundCode?: string; onTogglePick: (n: number) => void; onSetSubTab: (t: SubTab) => void;
@@ -901,7 +902,16 @@ function GameTabContent({
         </div>
 
         {filteredTickets.length === 0 ? (
-          <div style={css.feedEmpty} />
+          <div style={{
+            padding: '18px 12px', textAlign: 'center' as const,
+            fontSize: 12, color: '#334155', fontWeight: 500,
+          }}>
+            {subTab === 'ALL'
+              ? 'No bets placed this round yet'
+              : subTab === 'MY_TICKETS' || subTab === 'MY_BETS'
+                ? 'You have no bets this round yet'
+                : ''}
+          </div>
         ) : (
           filteredTickets.map((t) => (
             <TicketCard key={t.id} ticket={t} drawnSet={drawnSet} />
