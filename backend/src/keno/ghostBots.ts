@@ -103,13 +103,10 @@ export class GhostBotEmitter {
     const spreadMs = Math.max(500, bettingWindowSecs * 900);
 
     ghosts.forEach((ghost) => {
-      // Human-like timing: random independent delays instead of linear spacing.
-      // We use Math.max of two random numbers to skew the distribution slightly 
-      // towards the end of the window (simulating the "last-minute rush" of real players)
-      const r1 = Math.random();
-      const r2 = Math.random();
-      const randomFactor = Math.max(r1, r2);
-      const delay = Math.floor(randomFactor * spreadMs);
+      // Human-like timing: pure uniform random distribution across the entire 
+      // betting window. This prevents unnatural clumps and ensures a smooth, 
+      // steady stream of bets that looks like independent human players.
+      const delay = Math.floor(Math.random() * spreadMs);
 
       const timer = setTimeout(async () => {
         try {

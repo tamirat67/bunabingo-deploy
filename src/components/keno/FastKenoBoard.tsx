@@ -815,7 +815,7 @@ function DrawingArea({
   animBalls: Set<number>; myPicks: number[];
 }) {
   return (
-    <div style={{ ...css.drawingArea, position: 'relative', minHeight: 180, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+    <div style={{ ...css.drawingArea, position: 'relative', minHeight: 200, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
       
       {/* progress counter top right */}
       <div style={{ position: 'absolute', top: 0, right: 10, fontSize: 11, color: '#94a3b8', fontWeight: 700, zIndex: 10, letterSpacing: 1 }}>
@@ -824,7 +824,7 @@ function DrawingArea({
 
       {/* radar concentric rings behind big ball - made brighter green for visibility */}
       <div style={{
-        position: 'absolute', top: '25%', left: '50%', transform: 'translate(-50%, -50%)',
+        position: 'absolute', top: '40%', left: '50%', transform: 'translate(-50%, -50%)',
         width: 300, height: 300, borderRadius: '50%',
         background: 'repeating-radial-gradient(circle, transparent 0, transparent 28px, rgba(34,197,94,0.2) 28px, rgba(34,197,94,0.2) 30px)',
         zIndex: 0, pointerEvents: 'none',
