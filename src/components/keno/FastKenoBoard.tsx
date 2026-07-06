@@ -822,12 +822,13 @@ function DrawingArea({
         {drawn.length} / 20
       </div>
 
-      {/* radar concentric rings behind big ball */}
+      {/* radar concentric rings behind big ball - made brighter green for visibility */}
       <div style={{
         position: 'absolute', top: '25%', left: '50%', transform: 'translate(-50%, -50%)',
         width: 300, height: 300, borderRadius: '50%',
-        background: 'repeating-radial-gradient(circle, transparent 0, transparent 28px, rgba(56,189,248,0.06) 29px, rgba(56,189,248,0.06) 30px)',
-        zIndex: 0, pointerEvents: 'none'
+        background: 'repeating-radial-gradient(circle, transparent 0, transparent 28px, rgba(34,197,94,0.2) 28px, rgba(34,197,94,0.2) 30px)',
+        zIndex: 0, pointerEvents: 'none',
+        boxShadow: '0 0 40px rgba(34,197,94,0.1) inset' // subtle inner glow
       }} />
 
       {/* large animated ball */}
