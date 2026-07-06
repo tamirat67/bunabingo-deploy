@@ -151,55 +151,23 @@ export class GhostBotEmitter {
   }
 
   /**
-   * Call this after the draw completes and real tickets are settled.
-   * Emits WON/LOST updates for each ghost using the real payout table.
+   * Call this after the draw completes.
+   * Ghost bots are silently removed — no WON/LOST events emitted.
+   * Only real player results appear in the live feed.
    *
    * @param roundCode     The round identifier
-   * @param drawnNumbers  The 20 numbers drawn this round
+   * @param drawnNumbers  The 20 numbers drawn this round (kept for signature compat)
    */
-  async settleForRound(roundCode: string, drawnNumbers: number[]): Promise<void> {
+  async settleForRound(roundCode: string, _drawnNumbers: number[]): Promise<void> {
     const ghosts = this.pendingGhosts.get(roundCode);
     if (!ghosts || ghosts.length === 0) return;
 
+    // Silently discard ghost tickets — no socket events emitted.
+    // Ghost bots showed as WAITING during betting; the frontend will
+    // filter them out when the round transitions to DRAWING.
     this.pendingGhosts.delete(roundCode);
 
-    let settled = 0;
-
-    try {
-      const { getIO } = await import('../lib/socket');
-      const io = getIO();
-
-      // Settle all ghosts in small batches (20 per tick) so we don't
-      // flood the socket with hundreds of events simultaneously
-      const BATCH = 20;
-      for (let i = 0; i < ghosts.length; i += BATCH) {
-        const batch = ghosts.slice(i, i + BATCH);
-
-        for (const ghost of batch) {
-          const hits       = ghost.picks.filter((p) => drawnNumbers.includes(p)).length;
-          const mult       = this.getMultiplier(ghost.picks.length, hits);
-          const payoutCents = mult > 0 ? Math.floor(ghost.stakeCents * mult) : 0;
-          const won        = payoutCents > 0;
-
-          io.emit('keno:TICKET_UPDATE', {
-            id:          ghost.id,
-            userId:      null,
-            username:    ghost.username,
-            picks:       ghost.picks,
-            stakeCents:  ghost.stakeCents,
-            status:      won ? 'WON' : 'LOST',
-            hits,
-            payoutCents: won ? payoutCents : 0,
-          });
-          settled++;
-        }
-
-        // Tiny pause between batches
-        await new Promise((r) => setTimeout(r, 30));
-      }
-    } catch (_) {}
-
-    console.log(`[GhostBots] Settled ${settled} ghost tickets for round ${roundCode}`);
+    console.log(`[GhostBots] Silently cleared ${ghosts.length} ghost tickets for round ${roundCode} (Option B — no fake WON/LOST)`);
   }
 
   // ─── Internal helpers ────────────────────────────────────────────
