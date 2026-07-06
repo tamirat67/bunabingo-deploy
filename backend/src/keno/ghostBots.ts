@@ -102,11 +102,14 @@ export class GhostBotEmitter {
     // seconds feel like frantic last-minute activity
     const spreadMs = Math.max(500, bettingWindowSecs * 900);
 
-    ghosts.forEach((ghost, idx) => {
-      // Linear spacing + small random jitter for natural feel
-      const baseDelay  = Math.floor((idx / botCount) * spreadMs);
-      const jitter     = Math.floor(Math.random() * 300);
-      const delay      = baseDelay + jitter;
+    ghosts.forEach((ghost) => {
+      // Human-like timing: random independent delays instead of linear spacing.
+      // We use Math.max of two random numbers to skew the distribution slightly 
+      // towards the end of the window (simulating the "last-minute rush" of real players)
+      const r1 = Math.random();
+      const r2 = Math.random();
+      const randomFactor = Math.max(r1, r2);
+      const delay = Math.floor(randomFactor * spreadMs);
 
       const timer = setTimeout(async () => {
         try {
