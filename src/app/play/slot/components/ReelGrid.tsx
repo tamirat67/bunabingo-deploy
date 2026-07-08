@@ -2,17 +2,84 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { SlotSymbol, LineWin } from '../types';
 
+import React from 'react';
+
+// ── Custom SVG Components ─────────────────────────────────────────────────────
+const BellSvg = () => (
+  <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-lg" style={{ filter: 'drop-shadow(0px 4px 6px rgba(0,0,0,0.5))' }}>
+    <defs>
+      <linearGradient id="bellGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#fef08a" />
+        <stop offset="40%" stopColor="#eab308" />
+        <stop offset="100%" stopColor="#a16207" />
+      </linearGradient>
+      <linearGradient id="bellHighlight" x1="20%" y1="0%" x2="50%" y2="100%">
+        <stop offset="0%" stopColor="#fff" stopOpacity="0.8" />
+        <stop offset="100%" stopColor="#fff" stopOpacity="0" />
+      </linearGradient>
+    </defs>
+    {/* Clapper */}
+    <circle cx="50" cy="85" r="10" fill="#a16207" />
+    {/* Main Bell Body */}
+    <path d="M25,80 C15,80 10,85 10,85 L90,85 C90,85 85,80 75,80 C75,50 70,30 50,20 C30,30 25,50 25,80 Z" fill="url(#bellGrad)" stroke="#422006" strokeWidth="3" strokeLinejoin="round" />
+    {/* Top Handle */}
+    <path d="M45,20 C45,15 55,15 55,20" fill="none" stroke="#eab308" strokeWidth="6" strokeLinecap="round" />
+    {/* Highlight */}
+    <path d="M35,75 C35,45 40,35 50,25" fill="none" stroke="url(#bellHighlight)" strokeWidth="4" strokeLinecap="round" />
+  </svg>
+);
+
+const BarSvg = () => (
+  <svg viewBox="0 0 100 100" className="w-full h-full" style={{ filter: 'drop-shadow(0px 4px 6px rgba(0,0,0,0.5))' }}>
+    <defs>
+      <linearGradient id="barOuter" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stopColor="#000" />
+        <stop offset="50%" stopColor="#333" />
+        <stop offset="100%" stopColor="#000" />
+      </linearGradient>
+      <linearGradient id="barInner" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stopColor="#ef4444" />
+        <stop offset="30%" stopColor="#fca5a5" />
+        <stop offset="70%" stopColor="#dc2626" />
+        <stop offset="100%" stopColor="#7f1d1d" />
+      </linearGradient>
+    </defs>
+    {/* Outer border */}
+    <rect x="5" y="30" width="90" height="40" rx="8" fill="url(#barOuter)" stroke="#fbbf24" strokeWidth="4" />
+    {/* Inner body */}
+    <rect x="10" y="35" width="80" height="30" rx="4" fill="url(#barInner)" />
+    {/* Text */}
+    <text x="50" y="58" fontFamily="Arial, sans-serif" fontSize="24" fontWeight="900" fill="#fff" textAnchor="middle" letterSpacing="2" style={{ textShadow: '1px 2px 2px rgba(0,0,0,0.8)' }}>BAR</text>
+  </svg>
+);
+
+const SevenSvg = () => (
+  <svg viewBox="0 0 100 100" className="w-full h-full" style={{ filter: 'drop-shadow(0px 4px 6px rgba(0,0,0,0.5))' }}>
+    <defs>
+      <linearGradient id="sevenBody" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#ef4444" />
+        <stop offset="50%" stopColor="#dc2626" />
+        <stop offset="100%" stopColor="#7f1d1d" />
+      </linearGradient>
+    </defs>
+    {/* Gold Outline + Shadow */}
+    <path d="M20,25 L80,25 L50,85 L35,85 L60,40 L30,40 Z" fill="url(#sevenBody)" stroke="#facc15" strokeWidth="6" strokeLinejoin="miter" />
+    {/* Inner detail line */}
+    <path d="M30,32 L70,32 L46,75" fill="none" stroke="#f87171" strokeWidth="2" />
+  </svg>
+);
+
 // ── Symbol visual definitions ─────────────────────────────────────────────────
-const SYMBOL_CONFIG: Record<SlotSymbol, { emoji: string; color: string; glow: string }> = {
-  CHERRY:     { emoji: '🍒', color: '#ef4444', glow: 'rgba(239,68,68,0.6)' },
-  LEMON:      { emoji: '🍋', color: '#eab308', glow: 'rgba(234,179,8,0.6)' },
-  ORANGE:     { emoji: '🍊', color: '#f97316', glow: 'rgba(249,115,22,0.6)' },
-  PLUM:       { emoji: '🍇', color: '#a855f7', glow: 'rgba(168,85,247,0.6)' },
-  WATERMELON: { emoji: '🍉', color: '#22c55e', glow: 'rgba(34,197,94,0.6)' },
-  GRAPES:     { emoji: '🍇', color: '#8b5cf6', glow: 'rgba(139,92,246,0.6)' },
-  BELL:       { emoji: '🔔', color: '#fbbf24', glow: 'rgba(251,191,36,0.6)' },
-  BAR:        { emoji: '📊', color: '#f59e0b', glow: 'rgba(245,158,11,0.8)' },
-  SEVEN:      { emoji: '7️⃣', color: '#ff0000', glow: 'rgba(255,0,0,0.9)' },
+const SYMBOL_CONFIG: Record<SlotSymbol, { emoji: string; color: string; glow: string; img?: string; svg?: React.ReactNode }> = {
+  CHERRY:     { emoji: '🍒', color: '#ef4444', glow: 'rgba(239,68,68,0.6)',    img: '/symbols/cherry.png' },
+  LEMON:      { emoji: '🍋', color: '#eab308', glow: 'rgba(234,179,8,0.6)',    img: '/symbols/lemon.png' },
+  ORANGE:     { emoji: '🍊', color: '#f97316', glow: 'rgba(249,115,22,0.6)',   img: '/symbols/orange.png' },
+  PLUM:       { emoji: '🍇', color: '#a855f7', glow: 'rgba(168,85,247,0.6)',   img: '/symbols/plum.png' },
+  WATERMELON: { emoji: '🍉', color: '#22c55e', glow: 'rgba(34,197,94,0.6)',    img: '/symbols/watermelon.png' },
+  GRAPES:     { emoji: '🍇', color: '#8b5cf6', glow: 'rgba(139,92,246,0.6)',   img: '/symbols/grapes.png' },
+  BELL:       { emoji: '🔔', color: '#fbbf24', glow: 'rgba(251,191,36,0.6)',   svg: <BellSvg /> },
+  BAR:        { emoji: '📊', color: '#f59e0b', glow: 'rgba(245,158,11,0.8)',   svg: <BarSvg /> },
+  SEVEN:      { emoji: '7️⃣', color: '#ff0000', glow: 'rgba(255,0,0,0.9)',     svg: <SevenSvg /> },
 };
 
 // Payline cell positions for a 3×3 grid
@@ -83,16 +150,47 @@ function SpinningSymbol({ col, stopped, symbol, row, lineWins }: {
         )}
       </AnimatePresence>
 
-      {/* Symbol */}
-      <motion.span
-        className="text-3xl leading-none z-10"
-        initial={false}
-        animate={{ opacity: stopped ? 1 : 0, scale: stopped ? 1 : 0.5 }}
-        transition={{ duration: 0.2 }}
-        style={{ filter: isWin ? `drop-shadow(0 0 8px ${cfg.color})` : 'none' }}
-      >
-        {cfg.emoji}
-      </motion.span>
+      {/* Symbol — use premium PNG/SVG if available, else emoji fallback */}
+      {cfg.svg ? (
+        <motion.div
+          className="z-10 select-none flex items-center justify-center"
+          style={{
+            width: '75%',
+            height: '75%',
+            filter: isWin ? `drop-shadow(0 0 10px ${cfg.color}) drop-shadow(0 0 4px ${cfg.color})` : 'drop-shadow(0 2px 4px rgba(0,0,0,0.6))',
+            opacity: stopped ? 1 : 0,
+            transform: stopped ? 'scale(1)' : 'scale(0.5)',
+            transition: 'opacity 0.2s, transform 0.2s',
+          }}
+        >
+          {cfg.svg}
+        </motion.div>
+      ) : cfg.img ? (
+        <motion.img
+          src={cfg.img}
+          alt={symbol}
+          className="z-10 select-none"
+          style={{
+            width: '72%',
+            height: '72%',
+            objectFit: 'contain',
+            filter: isWin ? `drop-shadow(0 0 10px ${cfg.color}) drop-shadow(0 0 4px ${cfg.color})` : 'drop-shadow(0 2px 4px rgba(0,0,0,0.6))',
+            opacity: stopped ? 1 : 0,
+            transform: stopped ? 'scale(1)' : 'scale(0.5)',
+            transition: 'opacity 0.2s, transform 0.2s',
+          }}
+        />
+      ) : (
+        <motion.span
+          className="text-3xl leading-none z-10"
+          initial={false}
+          animate={{ opacity: stopped ? 1 : 0, scale: stopped ? 1 : 0.5 }}
+          transition={{ duration: 0.2 }}
+          style={{ filter: isWin ? `drop-shadow(0 0 8px ${cfg.color})` : 'none' }}
+        >
+          {cfg.emoji}
+        </motion.span>
+      )}
 
       {/* Win flash */}
       {isWin && (
