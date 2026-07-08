@@ -42,12 +42,12 @@ export default function BetControls({
           onClick={handleDecrease}
           disabled={spinning || bet <= minBet}
           className="w-12 h-12 rounded-xl flex items-center justify-center text-3xl font-black disabled:opacity-50 active:scale-95 transition-transform border shadow-lg"
-          style={{ background: 'linear-gradient(to bottom, #fbbf24, #b45309)', borderColor: '#fcd34d', color: '#78350f', textShadow: '0 1px 1px rgba(255,255,255,0.5)' }}
+          style={{ background: 'linear-gradient(to bottom, #ff0000, #b91c1c)', borderColor: '#ff6666', color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.8)', boxShadow: '0 4px 12px rgba(255,0,0,0.4)' }}
         >
           -
         </button>
         
-        <div className="flex-1 h-12 rounded-xl flex flex-col items-center justify-center border shadow-inner" style={{ background: 'linear-gradient(to bottom, #000000, #170000)', borderColor: '#7f1d1d' }}>
+        <div className="flex-1 h-12 rounded-xl flex flex-col items-center justify-center border shadow-inner" style={{ background: 'linear-gradient(to bottom, #1a2e1a, #0d1f0d)', borderColor: 'rgba(134,239,172,0.4)' }}>
           <span className="text-[10px] uppercase tracking-widest mt-1 font-bold" style={{ color: '#fbbf24' }}>TOTAL BET</span>
           <input 
             type="number"
@@ -76,7 +76,7 @@ export default function BetControls({
           onClick={handleIncrease}
           disabled={spinning || bet >= balance || bet >= maxBet}
           className="w-12 h-12 rounded-xl flex items-center justify-center text-3xl font-black disabled:opacity-50 active:scale-95 transition-transform border shadow-lg"
-          style={{ background: 'linear-gradient(to bottom, #fbbf24, #b45309)', borderColor: '#fcd34d', color: '#78350f', textShadow: '0 1px 1px rgba(255,255,255,0.5)' }}
+          style={{ background: 'linear-gradient(to bottom, #ff0000, #b91c1c)', borderColor: '#ff6666', color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.8)', boxShadow: '0 4px 12px rgba(255,0,0,0.4)' }}
         >
           +
         </button>
@@ -102,10 +102,11 @@ export default function BetControls({
               : ''
           }`}
           style={{
-            background: autoplayActive ? 'linear-gradient(to bottom, #b91c1c, #7f1d1d)' : 'linear-gradient(to bottom, #4338ca, #1e3a8a)',
-            borderColor: autoplayActive ? '#ef4444' : '#818cf8',
+            background: autoplayActive ? 'linear-gradient(to bottom, #cc0000, #7f1d1d)' : 'linear-gradient(to bottom, #ff0000, #b91c1c)',
+            borderColor: '#ff6666',
             color: '#fff',
-            textShadow: '0 1px 2px rgba(0,0,0,0.8)'
+            textShadow: '0 1px 2px rgba(0,0,0,0.8)',
+            boxShadow: '0 4px 12px rgba(255,0,0,0.4)'
           }}
         >
           <span>{autoplayActive ? 'STOP' : 'AUTO'}</span>
