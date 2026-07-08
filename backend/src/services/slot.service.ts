@@ -362,9 +362,9 @@ export async function gamble(
     const currentPayout = parseFloat(lockedSpin.final_payout.toString());
     if (currentPayout <= 0) throw new Error('Nothing to gamble');
 
-    // Company Protection: 40% win chance (creates a 20% House Edge on gamble)
+    // Company Protection: 5% win chance (creates a 90% House Edge on gamble)
     // This prevents players from easily doubling their money and protects company finances.
-    const winChancePercent = 40; 
+    const winChancePercent = 5; 
     const roll = Math.random() * 100;
     won = roll < winChancePercent;
     
