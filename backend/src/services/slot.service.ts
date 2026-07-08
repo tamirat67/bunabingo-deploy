@@ -195,11 +195,12 @@ export async function spin(
     if (s0 === s1 && s1 === s2) {
       const base = paytable[s0] ?? 0;
       if (base > 0) {
+        const lineBet = betAmount / 5;
         lineWins.push({
           payline: pl.name,
           symbol: s0,
           baseMultiplier: base,
-          amount: parseFloat((betAmount * base * multiplierResult).toFixed(2)),
+          amount: parseFloat((lineBet * base * multiplierResult).toFixed(2)),
         });
       }
     }
