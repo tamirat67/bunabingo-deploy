@@ -87,7 +87,7 @@ export default function SettingsPage() {
   const [removeImage, setRemoveImage] = useState<boolean>(false);
 
   // ─── House Win Rate Protection ───
-  const [houseProtection, setHouseProtection] = useState({ forceHouseWin: true, rouletteFix: true, bingoWinRate: 10 });
+  const [houseProtection, setHouseProtection] = useState({ forceHouseWin: true, rouletteFix: true, bingoWinRate: 10, slotGambleWinChance: 5 });
   const [savingProtection, setSavingProtection] = useState(false);
   const [protectionSaved, setProtectionSaved] = useState(false);
 
@@ -96,7 +96,7 @@ export default function SettingsPage() {
     fetchSettings();
     fetchPromotions();
     api.get('/admin/house-settings')
-      .then(r => setHouseProtection({ forceHouseWin: r.data.forceHouseWin, rouletteFix: r.data.rouletteFix, bingoWinRate: r.data.bingoWinRate ?? 9 }))
+      .then(r => setHouseProtection({ forceHouseWin: r.data.forceHouseWin, rouletteFix: r.data.rouletteFix, bingoWinRate: r.data.bingoWinRate ?? 9, slotGambleWinChance: r.data.slotGambleWinChance ?? 5 }))
       .catch(e => console.error('Failed to load house settings:', e));
   }, []);
 
@@ -595,6 +595,34 @@ export default function SettingsPage() {
                   >
                     {[10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0].map(n => (
                       <option key={n} value={n}>{n === 10 ? '10/10 (Always)' : n === 0 ? '0/10 (Never)' : `${n}/10 Cycle`}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Slot Gamble Row */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+                <div style={{ flex: 1, paddingRight: '20px' }}>
+                  <div style={{ fontSize: '14px', fontWeight: '700', color: '#1f2937', marginBottom: '6px' }}>🎰 Buna Hot 5 Gamble House Edge</div>
+                  <div style={{ fontSize: '12px', color: '#6b7280', lineHeight: '1.4' }}>
+                    Set the player's win chance for the double-or-nothing gamble. 
+                    {houseProtection.slotGambleWinChance === 50 ? ' ⚖️ 50% (0% House Edge - high risk).' :
+                     houseProtection.slotGambleWinChance === 5 ? ' 🛡️ 5% (90% House Edge - extreme protection).' :
+                     ` 🛡️ ${houseProtection.slotGambleWinChance}% win chance (House Edge: ${100 - (houseProtection.slotGambleWinChance * 2)}%).`}
+                  </div>
+                </div>
+                <div style={{ flexShrink: 0 }}>
+                  <select
+                    className="login-input"
+                    style={{ width: '140px', padding: '10px 14px', fontSize: '14px', fontWeight: '800', cursor: 'pointer', background: houseProtection.slotGambleWinChance <= 40 ? '#dcfce7' : '#fee2e2' }}
+                    value={houseProtection.slotGambleWinChance}
+                    onChange={(e) => {
+                      const rate = parseInt(e.target.value);
+                      setHouseProtection(s => ({ ...s, slotGambleWinChance: rate }));
+                    }}
+                  >
+                    {[5, 10, 20, 30, 40, 45, 50].map(n => (
+                      <option key={n} value={n}>{n}% Win Chance</option>
                     ))}
                   </select>
                 </div>

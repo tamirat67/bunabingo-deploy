@@ -360,6 +360,7 @@ model HouseSettings {
   forceHouseWin   Boolean  @default(true)
   rouletteFix     Boolean  @default(true)
   bingoWinRate    Int      @default(100)
+  slotGambleWinChance Int  @default(5)
   updatedAt       DateTime @updatedAt
 
   @@map("house_settings")
