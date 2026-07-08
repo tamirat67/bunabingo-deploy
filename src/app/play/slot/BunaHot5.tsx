@@ -234,9 +234,9 @@ export default function BunaHot5() {
   }
 
   return (
-    <div className="min-h-screen text-white flex flex-col relative overflow-hidden" style={{ background: 'radial-gradient(ellipse at top, #059669 0%, #064e3b 60%, #022c22 100%)' }}>
-      {/* Background glow overhead */}
-      <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(circle at 50% 0%, rgba(52,211,153,0.4) 0%, transparent 60%)' }} />
+    <div className="min-h-screen text-white flex flex-col relative overflow-hidden" style={{ background: 'radial-gradient(ellipse at top, #22c55e 0%, #16a34a 40%, #15803d 100%)' }}>
+      {/* Bright lime glow at top */}
+      <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(circle at 50% 0%, rgba(187,247,208,0.6) 0%, transparent 50%)' }} />
 
       {/* Header */}
       <header className="flex justify-between items-center px-4 py-3 z-10 border-b border-white/10 bg-black/30 backdrop-blur-sm">
