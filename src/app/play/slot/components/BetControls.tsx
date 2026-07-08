@@ -116,11 +116,11 @@ export default function BetControls({
           disabled={spinning || bet > balance}
           className="flex-1 h-14 rounded-2xl flex items-center justify-center text-2xl font-black italic tracking-widest disabled:opacity-60 active:scale-[0.98] transition-transform border shadow-lg relative overflow-hidden"
           style={{
-            background: 'linear-gradient(to bottom, #ef4444, #7f1d1d)',
-            borderColor: '#f87171',
+            background: 'linear-gradient(to bottom, #ff0000, #b91c1c)',
+            borderColor: '#ff4d4d',
             color: '#fff',
-            textShadow: '0 2px 4px rgba(0,0,0,0.5)',
-            boxShadow: '0 4px 15px rgba(239,68,68,0.3)'
+            textShadow: '0 2px 4px rgba(0,0,0,0.8)',
+            boxShadow: '0 4px 15px rgba(255,0,0,0.5)'
           }}
         >
           {spinning ? 'SPINNING...' : 'SPIN'}
