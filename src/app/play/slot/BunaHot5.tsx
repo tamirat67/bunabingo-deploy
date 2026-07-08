@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { io } from 'socket.io-client';
-import { Loader2, Wallet } from 'lucide-react';
+import { Loader2, Wallet, Gift } from 'lucide-react';
 import { getMe } from '../../../lib/api';
 
 import SplashScreen from './components/SplashScreen';
@@ -13,6 +13,7 @@ import BetControls from './components/BetControls';
 import AutoplayPanel from './components/AutoplayPanel';
 import GambleModal from './components/GambleModal';
 import WinBanner from './components/WinBanner';
+import WeeklyBlastModal from './components/WeeklyBlastModal';
 
 import { useTelegramHaptics } from './hooks/useTelegramHaptics';
 import { useSlotSpin, useSlotConfig, useSlotHistory } from './hooks/useSlotSpin';
@@ -33,6 +34,7 @@ export default function BunaHot5() {
   const [balance, setBalance] = useState<number>(0);
   const [bet, setBet] = useState<number>(10);
   const [splashDone, setSplashDone] = useState(false);
+  const [blastOpen, setBlastOpen] = useState(false);
 
   // Result state
   const [grid, setGrid] = useState<SlotSymbol[][]>([
@@ -337,12 +339,17 @@ export default function BunaHot5() {
         }}
       />
 
-      {/* FAB to navigate to Aviator (ፍንዳታ) */}
+      <WeeklyBlastModal 
+        isOpen={blastOpen} 
+        onClose={() => setBlastOpen(false)} 
+      />
+
+      {/* FAB to open Weekly Reward Blast modal */}
       <button
-        onClick={() => router.push('/play/aviator')}
-        className="fixed bottom-4 right-4 z-50 bg-gradient-to-b from-red-500 to-red-700 hover:from-red-400 hover:to-red-600 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-[0_4px_15px_rgba(220,38,38,0.6)] border-2 border-red-400 font-black text-[11px] tracking-wider active:scale-95 transition-transform"
+        onClick={() => setBlastOpen(true)}
+        className="fixed bottom-4 right-4 z-40 bg-gradient-to-b from-yellow-500 to-yellow-700 hover:from-yellow-400 hover:to-yellow-600 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-[0_4px_15px_rgba(234,179,8,0.5)] border-2 border-yellow-400 font-black text-[11px] tracking-wider active:scale-95 transition-transform"
       >
-        ፍንዳታ
+        <Gift className="w-6 h-6 text-white" />
       </button>
     </div>
   );
