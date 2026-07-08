@@ -20,11 +20,11 @@ export default function SplashScreen({ onDone }: { onDone: () => void }) {
           transition={{ duration: 0.6 }}
           onClick={() => { setVisible(false); setTimeout(onDone, 600); }}
           className="fixed inset-0 z-50 flex flex-col items-center justify-center cursor-pointer"
-          style={{ background: 'linear-gradient(135deg, #0a1f0a 0%, #0d2e0d 50%, #051505 100%)' }}
+          style={{ background: 'linear-gradient(135deg, #2a0808 0%, #450a0a 50%, #110000 100%)' }}
         >
           {/* Electric border glow */}
           <div className="absolute inset-0 pointer-events-none"
-               style={{ boxShadow: 'inset 0 0 80px rgba(34,197,94,0.15)' }} />
+               style={{ boxShadow: 'inset 0 0 80px rgba(245,158,11,0.15)' }} />
 
           {/* Splash image */}
           <motion.img
@@ -34,7 +34,7 @@ export default function SplashScreen({ onDone }: { onDone: () => void }) {
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.5, ease: 'easeOut' }}
             className="w-full max-w-sm object-contain drop-shadow-2xl"
-            style={{ filter: 'drop-shadow(0 0 30px rgba(34,197,94,0.4))' }}
+            style={{ filter: 'drop-shadow(0 0 30px rgba(245,158,11,0.4))' }}
           />
 
           {/* Tap to play hint */}
@@ -42,7 +42,7 @@ export default function SplashScreen({ onDone }: { onDone: () => void }) {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: [0, 1, 0.5, 1], y: 0 }}
             transition={{ delay: 1.2, duration: 0.8, repeat: Infinity, repeatType: 'reverse' }}
-            className="mt-4 text-green-400 text-sm font-semibold tracking-widest uppercase"
+            className="mt-4 text-yellow-500 text-sm font-semibold tracking-widest uppercase drop-shadow"
           >
             ▶ ለመጀመር ይጫኑ
           </motion.p>
