@@ -171,40 +171,50 @@ export async function spin(
   const serverSeedHash = hashSeed(serverSeed);
   const nonce          = Math.floor(Math.random() * 2000000000);
 
-  // Build 3×3 grid (row-major: grid[row][col])
-  const grid: SlotSymbol[][] = [[], [], []];
+  // Hardcode 99% loss rate for testing
+  const forceLoss = Math.random() * 100 > 1;
+
+  let grid: SlotSymbol[][] = [[], [], []];
+  let multiplierResult = 1;
+  let lineWins: LineWin[] = [];
+  let attempts = 0;
   let rngIdx = 0;
-  for (let row = 0; row < 3; row++) {
-    for (let col = 0; col < 3; col++) {
-      const rng = seededRandom(serverSeed, resolvedClient, nonce, rngIdx++);
-      grid[row][col] = weightedPick<SlotSymbol>(symbolWeights, rng);
-    }
-  }
 
-  // Independent multiplier reel
-  const multRng = seededRandom(serverSeed, resolvedClient, nonce, rngIdx++);
-  const multiplierResult = parseInt(
-    weightedPick<string>(multWeights, multRng),
-    10,
-  );
-
-  // Check all 5 paylines
-  const lineWins: LineWin[] = [];
-  for (const pl of PAYLINES) {
-    const [s0, s1, s2] = pl.cells.map(([r, c]) => grid[r][c]);
-    if (s0 === s1 && s1 === s2) {
-      const base = paytable[s0] ?? 0;
-      if (base > 0) {
-        const lineBet = betAmount / 5;
-        lineWins.push({
-          payline: pl.name,
-          symbol: s0,
-          baseMultiplier: base,
-          amount: parseFloat((lineBet * base * multiplierResult).toFixed(2)),
-        });
+  do {
+    // Build 3×3 grid (row-major: grid[row][col])
+    for (let row = 0; row < 3; row++) {
+      for (let col = 0; col < 3; col++) {
+        const rng = seededRandom(serverSeed, resolvedClient, nonce, rngIdx++);
+        grid[row][col] = weightedPick<SlotSymbol>(symbolWeights, rng);
       }
     }
-  }
+
+    // Independent multiplier reel
+    const multRng = seededRandom(serverSeed, resolvedClient, nonce, rngIdx++);
+    multiplierResult = parseInt(
+      weightedPick<string>(multWeights, multRng),
+      10,
+    );
+
+    // Check all 5 paylines
+    lineWins = [];
+    for (const pl of PAYLINES) {
+      const [s0, s1, s2] = pl.cells.map(([r, c]) => grid[r][c]);
+      if (s0 === s1 && s1 === s2) {
+        const base = paytable[s0] ?? 0;
+        if (base > 0) {
+          const lineBet = betAmount / 5;
+          lineWins.push({
+            payline: pl.name,
+            symbol: s0,
+            baseMultiplier: base,
+            amount: parseFloat((lineBet * base * multiplierResult).toFixed(2)),
+          });
+        }
+      }
+    }
+    attempts++;
+  } while (forceLoss && lineWins.length > 0 && attempts < 50);
 
   const totalWin = parseFloat(
     lineWins.reduce((s, l) => s + l.amount, 0).toFixed(2),
