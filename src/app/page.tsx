@@ -374,6 +374,62 @@ export default function LobbyPage() {
         </div>
         </div>
 
+        {/* ── BUNA HOT 5 CARD ── */}
+        <div style={{ padding: '0 15px', marginBottom: '12px', marginTop: '16px' }}>
+          <div
+            onClick={() => router.push('/play/slot')}
+            style={{
+              background: 'linear-gradient(135deg, #2b1d0e 0%, #1e140a 60%, #3e2723 100%)',
+              borderRadius: '12px',
+              padding: '14px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              cursor: 'pointer',
+              border: '1px solid rgba(255,152,0,0.3)',
+              boxShadow: '0 4px 20px rgba(255,152,0,0.15)',
+              position: 'relative',
+              overflow: 'hidden',
+            }}
+          >
+            <div style={{
+              position: 'absolute', top: 0, left: 0, right: 0, height: '2px',
+              background: 'linear-gradient(90deg, transparent, #ff9800, transparent)',
+            }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                background: 'rgba(255,152,0,0.1)',
+                padding: '10px',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <Play size={24} color="#ff9800" fill="#ff9800" />
+              </div>
+              <div>
+                <div style={{ fontSize: '18px', fontWeight: '900', color: '#ff9800', lineHeight: '1', letterSpacing: '1px' }}>
+                  BUNA HOT 5
+                </div>
+                <div style={{ fontSize: '10px', color: '#ffcc80', opacity: 0.8, marginTop: '2px' }}>
+                  Slot Game • Hot
+                </div>
+              </div>
+            </div>
+            <div style={{
+              background: 'rgba(255,152,0,0.2)',
+              color: '#ff9800',
+              padding: '6px 12px',
+              borderRadius: '20px',
+              fontSize: '11px',
+              fontWeight: '900',
+              border: '1px solid rgba(255,152,0,0.4)',
+            }}>
+              PLAY
+            </div>
+          </div>
+        </div>
+
         {/* ── AVIATOR CARD ── */}
         <div style={{ padding: '0 15px', marginBottom: '12px', marginTop: '16px' }}>
           <div

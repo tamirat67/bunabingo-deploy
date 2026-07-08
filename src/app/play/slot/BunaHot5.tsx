@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { io } from 'socket.io-client';
 import { Loader2 } from 'lucide-react';
+import { getMe } from '../../../lib/api';
 
 import SplashScreen from './components/SplashScreen';
 import ReelGrid from './components/ReelGrid';
@@ -56,9 +57,15 @@ export default function BunaHot5() {
   const autoStopLoss = useRef(0);
   const startBalance = useRef(0);
 
-  // Load config & init Telegram
+  // Load config & init Telegram & fetch balance
   useEffect(() => {
     fetchConfig();
+    getMe().then(me => {
+      if (me?.wallet?.balance !== undefined) {
+        setBalance(Number(me.wallet.balance));
+      }
+    }).catch(() => {});
+    
     try {
       const tg = (window as any).Telegram?.WebApp;
       if (tg) {
@@ -222,11 +229,11 @@ export default function BunaHot5() {
 
       {/* Header */}
       <header className="flex justify-between items-center p-4 z-10">
-        <button onClick={() => router.back()} className="text-green-500 font-bold">◀ BACK</button>
+        <button onClick={() => router.push('/')} className="text-green-500 font-bold">◀ BACK</button>
         <div className="font-black italic tracking-widest text-xl bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent drop-shadow-md">
           BUNA HOT 5
         </div>
-        <button onClick={() => fetchHistory()} className="text-gray-400">History</button>
+        <button onClick={() => router.push('/history')} className="text-gray-400">History</button>
       </header>
 
       {/* Main Game Area */}
