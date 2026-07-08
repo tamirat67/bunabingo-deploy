@@ -171,33 +171,47 @@ export async function spin(
   const serverSeedHash = hashSeed(serverSeed);
   const nonce          = Math.floor(Math.random() * 2000000000);
 
-  // Hardcode 99% loss rate for testing
+  // Hardcode 99% forced loss for testing
   const forceLoss = Math.random() * 100 > 1;
 
   let grid: SlotSymbol[][] = [[], [], []];
-  let multiplierResult = 1;
-  let lineWins: LineWin[] = [];
-  let attempts = 0;
   let rngIdx = 0;
 
-  do {
-    // Build 3×3 grid (row-major: grid[row][col])
+  if (forceLoss) {
+    // Build a guaranteed no-match grid:
+    // Each row gets 3 DIFFERENT symbols so no payline can ever match
+    const symbolList = Object.keys(symbolWeights) as SlotSymbol[];
+    const numSymbols = symbolList.length;
+    for (let row = 0; row < 3; row++) {
+      grid[row] = [];
+      for (let col = 0; col < 3; col++) {
+        // Pick a symbol, but offset by col so no row is all-same
+        const rng = seededRandom(serverSeed, resolvedClient, nonce, rngIdx++);
+        const idx = Math.floor(rng * numSymbols);
+        // Offset each column by 1 to guarantee no match on any row
+        grid[row][col] = symbolList[(idx + col) % numSymbols];
+      }
+    }
+  } else {
+    // Normal spin — use weighted RNG
     for (let row = 0; row < 3; row++) {
       for (let col = 0; col < 3; col++) {
         const rng = seededRandom(serverSeed, resolvedClient, nonce, rngIdx++);
         grid[row][col] = weightedPick<SlotSymbol>(symbolWeights, rng);
       }
     }
+  }
 
-    // Independent multiplier reel
-    const multRng = seededRandom(serverSeed, resolvedClient, nonce, rngIdx++);
-    multiplierResult = parseInt(
-      weightedPick<string>(multWeights, multRng),
-      10,
-    );
+  // Independent multiplier reel
+  const multRng = seededRandom(serverSeed, resolvedClient, nonce, rngIdx++);
+  const multiplierResult = parseInt(
+    weightedPick<string>(multWeights, multRng),
+    10,
+  );
 
-    // Check all 5 paylines
-    lineWins = [];
+  // Check all 5 paylines (will always be empty when forceLoss is true)
+  const lineWins: LineWin[] = [];
+  if (!forceLoss) {
     for (const pl of PAYLINES) {
       const [s0, s1, s2] = pl.cells.map(([r, c]) => grid[r][c]);
       if (s0 === s1 && s1 === s2) {
@@ -213,8 +227,7 @@ export async function spin(
         }
       }
     }
-    attempts++;
-  } while (forceLoss && lineWins.length > 0 && attempts < 50);
+  }
 
   const totalWin = parseFloat(
     lineWins.reduce((s, l) => s + l.amount, 0).toFixed(2),
