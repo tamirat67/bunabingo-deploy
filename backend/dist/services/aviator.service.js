@@ -326,7 +326,7 @@ async function aviatorEnterRoom(socketId, userId, io) {
         const dbUserId = await resolveDbUserId(userId);
         const wallet = await prisma_1.default.wallet.findUnique({ where: { userId: dbUserId } });
         const user = await prisma_1.default.user.findUnique({ where: { id: dbUserId }, select: { firstName: true, username: true, telegramUsername: true } });
-        const balance = wallet ? parseFloat(new library_1.Decimal(wallet.balance.toString()).add(new library_1.Decimal(wallet.bonusBalance.toString())).toFixed(2)) : 0;
+        const balance = wallet ? parseFloat(new library_1.Decimal(wallet.balance?.toString() ?? '0').add(new library_1.Decimal(wallet.bonusBalance?.toString() ?? '0')).toFixed(2)) : 0;
         const betF = gameState.bets.get(`${userId}:f`);
         const betS = gameState.bets.get(`${userId}:s`);
         socket.emit('myInfo', {
@@ -435,7 +435,7 @@ async function aviatorPlaceBet(userId, betAmount, target, type) {
         logger_1.logger.info(`[Aviator] Bet placed userId=${userId} amount=${betAmount} target=${target}`);
         // Fetch updated balance to return for real-time socket update
         const wallet = await prisma_1.default.wallet.findUnique({ where: { userId: dbUserId } });
-        const newBalance = wallet ? parseFloat(new library_1.Decimal(wallet.balance.toString()).add(new library_1.Decimal(wallet.bonusBalance.toString())).toFixed(2)) : 0;
+        const newBalance = wallet ? parseFloat(new library_1.Decimal(wallet.balance?.toString() ?? '0').add(new library_1.Decimal(wallet.bonusBalance?.toString() ?? '0')).toFixed(2)) : 0;
         return { success: true, balance: newBalance };
     }
     catch (err) {
@@ -461,7 +461,7 @@ async function aviatorCashOut(userId, at, index) {
     try {
         const dbUserId = await resolveDbUserId(userId);
         const wallet = await prisma_1.default.wallet.findUnique({ where: { userId: dbUserId } });
-        const newBalance = wallet ? parseFloat(new library_1.Decimal(wallet.balance.toString()).add(new library_1.Decimal(wallet.bonusBalance.toString())).toFixed(2)) : 0;
+        const newBalance = wallet ? parseFloat(new library_1.Decimal(wallet.balance?.toString() ?? '0').add(new library_1.Decimal(wallet.bonusBalance?.toString() ?? '0')).toFixed(2)) : 0;
         return { success: true, balance: newBalance };
     }
     catch (e) {

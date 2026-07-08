@@ -96,7 +96,7 @@ export default function HistoryPage() {
 
         {/* ── Filter Chips ── */}
         <div style={{ display: 'flex', gap: '8px', marginBottom: '15px', flexWrap: 'wrap' }}>
-          {[10, 20, 50, 100].map(amt => (
+          {[10, 20, 50, 100, 200].map(amt => (
             <div key={amt} onClick={() => setFilter(filter === amt ? null : amt)} style={{ padding: '6px 14px', borderRadius: '20px', background: filter === amt ? T.gold : 'transparent', color: filter === amt ? T.header : T.text, fontWeight: '900', fontSize: '12px', cursor: 'pointer', border: filter === amt ? 'none' : `1px solid ${T.border}` }}>
               {amt} ETB
             </div>
