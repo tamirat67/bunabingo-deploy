@@ -390,7 +390,7 @@ export async function aviatorEnterRoom(socketId: string, userId: string, io: any
     const wallet = await prisma.wallet.findUnique({ where: { userId: dbUserId } });
     const user   = await prisma.user.findUnique({ where: { id: dbUserId }, select: { firstName: true, username: true, telegramUsername: true } });
 
-    const balance = wallet ? parseFloat(new Decimal(wallet.balance.toString()).add(new Decimal(wallet.bonusBalance.toString())).toFixed(2)) : 0;
+    const balance = wallet ? parseFloat(new Decimal(wallet.balance?.toString() ?? '0').add(new Decimal(wallet.bonusBalance?.toString() ?? '0')).toFixed(2)) : 0;
     
     const betF = gameState.bets.get(`${userId}:f`);
     const betS = gameState.bets.get(`${userId}:s`);
@@ -521,7 +521,7 @@ export async function aviatorPlaceBet(
     
     // Fetch updated balance to return for real-time socket update
     const wallet = await prisma.wallet.findUnique({ where: { userId: dbUserId } });
-    const newBalance = wallet ? parseFloat(new Decimal(wallet.balance.toString()).add(new Decimal(wallet.bonusBalance.toString())).toFixed(2)) : 0;
+    const newBalance = wallet ? parseFloat(new Decimal(wallet.balance?.toString() ?? '0').add(new Decimal(wallet.bonusBalance?.toString() ?? '0')).toFixed(2)) : 0;
     
     return { success: true, balance: newBalance };
   } catch (err: any) {
@@ -555,7 +555,7 @@ export async function aviatorCashOut(
   try {
     const dbUserId = await resolveDbUserId(userId);
     const wallet = await prisma.wallet.findUnique({ where: { userId: dbUserId } });
-    const newBalance = wallet ? parseFloat(new Decimal(wallet.balance.toString()).add(new Decimal(wallet.bonusBalance.toString())).toFixed(2)) : 0;
+    const newBalance = wallet ? parseFloat(new Decimal(wallet.balance?.toString() ?? '0').add(new Decimal(wallet.bonusBalance?.toString() ?? '0')).toFixed(2)) : 0;
     return { success: true, balance: newBalance };
   } catch (e) {
     return { success: true };
