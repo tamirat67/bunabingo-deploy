@@ -20,11 +20,11 @@ export default function SplashScreen({ onDone }: { onDone: () => void }) {
           transition={{ duration: 0.6 }}
           onClick={() => { setVisible(false); setTimeout(onDone, 600); }}
           className="fixed inset-0 z-50 flex flex-col items-center justify-center cursor-pointer"
-          style={{ background: 'radial-gradient(ellipse at top, #991b1b 0%, #450a0a 50%, #170000 100%)' }}
+          style={{ background: 'radial-gradient(ellipse at top, #059669 0%, #064e3b 60%, #022c22 100%)' }}
         >
-          {/* Electric border glow overhead */}
+          {/* Green overhead glow */}
           <div className="absolute inset-0 pointer-events-none"
-               style={{ background: 'radial-gradient(circle at 50% 10%, rgba(251,191,36,0.2) 0%, transparent 50%)' }} />
+               style={{ background: 'radial-gradient(circle at 50% 0%, rgba(52,211,153,0.4) 0%, transparent 55%)' }} />
 
           {/* Splash image */}
           <motion.img
@@ -34,7 +34,7 @@ export default function SplashScreen({ onDone }: { onDone: () => void }) {
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.5, ease: 'easeOut' }}
             className="w-full max-w-sm object-contain drop-shadow-2xl"
-            style={{ filter: 'drop-shadow(0 0 30px rgba(245,158,11,0.4))' }}
+            style={{ filter: 'drop-shadow(0 0 30px rgba(52,211,153,0.5))' }}
           />
 
           {/* Tap to play hint */}
