@@ -1,14 +1,7 @@
 'use client';
 import { useState, useCallback } from 'react';
-import axios from 'axios';
+import api from '@/lib/api';
 import { GambleResult } from '../types';
-
-function getInitData(): string {
-  try { return (window as any).Telegram?.WebApp?.initData ?? ''; }
-  catch { return ''; }
-}
-
-const headers = () => ({ 'x-telegram-init-data': getInitData() });
 
 export function useGambleFlow() {
   const [loading, setLoading]   = useState(false);
@@ -32,18 +25,15 @@ export function useGambleFlow() {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await axios.post(
-        '/api/games/slot/gamble',
-        { spinId, choice },
-        { headers: headers() },
-      );
+      const { data } = await api.post('/games/slot/gamble', { spinId, choice });
       const result = data as GambleResult;
       setCurrent(result.newPayout);
       setRound(result.round);
       setComplete(result.gambleComplete);
       onResult(result);
     } catch (err: any) {
-      setError(err.response?.data?.error ?? err.message ?? 'Gamble failed');
+      const msg = err.response?.data?.error ?? err.message ?? 'Gamble failed';
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -56,15 +46,12 @@ export function useGambleFlow() {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await axios.post(
-        '/api/games/slot/collect',
-        { spinId },
-        { headers: headers() },
-      );
+      const { data } = await api.post('/games/slot/collect', { spinId });
       setComplete(true);
       onCollected(data.finalPayout, data.newBalance);
     } catch (err: any) {
-      setError(err.response?.data?.error ?? err.message ?? 'Collect failed');
+      const msg = err.response?.data?.error ?? err.message ?? 'Collect failed';
+      setError(msg);
     } finally {
       setLoading(false);
     }
