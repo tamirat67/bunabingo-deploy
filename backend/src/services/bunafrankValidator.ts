@@ -41,10 +41,11 @@ export function parseTelebirrSms(smsText: string): TelebirrSmsData | null {
     const text = smsText.replace(/\s+/g, ' ').trim();
 
     // ── Ethiopian phone formats accepted: 251XXXXXXXX, 09XXXXXXXX, +251XXXXXXXX
-    // ── Ethiopian phone formats accepted: 251XXXXXXXX, 09XXXXXXXX, +251XXXXXXXX
-    // Masked in SMS as: 2519****8294 | 09****8294 | +251****8294 | +251****55111
-    // Oromo SMS may show only 2 trailing digits (e.g. 0969****11); accept 2–5
-    const phonePattern = `(?:(?:\\+251|251|0)\\d{0,3}[\\*x]+(\\d{2,5}))`;
+    // ── Masking: any non-digit non-space chars (*, x, •, ·, ✱, etc.)
+    // phonePatternMasked captures: (prefix)(last2-6digits)
+    const phonePatternMasked = `(?:(\\+?251|0)\\d{0,3}[^\\d\\s()]+(\\d{2,6}))`;
+    // Also handle unmasked full number
+    const phonePatternFull   = `(\\+?251\\d{9}|09\\d{8})`;
 
     let transactionId = '';
     let recipientName = 'Unknown';
@@ -59,135 +60,123 @@ export function parseTelebirrSms(smsText: string): TelebirrSmsData | null {
     // LANGUAGE DETECTION & PARSING
     // ══════════════════════════════════════════════════════════
 
-    const isOromo = /Kabajamoo|Qarshii|Lakkoofsi|gaafa guyyaa|ergitanii/i.test(text);
+    const isOromo   = /Kabajamoo|Qarshii|Lakkoofsi|gaafa guyyaa|ergitanii/i.test(text);
     const isAmharic = /ወደ|ብር|ቁጥርዎ|ውድ/.test(text);
 
     if (isOromo) {
       // ── AFAAN OROMO ────────────────────────────────────────────────────────
-      // Greeting: "Kabajamoo dhachaa"
-      // e.g. "Gara Luel Gebrelibanos (2519****5111)tti  Qarshii 100.00"
-      // TxnID: "Lakkoofsi sochii maallaqaa keessan DFD0UPGKGS' dha."
-      // Date:  "gaafa guyyaa 13/06/2026 17:03:22"
-      // Fee:   "Kaffaltiin tajaajilla(VAT 15% dabalatee) Qarshii 1.00"
-
-      // 1. Transaction ID
       const txnOr = text.match(/Lakkoofsi\s+sochii\s+maallaqaa\s+keessan\s+([A-Z0-9]{6,})/i);
       if (!txnOr) return null;
       transactionId = txnOr[1].replace(/['^.,]/g, '').trim();
 
-      // 2. Recipient name + phone
-      const orRecipientPattern = new RegExp(
-        `Gara\\s+([^(]+?)\\s*\\((${phonePattern})\\)tti`,
-        'i'
-      );
-      const orMatch = text.match(orRecipientPattern);
-      if (orMatch) {
-        recipientName = orMatch[1].trim();
-        recipientPhoneMasked = orMatch[2];
-        recipientPhoneLast4 = orMatch[3];
+      // Recipient + masked phone  e.g. "Gara Luel Gebrelibanos (0969****5111)tti"
+      const orM = text.match(new RegExp(`Gara\\s+([^(]+?)\\s*\\(((?:\\+?251|0)\\d{0,3}[^\\d\\s()]+)(\\d{2,6})\\)tti`, 'i'));
+      if (orM) {
+        recipientName        = orM[1].trim();
+        recipientPhoneMasked = orM[2] + orM[3];
+        recipientPhoneLast4  = orM[3];
       }
 
-      // 3. Amount — first Qarshii occurrence (the transfer amount, not fee)
       const orAmounts = [...text.matchAll(/Qarshii\s+([\d,]+\.?\d*)/gi)];
-      if (orAmounts.length > 0) {
-        amount = parseFloat(orAmounts[0][1].replace(/,/g, ''));
-      }
+      if (orAmounts.length > 0) amount = parseFloat(orAmounts[0][1].replace(/,/g, ''));
 
-      // 4. DateTime — "gaafa guyyaa DD/MM/YYYY HH:mm:ss"
       const orDate = text.match(/gaafa guyyaa\s+(\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2}:\d{2})/i);
-      dateTime = orDate?.[1] ?? '';
-
-      // 5. Sender — Oromo SMS does not include sender name, use placeholder
-      senderName = 'Unknown';
-
-      // 6. Service Fee — second Qarshii occurrence
-      if (orAmounts.length > 1) {
-        serviceFee = parseFloat(orAmounts[1][1].replace(/,/g, ''));
-      }
+      dateTime    = orDate?.[1] ?? '';
+      senderName  = 'Unknown';
+      if (orAmounts.length > 1) serviceFee = parseFloat(orAmounts[1][1].replace(/,/g, ''));
 
     } else if (isAmharic) {
       // ── AMHARIC ────────────────────────────────────────────────────────────
-      // TxnID: "የሂሳብ እንቅስቃሴ ቁጥርዎ DEB5T78F8X ነዉ።"
       const txnAm = text.match(/ቁጥርዎ\s+([A-Z0-9]{6,})/i);
       if (!txnAm) return null;
       transactionId = txnAm[1].trim();
 
-      // Recipient + Amount: "ወደ Name(2519****8294) 10.00 ብር"
-      const amPattern = new RegExp(
-        `ወደ\\s+([^(]+?)\\s*\\((${phonePattern})\\)\\s+([\\d,]+\\.?\\d*)\\s+ብር`,
-        'i'
-      );
-      const amMatch = text.match(amPattern);
-      if (amMatch) {
-        recipientName = amMatch[1].trim();
-        recipientPhoneMasked = amMatch[2];
-        recipientPhoneLast4 = amMatch[3];
-        amount = parseFloat(amMatch[4].replace(/,/g, ''));
+      // "ወደ Name(2519****8294) 10.00 ብር"
+      const amM = text.match(new RegExp(`ወደ\\s+([^(]+?)\\s*\\(((?:\\+?251|0)\\d{0,3}[^\\d\\s()]+)(\\d{2,6})\\)\\s+([\\d,]+\\.?\\d*)\\s+ብር`, 'i'));
+      if (amM) {
+        recipientName        = amM[1].trim();
+        recipientPhoneMasked = amM[2] + amM[3];
+        recipientPhoneLast4  = amM[3];
+        amount               = parseFloat(amM[4].replace(/,/g, ''));
       }
 
-      // DateTime: "በ 11/05/2026 21:49:35"
       const amDate = text.match(/በ\s+(\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2}:\d{2})/i);
-      dateTime = amDate?.[1] ?? '';
-
-      // Sender: "ውድ NAME"
-      const amSender = text.match(/ውድ\s*([^\s\n,]+)/i);
-      senderName = amSender?.[1]?.trim() ?? 'Unknown';
-
       // Fee
       const amFee = text.match(/የአገልግሎት ክፍያው\s+([\d.]+)/i);
       serviceFee = amFee ? parseFloat(amFee[1]) : 0;
 
     } else {
       // ── ENGLISH ────────────────────────────────────────────────────────────
-      // ── ENGLISH ────────────────────────────────────────────────────────────
-      // TxnID: "Your transaction number is DE84OPTF9M." OR "Your Account Activity Number is DG88NERGX0."
-      const txnEn = text.match(/(?:transaction number is|Account Activity Number is)\s+([A-Z0-9]{6,})/i);
-      if (!txnEn) return null;
-      transactionId = txnEn[1].trim();
+      // Supported:
+      //  OLD: "You have transferred ETB 15.00 to Name (2519****8294) on ..."
+      //  NEW: "You sent 150.00 Birr to Name (+251****55111) on ..."
+      // TxnID: "Your transaction number is DE84OPTF9M."
+      //     OR "Your Account Activity Number is DG88NERGX0."
 
-      // Recipient + Amount: "transferred ETB 15.00 to Name (2519****8294)" OR "sent 150.00 Birr to Name (+251****55111)"
-      const enPatternOld = new RegExp(
-        `transferred\\s+ETB\\s+([\\d,]+\\.?\\d*)\\s+to\\s+([^(]+?)\\s*\\((${phonePattern})\\)`,
+      // 1. TxnID
+      const txnEn = text.match(/(?:transaction number is|Account Activity Number is)\s+([A-Z0-9]{6,20})/i);
+      if (!txnEn) return null;
+      transactionId = txnEn[1].replace(/['^.,]/g, '').trim();
+
+      // 2. Amount + Recipient + Phone
+      // phonePatternMasked captures: group1=prefix, group2=last2-6digits
+      // Full pattern groups: [1]=amount, [2]=recipientName, [3]=phonePrefix, [4]=phoneSuffix
+      const enPatternTransferred = new RegExp(
+        `transferred\\s+ETB\\s+([\\d,]+\\.?\\d*)\\s+to\\s+([^(]+?)\\s*\\((${phonePatternMasked})\\)`,
         'i'
       );
-      const enPatternNew = new RegExp(
-        `sent\\s+([\\d,]+\\.?\\d*)\\s+(?:Birr|ETB)\\s+to\\s+([^(]+?)\\s*\\((${phonePattern})\\)`,
+      const enPatternSent = new RegExp(
+        `sent\\s+([\\d,]+\\.?\\d*)\\s+(?:Birr|ETB)\\s+to\\s+([^(]+?)\\s*\\((${phonePatternMasked})\\)`,
         'i'
       );
-      
-      let enMatch = text.match(enPatternOld);
+
+      let enMatch = text.match(enPatternTransferred) || text.match(enPatternSent);
       if (enMatch) {
-        amount = parseFloat(enMatch[1].replace(/,/g, ''));
-        recipientName = enMatch[2].trim();
-        recipientPhoneMasked = enMatch[3];
-        recipientPhoneLast4 = enMatch[4];
+        // [1]=amount, [2]=name, [3]=phonePrefix(e.g."+251"), [4]=phoneSuffix(e.g."55111")
+        amount               = parseFloat(enMatch[1].replace(/,/g, ''));
+        recipientName        = enMatch[2].trim();
+        recipientPhoneMasked = (enMatch[3] || '') + '...' + (enMatch[4] || '');
+        recipientPhoneLast4  = enMatch[4] || '';
       } else {
-        enMatch = text.match(enPatternNew);
-        if (enMatch) {
-          amount = parseFloat(enMatch[1].replace(/,/g, ''));
-          recipientName = enMatch[2].trim();
-          recipientPhoneMasked = enMatch[3];
-          recipientPhoneLast4 = enMatch[4];
+        // Fallback: full unmasked phone (e.g. +251969455111)
+        const enFull = text.match(
+          /(?:transferred\s+ETB|sent)\s+([\d,]+\.?\d*)\s+(?:Birr|ETB)\s+to\s+([^(]+?)\s*\((\+?251\d{9}|09\d{8})\)/i
+        );
+        if (enFull) {
+          amount               = parseFloat(enFull[1].replace(/,/g, ''));
+          recipientName        = enFull[2].trim();
+          recipientPhoneMasked = enFull[3];
+          recipientPhoneLast4  = enFull[3].slice(-4);
+        } else {
+          // Last resort: amount only — still useful if txnId found
+          const amtOnly = text.match(/(?:transferred|sent)\s+([\d,]+\.?\d*)\s+(?:Birr|ETB)/i);
+          if (amtOnly) amount = parseFloat(amtOnly[1].replace(/,/g, ''));
         }
       }
 
-      // DateTime: "on 08/05/2026 17:20:46"
+      // 3. DateTime: "on DD/MM/YYYY HH:mm:ss"
       const enDate = text.match(/on\s+(\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2}:\d{2})/i);
       dateTime = enDate?.[1] ?? '';
 
-      // Sender: "Dear NAME"
-      const enSender = text.match(/Dear\s+([^\s\n,]+)/i);
+      // 4. Sender: "Dear NAME"
+      const enSender = text.match(/Dear\s+([^\s\n,.]+)/i);
       senderName = enSender?.[1]?.trim() ?? 'Unknown';
 
-      // Fee
-      const enFee = text.match(/service fee is(?: ETB)?\s+([\d.]+)/i);
+      // 5. Service fee: "The service fee is 1.74 Birr"
+      const enFee = text.match(/service fee is(?:\s+ETB)?\s+([\d.]+)/i);
       serviceFee = enFee ? parseFloat(enFee[1]) : 0;
     }
 
-    // ── Final guard: must have valid txn + amount + phone ──────────────────
-    if (!transactionId || amount === 0 || !recipientPhoneMasked) return null;
+    // ── Final guard: must have valid txnId + positive amount ──────────────────
+    // Phone is optional here — the validation layer handles phone matching
+    if (!transactionId || amount <= 0) return null;
 
-    // Receipt URL (present in all languages)
+    if (!recipientPhoneMasked) {
+      recipientPhoneMasked = 'Unknown';
+      recipientPhoneLast4  = '';
+    }
+
+    // Receipt URL (present in all SMS languages)
     const urlMatch = text.match(/(https:\/\/transactioninfo\.ethiotelecom\.et\/receipt\/[A-Z0-9]+)/i);
     const receiptUrl = urlMatch?.[1] ?? `https://transactioninfo.ethiotelecom.et/receipt/${transactionId}`;
 
@@ -207,6 +196,7 @@ export function parseTelebirrSms(smsText: string): TelebirrSmsData | null {
     return null;
   }
 }
+
 
 // ─── Online receipt verification ───────────────────────────────────────────────
 export async function verifyReceiptOnline(receiptUrl: string, transactionId: string): Promise<boolean> {
@@ -296,13 +286,12 @@ function selfVerifyParsed(data: TelebirrSmsData): { ok: boolean; issue?: string 
     return { ok: false, issue: '❌ ክፍያው ያልተለመደ ትልቅ መጠን አለው — ሳይጣምም SMS ያስገቡ።' };
   if (!data.transactionId || !/^[A-Z0-9]{6,20}$/.test(data.transactionId))
     return { ok: false, issue: '❌ የግብይት መለያ (ID) ቅርጽ ትክክል አይደለም — ሙሉ SMS ያስገቡ።' };
-  // Accept: 251XXXXXXXX, 09XXXXXXXX, +251XXXXXXXX (all Ethiopian formats)
-  if (!data.recipientPhoneMasked || !/^(\+?251|09)/.test(data.recipientPhoneMasked))
+  // Accept: 251XXXXXXXX, 09XXXXXXXX, +251XXXXXXXX or 'Unknown' (when phone not parseable)
+  if (data.recipientPhoneMasked && data.recipientPhoneMasked !== 'Unknown' && !/^(\+?251|09)/.test(data.recipientPhoneMasked))
     return { ok: false, issue: '❌ የተቀባዩ ስልክ ቁጥር ቅርጽ ያልተለመደ ነው።' };
   if (!data.recipientName || data.recipientName.toLowerCase() === 'unknown')
     return { ok: false, issue: '❌ የተቀባዩ ስም ሊነበብ አልቻለም — ሙሉ SMS ያስገቡ።' };
-  if (!data.recipientPhoneLast4 || data.recipientPhoneLast4.length < 2)
-    return { ok: false, issue: '❌ የስልክ ቁጥሩ መጨረሻ ቁጥሮች ሊነበቡ አልቻሉም።' };
+  // recipientPhoneLast4 is optional — skip check if empty
   if (!data.dateTime || data.dateTime.trim().length < 10)
     return { ok: false, issue: '❌ የግብይቱ ቀን/ሰዓት ሊነበብ አልቻለም — ሙሉ SMS ያስገቡ።' };
   if (data.serviceFee < 0)
