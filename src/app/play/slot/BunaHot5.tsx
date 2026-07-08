@@ -336,6 +336,14 @@ export default function BunaHot5() {
           });
         }}
       />
+
+      {/* FAB to navigate to Aviator (ፍንዳታ) */}
+      <button
+        onClick={() => router.push('/play/aviator')}
+        className="fixed bottom-4 right-4 z-50 bg-gradient-to-b from-red-500 to-red-700 hover:from-red-400 hover:to-red-600 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-[0_4px_15px_rgba(220,38,38,0.6)] border-2 border-red-400 font-black text-[11px] tracking-wider active:scale-95 transition-transform"
+      >
+        ፍንዳታ
+      </button>
     </div>
   );
 }
