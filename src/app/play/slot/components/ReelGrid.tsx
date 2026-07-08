@@ -171,13 +171,15 @@ function SpinningSymbol({ col, stopped, symbol, row, lineWins }: {
           alt={symbol}
           className="z-10 select-none"
           style={{
-            width: '72%',
-            height: '72%',
+            width: '85%',
+            height: '85%',
             objectFit: 'contain',
             filter: isWin ? `drop-shadow(0 0 10px ${cfg.color}) drop-shadow(0 0 4px ${cfg.color})` : 'drop-shadow(0 2px 4px rgba(0,0,0,0.6))',
             opacity: stopped ? 1 : 0,
             transform: stopped ? 'scale(1)' : 'scale(0.5)',
             transition: 'opacity 0.2s, transform 0.2s',
+            maskImage: 'radial-gradient(circle, black 65%, transparent 72%)',
+            WebkitMaskImage: 'radial-gradient(circle, black 65%, transparent 72%)',
           }}
         />
       ) : (
