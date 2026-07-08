@@ -87,7 +87,7 @@ export default function SettingsPage() {
   const [removeImage, setRemoveImage] = useState<boolean>(false);
 
   // ─── House Win Rate Protection ───
-  const [houseProtection, setHouseProtection] = useState({ forceHouseWin: true, rouletteFix: true, bingoWinRate: 10, slotGambleWinChance: 5 });
+  const [houseProtection, setHouseProtection] = useState({ forceHouseWin: true, rouletteFix: true, bingoWinRate: 10, slotGambleWinChance: 5, slotBaseWinChance: 1 });
   const [savingProtection, setSavingProtection] = useState(false);
   const [protectionSaved, setProtectionSaved] = useState(false);
 
@@ -96,7 +96,7 @@ export default function SettingsPage() {
     fetchSettings();
     fetchPromotions();
     api.get('/admin/house-settings')
-      .then(r => setHouseProtection({ forceHouseWin: r.data.forceHouseWin, rouletteFix: r.data.rouletteFix, bingoWinRate: r.data.bingoWinRate ?? 9, slotGambleWinChance: r.data.slotGambleWinChance ?? 5 }))
+      .then(r => setHouseProtection({ forceHouseWin: r.data.forceHouseWin, rouletteFix: r.data.rouletteFix, bingoWinRate: r.data.bingoWinRate ?? 9, slotGambleWinChance: r.data.slotGambleWinChance ?? 5, slotBaseWinChance: r.data.slotBaseWinChance ?? 1 }))
       .catch(e => console.error('Failed to load house settings:', e));
   }, []);
 
@@ -635,6 +635,38 @@ export default function SettingsPage() {
                 </div>
               </div>
 
+              {/* Slot Base Game Win Chance Row */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0' }}>
+                <div style={{ flex: 1, paddingRight: '20px' }}>
+                  <div style={{ fontSize: '14px', fontWeight: '700', color: '#1f2937', marginBottom: '6px' }}>🎰 Buna Hot 5 Base Game Win Chance</div>
+                  <div style={{ fontSize: '12px', color: '#6b7280', lineHeight: '1.4' }}>
+                    Set how often players win on the spinning reels (1–100%).
+                    {` 🛡️ ${houseProtection.slotBaseWinChance}% win chance (House Edge: ${100 - houseProtection.slotBaseWinChance}%).`}
+                  </div>
+                </div>
+                <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    className="login-input"
+                    style={{ width: '90px', padding: '10px', fontSize: '14px', fontWeight: '800', textAlign: 'center', background: houseProtection.slotBaseWinChance <= 10 ? '#dcfce7' : '#fee2e2' }}
+                    value={houseProtection.slotBaseWinChance}
+                    onChange={(e) => {
+                      let val = parseInt(e.target.value);
+                      if (isNaN(val)) val = 1;
+                      setHouseProtection(s => ({ ...s, slotBaseWinChance: val }));
+                    }}
+                    onBlur={(e) => {
+                      let val = parseInt(e.target.value);
+                      if (isNaN(val) || val < 1) val = 1;
+                      if (val > 100) val = 100;
+                      setHouseProtection(s => ({ ...s, slotBaseWinChance: val }));
+                    }}
+                  />
+                  <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#374151' }}>%</span>
+                </div>
+              </div>
 
             </div>
 

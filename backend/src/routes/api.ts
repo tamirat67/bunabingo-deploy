@@ -3485,7 +3485,7 @@ router.get('/admin/house-settings', adminMiddleware, async (req: any, res) => {
 
 router.post('/admin/house-settings', adminMiddleware, async (req: any, res) => {
   try {
-    const { forceHouseWin, rouletteFix, bingoWinRate, slotGambleWinChance } = req.body;
+    const { forceHouseWin, rouletteFix, bingoWinRate, slotGambleWinChance, slotBaseWinChance } = req.body;
     const settings = await prisma.houseSettings.upsert({
       where: { id: 1 },
       update: {
@@ -3493,6 +3493,7 @@ router.post('/admin/house-settings', adminMiddleware, async (req: any, res) => {
         rouletteFix: Boolean(rouletteFix),
         bingoWinRate: Number(bingoWinRate) || 100,
         slotGambleWinChance: Number(slotGambleWinChance) || 5,
+        slotBaseWinChance: Number(slotBaseWinChance) || 1,
       },
       create: {
         id: 1,
@@ -3500,6 +3501,7 @@ router.post('/admin/house-settings', adminMiddleware, async (req: any, res) => {
         rouletteFix: Boolean(rouletteFix),
         bingoWinRate: Number(bingoWinRate) || 100,
         slotGambleWinChance: Number(slotGambleWinChance) || 5,
+        slotBaseWinChance: Number(slotBaseWinChance) || 1,
       }
     });
 
@@ -3507,7 +3509,7 @@ router.post('/admin/house-settings', adminMiddleware, async (req: any, res) => {
       data: {
         adminId: req.user!.id,
         action: 'UPDATE_HOUSE_SETTINGS',
-        details: { forceHouseWin, rouletteFix, bingoWinRate, slotGambleWinChance }
+        details: { forceHouseWin, rouletteFix, bingoWinRate, slotGambleWinChance, slotBaseWinChance }
       }
     });
 

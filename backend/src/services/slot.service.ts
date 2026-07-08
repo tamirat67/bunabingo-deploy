@@ -171,8 +171,10 @@ export async function spin(
   const serverSeedHash = hashSeed(serverSeed);
   const nonce          = Math.floor(Math.random() * 2000000000);
 
-  // Hardcode 99% forced loss for testing
-  const forceLoss = Math.random() * 100 > 1;
+  // Read base win chance from admin settings (live, no redeploy needed)
+  const houseSettings = await prisma.houseSettings.findUnique({ where: { id: 1 } });
+  const baseWinChance = houseSettings?.slotBaseWinChance ?? 1; // default 1% if not set
+  const forceLoss = Math.random() * 100 >= baseWinChance;
 
   let grid: SlotSymbol[][] = [[], [], []];
   let rngIdx = 0;
