@@ -166,7 +166,7 @@ export async function approveWithdrawal(withdrawalId: string, adminId: string) {
     const updated = await tx.withdrawal.update({
       where: { id: withdrawalId },
       data: { status: 'approved' },
-      include: { user: { select: { referredBy: true, username: true, firstName: true } } }
+      include: { user: { select: { id: true, referredBy: true, username: true, firstName: true } } }
     });
 
 

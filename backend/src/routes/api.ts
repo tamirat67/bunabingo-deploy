@@ -1473,12 +1473,12 @@ staffRouter.get('/games-finance', staffMiddleware, async (req, res) => {
     if (game === 'slot') {
       const allSpins = await prisma.slotSpin.aggregate({
         where: dateFilter,
-        _sum: { betAmount: true, winAmount: true },
-        _count: { id: true }
+        _sum: { betAmount: true, totalWin: true },
+        _count: { _all: true }
       });
 
       const totalVolume = Number(allSpins._sum.betAmount || 0);
-      const totalPayout = Number(allSpins._sum.winAmount || 0);
+      const totalPayout = Number(allSpins._sum.totalWin || 0);
       const netProfit = totalVolume - totalPayout;
 
       const recent = await prisma.slotSpin.findMany({
@@ -1489,10 +1489,10 @@ staffRouter.get('/games-finance', staffMiddleware, async (req, res) => {
       });
 
       return res.json({
-        stats: { totalVolume, totalPayout, netProfit, totalCount: allSpins._count.id },
+        stats: { totalVolume, totalPayout, netProfit, totalCount: allSpins._count._all },
         recent: recent.map(r => ({
           id: r.id, date: r.createdAt, username: r.user.username || r.user.firstName || 'Player',
-          betAmount: Number(r.betAmount), winAmount: Number(r.winAmount), status: Number(r.winAmount) > 0 ? 'WON' : 'LOST'
+          betAmount: Number(r.betAmount), winAmount: Number(r.totalWin), status: Number(r.totalWin) > 0 ? 'WON' : 'LOST'
         }))
       });
     }
@@ -1547,14 +1547,14 @@ staffRouter.get('/games-finance', staffMiddleware, async (req, res) => {
         where: { status: 'COMPLETED', ...dateFilter },
         orderBy: { createdAt: 'desc' },
         take: 50,
-        include: { winner: { select: { username: true, firstName: true } } }
+        include: { winners: { include: { user: { select: { username: true, firstName: true } } } }, room: true }
       });
 
       return res.json({
         stats: { totalVolume, totalPayout, netProfit, totalCount: allGamesAgg._count.id },
         recent: recent.map(r => ({
-          id: r.id, date: r.createdAt, username: r.winner?.username || r.winner?.firstName || 'Unknown',
-          betAmount: Number(r.ticketPrice), winAmount: Number(r.prizePool), status: 'COMPLETED'
+          id: r.id, date: r.createdAt, username: r.winners[0]?.user?.username || r.winners[0]?.user?.firstName || 'Unknown',
+          betAmount: Number(r.room.ticketPrice), winAmount: Number(r.totalPrize), status: 'COMPLETED'
         }))
       });
     }

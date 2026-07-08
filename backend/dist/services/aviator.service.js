@@ -178,7 +178,7 @@ async function runCrash() {
     try {
         let totalBets = 0;
         let totalWins = 0;
-        for (const bet of gameState.bets.values()) {
+        for (const [betKey, bet] of gameState.bets.entries()) {
             totalBets += bet.betAmount;
             if (bet.cashedOut && bet.cashoutMultiplier) {
                 totalWins += bet.betAmount * bet.cashoutMultiplier;
@@ -243,18 +243,28 @@ async function processAutoCashouts() {
 async function performCashout(bet, at) {
     if (bet.cashedOut)
         return;
+    // IMMEDIATELY mark in memory — prevents second call from entering this function
     bet.cashedOut = true;
     bet.cashoutMultiplier = at;
     const winAmount = parseFloat((bet.betAmount * at).toFixed(2));
     try {
         const dbUserId = await resolveDbUserId(bet.userId);
-        await prisma_1.default.aviatorBet.update({
-            where: { id: bet.betId },
-            data: {
-                cashoutMultiplier: new library_1.Decimal(at.toFixed(2)),
-                winAmount: new library_1.Decimal(winAmount.toFixed(2)),
-                status: 'WON',
-            },
+        // ATOMIC LOCK: Lock the bet row to prevent concurrent cashout calls
+        // from double-crediting (e.g. manual cashout + auto-cashout firing at same ms)
+        await prisma_1.default.$transaction(async (tx) => {
+            const [lockedBet] = await tx.$queryRaw `SELECT * FROM aviator_bets WHERE id = ${bet.betId}::uuid FOR UPDATE`;
+            if (!lockedBet)
+                throw new Error('Bet not found');
+            if (lockedBet.status !== 'PENDING')
+                throw new Error('Bet already cashed out or lost');
+            await tx.aviatorBet.update({
+                where: { id: bet.betId },
+                data: {
+                    cashoutMultiplier: new library_1.Decimal(at.toFixed(2)),
+                    winAmount: new library_1.Decimal(winAmount.toFixed(2)),
+                    status: 'WON',
+                },
+            });
         });
         await (0, wallet_service_1.creditWallet)(dbUserId, winAmount, 'PRIZE_WIN', bet.betId, `Aviator cashout at ${at}×`);
         // Notify just this user about their updated balance
@@ -266,7 +276,15 @@ async function performCashout(bet, at) {
         logger_1.logger.info(`[Aviator] Cashout userId=${bet.userId} at ${at}× | won=${winAmount}`);
     }
     catch (err) {
-        logger_1.logger.error(`[Aviator] Cashout failed for user ${bet.userId}: ${err.message}`);
+        // If already cashed out, quietly ignore; otherwise log error
+        if (!err.message?.includes('already cashed out')) {
+            logger_1.logger.error(`[Aviator] Cashout failed for user ${bet.userId}: ${err.message}`);
+        }
+        // Revert the in-memory flag if DB transaction failed so it can be retried
+        if (!err.message?.includes('already cashed out')) {
+            bet.cashedOut = false;
+            bet.cashoutMultiplier = null;
+        }
     }
 }
 // ── Main game loop ────────────────────────────────────────────────────────────
@@ -309,29 +327,37 @@ async function aviatorEnterRoom(socketId, userId, io) {
         const wallet = await prisma_1.default.wallet.findUnique({ where: { userId: dbUserId } });
         const user = await prisma_1.default.user.findUnique({ where: { id: dbUserId }, select: { firstName: true, username: true, telegramUsername: true } });
         const balance = wallet ? parseFloat(new library_1.Decimal(wallet.balance.toString()).add(new library_1.Decimal(wallet.bonusBalance.toString())).toFixed(2)) : 0;
-        const existingBet = gameState.bets.get(userId);
+        const betF = gameState.bets.get(`${userId}:f`);
+        const betS = gameState.bets.get(`${userId}:s`);
         socket.emit('myInfo', {
             balance,
             userType: false,
             img: '',
             userName: user?.username ?? user?.telegramUsername ?? user?.firstName ?? userId,
-            f: existingBet && !existingBet.cashedOut ? {
-                auto: existingBet.targetMultiplier !== null,
+            f: betF && !betF.cashedOut ? {
+                auto: betF.targetMultiplier !== null,
                 betted: true,
                 cashouted: false,
-                betAmount: existingBet.betAmount,
+                betAmount: betF.betAmount,
                 cashAmount: 0,
-                target: existingBet.targetMultiplier ?? 0,
+                target: betF.targetMultiplier ?? 0,
             } : { auto: false, betted: false, cashouted: false, betAmount: 20, cashAmount: 0, target: 2 },
-            s: { auto: false, betted: false, cashouted: false, betAmount: 20, cashAmount: 0, target: 2 },
+            s: betS && !betS.cashedOut ? {
+                auto: betS.targetMultiplier !== null,
+                betted: true,
+                cashouted: false,
+                betAmount: betS.betAmount,
+                cashAmount: 0,
+                target: betS.targetMultiplier ?? 0,
+            } : { auto: false, betted: false, cashouted: false, betAmount: 20, cashAmount: 0, target: 2 },
         });
         socket.emit('myBetState', {
             balance,
             userType: false,
             img: '',
             userName: user?.username ?? user?.telegramUsername ?? user?.firstName ?? userId,
-            f: { auto: false, betted: existingBet && !existingBet.cashedOut, cashouted: false, betAmount: 20, cashAmount: 0, target: 2 },
-            s: { auto: false, betted: false, cashouted: false, betAmount: 20, cashAmount: 0, target: 2 },
+            f: { auto: false, betted: !!betF && !betF.cashedOut, cashouted: false, betAmount: 20, cashAmount: 0, target: 2 },
+            s: { auto: false, betted: !!betS && !betS.cashedOut, cashouted: false, betAmount: 20, cashAmount: 0, target: 2 },
         });
         // Send recent bet history
         const recentBets = await prisma_1.default.aviatorBet.findMany({
@@ -389,6 +415,7 @@ async function aviatorPlaceBet(userId, betAmount, target, type) {
         const activeBet = {
             betId: bet.id,
             userId,
+            slot: type,
             betAmount,
             targetMultiplier: target > 1 ? target : null,
             cashedOut: false,
