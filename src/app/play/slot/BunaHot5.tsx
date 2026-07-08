@@ -243,7 +243,7 @@ export default function BunaHot5() {
       </header>
 
       {/* Main Game Area */}
-      <main className="flex-1 flex flex-col items-center justify-center p-4 z-10 w-full max-w-md mx-auto relative">
+      <main className="flex-1 flex flex-col items-center justify-start px-4 pt-2 pb-24 gap-4 z-10 w-full max-w-md mx-auto relative overflow-y-auto">
         <WinBanner tier={winTier} amount={winAmount} />
 
         <ReelGrid
@@ -261,12 +261,12 @@ export default function BunaHot5() {
         />
 
         {spinError && (
-          <div className="mt-4 text-red-500 bg-red-900/30 px-4 py-2 rounded-xl text-sm border border-red-900">
+          <div className="w-full text-red-500 bg-red-900/30 px-4 py-2 rounded-xl text-sm border border-red-900 text-center mt-2">
             {spinError}
           </div>
         )}
 
-        <div className="mt-auto w-full pb-6">
+        <div className="w-full mt-2">
           <BetControls
             bet={bet}
             minBet={config.minBet}
