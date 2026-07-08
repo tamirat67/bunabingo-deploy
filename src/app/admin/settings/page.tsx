@@ -641,7 +641,7 @@ export default function SettingsPage() {
                   <div style={{ fontSize: '14px', fontWeight: '700', color: '#1f2937', marginBottom: '6px' }}>🎰 Buna Hot 5 Base Game Win Chance</div>
                   <div style={{ fontSize: '12px', color: '#6b7280', lineHeight: '1.4' }}>
                     Set how often players win on the spinning reels (1–100%).
-                    {` 🛡️ ${houseProtection.slotBaseWinChance}% win chance (House Edge: ${100 - houseProtection.slotBaseWinChance}%).`}
+                    {` 🛡️ Currently set to: ${houseProtection.slotBaseWinChance}% win rate.`}
                   </div>
                 </div>
                 <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
