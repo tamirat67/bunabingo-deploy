@@ -611,20 +611,27 @@ export default function SettingsPage() {
                      ` 🛡️ ${houseProtection.slotGambleWinChance}% win chance (House Edge: ${100 - (houseProtection.slotGambleWinChance * 2)}%).`}
                   </div>
                 </div>
-                <div style={{ flexShrink: 0 }}>
-                  <select
+                <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
                     className="login-input"
-                    style={{ width: '140px', padding: '10px 14px', fontSize: '14px', fontWeight: '800', cursor: 'pointer', background: houseProtection.slotGambleWinChance <= 40 ? '#dcfce7' : '#fee2e2' }}
+                    style={{ width: '90px', padding: '10px', fontSize: '14px', fontWeight: '800', textAlign: 'center', background: houseProtection.slotGambleWinChance <= 40 ? '#dcfce7' : '#fee2e2' }}
                     value={houseProtection.slotGambleWinChance}
                     onChange={(e) => {
-                      const rate = parseInt(e.target.value);
-                      setHouseProtection(s => ({ ...s, slotGambleWinChance: rate }));
+                      let val = parseInt(e.target.value);
+                      if (isNaN(val)) val = 1;
+                      setHouseProtection(s => ({ ...s, slotGambleWinChance: val }));
                     }}
-                  >
-                    {[5, 10, 20, 30, 40, 45, 50].map(n => (
-                      <option key={n} value={n}>{n}% Win Chance</option>
-                    ))}
-                  </select>
+                    onBlur={(e) => {
+                      let val = parseInt(e.target.value);
+                      if (isNaN(val) || val < 1) val = 1;
+                      if (val > 100) val = 100;
+                      setHouseProtection(s => ({ ...s, slotGambleWinChance: val }));
+                    }}
+                  />
+                  <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#374151' }}>%</span>
                 </div>
               </div>
 
