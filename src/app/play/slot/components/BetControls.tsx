@@ -34,11 +34,7 @@ export default function BetControls({
 
   return (
     <div className="flex flex-col space-y-3 w-full max-w-sm mx-auto mt-4">
-      {/* Balance */}
-      <div className="flex justify-between items-center px-4 py-2 bg-black/40 rounded-xl border border-green-900/50">
-        <span className="text-gray-400 text-sm">BALANCE</span>
-        <span className="text-white font-mono font-bold">{balance.toFixed(2)} ETB</span>
-      </div>
+
 
       {/* Bet adjustments */}
       <div className="flex items-center space-x-2">
@@ -51,9 +47,29 @@ export default function BetControls({
         </button>
         
         <div className="flex-1 h-12 bg-gray-900 rounded-xl flex flex-col items-center justify-center border border-gray-700">
-          <span className="text-xs text-gray-500 uppercase tracking-widest">TOTAL BET</span>
-          <span className="text-yellow-500 font-mono font-bold leading-none">{bet.toFixed(2)}</span>
+          <span className="text-[10px] text-gray-500 uppercase tracking-widest mt-1">TOTAL BET</span>
+          <input 
+            type="number"
+            value={bet}
+            onChange={(e) => {
+              const v = Number(e.target.value);
+              if (!isNaN(v)) {
+                onBetChange(Math.min(maxBet, v)); // We let it go below minBet while typing but enforce on spin if needed, or enforce minBet here if preferred. Let's just limit to maxBet.
+              }
+            }}
+            disabled={spinning}
+            className="bg-transparent text-yellow-500 font-mono font-bold leading-none text-center outline-none w-full mb-1"
+            style={{ WebkitAppearance: 'none', MozAppearance: 'textfield' }}
+          />
         </div>
+
+        <style dangerouslySetInnerHTML={{__html: `
+          input[type=number]::-webkit-inner-spin-button, 
+          input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+          }
+        `}} />
 
         <button
           onClick={handleIncrease}

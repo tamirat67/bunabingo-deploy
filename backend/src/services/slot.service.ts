@@ -141,8 +141,8 @@ export async function getPublicConfig(): Promise<SlotPublicConfig> {
 
 function totalBalance(wallet: { balance: Decimal; bonusBalance: Decimal }): number {
   return parseFloat(
-    new Decimal(wallet.balance.toString())
-      .add(new Decimal(wallet.bonusBalance.toString()))
+    new Decimal(wallet.balance?.toString() ?? '0')
+      .add(new Decimal(wallet.bonusBalance?.toString() ?? '0'))
       .toFixed(2),
   );
 }
@@ -169,7 +169,7 @@ export async function spin(
 
   const serverSeed     = generateSeed();
   const serverSeedHash = hashSeed(serverSeed);
-  const nonce          = Date.now();
+  const nonce          = Math.floor(Math.random() * 2000000000);
 
   // Build 3×3 grid (row-major: grid[row][col])
   const grid: SlotSymbol[][] = [[], [], []];
@@ -219,8 +219,8 @@ export async function spin(
 
     const wallet = await tx.wallet.findUnique({ where: { userId } }); // Safely load full Prisma model object now that it's locked
 
-    const bal   = new Decimal(wallet.balance.toString());
-    const bonus = new Decimal(wallet.bonusBalance.toString());
+    const bal   = new Decimal(wallet.balance?.toString() ?? '0');
+    const bonus = new Decimal(wallet.bonusBalance?.toString() ?? '0');
     const avail = bal.add(bonus);
     const bet   = new Decimal(betAmount.toFixed(4));
 
@@ -246,7 +246,7 @@ export async function spin(
       data: {
         balance: newBal,
         bonusBalance: newBonus,
-        totalSpent: new Decimal(wallet.totalSpent.toString()).add(bet),
+        totalSpent: new Decimal(wallet.totalSpent?.toString() ?? '0').add(bet),
       },
     });
     await tx.transaction.create({
@@ -270,7 +270,7 @@ export async function spin(
         where: { userId },
         data: {
           balance: balAfterWin,
-          totalWon: new Decimal(wallet.totalWon.toString()).add(win),
+          totalWon: new Decimal(wallet.totalWon?.toString() ?? '0').add(win),
         },
       });
       await tx.transaction.create({

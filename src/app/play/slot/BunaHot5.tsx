@@ -233,7 +233,11 @@ export default function BunaHot5() {
         <div className="font-black italic tracking-widest text-xl bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent drop-shadow-md">
           BUNA HOT 5
         </div>
-        <button onClick={() => router.push('/history')} className="text-gray-400">History</button>
+        <div className="flex flex-col items-end">
+          <div className="text-xs text-gray-400 uppercase tracking-widest leading-tight">BALANCE</div>
+          <div className="text-sm font-bold text-yellow-500 font-mono leading-tight">{balance.toFixed(2)} ETB</div>
+          <button onClick={() => router.push('/history')} className="text-[10px] text-gray-500 underline mt-1">History</button>
+        </div>
       </header>
 
       {/* Main Game Area */}
