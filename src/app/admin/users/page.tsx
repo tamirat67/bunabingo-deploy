@@ -282,7 +282,7 @@ export default function UsersPage() {
       </div>
 
       {/* Table */}
-      <div className="data-table-container">
+      <div className="data-table-container" style={{ overflowX: 'auto' }}>
         {loading ? (
           <div style={{ padding: '100px', textAlign: 'center' }}>
             <div className="animate-spin" style={{ width: '40px', height: '40px', border: '4px solid #d4af37', borderTopColor: 'transparent', borderRadius: '50%', margin: '0 auto' }} />
