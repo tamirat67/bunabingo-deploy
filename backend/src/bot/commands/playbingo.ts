@@ -5,7 +5,7 @@ export async function handlePlayBingoMenu(ctx: Context) {
   if (ctx.callbackQuery) await ctx.answerCbQuery();
 
   await ctx.reply(
-    `🍀 ለቢንጎ ጨዋታዎ መልካም እድል! 🎮`,
+    `🍀 ለጨዋታዎ መልካም እድል! 🎮`,
     Markup.inlineKeyboard([
       // ── Row 1: Low-Stakes ──────────────────────────────────────────────────────
       [
@@ -16,7 +16,15 @@ export async function handlePlayBingoMenu(ctx: Context) {
       [
         Markup.button.webApp('🎮 Bingo 50 ይጫወቱ', `${config.bot.miniAppUrl}/tickets/select?type=PRO&price=50`),
       ],
-      // ── Row 3: VIP Room ───────────────────────────────────────────────────────
+      // ── Row 3: Other Games ─────────────────────────────────────────
+      [
+        Markup.button.callback('✈️ Aviator', 'cmd_play_aviator'),
+        Markup.button.webApp('🎱 Fast Keno', `${config.bot.miniAppUrl}/keno`),
+      ],
+      [
+        Markup.button.callback('🎰 Buna Hot 5', 'cmd_play_slot'),
+      ],
+      // ── Row 4: VIP Room ───────────────────────────────────────────────────────
       [
         Markup.button.callback('💎 VIP ክፍል', 'cmd_vip'),
       ],

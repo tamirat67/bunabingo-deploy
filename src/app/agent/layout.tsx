@@ -54,6 +54,7 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
     { name: 'My Players', icon: FiUsers, path: '/agent/players' },
     { name: 'Transactions', icon: FiActivity, path: '/agent/transactions' },
     { name: 'Commissions', icon: FiDollarSign, path: '/agent/commissions' },
+    { name: 'Reports', icon: FiPieChart, path: '/agent/reports' },
     { name: 'Settings', icon: FiSettings, path: '/agent/settings' },
   ];
 
@@ -159,7 +160,7 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '32px' }}>
              <div style={{ textAlign: 'right' }}>
                 <p style={{ fontSize: '10px', color: 'var(--admin-text-muted)', margin: 0, textTransform: 'uppercase', fontWeight: '900', letterSpacing: '1px' }}>Balance</p>
-                <p style={{ fontSize: '20px', fontWeight: '900', color: 'var(--agent-accent)', margin: 0 }}>{Number(user.wallet?.commissionBalance || 0).toLocaleString()} <span style={{ fontSize: '12px' }}>ETB</span></p>
+                <p style={{ fontSize: '20px', fontWeight: '900', color: 'var(--agent-accent)', margin: 0 }}>{Number(user.wallet?.balance || 0).toLocaleString()} <span style={{ fontSize: '12px' }}>ETB</span></p>
              </div>
              <div style={{ width: '1px', height: '40px', background: 'var(--cmd-border)' }}></div>
              <Link href="/" className="hover:text-gold transition-colors" style={{ color: '#1c1917', textDecoration: 'none', fontSize: '12px', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>

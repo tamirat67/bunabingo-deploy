@@ -304,59 +304,20 @@ async function runGame(gameId: string): Promise<void> {
         continue;
       }
 
-      const wallet = await prisma.wallet.findUnique({ where: { userId } });
-      if (!wallet) {
-        logger.error(`[Game ${gameId}] Wallet not found for user ${userId} — skipping charge`);
-        continue;
-      }
-
-      const balance = new Decimal(wallet.balance.toString());
-      const bonus = new Decimal(wallet.bonusBalance.toString());
-      const totalAvailable = balance.add(bonus);
-
-      if (totalAvailable.lessThan(totalCharge)) {
-        logger.warn(`[Game ${gameId}] User ${userId} has insufficient balance at game start — removing tickets`);
+      try {
+        const { debitWallet } = await import('../services/wallet.service');
+        await debitWallet(
+          userId,
+          totalCharge,
+          'TICKET_PURCHASE',
+          gameId,
+          `Game started — ${numTickets} ticket(s) charged for ${game.room.type}`
+        );
+      } catch (err: any) {
+        logger.warn(`[Game ${gameId}] User ${userId} has insufficient balance during charge loop (${err.message}) — removing tickets`);
         await prisma.ticket.deleteMany({ where: { gameId, userId } });
         continue;
       }
-
-      // Use main balance first, then bonus for the remainder (real-money priority rule)
-      let remainingToDebit = totalCharge;
-      let newBalance = balance;
-      let newBonus = bonus;
-
-      if (balance.greaterThan(0)) {
-        const balanceToUse = Decimal.min(balance, remainingToDebit);
-        newBalance = balance.sub(balanceToUse);
-        remainingToDebit = remainingToDebit.sub(balanceToUse);
-      }
-
-      if (remainingToDebit.greaterThan(0)) {
-        newBonus = bonus.sub(remainingToDebit);
-      }
-
-      await prisma.$transaction(async (tx) => {
-        await tx.wallet.update({
-          where: { userId },
-          data: {
-            balance: newBalance,
-            bonusBalance: newBonus,
-            totalSpent: new Decimal(wallet.totalSpent.toString()).add(totalCharge),
-          },
-        });
-        await tx.transaction.create({
-          data: {
-            userId,
-            type: 'TICKET_PURCHASE',
-            amount: totalCharge,
-            balanceBefore: wallet.balance,
-            balanceAfter: newBalance,
-            status: 'COMPLETED',
-            referenceId: gameId,
-            description: `Game started — ${numTickets} ticket(s) charged for ${game.room.type} (Main Used: ${balance.sub(newBalance).toFixed(2)} ETB, Bonus Used: ${bonus.sub(newBonus).toFixed(2)} ETB)`,
-          },
-        });
-      });
 
       totalPrizePool = totalPrizePool.add(prizeContribution);
       totalHouseEdge = totalHouseEdge.add(houseEdge);
@@ -893,9 +854,13 @@ async function processWinner(
   const winnerUser = await prisma.user.findUnique({ where: { id: userId }, select: { isBot: true } });
   const isHouseBot = winnerUser?.isBot === true;
 
-  // ─── Perform all winner logic in ONE TRANSACTION ───
+  // ─── Perform all winner logic in ONE TRANSACTION with row-level lock ───
   await prisma.$transaction(async (tx) => {
-    // 0. RACE CONDITION GUARD: ensure NO winners exist for this game yet
+    // 0a. ATOMIC LOCK on the game row — prevents two concurrent bingo claims from
+    //     both passing the existingWinner check and double-crediting the prize.
+    await tx.$queryRaw`SELECT id FROM games WHERE id = ${gameId}::uuid FOR UPDATE`;
+
+    // 0b. RACE CONDITION GUARD: ensure NO winners exist for this game yet
     const existingWinner = await tx.winner.findFirst({ where: { gameId } });
     if (existingWinner) {
       throw new Error('WINNER_ALREADY_EXISTS');
@@ -908,6 +873,8 @@ async function processWinner(
 
     // 2. Update player wallet (REAL games only, NEVER for bots)
     if (!isDemo && !isHouseBot) {
+      // Lock the wallet row before reading & crediting it
+      await tx.$queryRaw`SELECT id FROM wallets WHERE user_id = ${userId}::uuid FOR UPDATE`;
       const wallet = await tx.wallet.findUnique({ where: { userId } });
       if (wallet) {
         const before = wallet.balance;

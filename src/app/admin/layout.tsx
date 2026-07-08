@@ -201,7 +201,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   <NavLink href="/admin/transactions" icon={<FiCreditCard />} label="Transactions" />
                   <NavLink href="/admin/revenue" icon={<FiTrendingUp />} label="Platform Revenue" />
                   {isAdmin && <NavLink href="/admin/company-profit" icon={<FiDollarSign />} label="Agent Profit & Debt" />}
-                  {isAdmin && <NavLink href="/admin/aviator-finance" icon={<FiActivity />} label="Aviator Finance" />}
+                  {isAdmin && <NavLink href="/admin/games-finance" icon={<FiActivity />} label="Games Finance" />}
                 </>
               )}
               

@@ -81,6 +81,7 @@ model User {
   kenoAuditLogs        KenoAuditLog[]
   kenoRgLimits         KenoRgLimit[]
   weeklyRewardParticipants WeeklyRewardParticipant[]
+  slotSpins            SlotSpin[]
 
   @@map("users")
 }
@@ -549,4 +550,50 @@ model WeeklyRewardParticipant {
   @@index([eventId])
   @@index([userId])
   @@map("weekly_reward_participants")
+}
+
+// ============================================================
+// Buna Hot 5 — Slot Game Models
+// ============================================================
+
+model SlotGameConfig {
+  id                String   @id @default(cuid())
+  gameKey           String   @unique @map("game_key")      // "buna_hot_5"
+  minBet            Decimal  @db.Decimal(20, 4) @map("min_bet")
+  maxBet            Decimal  @db.Decimal(20, 4) @map("max_bet")
+  betStep           Decimal  @db.Decimal(20, 4) @map("bet_step")
+  paytable          Json     // { "CHERRY": 5, "LEMON": 5, ... }
+  symbolWeights     Json     @map("symbol_weights")   // { "CHERRY": 20, ... }
+  multiplierWeights Json     @map("multiplier_weights") // { "1": 50, "2": 25, ... }
+  gambleMaxRounds   Int      @default(3) @map("gamble_max_rounds")
+  targetRtp         Decimal  @db.Decimal(5, 4) @map("target_rtp")
+  isActive          Boolean  @default(true) @map("is_active")
+  updatedAt         DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
+
+  @@map("slot_game_configs")
+}
+
+model SlotSpin {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String   @db.Uuid @map("user_id")
+  gameKey          String   @default("buna_hot_5") @map("game_key")
+  betAmount        Decimal  @db.Decimal(20, 4) @map("bet_amount")
+  reelResult       Json     @map("reel_result")         // [[r1c1, r1c2, r1c3], [r2...], [r3...]]
+  multiplierResult Int      @map("multiplier_result")   // 1,2,3,5,10,15
+  lineWins         Json     @map("line_wins")           // [{payline, symbol, amount}, ...]
+  totalWin         Decimal  @db.Decimal(20, 4) @map("total_win")
+  serverSeed       String   @map("server_seed")
+  serverSeedHash   String   @map("server_seed_hash")
+  clientSeed       String?  @map("client_seed")
+  nonce            Int      @default(0)
+  gambleRounds     Json?    @map("gamble_rounds")       // [{choice, outcome, amount}, ...]
+  finalPayout      Decimal  @db.Decimal(20, 4) @map("final_payout")
+  gambleComplete   Boolean  @default(false) @map("gamble_complete")
+  createdAt        DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  user             User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("slot_spins")
 }

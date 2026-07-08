@@ -108,23 +108,22 @@ export async function createDepositRequest(
 }
 
 export async function approveDeposit(depositId: string, adminId: string) {
-  const deposit = await prisma.deposit.findUnique({ 
-    where: { id: depositId },
-    include: { user: { select: { username: true, referredBy: true } } }
+  // ATOMIC LOCK: Prevent double-processing race conditions
+  const deposit = await prisma.$transaction(async (tx) => {
+    const [locked] = await tx.$queryRaw<any[]>`SELECT * FROM deposits WHERE id = ${depositId}::uuid FOR UPDATE`;
+    if (!locked) throw new Error('Deposit not found');
+    if (locked.status === 'approved') throw new Error('Deposit already approved');
+    if (locked.status === 'rejected') throw new Error('Deposit already rejected');
+
+    const updated = await tx.deposit.update({
+      where: { id: depositId },
+      data: { status: 'approved' },
+      include: { user: { select: { username: true, referredBy: true } } }
+    });
+    return { ...updated, alreadyCredited: locked.status === 'completed' };
   });
-  if (!deposit) throw new Error('Deposit not found');
 
-  // Guard against double-processing
-  if (deposit.status === 'approved') throw new Error('Deposit already approved');
-  if (deposit.status === 'rejected') throw new Error('Deposit already rejected');
-
-  // If the bot already auto-completed this deposit (credited wallet), just mark approved — no double-credit
-  const alreadyCredited = deposit.status === 'completed';
-
-  await prisma.deposit.update({
-    where: { id: depositId },
-    data: { status: 'approved' },
-  });
+  const alreadyCredited = deposit.alreadyCredited;
 
   if (deposit.userId) {
     if (!alreadyCredited) {
@@ -218,13 +217,16 @@ export async function approveDeposit(depositId: string, adminId: string) {
 }
 
 export async function rejectDeposit(depositId: string, adminId: string, reason: string) {
-  const deposit = await prisma.deposit.findUnique({ where: { id: depositId } });
-  if (!deposit) throw new Error('Deposit not found');
-  if (deposit.status !== 'pending') throw new Error('Deposit already processed');
+  // ATOMIC LOCK: Prevent double-processing race conditions
+  const deposit = await prisma.$transaction(async (tx) => {
+    const [locked] = await tx.$queryRaw<any[]>`SELECT * FROM deposits WHERE id = ${depositId}::uuid FOR UPDATE`;
+    if (!locked) throw new Error('Deposit not found');
+    if (locked.status !== 'pending') throw new Error('Deposit already processed');
 
-  await prisma.deposit.update({
-    where: { id: depositId },
-    data: { status: 'rejected', details: reason },
+    return tx.deposit.update({
+      where: { id: depositId },
+      data: { status: 'rejected', details: reason },
+    });
   });
 
   if (deposit.userId) {

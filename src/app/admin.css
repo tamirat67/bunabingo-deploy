@@ -1048,3 +1048,5 @@
     grid-template-columns: repeat(1, 1fr);
   }
 }
+
+@media print { .print-hide { display: none !important; } .print-only-header { display: block !important; } body { background: white !important; } .admin-main { margin: 0 !important; padding: 0 !important; width: 100% !important; } }

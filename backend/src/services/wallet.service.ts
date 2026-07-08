@@ -44,12 +44,15 @@ export async function creditWallet(
   const amt = new Decimal(amount.toString());
 
   await prisma.$transaction(async (tx) => {
-    // 1. Get current wallet inside transaction for fresh data
-    const wallet = await tx.wallet.upsert({
+    // 1. Lock the wallet row FOR UPDATE to prevent race conditions
+    // If the wallet doesn't exist, upsert it first outside the lock
+    await tx.wallet.upsert({
       where: { userId },
       create: { userId, balance: 0 },
       update: {},
     });
+    const [wallet] = await tx.$queryRaw<any[]>`SELECT * FROM wallets WHERE user_id = ${userId}::uuid FOR UPDATE`;
+
 
     const currentBalance = new Decimal(wallet.balance.toString());
     const newBalance = currentBalance.add(amt);
@@ -280,12 +283,14 @@ export async function debitWallet(
   const amt = new Decimal(amount.toString());
 
   await prisma.$transaction(async (tx) => {
-    // 1. Get current state inside transaction
-    const wallet = await tx.wallet.upsert({
+    // 1. Lock the wallet row FOR UPDATE to prevent race conditions
+    // Upsert outside the lock if missing
+    await tx.wallet.upsert({
       where: { userId },
       create: { userId, balance: 0 },
       update: {},
     });
+    const [wallet] = await tx.$queryRaw<any[]>`SELECT * FROM wallets WHERE user_id = ${userId}::uuid FOR UPDATE`;
 
     const balance = new Decimal(wallet.balance.toString());
     const bonus = new Decimal(wallet.bonusBalance.toString());

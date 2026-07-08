@@ -1420,6 +1420,151 @@ staffRouter.get('/aviator-finance', staffMiddleware, async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch Aviator finance data.' });
   }
 });
+// ─── Games Finance Report ─────────────────────────────────────
+staffRouter.get('/games-finance', staffMiddleware, async (req, res) => {
+  try {
+    const admin = (req as any).user;
+    if (admin.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'Forbidden. Admin only.' });
+    }
+
+    const game = req.query.game as string || 'bingo';
+    const dateFilter: any = {};
+    const range = req.query.range as string;
+
+    if (range === 'today') {
+      const start = new Date(); start.setHours(0,0,0,0);
+      dateFilter.createdAt = { gte: start };
+    } else if (range === 'week') {
+      const start = new Date(); start.setDate(start.getDate() - 7); start.setHours(0,0,0,0);
+      dateFilter.createdAt = { gte: start };
+    } else if (range === 'month') {
+      const start = new Date(); start.setDate(start.getDate() - 30); start.setHours(0,0,0,0);
+      dateFilter.createdAt = { gte: start };
+    }
+
+    if (game === 'aviator') {
+      const allBetsAgg = await prisma.aviatorBet.aggregate({
+        where: dateFilter,
+        _sum: { betAmount: true, winAmount: true },
+        _count: { id: true },
+      });
+      
+      const totalVolume = Number(allBetsAgg._sum.betAmount || 0);
+      const totalPayout = Number(allBetsAgg._sum.winAmount || 0);
+      const netProfit = totalVolume - totalPayout;
+      
+      const recent = await prisma.aviatorBet.findMany({
+        where: { status: { in: ['WON', 'LOST'] }, ...dateFilter },
+        orderBy: { createdAt: 'desc' },
+        take: 50,
+        include: { user: { select: { username: true, firstName: true } } }
+      });
+      
+      return res.json({
+        stats: { totalVolume, totalPayout, netProfit, totalCount: allBetsAgg._count.id },
+        recent: recent.map(r => ({
+          id: r.id, date: r.createdAt, username: r.user.username || r.user.firstName || 'Player',
+          betAmount: Number(r.betAmount), winAmount: r.winAmount ? Number(r.winAmount) : 0, status: r.status
+        }))
+      });
+    }
+
+    if (game === 'slot') {
+      const allSpins = await prisma.slotSpin.aggregate({
+        where: dateFilter,
+        _sum: { betAmount: true, winAmount: true },
+        _count: { id: true }
+      });
+
+      const totalVolume = Number(allSpins._sum.betAmount || 0);
+      const totalPayout = Number(allSpins._sum.winAmount || 0);
+      const netProfit = totalVolume - totalPayout;
+
+      const recent = await prisma.slotSpin.findMany({
+        where: dateFilter,
+        orderBy: { createdAt: 'desc' },
+        take: 50,
+        include: { user: { select: { username: true, firstName: true } } }
+      });
+
+      return res.json({
+        stats: { totalVolume, totalPayout, netProfit, totalCount: allSpins._count.id },
+        recent: recent.map(r => ({
+          id: r.id, date: r.createdAt, username: r.user.username || r.user.firstName || 'Player',
+          betAmount: Number(r.betAmount), winAmount: Number(r.winAmount), status: Number(r.winAmount) > 0 ? 'WON' : 'LOST'
+        }))
+      });
+    }
+
+    if (game === 'keno') {
+      const tickets = await prisma.kenoTicket.aggregate({
+        where: dateFilter,
+        _sum: { stakeCents: true, payoutCents: true },
+        _count: { id: true }
+      });
+
+      const totalVolume = Number(tickets._sum.stakeCents || 0) / 100;
+      const totalPayout = Number(tickets._sum.payoutCents || 0) / 100;
+      const netProfit = totalVolume - totalPayout;
+
+      const recent = await prisma.kenoTicket.findMany({
+        where: dateFilter,
+        orderBy: { createdAt: 'desc' },
+        take: 50,
+        include: { user: { select: { username: true, firstName: true } } }
+      });
+
+      return res.json({
+        stats: { totalVolume, totalPayout, netProfit, totalCount: tickets._count.id },
+        recent: recent.map(r => ({
+          id: r.id, date: r.createdAt, username: r.user.username || r.user.firstName || 'Player',
+          betAmount: Number(r.stakeCents) / 100, winAmount: Number(r.payoutCents) / 100, status: r.status
+        }))
+      });
+    }
+    
+    if (game === 'bingo') {
+      const allGamesAgg = await prisma.game.aggregate({
+        where: { status: 'COMPLETED', ...dateFilter },
+        _count: { id: true }
+      });
+
+      const purchases = await prisma.transaction.aggregate({
+        where: { type: 'TICKET_PURCHASE', ...dateFilter },
+        _sum: { amount: true }
+      });
+      const wins = await prisma.transaction.aggregate({
+        where: { type: 'BINGO_WIN', ...dateFilter },
+        _sum: { amount: true }
+      });
+
+      const totalVolume = Number(purchases._sum.amount || 0);
+      const totalPayout = Number(wins._sum.amount || 0);
+      const netProfit = totalVolume - totalPayout;
+
+      const recent = await prisma.game.findMany({
+        where: { status: 'COMPLETED', ...dateFilter },
+        orderBy: { createdAt: 'desc' },
+        take: 50,
+        include: { winner: { select: { username: true, firstName: true } } }
+      });
+
+      return res.json({
+        stats: { totalVolume, totalPayout, netProfit, totalCount: allGamesAgg._count.id },
+        recent: recent.map(r => ({
+          id: r.id, date: r.createdAt, username: r.winner?.username || r.winner?.firstName || 'Unknown',
+          betAmount: Number(r.ticketPrice), winAmount: Number(r.prizePool), status: 'COMPLETED'
+        }))
+      });
+    }
+
+    return res.status(400).json({ error: 'Unknown game' });
+  } catch (err: any) {
+    logger.error(`[Games Finance] Error: ${err.message}`);
+    res.status(500).json({ error: 'Failed to fetch games finance data.' });
+  }
+});
 
 // ─── Company Profit Summary (All Agents) ────────────────────
 staffRouter.get('/company-profit', staffMiddleware, async (req, res) => {
@@ -3554,5 +3699,126 @@ router.get('/aviator/top-bets', telegramAuthMiddleware, async (req: Request, res
 
 // ── Weekly Blast ───────────────────────────────────────────────────
 router.use('/weekly-blast', telegramAuthMiddleware, weeklyBlastRouter);
+
+// ════════════════════════════════════════════════════════════════════
+//  🎰  BUNA HOT 5 — SLOT GAME ROUTES
+//  All routes use the existing telegramAuthMiddleware.
+//  Balance mutations go through slot.service.ts → prisma.$transaction.
+// ════════════════════════════════════════════════════════════════════
+
+import { z } from 'zod';
+import {
+  getPublicConfig  as slotGetConfig,
+  spin             as slotSpin,
+  gamble           as slotGamble,
+  collect          as slotCollect,
+  getSpinHistory   as slotHistory,
+} from '../services/slot.service';
+
+// ── GET /api/games/slot/config ────────────────────────────────────────────────
+// Public-safe config: min/max bet, step, paytable display, multiplier values.
+// NOTE: symbolWeights / multiplierWeights are NOT returned (internal RNG).
+router.get('/games/slot/config', telegramAuthMiddleware, async (_req, res) => {
+  try {
+    const cfg = await slotGetConfig();
+    res.json({ ok: true, config: cfg });
+  } catch (err: any) {
+    logger.error('[SlotAPI] /config error:', err.message);
+    res.status(500).json({ error: 'Failed to load slot config' });
+  }
+});
+
+// ── POST /api/games/slot/spin ─────────────────────────────────────────────────
+const SpinSchema = z.object({
+  betAmount:  z.number().positive(),
+  clientSeed: z.string().optional(),
+});
+
+router.post('/games/slot/spin', telegramAuthMiddleware, async (req, res) => {
+  const user = (req as any).user;
+  if (!user) return res.status(401).json({ error: 'Authentication required' });
+
+  const parsed = SpinSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Invalid request', details: parsed.error.format() });
+  }
+
+  try {
+    const result = await slotSpin(user.id, parsed.data.betAmount, parsed.data.clientSeed);
+    logger.info(`[SlotAPI] /spin userId=${user.id} bet=${parsed.data.betAmount} win=${result.totalWin}`);
+    res.json({ ok: true, ...result });
+  } catch (err: any) {
+    logger.error(`[SlotAPI] /spin error userId=${user.id}:`, err.message);
+    const status = err.message.includes('Insufficient') ? 400 : 500;
+    res.status(status).json({ error: err.message });
+  }
+});
+
+// ── POST /api/games/slot/gamble ───────────────────────────────────────────────
+const GambleSchema = z.object({
+  spinId: z.string().min(1),
+  choice: z.enum(['red', 'black']),
+});
+
+router.post('/games/slot/gamble', telegramAuthMiddleware, async (req, res) => {
+  const user = (req as any).user;
+  if (!user) return res.status(401).json({ error: 'Authentication required' });
+
+  const parsed = GambleSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Invalid request', details: parsed.error.format() });
+  }
+
+  try {
+    const result = await slotGamble(user.id, parsed.data.spinId, parsed.data.choice);
+    logger.info(`[SlotAPI] /gamble userId=${user.id} spinId=${parsed.data.spinId} won=${result.won}`);
+    res.json({ ok: true, ...result });
+  } catch (err: any) {
+    logger.error(`[SlotAPI] /gamble error userId=${user.id}:`, err.message);
+    const status = ['Spin not found', 'Unauthorized', 'Gamble sequence already complete', 'Max gamble rounds'].some(m => err.message.includes(m)) ? 400 : 500;
+    res.status(status).json({ error: err.message });
+  }
+});
+
+// ── POST /api/games/slot/collect ──────────────────────────────────────────────
+const CollectSchema = z.object({
+  spinId: z.string().min(1),
+});
+
+router.post('/games/slot/collect', telegramAuthMiddleware, async (req, res) => {
+  const user = (req as any).user;
+  if (!user) return res.status(401).json({ error: 'Authentication required' });
+
+  const parsed = CollectSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Invalid request', details: parsed.error.format() });
+  }
+
+  try {
+    const result = await slotCollect(user.id, parsed.data.spinId);
+    logger.info(`[SlotAPI] /collect userId=${user.id} spinId=${parsed.data.spinId} payout=${result.finalPayout}`);
+    res.json({ ok: true, ...result });
+  } catch (err: any) {
+    logger.error(`[SlotAPI] /collect error userId=${user.id}:`, err.message);
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// ── GET /api/games/slot/history ───────────────────────────────────────────────
+router.get('/games/slot/history', telegramAuthMiddleware, async (req, res) => {
+  const user = (req as any).user;
+  if (!user) return res.status(401).json({ error: 'Authentication required' });
+
+  const page  = Math.max(1, parseInt((req.query.page as string) || '1', 10));
+  const limit = Math.min(50, Math.max(1, parseInt((req.query.limit as string) || '20', 10)));
+
+  try {
+    const result = await slotHistory(user.id, page, limit);
+    res.json({ ok: true, ...result });
+  } catch (err: any) {
+    logger.error(`[SlotAPI] /history error userId=${user.id}:`, err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 export default router;

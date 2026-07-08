@@ -704,3 +704,5 @@
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.4; }
 }
+
+@media print { .print-hide { display: none !important; } .print-only-header { display: block !important; } body { background: white !important; } .admin-main { margin: 0 !important; padding: 0 !important; width: 100% !important; } }

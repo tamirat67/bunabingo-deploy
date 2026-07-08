@@ -146,28 +146,36 @@ export async function createWithdrawalRequest(
 // NOTE: AgentPreDepositWallet is intentionally NOT modified — for ALL agents.
 // ─────────────────────────────────────────────────────────────────────────────
 export async function approveWithdrawal(withdrawalId: string, adminId: string) {
-  const withdrawal = await prisma.withdrawal.findUnique({
-    where: { id: withdrawalId },
-    include: { user: { select: { referredBy: true, username: true, firstName: true } } }
-  });
-  if (!withdrawal) throw new Error('Withdrawal not found');
-  if (withdrawal.status !== 'pending') throw new Error('Withdrawal already processed');
+  let withdrawalAmount: Decimal;
+  let withdrawalUserId: string | null = null;
+  let bankName = '';
+  let accountNumber = '';
 
-  const withdrawalAmount = new Decimal(withdrawal.amount.toString());
+  const withdrawal = await prisma.$transaction(async (tx) => {
+    // 1. Lock withdrawal row FOR UPDATE to prevent race conditions
+    const [locked] = await tx.$queryRaw<any[]>`SELECT * FROM withdrawals WHERE id = ${withdrawalId}::uuid FOR UPDATE`;
+    if (!locked) throw new Error('Withdrawal not found');
+    if (locked.status !== 'pending') throw new Error('Withdrawal already processed');
 
-  await prisma.$transaction(async (tx) => {
-    // 1. Mark withdrawal record as approved
-    await tx.withdrawal.update({
+    withdrawalAmount = new Decimal(locked.amount.toString());
+    withdrawalUserId = locked.user_id;
+    bankName = locked.bank_name;
+    accountNumber = locked.account_number;
+
+    // 2. Mark withdrawal record as approved
+    const updated = await tx.withdrawal.update({
       where: { id: withdrawalId },
       data: { status: 'approved' },
+      include: { user: { select: { referredBy: true, username: true, firstName: true } } }
     });
 
-    if (withdrawal.userId) {
+
+    if (withdrawalUserId) {
       // 2. Mark the pending WITHDRAWAL transaction as completed
-      //    (find by referenceId = withdrawal.id and status = pending)
+      //    (find by referenceId = withdrawalId and status = pending)
       await tx.transaction.updateMany({
         where: {
-          userId: withdrawal.userId,
+          userId: withdrawalUserId,
           type: 'WITHDRAWAL',
           referenceId: withdrawalId,
           status: 'pending',
@@ -177,7 +185,7 @@ export async function approveWithdrawal(withdrawalId: string, adminId: string) {
 
       // 3. Increment player's totalWithdrawn stat (only now, after real approval)
       await tx.wallet.update({
-        where: { userId: withdrawal.userId },
+        where: { userId: withdrawalUserId },
         data: {
           totalWithdrawn: {
             increment: withdrawalAmount,
@@ -187,28 +195,30 @@ export async function approveWithdrawal(withdrawalId: string, adminId: string) {
     }
 
     // 4. Admin audit log (skip for telegram super-admin placeholder)
-    if (withdrawal.userId && !adminId.startsWith('tg_superadmin_')) {
+    if (withdrawalUserId && !adminId.startsWith('tg_superadmin_')) {
       await tx.adminLog.create({
         data: {
           adminId,
-          targetUserId: withdrawal.userId,
+          targetUserId: withdrawalUserId,
           action: 'APPROVE_WITHDRAWAL',
           details: {
             withdrawalId,
-            amount: withdrawal.amount.toString(),
-            bankName: withdrawal.bankName,
-            accountNumber: withdrawal.accountNumber,
+            amount: withdrawalAmount.toString(),
+            bankName,
+            accountNumber,
           },
         },
       });
     }
+    
+    return updated;
   });
 
   // ─── Pre-Deposit Refund (NCF Architecture) ───
   try {
-    if (withdrawal.userId) {
+    if (withdrawal.user?.id) {
       const { findAgentAncestor } = await import('./user.service');
-      const ancestor = await findAgentAncestor(withdrawal.userId);
+      const ancestor = await findAgentAncestor(withdrawal.user.id);
       if (ancestor) {
         const { getCompanyCommissionRate } = await import('./settings.service');
         const { getOrCreateAgentPreDepositWallet } = await import('./agentPreDeposit.service');
@@ -237,7 +247,7 @@ export async function approveWithdrawal(withdrawalId: string, adminId: string) {
             amount: refundAmount.negated(),
             gameId: withdrawalId, // using withdrawalId as reference
             totalSales: withdrawalAmount.negated(),
-            description: `NCF Refund: Withdrawal approved for ${withdrawal.user?.username || withdrawal.userId}. ${withdrawal.amount} ETB × ${(companyRate * 100).toFixed(0)}% refunded.`,
+            description: `NCF Refund: Withdrawal approved for ${withdrawal.user?.username || withdrawal.user.id}. ${withdrawal.amount} ETB × ${(companyRate * 100).toFixed(0)}% refunded.`,
             balanceBefore: oldBalance,
             balanceAfter: newBalance,
           }
@@ -250,8 +260,8 @@ export async function approveWithdrawal(withdrawalId: string, adminId: string) {
   }
 
   // 8. Notify player on web dashboard + Telegram
-  if (withdrawal.userId) {
-    await triggerUserEvent(withdrawal.userId, 'withdrawal-approved', {
+  if (withdrawal.user?.id) {
+    await triggerUserEvent(withdrawal.user.id, 'withdrawal-approved', {
       withdrawalId,
       amount: withdrawal.amount.toString(),
     });
@@ -275,25 +285,29 @@ export async function approveWithdrawal(withdrawalId: string, adminId: string) {
 // player's wallet. totalWithdrawn stat is unaffected.
 // ─────────────────────────────────────────────────────────────────────────────
 export async function rejectWithdrawal(withdrawalId: string, adminId: string, reason: string) {
-  const withdrawal = await prisma.withdrawal.findUnique({
-    where: { id: withdrawalId },
-  });
-  if (!withdrawal) throw new Error('Withdrawal not found');
-  if (withdrawal.status !== 'pending') throw new Error('Withdrawal already processed');
+  let withdrawalUserId: string | null = null;
+  let withdrawalAmount: Decimal;
 
-  await prisma.$transaction(async (tx) => {
-    // 1. Mark withdrawal record as rejected
-    await tx.withdrawal.update({
+  const withdrawal = await prisma.$transaction(async (tx) => {
+    // 1. Lock withdrawal row FOR UPDATE to prevent race conditions
+    const [locked] = await tx.$queryRaw<any[]>`SELECT * FROM withdrawals WHERE id = ${withdrawalId}::uuid FOR UPDATE`;
+    if (!locked) throw new Error('Withdrawal not found');
+    if (locked.status !== 'pending') throw new Error('Withdrawal already processed');
+
+    withdrawalUserId = locked.user_id;
+    withdrawalAmount = new Decimal(locked.amount.toString());
+
+    // 2. Mark withdrawal record as rejected
+    const updated = await tx.withdrawal.update({
       where: { id: withdrawalId },
       data: { status: 'rejected' },
     });
 
-    if (withdrawal.userId) {
-      // 2. Mark the pending WITHDRAWAL transaction as 'failed'
-      //    This keeps the ledger clean — shows the request happened, then failed.
+    if (withdrawalUserId) {
+      // 3. Mark the pending WITHDRAWAL transaction as 'failed'
       await tx.transaction.updateMany({
         where: {
-          userId: withdrawal.userId,
+          userId: withdrawalUserId,
           type: 'WITHDRAWAL',
           referenceId: withdrawalId,
           status: 'pending',
@@ -301,38 +315,39 @@ export async function rejectWithdrawal(withdrawalId: string, adminId: string, re
         data: { status: 'failed' },
       });
 
-      // 3. Admin audit log
+      // 4. Admin audit log
       if (!adminId.startsWith('tg_superadmin_')) {
         await tx.adminLog.create({
           data: {
             adminId,
-            targetUserId: withdrawal.userId,
+            targetUserId: withdrawalUserId,
             action: 'REJECT_WITHDRAWAL',
-            details: { withdrawalId, reason, amount: withdrawal.amount.toString() },
+            details: { withdrawalId, reason, amount: withdrawalAmount.toString() },
           },
         });
       }
     }
+    return updated;
   });
 
   // 4. Refund the escrowed amount back to player's main balance
   //    This runs OUTSIDE the transaction above so it creates its own
   //    REFUND transaction record in the player's transaction history.
-  if (withdrawal.userId) {
+  if (withdrawalUserId) {
     await creditWallet(
-      withdrawal.userId,
-      withdrawal.amount,
+      withdrawalUserId,
+      withdrawalAmount,
       'REFUND',
       withdrawalId,
       `Withdrawal rejected: ${reason}. Amount returned to your wallet.`
     );
 
-    await triggerUserEvent(withdrawal.userId, 'withdrawal-rejected', { withdrawalId, reason });
+    await triggerUserEvent(withdrawalUserId, 'withdrawal-rejected', { withdrawalId, reason });
 
     await notifyUser(
-      withdrawal.userId,
+      withdrawalUserId,
       `❌ <b>የገንዘብ ማውጫ ጥያቄዎ አልተሳካም (Withdrawal Rejected)</b>\n\n` +
-      `💵 መጠን (Amount): <b>${Number(withdrawal.amount).toFixed(2)} ETB</b>\n` +
+      `💵 መጠን (Amount): <b>${withdrawalAmount.toFixed(2)} ETB</b>\n` +
       `📝 ምክንያት (Reason): ${reason}\n\n` +
       `ያወጡት ብር ወደ ዋና ሂሳብዎ ተመልሷል። (The amount has been refunded to your main balance.) 🙏`
     );

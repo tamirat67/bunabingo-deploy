@@ -291,6 +291,7 @@ async function processAutoCashouts() {
 
 async function performCashout(bet: ActiveBet, at: number) {
   if (bet.cashedOut) return;
+  // IMMEDIATELY mark in memory — prevents second call from entering this function
   bet.cashedOut         = true;
   bet.cashoutMultiplier = at;
 
@@ -299,13 +300,21 @@ async function performCashout(bet: ActiveBet, at: number) {
   try {
     const dbUserId = await resolveDbUserId(bet.userId);
 
-    await prisma.aviatorBet.update({
-      where: { id: bet.betId },
-      data:  {
-        cashoutMultiplier: new Decimal(at.toFixed(2)),
-        winAmount:         new Decimal(winAmount.toFixed(2)),
-        status:            'WON',
-      },
+    // ATOMIC LOCK: Lock the bet row to prevent concurrent cashout calls
+    // from double-crediting (e.g. manual cashout + auto-cashout firing at same ms)
+    await prisma.$transaction(async (tx) => {
+      const [lockedBet] = await tx.$queryRaw<any[]>`SELECT * FROM aviator_bets WHERE id = ${bet.betId}::uuid FOR UPDATE`;
+      if (!lockedBet) throw new Error('Bet not found');
+      if (lockedBet.status !== 'PENDING') throw new Error('Bet already cashed out or lost');
+
+      await tx.aviatorBet.update({
+        where: { id: bet.betId },
+        data:  {
+          cashoutMultiplier: new Decimal(at.toFixed(2)),
+          winAmount:         new Decimal(winAmount.toFixed(2)),
+          status:            'WON',
+        },
+      });
     });
 
     await creditWallet(
@@ -324,7 +333,15 @@ async function performCashout(bet: ActiveBet, at: number) {
 
     logger.info(`[Aviator] Cashout userId=${bet.userId} at ${at}× | won=${winAmount}`);
   } catch (err: any) {
-    logger.error(`[Aviator] Cashout failed for user ${bet.userId}: ${err.message}`);
+    // If already cashed out, quietly ignore; otherwise log error
+    if (!err.message?.includes('already cashed out')) {
+      logger.error(`[Aviator] Cashout failed for user ${bet.userId}: ${err.message}`);
+    }
+    // Revert the in-memory flag if DB transaction failed so it can be retried
+    if (!err.message?.includes('already cashed out')) {
+      bet.cashedOut = false;
+      bet.cashoutMultiplier = null;
+    }
   }
 }
 

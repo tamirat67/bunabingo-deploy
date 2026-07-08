@@ -25,6 +25,7 @@ import { handleTransfer,
 import { handleCmd }                            from './commands/cmd';
 import { handlePlayAviator }                    from './commands/aviator';
 import { handlePlayKeno }                       from './commands/keno';
+import { handlePlaySlot }                       from './commands/slot';
 
 // ─── Deposit flow ─────────────────────────────────────────────────────────────
 import {
@@ -106,6 +107,7 @@ export function createBot(): Telegraf {
   bot.action('cmd_play_bingo',     ctx => handlePlayBingoMenu(ctx));
   bot.action('cmd_play_aviator',   ctx => handlePlayAviator(ctx));
   bot.action('cmd_play_keno',      ctx => handlePlayKeno(ctx));
+  bot.action('cmd_play_slot',      ctx => handlePlaySlot(ctx));
   bot.action('cmd_register',       ctx => handleRegister(ctx));
   bot.action('cmd_vip',            ctx => handleVipRoom(ctx));
 

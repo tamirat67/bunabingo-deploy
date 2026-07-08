@@ -213,6 +213,7 @@ export async function handleStart(ctx: Context) {
         ],
         [
           Markup.button.webApp('Fast Keno 🎱', `${config.bot.miniAppUrl}/keno`),
+          Markup.button.callback('🎰 Buna Hot 5', 'cmd_play_slot'),
         ],
 
         // ── Row 3: Account ───────────────────────────────────────────────────
@@ -252,6 +253,7 @@ export async function handleStart(ctx: Context) {
           ],
           [
             Markup.button.webApp('Fast Keno 🎱', `${config.bot.miniAppUrl}/keno`),
+            Markup.button.callback('🎰 Buna Hot 5', 'cmd_play_slot'),
           ],
 
           [

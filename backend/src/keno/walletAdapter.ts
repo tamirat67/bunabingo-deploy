@@ -44,7 +44,12 @@ export class RealWalletAdapter implements WalletAdapter {
     const amountBirr = params.amountCents / 100;
     try {
       return await prisma.$transaction(async (tx) => {
-        // Check if transaction with this idempotency key already exists
+        // ATOMIC LOCK: Lock the wallet row FOR UPDATE first to prevent
+        // concurrent bet submissions from racing past the idempotency check
+        const [lockedWallet] = await tx.$queryRaw<any[]>`SELECT * FROM wallets WHERE user_id = ${params.userId}::uuid FOR UPDATE`;
+        if (!lockedWallet) return { ok: false, reference: params.idempotencyKey };
+
+        // Idempotency guard — now safe inside the lock
         const existingTxn = await tx.transaction.findFirst({
           where: { referenceId: params.idempotencyKey }
         });
@@ -52,45 +57,33 @@ export class RealWalletAdapter implements WalletAdapter {
           return { ok: true, reference: params.idempotencyKey, newBalanceCents: undefined };
         }
 
-        // Update Wallet ATOMICALLY and ensure balance >= amountBirr
-        const updateResult = await tx.wallet.updateMany({
-          where: { 
-            userId: params.userId,
-            balance: { gte: amountBirr }
-          },
-          data: { 
-            balance: { decrement: amountBirr },
+        const currentBalance = Number(lockedWallet.balance);
+        if (currentBalance < amountBirr) {
+          return { ok: false, reference: params.idempotencyKey }; // Insufficient funds
+        }
+
+        const newBalance = parseFloat((currentBalance - amountBirr).toFixed(10));
+        await tx.wallet.update({
+          where: { userId: params.userId },
+          data: {
+            balance: newBalance,
             totalSpent: { increment: amountBirr }
           }
         });
 
-        if (updateResult.count === 0) {
-          return { ok: false, reference: params.idempotencyKey }; // Insufficient funds or user not found
-        }
-
-        // We successfully decremented, now fetch the updated wallet to get the new balance
-        const updatedWallet = await tx.wallet.findUnique({
-          where: { userId: params.userId }
-        });
-
-        if (!updatedWallet) {
-          throw new Error("Wallet not found after update");
-        }
-
-        // Insert Transaction
         await tx.transaction.create({
           data: {
             userId: params.userId,
             type: 'KENO_BET',
             amount: amountBirr,
-            balanceBefore: Number(updatedWallet.balance) + amountBirr,
-            balanceAfter: updatedWallet.balance,
+            balanceBefore: currentBalance,
+            balanceAfter: newBalance,
             referenceId: params.idempotencyKey,
             description: params.reason
           }
         });
 
-        return { ok: true, reference: params.idempotencyKey, newBalanceCents: Number(updatedWallet.balance) * 100 };
+        return { ok: true, reference: params.idempotencyKey, newBalanceCents: Math.floor(newBalance * 100) };
       });
     } catch (e) {
       console.error("Wallet debit failed", e);
@@ -107,6 +100,12 @@ export class RealWalletAdapter implements WalletAdapter {
     const amountBirr = params.amountCents / 100;
     try {
       return await prisma.$transaction(async (tx) => {
+        // ATOMIC LOCK: Lock the wallet row FOR UPDATE first to prevent
+        // concurrent payouts from racing past the idempotency check
+        const [lockedWallet] = await tx.$queryRaw<any[]>`SELECT * FROM wallets WHERE user_id = ${params.userId}::uuid FOR UPDATE`;
+        if (!lockedWallet) return { ok: false, reference: params.idempotencyKey };
+
+        // Idempotency guard — now safe inside the lock
         const existingTxn = await tx.transaction.findFirst({
           where: { referenceId: params.idempotencyKey }
         });
@@ -114,41 +113,30 @@ export class RealWalletAdapter implements WalletAdapter {
           return { ok: true, reference: params.idempotencyKey, newBalanceCents: undefined };
         }
 
-        // Update Wallet ATOMICALLY
-        const updateResult = await tx.wallet.updateMany({
+        const currentBalance = Number(lockedWallet.balance);
+        const newBalance = parseFloat((currentBalance + amountBirr).toFixed(10));
+
+        await tx.wallet.update({
           where: { userId: params.userId },
-          data: { 
-            balance: { increment: amountBirr },
+          data: {
+            balance: newBalance,
             totalWon: { increment: amountBirr }
           }
         });
 
-        if (updateResult.count === 0) {
-          return { ok: false, reference: params.idempotencyKey }; // user not found
-        }
-
-        const updatedWallet = await tx.wallet.findUnique({
-          where: { userId: params.userId }
-        });
-
-        if (!updatedWallet) {
-          throw new Error("Wallet not found after update");
-        }
-
-        // Insert Transaction
         await tx.transaction.create({
           data: {
             userId: params.userId,
             type: 'KENO_WIN',
             amount: amountBirr,
-            balanceBefore: Number(updatedWallet.balance) - amountBirr,
-            balanceAfter: updatedWallet.balance,
+            balanceBefore: currentBalance,
+            balanceAfter: newBalance,
             referenceId: params.idempotencyKey,
             description: params.reason
           }
         });
 
-        return { ok: true, reference: params.idempotencyKey, newBalanceCents: Number(updatedWallet.balance) * 100 };
+        return { ok: true, reference: params.idempotencyKey, newBalanceCents: Math.floor(newBalance * 100) };
       });
     } catch (e) {
       console.error("Wallet credit failed", e);
