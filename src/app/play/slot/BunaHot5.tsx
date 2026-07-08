@@ -13,7 +13,8 @@ import BetControls from './components/BetControls';
 import AutoplayPanel from './components/AutoplayPanel';
 import GambleModal from './components/GambleModal';
 import WinBanner from './components/WinBanner';
-import WeeklyBlastModal from './components/WeeklyBlastModal';
+import WeeklyBlastModal from '../../../components/WeeklyBlastModal';
+import WeeklyBlastFab from '../../../components/WeeklyBlastFab';
 
 import { useTelegramHaptics } from './hooks/useTelegramHaptics';
 import { useSlotSpin, useSlotConfig, useSlotHistory } from './hooks/useSlotSpin';
@@ -344,13 +345,7 @@ export default function BunaHot5() {
         onClose={() => setBlastOpen(false)} 
       />
 
-      {/* FAB to open Weekly Reward Blast modal */}
-      <button
-        onClick={() => setBlastOpen(true)}
-        className="fixed bottom-4 right-4 z-40 bg-gradient-to-b from-yellow-500 to-yellow-700 hover:from-yellow-400 hover:to-yellow-600 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-[0_4px_15px_rgba(234,179,8,0.5)] border-2 border-yellow-400 font-black text-[11px] tracking-wider active:scale-95 transition-transform"
-      >
-        <Gift className="w-6 h-6 text-white" />
-      </button>
+      <WeeklyBlastFab onClick={() => setBlastOpen(true)} />
     </div>
   );
 }
