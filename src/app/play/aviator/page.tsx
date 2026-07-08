@@ -637,7 +637,7 @@ export default function AviatorPage() {
     socket.on('success',        (msg: string)      => showToast(msg, true));
     socket.on('aviator:error',  (d: any)           => showToast(d?.message ?? 'Error', false));
     socket.on('balance-updated', (d: any)          => setBalance(parseFloat(d.newBalance)));
-    socket.on('myInfo',         (u: any)           => setBalance(parseFloat((u.balance ?? 0).toString())));
+    socket.on('myInfo',         (u: any)           => setBalance(parseFloat((u?.balance ?? 0).toString())));
     return () => {
       ['gameState','bettedUserInfo','previousHand','history','success','aviator:error','balance-updated','myInfo']
         .forEach(e => socket.off(e));
