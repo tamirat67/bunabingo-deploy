@@ -3485,19 +3485,21 @@ router.get('/admin/house-settings', adminMiddleware, async (req: any, res) => {
 
 router.post('/admin/house-settings', adminMiddleware, async (req: any, res) => {
   try {
-    const { forceHouseWin, rouletteFix, bingoWinRate } = req.body;
+    const { forceHouseWin, rouletteFix, bingoWinRate, slotGambleWinChance } = req.body;
     const settings = await prisma.houseSettings.upsert({
       where: { id: 1 },
       update: {
         forceHouseWin: Boolean(forceHouseWin),
         rouletteFix: Boolean(rouletteFix),
         bingoWinRate: Number(bingoWinRate) || 100,
+        slotGambleWinChance: Number(slotGambleWinChance) || 5,
       },
       create: {
         id: 1,
         forceHouseWin: Boolean(forceHouseWin),
         rouletteFix: Boolean(rouletteFix),
         bingoWinRate: Number(bingoWinRate) || 100,
+        slotGambleWinChance: Number(slotGambleWinChance) || 5,
       }
     });
 
@@ -3505,7 +3507,7 @@ router.post('/admin/house-settings', adminMiddleware, async (req: any, res) => {
       data: {
         adminId: req.user!.id,
         action: 'UPDATE_HOUSE_SETTINGS',
-        details: { forceHouseWin, rouletteFix, bingoWinRate }
+        details: { forceHouseWin, rouletteFix, bingoWinRate, slotGambleWinChance }
       }
     });
 
