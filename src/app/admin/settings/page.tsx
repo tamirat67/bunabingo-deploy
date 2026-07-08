@@ -608,7 +608,7 @@ export default function SettingsPage() {
                     Set the player's win chance for the double-or-nothing gamble. 
                     {houseProtection.slotGambleWinChance === 50 ? ' ⚖️ 50% (0% House Edge - high risk).' :
                      houseProtection.slotGambleWinChance === 5 ? ' 🛡️ 5% (90% House Edge - extreme protection).' :
-                     ` 🛡️ ${houseProtection.slotGambleWinChance}% win chance (House Edge: ${100 - (houseProtection.slotGambleWinChance * 2)}%).`}
+                     ` 🛡️ ${houseProtection.slotGambleWinChance}% win chance (House Edge: ${100 - houseProtection.slotGambleWinChance}%).`}
                   </div>
                 </div>
                 <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
