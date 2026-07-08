@@ -51,10 +51,10 @@ function SpinningSymbol({ col, stopped, symbol, row, lineWins }: {
         width: '100%',
         aspectRatio: '1',
         background: isWin
-          ? `radial-gradient(circle, ${cfg.glow} 0%, #14532d 80%)`
-          : 'radial-gradient(circle at 30% 30%, #0d3320 0%, #041a0a 100%)',
-        border: isWin ? `3px solid ${cfg.color}` : '2px solid rgba(180,83,9,0.7)',
-        boxShadow: isWin ? `0 0 25px ${cfg.glow}, inset 0 0 15px ${cfg.glow}` : 'inset 0 2px 8px rgba(0,0,0,0.6), 0 2px 4px rgba(0,0,0,0.4)',
+          ? `radial-gradient(circle, ${cfg.glow} 0%, #0a2612 80%)`
+          : 'radial-gradient(circle at 30% 30%, #0d1f11 0%, #000000 100%)',
+        border: isWin ? `3px solid ${cfg.color}` : '2px solid rgba(180,83,9,0.5)',
+        boxShadow: isWin ? `0 0 25px ${cfg.glow}, inset 0 0 15px ${cfg.glow}` : 'inset 0 4px 12px rgba(0,0,0,0.8), 0 2px 4px rgba(0,0,0,0.6)',
       }}
       animate={isWin ? { scale: [1, 1.08, 1], opacity: [1, 0.85, 1] } : { scale: 1 }}
       transition={isWin ? { repeat: Infinity, duration: 0.7, repeatType: 'loop' } : {}}
@@ -90,12 +90,14 @@ function SpinningSymbol({ col, stopped, symbol, row, lineWins }: {
           alt={symbol}
           className="z-10 select-none"
           style={{
-            width: '90%',
-            height: '90%',
+            width: '95%',
+            height: '95%',
             objectFit: 'contain',
+            maskImage: 'radial-gradient(circle at 50% 50%, black 50%, transparent 62%)',
+            WebkitMaskImage: 'radial-gradient(circle at 50% 50%, black 50%, transparent 62%)',
             filter: isWin
               ? `drop-shadow(0 0 12px ${cfg.color}) drop-shadow(0 0 6px ${cfg.color})`
-              : 'drop-shadow(0 4px 6px rgba(0,0,0,0.8))',
+              : 'drop-shadow(0 4px 6px rgba(0,0,0,0.9))',
             opacity: stopped ? 1 : 0,
             transform: stopped ? 'scale(1)' : 'scale(0.5)',
             transition: 'opacity 0.2s, transform 0.2s',
@@ -133,7 +135,7 @@ export default function ReelGrid({ grid, spinning, reelStopped, lineWins }: Reel
 
   return (
     <div className="relative w-full p-3 rounded-2xl"
-         style={{ background: 'linear-gradient(180deg, #16a34a 0%, #15803d 100%)', border: '3px solid #b45309', boxShadow: '0 0 40px rgba(180,83,9,0.2), inset 0 0 10px rgba(0,0,0,0.3)' }}>
+         style={{ background: 'linear-gradient(180deg, #022c22 0%, #01120e 100%)', border: '3px solid #b45309', boxShadow: '0 0 40px rgba(0,0,0,0.5), inset 0 0 20px rgba(0,0,0,0.8)' }}>
 
       {/* Column separators */}
       <div className="absolute inset-y-3 left-1/3 w-px" style={{ background: 'rgba(251,191,36,0.15)' }} />

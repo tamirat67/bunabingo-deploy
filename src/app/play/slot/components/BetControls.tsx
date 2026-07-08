@@ -42,12 +42,12 @@ export default function BetControls({
           onClick={handleDecrease}
           disabled={spinning || bet <= minBet}
           className="w-12 h-12 rounded-xl flex items-center justify-center text-3xl font-black disabled:opacity-50 active:scale-95 transition-transform border shadow-lg"
-          style={{ background: 'linear-gradient(to bottom, #ff0000, #b91c1c)', borderColor: '#ff6666', color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.8)', boxShadow: '0 4px 12px rgba(255,0,0,0.4)' }}
+          style={{ background: 'linear-gradient(to bottom, #991b1b, #7f1d1d)', borderColor: '#dc2626', color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.8)', boxShadow: '0 4px 12px rgba(0,0,0,0.5), inset 0 2px 4px rgba(255,150,150,0.5)' }}
         >
           -
         </button>
         
-        <div className="flex-1 h-12 rounded-xl flex flex-col items-center justify-center border shadow-inner" style={{ background: 'linear-gradient(to bottom, #1a2e1a, #0d1f0d)', borderColor: 'rgba(134,239,172,0.4)' }}>
+        <div className="flex-1 h-12 rounded-xl flex flex-col items-center justify-center border shadow-inner" style={{ background: '#000000', borderColor: 'rgba(16,185,129,0.4)' }}>
           <span className="text-[10px] uppercase tracking-widest mt-1 font-bold" style={{ color: '#fbbf24' }}>TOTAL BET</span>
           <input 
             type="number"
@@ -76,7 +76,7 @@ export default function BetControls({
           onClick={handleIncrease}
           disabled={spinning || bet >= balance || bet >= maxBet}
           className="w-12 h-12 rounded-xl flex items-center justify-center text-3xl font-black disabled:opacity-50 active:scale-95 transition-transform border shadow-lg"
-          style={{ background: 'linear-gradient(to bottom, #ff0000, #b91c1c)', borderColor: '#ff6666', color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.8)', boxShadow: '0 4px 12px rgba(255,0,0,0.4)' }}
+          style={{ background: 'linear-gradient(to bottom, #991b1b, #7f1d1d)', borderColor: '#dc2626', color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.8)', boxShadow: '0 4px 12px rgba(0,0,0,0.5), inset 0 2px 4px rgba(255,150,150,0.5)' }}
         >
           +
         </button>
@@ -85,7 +85,7 @@ export default function BetControls({
           onClick={handleMax}
           disabled={spinning}
           className="h-12 px-3 rounded-xl flex flex-col items-center justify-center disabled:opacity-50 active:scale-95 transition-transform font-black text-[11px] leading-tight border shadow-lg"
-          style={{ background: 'linear-gradient(to bottom, #ff0000, #b91c1c)', borderColor: '#ff4d4d', color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
+          style={{ background: 'linear-gradient(to bottom, #991b1b, #7f1d1d)', borderColor: '#dc2626', color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.8)', boxShadow: '0 4px 12px rgba(0,0,0,0.5), inset 0 2px 4px rgba(255,150,150,0.5)' }}
         >
           <span>MAX</span>
           <span>BET</span>
@@ -102,11 +102,11 @@ export default function BetControls({
               : ''
           }`}
           style={{
-            background: autoplayActive ? 'linear-gradient(to bottom, #cc0000, #7f1d1d)' : 'linear-gradient(to bottom, #ff0000, #b91c1c)',
-            borderColor: '#ff6666',
+            background: autoplayActive ? 'linear-gradient(to bottom, #7f1d1d, #450a0a)' : 'linear-gradient(to bottom, #991b1b, #7f1d1d)',
+            borderColor: '#dc2626',
             color: '#fff',
             textShadow: '0 1px 2px rgba(0,0,0,0.8)',
-            boxShadow: '0 4px 12px rgba(255,0,0,0.4)'
+            boxShadow: '0 4px 12px rgba(0,0,0,0.5), inset 0 2px 4px rgba(255,150,150,0.5)'
           }}
         >
           <span>{autoplayActive ? 'STOP' : 'AUTO'}</span>
@@ -117,11 +117,11 @@ export default function BetControls({
           disabled={spinning || bet > balance}
           className="flex-1 h-14 rounded-2xl flex items-center justify-center text-2xl font-black italic tracking-widest disabled:opacity-60 active:scale-[0.98] transition-transform border shadow-lg relative overflow-hidden"
           style={{
-            background: 'linear-gradient(to bottom, #ff0000, #b91c1c)',
-            borderColor: '#ff4d4d',
+            background: 'linear-gradient(to bottom, #991b1b, #7f1d1d)',
+            borderColor: '#dc2626',
             color: '#fff',
             textShadow: '0 2px 4px rgba(0,0,0,0.8)',
-            boxShadow: '0 4px 15px rgba(255,0,0,0.5)'
+            boxShadow: '0 6px 20px rgba(0,0,0,0.6), inset 0 2px 6px rgba(255,150,150,0.6)'
           }}
         >
           {spinning ? 'SPINNING...' : 'SPIN'}
