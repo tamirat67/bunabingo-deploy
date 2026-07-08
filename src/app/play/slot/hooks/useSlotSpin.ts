@@ -1,6 +1,6 @@
 'use client';
 import { useState, useCallback } from 'react';
-import axios from 'axios';
+import api from '@/lib/api';
 import { SpinResult } from '../types';
 
 function getInitData(): string {
@@ -19,11 +19,12 @@ export function useSlotSpin() {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await axios.post(
-        '/api/games/slot/spin',
-        { betAmount, clientSeed },
-        { headers: { 'x-telegram-init-data': getInitData() } },
-      );
+      const { data } = await api.post('/games/slot/spin', {
+        betAmount,
+        clientSeed,
+      }, {
+        headers: { 'x-telegram-init-data': getInitData() },
+      });
       return data as SpinResult;
     } catch (err: any) {
       const msg = err.response?.data?.error ?? err.message ?? 'Spin failed';
@@ -44,7 +45,7 @@ export function useSlotConfig() {
   const fetchConfig = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await axios.get('/api/games/slot/config', {
+      const { data } = await api.get('/games/slot/config', {
         headers: { 'x-telegram-init-data': getInitData() },
       });
       setConfig(data.config);
@@ -62,7 +63,7 @@ export function useSlotHistory() {
   const fetchHistory = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await axios.get('/api/games/slot/history?limit=10', {
+      const { data } = await api.get('/games/slot/history', {
         headers: { 'x-telegram-init-data': getInitData() },
       });
       setHistory(data.spins ?? []);
