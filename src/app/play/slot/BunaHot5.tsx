@@ -228,15 +228,17 @@ export default function BunaHot5() {
       <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(circle at 50% 30%, rgba(34,197,94,0.1) 0%, transparent 60%)' }} />
 
       {/* Header */}
-      <header className="flex justify-between items-center p-4 z-10">
-        <button onClick={() => router.push('/')} className="text-green-500 font-bold">◀ BACK</button>
-        <div className="font-black italic tracking-widest text-xl bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent drop-shadow-md">
+      <header className="flex justify-between items-center px-4 py-3 z-10">
+        <button onClick={() => router.push('/')} className="text-green-500 font-bold text-sm shrink-0">◀ BACK</button>
+        <div className="font-black italic tracking-widest text-lg bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent drop-shadow-md mx-2">
           BUNA HOT 5
         </div>
-        <div className="flex flex-col items-end">
-          <div className="text-xs text-gray-400 uppercase tracking-widest leading-tight">BALANCE</div>
-          <div className="text-sm font-bold text-yellow-500 font-mono leading-tight">{balance.toFixed(2)} ETB</div>
-          <button onClick={() => router.push('/history')} className="text-[10px] text-gray-500 underline mt-1">History</button>
+        <div className="flex items-center gap-3 shrink-0">
+          <div className="text-right">
+            <span className="text-[10px] text-gray-400 uppercase tracking-widest block leading-none">Balance</span>
+            <span className="text-sm font-bold text-yellow-500 font-mono leading-none">{balance.toFixed(2)} ETB</span>
+          </div>
+          <button onClick={() => router.push('/history')} className="text-[11px] text-gray-400 border border-gray-700 rounded-lg px-2 py-1">Hist</button>
         </div>
       </header>
 
