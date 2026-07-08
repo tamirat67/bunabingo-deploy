@@ -259,9 +259,6 @@ export default function BunaHot5() {
             <Wallet className="w-3.5 h-3.5 text-yellow-500" strokeWidth={2.5} />
             <span className="text-[13px] font-bold text-white font-mono">{balance.toFixed(2)}</span>
           </div>
-          <button onClick={() => router.push('/history')} className="text-[10px] font-bold text-gray-400 hover:text-white border border-gray-700 bg-black/40 rounded-full px-2.5 py-1 transition-colors uppercase tracking-widest">
-            Hist
-          </button>
         </div>
       </header>
 
