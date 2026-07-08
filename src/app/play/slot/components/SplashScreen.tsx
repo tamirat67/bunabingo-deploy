@@ -20,11 +20,11 @@ export default function SplashScreen({ onDone }: { onDone: () => void }) {
           transition={{ duration: 0.6 }}
           onClick={() => { setVisible(false); setTimeout(onDone, 600); }}
           className="fixed inset-0 z-50 flex flex-col items-center justify-center cursor-pointer"
-          style={{ background: 'linear-gradient(135deg, #2a0808 0%, #450a0a 50%, #110000 100%)' }}
+          style={{ background: 'radial-gradient(ellipse at top, #991b1b 0%, #450a0a 50%, #170000 100%)' }}
         >
-          {/* Electric border glow */}
+          {/* Electric border glow overhead */}
           <div className="absolute inset-0 pointer-events-none"
-               style={{ boxShadow: 'inset 0 0 80px rgba(245,158,11,0.15)' }} />
+               style={{ background: 'radial-gradient(circle at 50% 10%, rgba(251,191,36,0.2) 0%, transparent 50%)' }} />
 
           {/* Splash image */}
           <motion.img
