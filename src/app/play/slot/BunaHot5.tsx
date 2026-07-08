@@ -133,6 +133,11 @@ export default function BunaHot5() {
 
     currentSpinId.current = result.spinId;
 
+    // ✅ Immediately update balance from spin response (deduct bet)
+    if (result.newBalance !== undefined) {
+      setBalance(Number(result.newBalance));
+    }
+
     // Sequence the reveal
     setGrid(result.reelResult);
     setMultiplier(result.multiplierResult);
@@ -183,6 +188,12 @@ export default function BunaHot5() {
   const finishSpin = () => {
     setPhase('IDLE');
     fetchHistory();
+    // Fallback: always re-fetch fresh balance from server when spin completes
+    getMe().then(me => {
+      if (me?.wallet?.balance !== undefined) {
+        setBalance(Number(me.wallet.balance));
+      }
+    }).catch(() => {});
 
     // Handle Autoplay next tick
     if (autoActive) {
@@ -302,6 +313,7 @@ export default function BunaHot5() {
         round={gambleFlow.round}
         maxRounds={config.gambleMaxRounds}
         loading={gambleFlow.loading}
+        error={gambleFlow.error}
         onChoice={(c) => {
           gambleFlow.makeChoice(currentSpinId.current, c, (res) => {
             // Always update balance from server response (win or loss)
