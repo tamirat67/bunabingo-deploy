@@ -85,7 +85,7 @@ export default function BetControls({
           onClick={handleMax}
           disabled={spinning}
           className="h-12 px-3 rounded-xl flex flex-col items-center justify-center disabled:opacity-50 active:scale-95 transition-transform font-black text-[11px] leading-tight border shadow-lg"
-          style={{ background: 'linear-gradient(to bottom, #ef4444, #991b1b)', borderColor: '#fca5a5', color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
+          style={{ background: 'linear-gradient(to bottom, #ff0000, #b91c1c)', borderColor: '#ff4d4d', color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
         >
           <span>MAX</span>
           <span>BET</span>
