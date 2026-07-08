@@ -13,7 +13,7 @@ export default function MultiplierReel({ multiplier, spinning, stopped, win }: M
 
   return (
     <div className="relative w-full h-14 mt-3 rounded-xl flex items-center justify-center overflow-hidden"
-         style={{ background: 'linear-gradient(145deg, #16a34a, #15803d)', border: '2px solid rgba(134,239,172,0.5)', boxShadow: '0 0 15px rgba(134,239,172,0.2)' }}>
+         style={{ background: 'linear-gradient(145deg, #0d3320, #041a0a)', border: '2px solid rgba(234,179,8,0.6)', boxShadow: '0 0 15px rgba(234,179,8,0.2), inset 0 2px 10px rgba(0,0,0,0.8)' }}>
 
       <AnimatePresence>
         {spinning && !stopped && (
