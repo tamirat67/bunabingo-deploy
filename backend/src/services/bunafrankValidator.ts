@@ -41,9 +41,10 @@ export function parseTelebirrSms(smsText: string): TelebirrSmsData | null {
     const text = smsText.replace(/\s+/g, ' ').trim();
 
     // ── Ethiopian phone formats accepted: 251XXXXXXXX, 09XXXXXXXX, +251XXXXXXXX
-    // Masked in SMS as: 2519****8294 | 09****8294 | +251****8294
-    // Oromo SMS may show only 2 trailing digits (e.g. 0969****11); accept 2–4
-    const phonePattern = `(?:(?:\\+251|251|0)\\d{1,3}[\\*x]+(\\d{2,4}))`;
+    // ── Ethiopian phone formats accepted: 251XXXXXXXX, 09XXXXXXXX, +251XXXXXXXX
+    // Masked in SMS as: 2519****8294 | 09****8294 | +251****8294 | +251****55111
+    // Oromo SMS may show only 2 trailing digits (e.g. 0969****11); accept 2–5
+    const phonePattern = `(?:(?:\\+251|251|0)\\d{0,3}[\\*x]+(\\d{2,5}))`;
 
     let transactionId = '';
     let recipientName = 'Unknown';
@@ -138,22 +139,36 @@ export function parseTelebirrSms(smsText: string): TelebirrSmsData | null {
 
     } else {
       // ── ENGLISH ────────────────────────────────────────────────────────────
-      // TxnID: "Your transaction number is DE84OPTF9M."
-      const txnEn = text.match(/transaction number is\s+([A-Z0-9]{6,})/i);
+      // ── ENGLISH ────────────────────────────────────────────────────────────
+      // TxnID: "Your transaction number is DE84OPTF9M." OR "Your Account Activity Number is DG88NERGX0."
+      const txnEn = text.match(/(?:transaction number is|Account Activity Number is)\s+([A-Z0-9]{6,})/i);
       if (!txnEn) return null;
       transactionId = txnEn[1].trim();
 
-      // Recipient + Amount: "transferred ETB 15.00 to Name (2519****8294)"
-      const enPattern = new RegExp(
+      // Recipient + Amount: "transferred ETB 15.00 to Name (2519****8294)" OR "sent 150.00 Birr to Name (+251****55111)"
+      const enPatternOld = new RegExp(
         `transferred\\s+ETB\\s+([\\d,]+\\.?\\d*)\\s+to\\s+([^(]+?)\\s*\\((${phonePattern})\\)`,
         'i'
       );
-      const enMatch = text.match(enPattern);
+      const enPatternNew = new RegExp(
+        `sent\\s+([\\d,]+\\.?\\d*)\\s+(?:Birr|ETB)\\s+to\\s+([^(]+?)\\s*\\((${phonePattern})\\)`,
+        'i'
+      );
+      
+      let enMatch = text.match(enPatternOld);
       if (enMatch) {
         amount = parseFloat(enMatch[1].replace(/,/g, ''));
         recipientName = enMatch[2].trim();
         recipientPhoneMasked = enMatch[3];
         recipientPhoneLast4 = enMatch[4];
+      } else {
+        enMatch = text.match(enPatternNew);
+        if (enMatch) {
+          amount = parseFloat(enMatch[1].replace(/,/g, ''));
+          recipientName = enMatch[2].trim();
+          recipientPhoneMasked = enMatch[3];
+          recipientPhoneLast4 = enMatch[4];
+        }
       }
 
       // DateTime: "on 08/05/2026 17:20:46"
@@ -165,7 +180,7 @@ export function parseTelebirrSms(smsText: string): TelebirrSmsData | null {
       senderName = enSender?.[1]?.trim() ?? 'Unknown';
 
       // Fee
-      const enFee = text.match(/service fee is ETB\s+([\d.]+)/i);
+      const enFee = text.match(/service fee is(?: ETB)?\s+([\d.]+)/i);
       serviceFee = enFee ? parseFloat(enFee[1]) : 0;
     }
 
