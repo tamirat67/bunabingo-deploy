@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import api, { getHistory, getGlobalHistory } from '../../lib/api';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '../../context/ThemeContext';
@@ -17,8 +17,11 @@ export default function HistoryPage() {
   const [branchHistory, setBranchHistory] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
   const [mounted, setMounted] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const loadData = async () => {
+  const loadData = useCallback(async (silent = false) => {
+    if (!silent) setRefreshing(true);
     try {
       const meRes = await api.get('/me');
       setUser(meRes.data);
@@ -27,22 +30,24 @@ export default function HistoryPage() {
       getHistory().then(setMyHistory).catch(() => {});
       
       if (meRes.data.role === 'AGENT' || meRes.data.role === 'agent' || meRes.data.role === 'ADMIN' || meRes.data.isAdmin) {
-        // If agent, fetch their branch winners. If admin, fetch all winners (global history is already doing this, but we can label it specifically)
         if (meRes.data.role === 'AGENT' || meRes.data.role === 'agent') {
           api.get('/agent/winners').then(res => setBranchHistory(res.data.winners)).catch(() => {});
         } else {
-          // For Admin, 'Branch' is the whole platform
           getGlobalHistory().then(setBranchHistory).catch(() => {});
         }
         setTab(meRes.data.role === 'ADMIN' || meRes.data.isAdmin ? 'recent' : 'branch');
       }
     } catch (e) {}
-  };
+    finally { setRefreshing(false); }
+  }, []);
 
   useEffect(() => {
     setMounted(true);
     loadData();
-  }, []);
+    // Auto-refresh every 30 seconds
+    intervalRef.current = setInterval(() => loadData(true), 30000);
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [loadData]);
 
   if (!mounted) return null;
 
@@ -64,8 +69,13 @@ export default function HistoryPage() {
             <HistoryIcon size={18} color={T.header} />
           </div>
           <div style={{ fontSize: '18px', fontWeight: '900', color: T.gold, letterSpacing: '0.5px' }}>BINGO HISTORY</div>
+          {/* Live badge */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.4)', borderRadius: '20px', padding: '2px 8px' }}>
+            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#22c55e', display: 'inline-block', animation: 'livePulse 1.5s ease-in-out infinite' }} />
+            <span style={{ fontSize: '10px', color: '#22c55e', fontWeight: '900' }}>LIVE</span>
+          </div>
         </div>
-        <RefreshCw size={20} color={T.gold} onClick={loadData} style={{ cursor: 'pointer' }} />
+        <RefreshCw size={20} color={T.gold} onClick={() => loadData()} style={{ cursor: 'pointer', transition: 'transform 0.5s', transform: refreshing ? 'rotate(360deg)' : 'none' }} />
       </div>
 
       <div style={{ padding: '20px 15px' }}>
@@ -166,6 +176,10 @@ export default function HistoryPage() {
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;900&display=swap');
         body { background: ${T.bg} !important; margin: 0; padding: 0; transition: background 0.3s ease; }
+        @keyframes livePulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.4; transform: scale(0.8); }
+        }
       `}</style>
     </div>
   );

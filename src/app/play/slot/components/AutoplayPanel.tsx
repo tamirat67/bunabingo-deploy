@@ -41,12 +41,12 @@ export default function AutoplayPanel({ isOpen, onClose, onStart }: AutoplayPane
             <div className="space-y-4">
               <div>
                 <label className="text-sm text-gray-400 block mb-2">Number of Spins</label>
-                <div className="grid grid-cols-4 gap-2">
-                  {[10, 25, 50, 100].map(n => (
+                <div className="grid grid-cols-5 gap-2">
+                  {[10, 20, 50, 100, 200].map(n => (
                     <button
                       key={n}
                       onClick={() => setSpins(n)}
-                      className={`py-3 rounded-xl font-bold transition-colors ${
+                      className={`py-3 rounded-xl font-bold transition-colors text-sm ${
                         spins === n 
                           ? 'bg-green-600 text-white' 
                           : 'bg-gray-800 text-gray-400 border border-gray-700'
