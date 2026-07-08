@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { io } from 'socket.io-client';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Wallet } from 'lucide-react';
 import { getMe } from '../../../lib/api';
 
 import SplashScreen from './components/SplashScreen';
@@ -228,17 +228,25 @@ export default function BunaHot5() {
       <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(circle at 50% 30%, rgba(34,197,94,0.1) 0%, transparent 60%)' }} />
 
       {/* Header */}
-      <header className="flex justify-between items-center px-4 py-3 z-10">
-        <button onClick={() => router.push('/')} className="text-green-500 font-bold text-sm shrink-0">◀ BACK</button>
-        <div className="font-black italic tracking-widest text-lg bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent drop-shadow-md mx-2">
+      <header className="flex justify-between items-center px-4 py-3 z-10 border-b border-white/5 bg-black/20 backdrop-blur-sm">
+        <div className="flex-1 flex items-center justify-start">
+          <button onClick={() => router.push('/')} className="text-gray-400 hover:text-white transition-colors font-bold text-[11px] tracking-widest uppercase">
+            BACK
+          </button>
+        </div>
+        
+        <div className="font-black italic tracking-widest text-lg bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent drop-shadow-md flex-none text-center">
           BUNA HOT 5
         </div>
-        <div className="flex items-center gap-3 shrink-0">
-          <div className="text-right">
-            <span className="text-[10px] text-gray-400 uppercase tracking-widest block leading-none">Balance</span>
-            <span className="text-sm font-bold text-yellow-500 font-mono leading-none">{balance.toFixed(2)} ETB</span>
+
+        <div className="flex-1 flex justify-end items-center gap-2">
+          <div className="flex items-center bg-black/40 rounded-full px-3 py-1 border border-white/10 gap-2 shadow-inner">
+            <Wallet className="w-3.5 h-3.5 text-yellow-500" strokeWidth={2.5} />
+            <span className="text-[13px] font-bold text-white font-mono">{balance.toFixed(2)}</span>
           </div>
-          <button onClick={() => router.push('/history')} className="text-[11px] text-gray-400 border border-gray-700 rounded-lg px-2 py-1">Hist</button>
+          <button onClick={() => router.push('/history')} className="text-[10px] font-bold text-gray-400 hover:text-white border border-gray-700 bg-black/40 rounded-full px-2.5 py-1 transition-colors uppercase tracking-widest">
+            Hist
+          </button>
         </div>
       </header>
 
