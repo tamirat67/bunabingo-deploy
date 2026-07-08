@@ -54,7 +54,7 @@ export async function creditWallet(
     const [wallet] = await tx.$queryRaw<any[]>`SELECT * FROM wallets WHERE user_id = ${userId}::uuid FOR UPDATE`;
 
 
-    const currentBalance = new Decimal(wallet.balance.toString());
+    const currentBalance = new Decimal(wallet.balance?.toString() ?? '0');
     const newBalance = currentBalance.add(amt);
 
     logger.info(`[Wallet] Crediting user ${userId}: +${amt} ETB (${type}). Balance: ${currentBalance} -> ${newBalance}`);
@@ -65,11 +65,11 @@ export async function creditWallet(
       data: {
         balance: newBalance,
         totalDeposited: type === 'DEPOSIT'
-          ? new Decimal(wallet.totalDeposited.toString()).add(amt)
-          : wallet.totalDeposited,
+          ? new Decimal(wallet.totalDeposited?.toString() ?? '0').add(amt)
+          : (wallet.totalDeposited ?? 0),
         totalWon: (type === 'PRIZE_WIN' || type === 'REFERRAL_BONUS')
-          ? new Decimal(wallet.totalWon.toString()).add(amt)
-          : wallet.totalWon,
+          ? new Decimal(wallet.totalWon?.toString() ?? '0').add(amt)
+          : (wallet.totalWon ?? 0),
       },
     });
 
@@ -100,7 +100,7 @@ export async function creditBonus(
 ): Promise<void> {
   const wallet = await getOrCreateWallet(userId);
   const amt = new Decimal(amount.toString());
-  const newBonus = new Decimal(wallet.bonusBalance.toString()).add(amt);
+  const newBonus = new Decimal(wallet.bonusBalance?.toString() ?? '0').add(amt);
 
   await prisma.wallet.update({
     where: { userId: userId },
@@ -134,7 +134,7 @@ export async function grantWelcomeBonus(userId: string): Promise<boolean> {
 
   const wallet = await getOrCreateWallet(userId);
   const amt = new Decimal(WELCOME_BONUS_ETB);
-  const balanceBefore = new Decimal(wallet.bonusBalance.toString());
+  const balanceBefore = new Decimal(wallet.bonusBalance?.toString() ?? '0');
   const balanceAfter  = balanceBefore.add(amt);
 
   await prisma.$transaction(async (tx) => {
@@ -173,8 +173,8 @@ export async function creditReferralCommission(
 ): Promise<void> {
   const wallet = await getOrCreateWallet(userId);
   const amt = new Decimal(amount.toString());
-  const newRefBalance = new Decimal(wallet.referralBalance.toString()).add(amt);
-  const newBonusBalance = new Decimal(wallet.bonusBalance.toString()).add(amt);
+  const newRefBalance = new Decimal(wallet.referralBalance?.toString() ?? '0').add(amt);
+  const newBonusBalance = new Decimal(wallet.bonusBalance?.toString() ?? '0').add(amt);
 
   // Add to bonusBalance (non-withdrawable, for play only)
   await prisma.wallet.update({
@@ -242,7 +242,7 @@ export async function convertCoinsToBonus(userId: string): Promise<{
   const coinsToSpend = Math.floor(coins / COINS_PER_ETB) * COINS_PER_ETB;
   const bonusEarned = new Decimal(coinsToSpend).div(COINS_PER_ETB);
   const newCoins = coins - coinsToSpend;
-  const newBonus = new Decimal(wallet.bonusBalance.toString()).add(bonusEarned);
+  const newBonus = new Decimal(wallet.bonusBalance?.toString() ?? '0').add(bonusEarned);
 
   await prisma.wallet.update({
     where: { userId: userId },
@@ -292,8 +292,8 @@ export async function debitWallet(
     });
     const [wallet] = await tx.$queryRaw<any[]>`SELECT * FROM wallets WHERE user_id = ${userId}::uuid FOR UPDATE`;
 
-    const balance = new Decimal(wallet.balance.toString());
-    const bonus = new Decimal(wallet.bonusBalance.toString());
+    const balance = new Decimal(wallet.balance?.toString() ?? '0');
+    const bonus = new Decimal(wallet.bonusBalance?.toString() ?? '0');
     const totalAvailable = type === 'TICKET_PURCHASE' ? balance.add(bonus) : balance;
 
     if (totalAvailable.lessThan(amt)) {
@@ -331,8 +331,8 @@ export async function debitWallet(
         balance: newBalance,
         bonusBalance: newBonus,
         totalSpent: type === 'TICKET_PURCHASE'
-          ? new Decimal(wallet.totalSpent.toString()).add(amt)
-          : wallet.totalSpent,
+          ? new Decimal(wallet.totalSpent?.toString() ?? '0').add(amt)
+          : (wallet.totalSpent ?? 0),
         // totalWithdrawn intentionally NOT updated here for WITHDRAWAL type
       },
     });
