@@ -118,10 +118,10 @@ function SpinningSymbol({ col, stopped, symbol, row, lineWins }: {
         width: '100%',
         aspectRatio: '1',
         background: isWin
-          ? `radial-gradient(circle, ${cfg.glow} 0%, #301010 80%)`
-          : 'linear-gradient(145deg, #1a0505, #0a0000)',
-        border: isWin ? `2px solid ${cfg.color}` : '1px solid rgba(251,191,36,0.15)',
-        boxShadow: isWin ? `0 0 20px ${cfg.glow}, inset 0 0 10px ${cfg.glow}` : 'none',
+          ? `radial-gradient(circle, ${cfg.glow} 0%, #4a0404 80%)`
+          : 'radial-gradient(circle at 30% 30%, #3f0f0f 0%, #0a0000 100%)',
+        border: isWin ? `3px solid ${cfg.color}` : '1px solid rgba(251,191,36,0.3)',
+        boxShadow: isWin ? `0 0 25px ${cfg.glow}, inset 0 0 15px ${cfg.glow}` : 'inset 0 0 20px rgba(0,0,0,0.8)',
       }}
       animate={isWin ? { scale: [1, 1.08, 1], opacity: [1, 0.85, 1] } : { scale: 1 }}
       transition={isWin ? { repeat: Infinity, duration: 0.7, repeatType: 'loop' } : {}}
@@ -171,15 +171,14 @@ function SpinningSymbol({ col, stopped, symbol, row, lineWins }: {
           alt={symbol}
           className="z-10 select-none"
           style={{
-            width: '85%',
-            height: '85%',
+            width: '90%',
+            height: '90%',
             objectFit: 'contain',
-            filter: isWin ? `drop-shadow(0 0 10px ${cfg.color}) drop-shadow(0 0 4px ${cfg.color})` : 'drop-shadow(0 2px 4px rgba(0,0,0,0.6))',
+            mixBlendMode: 'lighten', /* Magically removes the black background from the AI images */
+            filter: isWin ? `drop-shadow(0 0 10px ${cfg.color}) drop-shadow(0 0 5px ${cfg.color})` : 'drop-shadow(0 4px 6px rgba(0,0,0,0.8))',
             opacity: stopped ? 1 : 0,
             transform: stopped ? 'scale(1)' : 'scale(0.5)',
             transition: 'opacity 0.2s, transform 0.2s',
-            maskImage: 'radial-gradient(circle, black 65%, transparent 72%)',
-            WebkitMaskImage: 'radial-gradient(circle, black 65%, transparent 72%)',
           }}
         />
       ) : (
@@ -214,7 +213,7 @@ export default function ReelGrid({ grid, spinning, reelStopped, lineWins }: Reel
 
   return (
     <div className="relative w-full p-3 rounded-2xl"
-         style={{ background: 'linear-gradient(145deg, #1f0505, #0a0000)', border: '2px solid rgba(251,191,36,0.3)', boxShadow: '0 0 30px rgba(251,191,36,0.1)' }}>
+         style={{ background: 'linear-gradient(180deg, #380808 0%, #170000 100%)', border: '3px solid #b45309', boxShadow: '0 0 40px rgba(180,83,9,0.3), inset 0 0 20px rgba(0,0,0,0.8)' }}>
 
       {/* Column separators */}
       <div className="absolute inset-y-3 left-1/3 w-px" style={{ background: 'rgba(251,191,36,0.15)' }} />
@@ -237,7 +236,7 @@ export default function ReelGrid({ grid, spinning, reelStopped, lineWins }: Reel
 
       {/* Middle payline indicator */}
       <div className="absolute left-3 right-3 pointer-events-none"
-           style={{ top: '50%', transform: 'translateY(-50%)', height: '2px', background: 'linear-gradient(90deg, transparent, rgba(251,191,36,0.4), transparent)' }} />
+           style={{ top: '50%', transform: 'translateY(-50%)', height: '3px', background: 'linear-gradient(90deg, transparent, rgba(251,191,36,0.6), transparent)', boxShadow: '0 0 10px rgba(251,191,36,0.5)' }} />
     </div>
   );
 }

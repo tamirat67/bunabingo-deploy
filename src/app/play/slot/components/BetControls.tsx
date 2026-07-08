@@ -41,14 +41,14 @@ export default function BetControls({
         <button
           onClick={handleDecrease}
           disabled={spinning || bet <= minBet}
-          className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl font-bold disabled:opacity-50 active:scale-95 transition-transform border"
-          style={{ background: 'linear-gradient(to bottom, #450a0a, #270606)', borderColor: '#7f1d1d', color: '#fef08a' }}
+          className="w-12 h-12 rounded-xl flex items-center justify-center text-3xl font-black disabled:opacity-50 active:scale-95 transition-transform border shadow-lg"
+          style={{ background: 'linear-gradient(to bottom, #fbbf24, #b45309)', borderColor: '#fcd34d', color: '#78350f', textShadow: '0 1px 1px rgba(255,255,255,0.5)' }}
         >
           -
         </button>
         
-        <div className="flex-1 h-12 rounded-xl flex flex-col items-center justify-center border" style={{ background: '#110000', borderColor: '#450a0a' }}>
-          <span className="text-[10px] uppercase tracking-widest mt-1" style={{ color: '#d97706' }}>TOTAL BET</span>
+        <div className="flex-1 h-12 rounded-xl flex flex-col items-center justify-center border shadow-inner" style={{ background: 'linear-gradient(to bottom, #000000, #170000)', borderColor: '#7f1d1d' }}>
+          <span className="text-[10px] uppercase tracking-widest mt-1 font-bold" style={{ color: '#fbbf24' }}>TOTAL BET</span>
           <input 
             type="number"
             value={bet}
@@ -59,8 +59,8 @@ export default function BetControls({
               }
             }}
             disabled={spinning}
-            className="bg-transparent text-yellow-500 font-mono font-bold leading-none text-center outline-none w-full mb-1"
-            style={{ WebkitAppearance: 'none', MozAppearance: 'textfield' }}
+            className="w-full text-center bg-transparent outline-none font-bold text-lg mb-1"
+            style={{ color: '#fff', textShadow: '0 0 5px rgba(255,255,255,0.5)', WebkitAppearance: 'none', MozAppearance: 'textfield' }}
           />
         </div>
 
@@ -75,8 +75,8 @@ export default function BetControls({
         <button
           onClick={handleIncrease}
           disabled={spinning || bet >= balance || bet >= maxBet}
-          className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl font-bold disabled:opacity-50 active:scale-95 transition-transform border"
-          style={{ background: 'linear-gradient(to bottom, #450a0a, #270606)', borderColor: '#7f1d1d', color: '#fef08a' }}
+          className="w-12 h-12 rounded-xl flex items-center justify-center text-3xl font-black disabled:opacity-50 active:scale-95 transition-transform border shadow-lg"
+          style={{ background: 'linear-gradient(to bottom, #fbbf24, #b45309)', borderColor: '#fcd34d', color: '#78350f', textShadow: '0 1px 1px rgba(255,255,255,0.5)' }}
         >
           +
         </button>
@@ -84,8 +84,8 @@ export default function BetControls({
         <button
           onClick={handleMax}
           disabled={spinning}
-          className="h-12 px-3 rounded-xl flex flex-col items-center justify-center disabled:opacity-50 active:scale-95 transition-transform font-bold text-[11px] leading-tight border"
-          style={{ background: 'linear-gradient(to bottom, #ca8a04, #854d0e)', borderColor: '#eab308', color: '#fefce8' }}
+          className="h-12 px-3 rounded-xl flex flex-col items-center justify-center disabled:opacity-50 active:scale-95 transition-transform font-black text-[11px] leading-tight border shadow-lg"
+          style={{ background: 'linear-gradient(to bottom, #ef4444, #991b1b)', borderColor: '#fca5a5', color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
         >
           <span>MAX</span>
           <span>BET</span>
@@ -96,15 +96,16 @@ export default function BetControls({
       <div className="flex space-x-2">
         <button
           onClick={onAutoplayToggle}
-          className={`h-14 px-4 rounded-2xl flex flex-col items-center justify-center font-bold text-xs uppercase tracking-wider transition-colors border ${
+          className={`h-14 px-4 rounded-2xl flex flex-col items-center justify-center font-black text-xs uppercase tracking-wider transition-colors border shadow-lg ${
             autoplayActive 
               ? 'animate-pulse' 
               : ''
           }`}
           style={{
-            background: autoplayActive ? 'linear-gradient(to bottom, #b91c1c, #7f1d1d)' : 'linear-gradient(to bottom, #450a0a, #270606)',
-            borderColor: autoplayActive ? '#ef4444' : '#7f1d1d',
-            color: autoplayActive ? '#fff' : '#fca5a5'
+            background: autoplayActive ? 'linear-gradient(to bottom, #b91c1c, #7f1d1d)' : 'linear-gradient(to bottom, #4338ca, #1e3a8a)',
+            borderColor: autoplayActive ? '#ef4444' : '#818cf8',
+            color: '#fff',
+            textShadow: '0 1px 2px rgba(0,0,0,0.8)'
           }}
         >
           <span>{autoplayActive ? 'STOP' : 'AUTO'}</span>
