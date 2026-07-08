@@ -362,10 +362,19 @@ export async function gamble(
     const currentPayout = parseFloat(lockedSpin.final_payout.toString());
     if (currentPayout <= 0) throw new Error('Nothing to gamble');
 
-    // 50/50 crypto RNG
-    const byte = crypto.randomBytes(1)[0];
-    outcome = byte < 128 ? 'red' : 'black';
-    won = choice === outcome;
+    // Company Protection: 40% win chance (creates a 20% House Edge on gamble)
+    // This prevents players from easily doubling their money and protects company finances.
+    const winChancePercent = 40; 
+    const roll = Math.random() * 100;
+    won = roll < winChancePercent;
+    
+    // Set the visual outcome based on whether they were selected to win or lose
+    if (won) {
+      outcome = choice; // Give them what they picked
+    } else {
+      outcome = choice === 'red' ? 'black' : 'red'; // Give them the opposite
+    }
+
     newPayout = won ? parseFloat((currentPayout * 2).toFixed(2)) : 0;
     round = rounds.length + 1;
     const isLast = round >= cfg.gambleMaxRounds;
