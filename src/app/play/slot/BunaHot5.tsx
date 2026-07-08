@@ -337,10 +337,12 @@ export default function BunaHot5() {
         }}
       />
 
-      <WeeklyBlastModal 
-        isOpen={blastOpen} 
-        onClose={() => setBlastOpen(false)} 
-      />
+      {blastOpen && (
+        <WeeklyBlastModal 
+          onClose={() => setBlastOpen(false)} 
+          onRewardClaimed={(amount) => setBalance(prev => prev + amount)}
+        />
+      )}
 
       <WeeklyBlastFab onClick={() => setBlastOpen(true)} />
     </div>
