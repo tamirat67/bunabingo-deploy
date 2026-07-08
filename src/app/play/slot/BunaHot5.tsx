@@ -294,11 +294,23 @@ export default function BunaHot5() {
         loading={gambleFlow.loading}
         onChoice={(c) => {
           gambleFlow.makeChoice(currentSpinId.current, c, (res) => {
-            if (res.gambleComplete) setTimeout(finishSpin, 2000);
+            // Always update balance from server response (win or loss)
+            if (res.newBalance !== undefined) setBalance(res.newBalance);
+            if (res.gambleComplete) {
+              if (!res.won) {
+                // Lost — show loss state briefly then go to idle
+                setTimeout(() => finishSpin(), 2500);
+              } else {
+                setTimeout(finishSpin, 2000);
+              }
+            }
           });
         }}
         onCollect={() => {
-          gambleFlow.doCollect(currentSpinId.current, () => finishSpin());
+          gambleFlow.doCollect(currentSpinId.current, (finalPayout, newBalance) => {
+            if (newBalance !== undefined) setBalance(newBalance);
+            finishSpin();
+          });
         }}
       />
     </div>

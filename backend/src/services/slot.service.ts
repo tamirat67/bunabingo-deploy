@@ -390,7 +390,11 @@ export async function gamble(
     if (!lockedWallet) return;
 
     const wallet = await tx.wallet.findUnique({ where: { userId } });
-    const curBal = new Decimal(wallet.balance.toString());
+    if (!wallet) {
+      logger.error(`[SlotGamble] Wallet not found for userId=${userId}`);
+      return;
+    }
+    const curBal = new Decimal(wallet.balance?.toString() ?? '0');
 
     if (!won) {
       // Take back the already-credited win amount
@@ -405,13 +409,14 @@ export async function gamble(
           description: `Buna Hot 5 gamble LOST — round ${round}`,
         },
       });
+      logger.info(`[SlotGamble] LOSS: deducted ${deduct} from userId=${userId}, balance ${curBal} → ${safeBal}`);
     } else if (!isLast) {
       // Mid-sequence win: credit the extra amount
-      const extra    = new Decimal(currentPayout.toFixed(4));
-      const newBal   = curBal.add(extra);
+      const extra  = new Decimal(currentPayout.toFixed(4));
+      const newBal = curBal.add(extra);
       await tx.wallet.update({
         where: { userId },
-        data: { balance: newBal, totalWon: new Decimal(wallet.totalWon.toString()).add(extra) },
+        data: { balance: newBal, totalWon: new Decimal(wallet.totalWon?.toString() ?? '0').add(extra) },
       });
       await tx.transaction.create({
         data: {
