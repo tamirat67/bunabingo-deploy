@@ -118,8 +118,8 @@ function SpinningSymbol({ col, stopped, symbol, row, lineWins }: {
         width: '100%',
         aspectRatio: '1',
         background: isWin
-          ? `radial-gradient(circle, ${cfg.glow} 0%, #4a0404 80%)`
-          : 'radial-gradient(circle at 30% 30%, #3f0f0f 0%, #0a0000 100%)',
+          ? `radial-gradient(circle, ${cfg.glow} 0%, #064e3b 80%)`
+          : 'radial-gradient(circle at 30% 30%, #065f46 0%, #022c22 100%)',
         border: isWin ? `3px solid ${cfg.color}` : '1px solid rgba(251,191,36,0.3)',
         boxShadow: isWin ? `0 0 25px ${cfg.glow}, inset 0 0 15px ${cfg.glow}` : 'inset 0 0 20px rgba(0,0,0,0.8)',
       }}
@@ -171,10 +171,11 @@ function SpinningSymbol({ col, stopped, symbol, row, lineWins }: {
           alt={symbol}
           className="z-10 select-none"
           style={{
-            width: '90%',
-            height: '90%',
+            width: '95%',
+            height: '95%',
             objectFit: 'contain',
-            mixBlendMode: 'lighten', /* Magically removes the black background from the AI images */
+            maskImage: 'radial-gradient(circle at 50% 50%, black 48%, transparent 58%)',
+            WebkitMaskImage: 'radial-gradient(circle at 50% 50%, black 48%, transparent 58%)',
             filter: isWin ? `drop-shadow(0 0 10px ${cfg.color}) drop-shadow(0 0 5px ${cfg.color})` : 'drop-shadow(0 4px 6px rgba(0,0,0,0.8))',
             opacity: stopped ? 1 : 0,
             transform: stopped ? 'scale(1)' : 'scale(0.5)',
@@ -213,7 +214,7 @@ export default function ReelGrid({ grid, spinning, reelStopped, lineWins }: Reel
 
   return (
     <div className="relative w-full p-3 rounded-2xl"
-         style={{ background: 'linear-gradient(180deg, #380808 0%, #170000 100%)', border: '3px solid #b45309', boxShadow: '0 0 40px rgba(180,83,9,0.3), inset 0 0 20px rgba(0,0,0,0.8)' }}>
+         style={{ background: 'linear-gradient(180deg, #064e3b 0%, #022c22 100%)', border: '3px solid #b45309', boxShadow: '0 0 40px rgba(180,83,9,0.3), inset 0 0 20px rgba(0,0,0,0.8)' }}>
 
       {/* Column separators */}
       <div className="absolute inset-y-3 left-1/3 w-px" style={{ background: 'rgba(251,191,36,0.15)' }} />

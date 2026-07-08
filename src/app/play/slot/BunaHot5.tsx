@@ -234,20 +234,21 @@ export default function BunaHot5() {
   }
 
   return (
-    <div className="min-h-screen text-white flex flex-col relative overflow-hidden" style={{ background: 'radial-gradient(ellipse at top, #991b1b 0%, #450a0a 50%, #170000 100%)' }}>
+    <div className="min-h-screen text-white flex flex-col relative overflow-hidden" style={{ background: 'radial-gradient(ellipse at top, #059669 0%, #064e3b 60%, #022c22 100%)' }}>
       {/* Background glow overhead */}
-      <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(circle at 50% 10%, rgba(251,191,36,0.2) 0%, transparent 50%)' }} />
+      <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(circle at 50% 0%, rgba(52,211,153,0.4) 0%, transparent 60%)' }} />
 
       {/* Header */}
-      <header className="flex justify-between items-center px-4 py-3 z-10 border-b border-white/5 bg-black/20 backdrop-blur-sm">
+      <header className="flex justify-between items-center px-4 py-3 z-10 border-b border-white/10 bg-black/30 backdrop-blur-sm">
         <div className="flex-1 flex items-center justify-start">
-          <button onClick={() => router.push('/')} className="text-gray-400 hover:text-white transition-colors font-bold text-[11px] tracking-widest uppercase">
+          <button onClick={() => router.push('/')} className="text-gray-300 hover:text-white transition-colors font-bold text-[11px] tracking-widest uppercase drop-shadow-md">
             BACK
           </button>
         </div>
         
-        <div className="font-black italic tracking-widest text-lg bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent drop-shadow-md flex-none text-center">
-          BUNA HOT 5
+        <div className="font-black italic tracking-widest text-xl drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] flex-none text-center">
+          <span className="bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-600 bg-clip-text text-transparent">MULTI HOT </span>
+          <span className="bg-gradient-to-b from-pink-400 to-pink-600 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(236,72,153,0.8)]">5</span>
         </div>
 
         <div className="flex-1 flex justify-end items-center gap-2">
