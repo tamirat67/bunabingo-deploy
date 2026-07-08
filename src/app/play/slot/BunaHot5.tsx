@@ -230,13 +230,13 @@ export default function BunaHot5() {
   }
 
   if (configLoading || !config) {
-    return <div className="min-h-screen bg-[#051505] flex items-center justify-center"><Loader2 className="animate-spin text-green-500 w-10 h-10" /></div>;
+    return <div className="min-h-screen bg-[#110000] flex items-center justify-center"><Loader2 className="animate-spin text-yellow-500 w-10 h-10" /></div>;
   }
 
   return (
-    <div className="min-h-screen bg-[#051505] text-white flex flex-col relative overflow-hidden">
+    <div className="min-h-screen text-white flex flex-col relative overflow-hidden" style={{ background: 'linear-gradient(to bottom, #2a0808, #110000)' }}>
       {/* Background glow */}
-      <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(circle at 50% 30%, rgba(34,197,94,0.1) 0%, transparent 60%)' }} />
+      <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(circle at 50% 30%, rgba(245,158,11,0.15) 0%, transparent 60%)' }} />
 
       {/* Header */}
       <header className="flex justify-between items-center px-4 py-3 z-10 border-b border-white/5 bg-black/20 backdrop-blur-sm">

@@ -118,9 +118,9 @@ function SpinningSymbol({ col, stopped, symbol, row, lineWins }: {
         width: '100%',
         aspectRatio: '1',
         background: isWin
-          ? `radial-gradient(circle, ${cfg.glow} 0%, #1a2e1a 80%)`
-          : 'linear-gradient(145deg, #1a2e1a, #0d1f0d)',
-        border: isWin ? `2px solid ${cfg.color}` : '1px solid rgba(34,197,94,0.2)',
+          ? `radial-gradient(circle, ${cfg.glow} 0%, #301010 80%)`
+          : 'linear-gradient(145deg, #1a0505, #0a0000)',
+        border: isWin ? `2px solid ${cfg.color}` : '1px solid rgba(251,191,36,0.15)',
         boxShadow: isWin ? `0 0 20px ${cfg.glow}, inset 0 0 10px ${cfg.glow}` : 'none',
       }}
       animate={isWin ? { scale: [1, 1.08, 1], opacity: [1, 0.85, 1] } : { scale: 1 }}
@@ -212,11 +212,11 @@ export default function ReelGrid({ grid, spinning, reelStopped, lineWins }: Reel
 
   return (
     <div className="relative w-full p-3 rounded-2xl"
-         style={{ background: 'linear-gradient(145deg, #0a1f0a, #051505)', border: '2px solid rgba(34,197,94,0.3)', boxShadow: '0 0 30px rgba(34,197,94,0.1)' }}>
+         style={{ background: 'linear-gradient(145deg, #1f0505, #0a0000)', border: '2px solid rgba(251,191,36,0.3)', boxShadow: '0 0 30px rgba(251,191,36,0.1)' }}>
 
       {/* Column separators */}
-      <div className="absolute inset-y-3 left-1/3 w-px" style={{ background: 'rgba(34,197,94,0.15)' }} />
-      <div className="absolute inset-y-3 left-2/3 w-px" style={{ background: 'rgba(34,197,94,0.15)' }} />
+      <div className="absolute inset-y-3 left-1/3 w-px" style={{ background: 'rgba(251,191,36,0.15)' }} />
+      <div className="absolute inset-y-3 left-2/3 w-px" style={{ background: 'rgba(251,191,36,0.15)' }} />
 
       <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(3, 1fr)', gridTemplateRows: 'repeat(3, 1fr)' }}>
         {displayGrid.map((row, rowIdx) =>
@@ -235,7 +235,7 @@ export default function ReelGrid({ grid, spinning, reelStopped, lineWins }: Reel
 
       {/* Middle payline indicator */}
       <div className="absolute left-3 right-3 pointer-events-none"
-           style={{ top: '50%', transform: 'translateY(-50%)', height: '2px', background: 'linear-gradient(90deg, transparent, rgba(34,197,94,0.4), transparent)' }} />
+           style={{ top: '50%', transform: 'translateY(-50%)', height: '2px', background: 'linear-gradient(90deg, transparent, rgba(251,191,36,0.4), transparent)' }} />
     </div>
   );
 }
