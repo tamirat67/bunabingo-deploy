@@ -1,12 +1,15 @@
-# Disable Node.js Passenger
-PassengerEnabled off
-
+# Route all /validate/ID requests to index.php via PATH_INFO
+Options -MultiViews
 RewriteEngine On
-# Base is / since it's likely on a subdomain root
-RewriteBase /
 
-# Route /validate/ID to index.php
-RewriteRule ^validate/([a-zA-Z0-9_-]+)$ index.php?transactionId=$1 [L,QSA]
+# Allow direct file access
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^ - [L]
 
-# Handle root access
-RewriteRule ^$ index.php [L]
+# Route /validate/ID → index.php with PATH_INFO
+RewriteRule ^validate/([A-Za-z0-9_-]+)$ index.php/validate/$1 [QSA,L]
+
+# Route everything else to index.php
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php [QSA,L]

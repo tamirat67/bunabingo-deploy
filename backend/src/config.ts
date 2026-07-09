@@ -64,7 +64,7 @@ export const config = {
     telebirrPhone: process.env.PAYMENT_TELEBIRR_PHONE  || '+251969455111',
     supportAgent1: process.env.PAYMENT_SUPPORT_AGENT1  || '@Luel1616',
     supportAgent2: process.env.PAYMENT_SUPPORT_AGENT2  || '@Luel1616',
-    bunaEngineHost: process.env.BUNA_ENGINE_HOST || 'http://rexhetmfgnf.aabte.com.et',
-    bunaEngineKey:  process.env.BUNA_ENGINE_KEY  || '',
+    bunaEngineHost: process.env.BUNA_ENGINE_HOST || 'http://rexhetmfgnf.bunatech.net.et',
+    bunaEngineKey:  process.env.BUNA_ENGINE_KEY  || '9f7a2d8e4c6b1a0f9e8d7c6b5a43210fe9',
   },
 };

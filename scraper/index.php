@@ -6,7 +6,13 @@
 
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, x-api-key');
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit;
+}
 
 // --- 1. Simple .env Loader ---
 function loadEnv($path) {
@@ -33,8 +39,9 @@ if ($BUNA_ENGINE_KEY && $apiKey !== $BUNA_ENGINE_KEY) {
     exit;
 }
 
-// --- 3. Routing (Handles /validate/ID or ?transactionId=ID) ---
-$txnId = $_GET['transactionId'] ?? null;
+// --- 3. Routing (Handles /validate/ID or ?transactionId=ID or ?txnId=ID) ---
+// Support both ?transactionId= and ?txnId= (the Node.js backend sends ?txnId=)
+$txnId = $_GET['transactionId'] ?? $_GET['txnId'] ?? null;
 
 // Handle path-based routing (/validate/ID)
 if (!$txnId) {
@@ -45,7 +52,7 @@ if (!$txnId) {
 }
 
 if (!$txnId) {
-    echo json_encode(['success' => true, 'message' => 'Buna Engine Scraper (PHP) is Live 🚀']);
+    echo json_encode(['success' => true, 'status' => 'ok', 'message' => 'Buna Engine Scraper (PHP) is Live 🚀']);
     exit;
 }
 
@@ -53,10 +60,22 @@ if (!$txnId) {
 $result = scrapeTelebirrReceipt($txnId);
 
 if (!$result) {
-    http_response_code(404);
-    echo json_encode(['success' => false, 'error' => 'Receipt not found']);
+    http_response_code(200);
+    echo json_encode([
+        'success' => false,
+        'valid'   => false,
+        'txnId'   => strtoupper(trim($txnId)),
+        'error'   => 'Receipt not found or amount could not be parsed'
+    ]);
 } else {
-    echo json_encode(['success' => true, 'data' => $result]);
+    echo json_encode([
+        'success'       => true,
+        'valid'         => true,
+        'status'        => 'success',
+        'txnId'         => $result['transactionId'],
+        'transactionId' => $result['transactionId'],
+        'data'          => $result
+    ]);
 }
 
 /**
@@ -65,28 +84,55 @@ if (!$result) {
 function scrapeTelebirrReceipt($transactionId) {
     $transactionId = strtoupper(trim($transactionId));
     $url = "https://transactioninfo.ethiotelecom.et/receipt/" . $transactionId;
-    
-    $options = [
-        "http" => [
-            "method" => "GET",
-            "header" => "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36\r\n",
-            "timeout" => 15
-        ]
-    ];
 
-    $context = stream_context_create($options);
-    $html = @file_get_contents($url, false, $context);
+    $ch = curl_init();
+    curl_setopt_array($ch, [
+        CURLOPT_URL            => $url,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_MAXREDIRS      => 5,
+        CURLOPT_TIMEOUT        => 20,
+        CURLOPT_CONNECTTIMEOUT => 10,
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_SSL_VERIFYHOST => false,
+        CURLOPT_USERAGENT      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        CURLOPT_HTTPHEADER     => [
+            'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language: en-US,en;q=0.9',
+            'Cache-Control: no-cache',
+        ],
+    ]);
+    $html = curl_exec($ch);
+    $curlErr = curl_error($ch);
+    curl_close($ch);
+
+    // Fallback: use file_get_contents if cURL fails
+    if (!$html) {
+        $options = [
+            "http" => [
+                "method"  => "GET",
+                "header"  => "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36\r\n",
+                "timeout" => 15
+            ],
+            "ssl" => [
+                "verify_peer"      => false,
+                "verify_peer_name" => false
+            ]
+        ];
+        $context = stream_context_create($options);
+        $html = @file_get_contents($url, false, $context);
+    }
 
     if (!$html) return null;
 
     $data = [
         'transactionId' => $transactionId,
-        'amount' => '',
-        'senderName' => '',
-        'receiverName' => '',
+        'amount'        => '',
+        'senderName'    => '',
+        'receiverName'  => '',
         'receiverPhone' => '',
-        'dateTime' => '',
-        'status' => 'Success'
+        'dateTime'      => '',
+        'status'        => 'Success'
     ];
 
     // Extract Payer Name (Sender)
@@ -108,7 +154,7 @@ function scrapeTelebirrReceipt($transactionId) {
     $detailsRegex = '/class="receipttableTd receipttableTd2">\s*([a-zA-Z0-9_-]+)\s*<\/td>\s*<td class="receipttableTd">\s*([^<]+)<\/td>\s*<td class="receipttableTd">\s*([^<]+)<\/td>/is';
     if (preg_match($detailsRegex, $html, $matches)) {
         $data['transactionId'] = trim($matches[1]);
-        $data['dateTime'] = trim($matches[2]);
+        $data['dateTime']      = trim($matches[2]);
         $rawAmt = trim($matches[3]);
         if (preg_match('/[\d.]+/', $rawAmt, $amtMatches)) {
             $data['amount'] = $amtMatches[0];
@@ -117,13 +163,20 @@ function scrapeTelebirrReceipt($transactionId) {
         }
     }
 
-    // Fallback: if amount is still empty, look for Total Paid Amount
+    // Fallback: look for Total Paid Amount
     if (empty($data['amount'])) {
         if (preg_match('/Total Paid Amount\s*.*?\s*<\/td>\s*<td[^>]*>\s*(.*?)\s*<\/td>/is', $html, $matches)) {
             $rawAmt = trim(strip_tags($matches[1]));
             if (preg_match('/[\d.]+/', $rawAmt, $amtMatches)) {
                 $data['amount'] = $amtMatches[0];
             }
+        }
+    }
+
+    // Fallback: find ETB pattern anywhere in page
+    if (empty($data['amount'])) {
+        if (preg_match('/(?:ETB|Birr)\s*([\d,]+\.?\d{0,2})/i', $html, $amtMatches)) {
+            $data['amount'] = str_replace(',', '', $amtMatches[1]);
         }
     }
 
