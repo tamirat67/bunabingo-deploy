@@ -3,11 +3,6 @@ import { useState, useCallback } from 'react';
 import api from '@/lib/api';
 import { SpinResult } from '../types';
 
-function getInitData(): string {
-  try { return (window as any).Telegram?.WebApp?.initData ?? ''; }
-  catch { return ''; }
-}
-
 export function useSlotSpin() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -19,15 +14,14 @@ export function useSlotSpin() {
     setLoading(true);
     setError(null);
     try {
+      // Let the global api.ts interceptor handle all auth headers
       const { data } = await api.post('/games/slot/spin', {
         betAmount,
         clientSeed,
-      }, {
-        headers: { 'x-telegram-init-data': getInitData() },
       });
       return data as SpinResult;
     } catch (err: any) {
-      const msg = err.response?.data?.error ?? err.message ?? 'Spin failed';
+      const msg = err.response?.data?.error ?? err.message ?? 'Network Error';
       setError(msg);
       return null;
     } finally {
@@ -45,9 +39,8 @@ export function useSlotConfig() {
   const fetchConfig = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await api.get('/games/slot/config', {
-        headers: { 'x-telegram-init-data': getInitData() },
-      });
+      // Let the global api.ts interceptor handle all auth headers
+      const { data } = await api.get('/games/slot/config');
       setConfig(data.config);
     } catch { /* use defaults */ }
     finally { setLoading(false); }
@@ -63,9 +56,8 @@ export function useSlotHistory() {
   const fetchHistory = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await api.get('/games/slot/history', {
-        headers: { 'x-telegram-init-data': getInitData() },
-      });
+      // Let the global api.ts interceptor handle all auth headers
+      const { data } = await api.get('/games/slot/history');
       setHistory(data.spins ?? []);
     } catch { }
     finally { setLoading(false); }
