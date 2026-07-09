@@ -26,7 +26,14 @@ export default function RulesModal({ onClose }: RulesModalProps) {
           <div className="bg-black/30 p-3 rounded-xl border border-white/5">
             <h3 className="font-bold text-[#4ade80] mb-1 uppercase text-xs tracking-wider">🎯 ዓላማው (The Goal)</h3>
             <p className="text-xs leading-relaxed opacity-90">
-              በማናቸውም 5 መስመሮች ላይ 3 ተመሳሳይ ምልክቶችን ለማግኘት ስፒን ያድርጉ። የምልክቱ ዋጋ ከፍ ባለ ቁጥር ክፍያዎም ይጨምራል!
+              በማናቸውም 5 መስመሮች ላይ 3 ተመሳሳይ ምልክቶችን ለማግኘት ስፒን ያድርጉ።
+            </p>
+          </div>
+
+          <div className="bg-black/30 p-3 rounded-xl border border-white/5">
+            <h3 className="font-bold text-[#a78bfa] mb-1 uppercase text-xs tracking-wider">✨ 5 የማሸነፊያ መስመሮች (Paylines)</h3>
+            <p className="text-xs leading-relaxed opacity-90">
+              3 አግድም (ከላይ፣ መሀል፣ ከታች) እና 2 ሰያፍ (ከዳር እስከ ዳር) መስመሮች አሉት። ከነዚህ በአንዱ ላይ 3 ተመሳሳይ ምልክቶች ከወጡ ያሸንፋሉ!
             </p>
           </div>
 
