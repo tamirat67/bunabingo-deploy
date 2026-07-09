@@ -1,5 +1,6 @@
 'use client';
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { scopedLocalStorage } from '../lib/storage';
 
 export const THEMES = {
   PREMIUM_DARK: {
@@ -82,7 +83,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   // Read saved theme synchronously to avoid flash on first render
   const [activeThemeKey, setActiveThemeKey] = useState<ThemeKey>(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('app_theme') as ThemeKey;
+      const saved = scopedLocalStorage.getItem('app_theme') as ThemeKey;
       if (saved && THEMES[saved]) return saved;
     }
     return 'PREMIUM_DARK';
@@ -90,7 +91,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const setTheme = (key: ThemeKey) => {
     setActiveThemeKey(key);
-    localStorage.setItem('app_theme', key);
+    scopedLocalStorage.setItem('app_theme', key);
   };
 
   const value = {

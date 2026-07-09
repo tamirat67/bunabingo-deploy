@@ -1,4 +1,5 @@
 'use client';
+import { scopedLocalStorage } from './storage';
 
 export const tg = () => {
   if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp) {
@@ -32,7 +33,7 @@ export const getTgInitData = () => {
 
 export const getLanguage = () => {
   if (typeof window !== 'undefined') {
-    const override = localStorage.getItem('app_language');
+    const override = scopedLocalStorage.getItem('app_language');
     if (override === 'am' || override === 'en') return override;
   }
   try {
@@ -45,7 +46,7 @@ export const getLanguage = () => {
 
 export const setLanguage = (lang: 'en' | 'am') => {
   if (typeof window !== 'undefined') {
-    localStorage.setItem('app_language', lang);
+    scopedLocalStorage.setItem('app_language', lang);
     window.dispatchEvent(new Event('languageChange'));
   }
 };

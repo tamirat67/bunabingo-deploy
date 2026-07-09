@@ -1,5 +1,6 @@
 'use client';
 import React, { useEffect, useState } from 'react';
+import { scopedSessionStorage } from '../lib/storage';
 import { getRooms, getWallet, getMe } from '../lib/api';
 import { initTelegram, getLanguage, setLanguage } from '../lib/telegram';
 import t from '../lib/i18n';
@@ -21,22 +22,24 @@ export default function LobbyPage() {
   const [user, setUser] = useState<any>(null);
   const [wallet, setWallet] = useState<any>(null);
   const [rooms, setRooms] = useState<any[]>([]);
+  const [isMounted, setIsMounted] = useState(false);
 
   // Hydrate from cache only on client to avoid Next.js SSR mismatch (white screen crash)
   useEffect(() => {
+    setIsMounted(true);
     if (typeof window !== 'undefined') {
-      try {
-        const cachedUser = sessionStorage.getItem('lobby_user');
+        const cachedUser = scopedSessionStorage.getItem('lobby_user');
         if (cachedUser) {
-          const parsed = JSON.parse(cachedUser);
-          setUser(parsed);
-          if (parsed.wallet) setWallet(parsed.wallet);
+          try { 
+             const parsed = JSON.parse(cachedUser);
+             setUser(parsed);
+             if (parsed.wallet) setWallet(parsed.wallet);
+          } catch (e) {}
         }
-        const cachedRooms = sessionStorage.getItem('lobby_rooms');
+        const cachedRooms = scopedSessionStorage.getItem('lobby_rooms');
         if (cachedRooms) {
-          setRooms(JSON.parse(cachedRooms));
+          try { setRooms(JSON.parse(cachedRooms)); } catch(e){}
         }
-      } catch (e) {}
     }
   }, []);
   const [activeGame, setActiveGame] = useState<any>(null);
@@ -141,7 +144,7 @@ export default function LobbyPage() {
       if (me) {
         setUser(me);
         setWallet(me.wallet); // me already includes wallet
-        sessionStorage.setItem('lobby_user', JSON.stringify(me));
+        scopedSessionStorage.setItem('lobby_user', JSON.stringify(me));
         
         // Show jackpot splash if not seen
         if (!me.hasSeenJackpot) {
@@ -160,7 +163,7 @@ export default function LobbyPage() {
 
       if (roomsData && roomsData.length > 0) {
         setRooms(roomsData);
-        sessionStorage.setItem('lobby_rooms', JSON.stringify(roomsData));
+        scopedSessionStorage.setItem('lobby_rooms', JSON.stringify(roomsData));
       }
     } catch (e) {
       console.warn('Error refreshing lobby data:', e);

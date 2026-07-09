@@ -29,6 +29,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { useTheme, THEMES } from '../../context/ThemeContext';
+import { scopedLocalStorage } from '../../lib/storage';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -49,7 +50,7 @@ export default function ProfilePage() {
     const tg = initTelegram();
     
     // Load local settings
-    const savedSound = localStorage.getItem('game_sound');
+    const savedSound = scopedLocalStorage.getItem('game_sound');
     if (savedSound !== null) setSoundEnabled(savedSound === 'true');
 
     refreshData();
@@ -152,7 +153,7 @@ export default function ProfilePage() {
   const toggleSound = () => {
     const newState = !soundEnabled;
     setSoundEnabled(newState);
-    localStorage.setItem('game_sound', String(newState));
+    scopedLocalStorage.setItem('game_sound', String(newState));
   };
 
   const selectTheme = (key: any) => {
