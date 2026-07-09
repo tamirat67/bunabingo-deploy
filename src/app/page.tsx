@@ -374,58 +374,92 @@ export default function LobbyPage() {
         </div>
         </div>
 
-        {/* ── BUNA HOT 5 CARD ── */}
+        {/* ── BUNA HOT 5 (777 FRUIT SLOT) CARD ── */}
         <div style={{ padding: '0 15px', marginBottom: '12px', marginTop: '16px' }}>
           <div
             onClick={() => router.push('/play/slot')}
             style={{
-              background: 'linear-gradient(135deg, #2b1d0e 0%, #1e140a 60%, #3e2723 100%)',
+              background: 'linear-gradient(135deg, #2D0505 0%, #1A0202 50%, #3B0909 100%)',
               borderRadius: '12px',
-              padding: '14px 16px',
+              padding: '12px 14px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
               cursor: 'pointer',
-              border: '1px solid rgba(255,152,0,0.3)',
-              boxShadow: '0 4px 20px rgba(255,152,0,0.15)',
+              border: '1px solid rgba(255, 69, 0, 0.4)',
+              boxShadow: '0 4px 20px rgba(255, 69, 0, 0.2), inset 0 0 15px rgba(255,215,0,0.05)',
               position: 'relative',
               overflow: 'hidden',
             }}
           >
+            {/* Fiery top border glow */}
             <div style={{
-              position: 'absolute', top: 0, left: 0, right: 0, height: '2px',
-              background: 'linear-gradient(90deg, transparent, #ff9800, transparent)',
+              position: 'absolute', top: 0, left: 0, right: 0, height: '3px',
+              background: 'linear-gradient(90deg, transparent, #FF4500, #FFD700, #FF4500, transparent)',
+              boxShadow: '0 0 10px #FF4500'
             }} />
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              {/* Slot Machine Window Visual */}
               <div style={{
-                background: 'rgba(255,152,0,0.1)',
-                padding: '10px',
+                background: 'linear-gradient(180deg, #FDFBF7 0%, #E6E1D6 100%)',
+                padding: '6px 8px',
                 borderRadius: '8px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                gap: '4px',
+                boxShadow: 'inset 0 4px 8px rgba(0,0,0,0.4), 0 0 8px rgba(255,215,0,0.3)',
+                border: '2px solid #D4AF37',
+                position: 'relative'
               }}>
-                <Play size={24} color="#ff9800" fill="#ff9800" />
+                <div style={{ position: 'absolute', top: '-2px', bottom: '-2px', left: '33%', width: '1px', background: 'rgba(0,0,0,0.1)' }} />
+                <div style={{ position: 'absolute', top: '-2px', bottom: '-2px', right: '33%', width: '1px', background: 'rgba(0,0,0,0.1)' }} />
+                {/* 777 Icons — mimicking the red/gold 7 requested */}
+                <div style={{ fontSize: '18px', filter: 'drop-shadow(1px 1px 0px #D4AF37)', display: 'flex', gap: '4px' }}>
+                  <span style={{ color: '#D32F2F', fontWeight: '900', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>7</span>
+                  <span style={{ color: '#D32F2F', fontWeight: '900', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>7</span>
+                  <span style={{ color: '#D32F2F', fontWeight: '900', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>7</span>
+                </div>
               </div>
+              
               <div>
-                <div style={{ fontSize: '18px', fontWeight: '900', color: '#ff9800', lineHeight: '1', letterSpacing: '1px' }}>
+                <div style={{ 
+                  fontSize: '17px', 
+                  fontWeight: '900', 
+                  color: '#FFD700', 
+                  lineHeight: '1.1', 
+                  letterSpacing: '0.5px',
+                  textShadow: '0 2px 4px rgba(0,0,0,0.8)'
+                }}>
                   BUNA HOT 5
                 </div>
-                <div style={{ fontSize: '10px', color: '#ffcc80', opacity: 0.8, marginTop: '2px' }}>
-                  Slot Game • Hot
+                <div style={{ 
+                  fontSize: '10px', 
+                  color: '#FFAB40', 
+                  fontWeight: '700', 
+                  marginTop: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}>
+                  🍒 🍋 🍉 CLASSIC SLOT
                 </div>
               </div>
             </div>
+            
             <div style={{
-              background: 'rgba(255,152,0,0.2)',
-              color: '#ff9800',
-              padding: '6px 12px',
-              borderRadius: '20px',
-              fontSize: '11px',
+              background: 'linear-gradient(180deg, #FF9800, #F57C00)',
+              color: '#FFF',
+              padding: '8px 16px',
+              borderRadius: '8px',
+              fontSize: '13px',
               fontWeight: '900',
-              border: '1px solid rgba(255,152,0,0.4)',
+              border: '1px solid #FFE0B2',
+              boxShadow: '0 4px 0 #E65100, 0 4px 10px rgba(255,152,0,0.4)',
+              textShadow: '0 1px 2px rgba(0,0,0,0.3)'
             }}>
-              PLAY
+              SPIN
             </div>
           </div>
         </div>
