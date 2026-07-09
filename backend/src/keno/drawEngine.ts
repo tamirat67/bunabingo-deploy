@@ -145,9 +145,12 @@ export class DrawEngine extends EventEmitter {
     let bestDrawn = drawNumbers(round.serverSeed, round.clientSeed, bestNonce);
     
     try {
-      // 1. Fetch real player tickets (exclude ghost bots)
+      // 1. Fetch real player tickets
+      // NOTE: Ghost bots never insert rows into the DB — they only emit socket events.
+      // Do NOT filter by userId here because "GHOST_BOT" is not a valid UUID and would
+      // crash Prisma with a UUID parse error (P2023).
       const tickets = await this.prisma.kenoTicket.findMany({
-        where: { roundId: round.id, status: "PLACED", userId: { not: "GHOST_BOT" } }
+        where: { roundId: round.id, status: "PLACED" }
       });
 
       if (tickets.length > 0) {

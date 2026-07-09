@@ -42,8 +42,13 @@ export default function GamePage() {
   const [hasClaimed, setHasClaimed] = useState<boolean>(false);
   const [canClaim, setCanClaim] = useState<boolean>(false);
 
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
   const { socket, isConnected } = useSocket();
   const gameIdRef = useRef(gameId);
+  // Guard: only emit join-game once per socket connection to avoid duplicate syncs
+  const joinedGameRef = useRef<string | null>(null);
 
   useEffect(() => {
     gameIdRef.current = gameId;
@@ -54,8 +59,8 @@ export default function GamePage() {
     setMounted(true);
     initTelegram();
     
-    // Load game and card data
-    loadGameData();
+    // Initial load (marks isLoading=false when done)
+    loadGameData(true);
     
     // Poll for game state every 5s as fallback
     const pollInterval = setInterval(() => {
@@ -65,12 +70,18 @@ export default function GamePage() {
     return () => clearInterval(pollInterval);
   }, [gameId]);
 
-  const loadGameData = async () => {
+  const loadGameData = async (initial = false) => {
     try {
       const [gameData, cardData] = await Promise.all([
         getGame(gameId).catch(() => null),
         getMyCard(gameId).catch(() => null)
       ]);
+
+      if (!gameData && initial) {
+        setLoadError('Could not load the game. Please go back and try again.');
+        setIsLoading(false);
+        return;
+      }
 
       if (gameData) {
         setGame(gameData);
@@ -119,8 +130,14 @@ export default function GamePage() {
           setCardId(firstCard.id);
         }
       }
+
+      if (initial) setIsLoading(false);
     } catch (err) {
       console.error('Failed to load game data:', err);
+      if (initial) {
+        setLoadError('Connection error. Please go back and try again.');
+        setIsLoading(false);
+      }
     }
   };
 
@@ -128,8 +145,14 @@ export default function GamePage() {
   useEffect(() => {
     if (!socket) return;
 
-    // Join this game room
-    socket.emit('join-game', gameId);
+    // Guard: only emit join-game once per socket connection per game.
+    // Without this, the effect re-runs on every render (socket ref change, gameId),
+    // causing the server to send multiple mid-countdown syncs per second.
+    const joinKey = `${socket.id}:${gameId}`;
+    if (joinedGameRef.current !== joinKey) {
+      joinedGameRef.current = joinKey;
+      socket.emit('join-game', gameId);
+    }
 
     // Countdown events
     socket.on('countdown-start', (data: any) => {
@@ -325,7 +348,74 @@ export default function GamePage() {
     router.push('/');
   };
 
-  if (!mounted) return null;
+  // Show loading spinner while initial data is being fetched
+  if (!mounted || isLoading) {
+    return (
+      <div style={{
+        background: '#1C1208',
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '16px',
+        fontFamily: "'Outfit', sans-serif",
+      }}>
+        <div style={{
+          width: '48px',
+          height: '48px',
+          borderRadius: '50%',
+          border: '4px solid rgba(212,175,55,0.2)',
+          borderTopColor: '#D4AF37',
+          animation: 'spin 0.9s linear infinite',
+        }} />
+        <div style={{ color: '#D4AF37', fontSize: '14px', fontWeight: '700', opacity: 0.8 }}>
+          Loading game…
+        </div>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+
+  // Show error state if game failed to load
+  if (loadError) {
+    return (
+      <div style={{
+        background: '#1C1208',
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '16px',
+        padding: '20px',
+        fontFamily: "'Outfit', sans-serif",
+        textAlign: 'center',
+      }}>
+        <div style={{ fontSize: '40px' }}>⚠️</div>
+        <div style={{ color: '#F5E6BE', fontSize: '16px', fontWeight: '700' }}>Game Not Found</div>
+        <div style={{ color: 'rgba(245,230,190,0.6)', fontSize: '13px', maxWidth: '280px', lineHeight: 1.5 }}>
+          {loadError}
+        </div>
+        <button
+          onClick={() => router.push('/')}
+          style={{
+            background: 'linear-gradient(135deg, #D4AF37, #B8860B)',
+            color: '#1C1208',
+            border: 'none',
+            borderRadius: '12px',
+            padding: '12px 28px',
+            fontSize: '14px',
+            fontWeight: '900',
+            cursor: 'pointer',
+            marginTop: '8px',
+          }}
+        >
+          ← Back to Lobby
+        </button>
+      </div>
+    );
+  }
 
   // Bingo columns for calling board
   const bingoColumns = {

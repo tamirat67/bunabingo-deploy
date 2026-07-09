@@ -16,11 +16,19 @@ api.interceptors.request.use((config) => {
       config.headers['x-telegram-init-data'] = initData;
     }
 
-    // 2. Check for Web Auth Token (JWT)
+    // 2. Check for Web Auth Token (JWT) — ONLY on admin/agent routes.
+    // Do NOT send on regular game pages: a stale admin_token in localStorage would
+    // cause every request to fail JWT verification and log "[Auth] Invalid JWT token provided"
+    // before falling back to Telegram initData. This is pure log noise and a latency hit.
     if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('admin_token');
-      if (token) {
-        config.headers['Authorization'] = `Bearer ${token}`;
+      const isAdminRoute =
+        window.location.pathname.startsWith('/admin') ||
+        window.location.pathname.startsWith('/agent');
+      if (isAdminRoute) {
+        const token = localStorage.getItem('buna_admin_token') || localStorage.getItem('admin_token');
+        if (token) {
+          config.headers['Authorization'] = `Bearer ${token}`;
+        }
       }
     }
   } catch (e) {
