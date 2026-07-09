@@ -174,16 +174,10 @@ export default function BunaHot5() {
 
       setPhase('WIN');
       
-      // Wait for banner, then offer gamble if enabled and under max rounds
+      // Wait for banner, then collect automatically
       setTimeout(() => {
         setWinTier('NONE');
-        if (config?.gambleMaxRounds > 0 && !autoActive) {
-          gambleFlow.startGamble(result.finalPayout);
-          setPhase('GAMBLE');
-        } else {
-          // Autoplay or no gamble — collect automatically
-          finishSpin();
-        }
+        finishSpin();
       }, 3000);
     } else {
       finishSpin();

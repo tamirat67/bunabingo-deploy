@@ -603,7 +603,7 @@ export default function SettingsPage() {
               {/* Slot Gamble Row */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
                 <div style={{ flex: 1, paddingRight: '20px' }}>
-                  <div style={{ fontSize: '14px', fontWeight: '700', color: '#1f2937', marginBottom: '6px' }}>🎰 Buna Hot 5 Gamble House Edge</div>
+                  <div style={{ fontSize: '14px', fontWeight: '700', color: '#1f2937', marginBottom: '6px' }}>🎰7️⃣🍒🍋Multi Hot 5 Gamble House Edge</div>
                   <div style={{ fontSize: '12px', color: '#6b7280', lineHeight: '1.4' }}>
                     Set the player's win chance for the double-or-nothing gamble. 
                     {houseProtection.slotGambleWinChance === 50 ? ' ⚖️ 50% (0% House Edge - high risk).' :
@@ -638,7 +638,7 @@ export default function SettingsPage() {
               {/* Slot Base Game Win Chance Row */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0' }}>
                 <div style={{ flex: 1, paddingRight: '20px' }}>
-                  <div style={{ fontSize: '14px', fontWeight: '700', color: '#1f2937', marginBottom: '6px' }}>🎰 Buna Hot 5 Base Game Win Chance</div>
+                  <div style={{ fontSize: '14px', fontWeight: '700', color: '#1f2937', marginBottom: '6px' }}>🎰7️⃣🍒🍋 Multi Hot 5 Base Game Win Chance</div>
                   <div style={{ fontSize: '12px', color: '#6b7280', lineHeight: '1.4' }}>
                     Set how often players win on the spinning reels (1–100%).
                     {` 🛡️ Currently set to: ${houseProtection.slotBaseWinChance}% win rate.`}

@@ -41,7 +41,7 @@ export async function handlePlaySlot(ctx: Context) {
     const slotUrl = `${config.bot.miniAppUrl}/play/slot`;
 
     const text =
-      `🎰 <b>Buna Hot 5 — Classic Slot</b>\n\n` +
+      `7️⃣🍒🍋 <b>Multi Hot 5 — Classic Slot</b>\n\n` +
       `💰 <b>ሂሳብ:</b> ${balance} ETB\n` +
       `🎁 <b>ቦነስ:</b> ${bonus} ETB\n\n` +
       `🍒 ክላሲክ ፍራፍሬ ስሎት | 3×3 Grid | 5 Paylines\n` +
@@ -51,7 +51,7 @@ export async function handlePlaySlot(ctx: Context) {
     await ctx.replyWithHTML(
       text,
       Markup.inlineKeyboard([
-        [Markup.button.webApp('🎰 Buna Hot 5 ይጫወቱ', slotUrl)],
+        [Markup.button.webApp('7️⃣🍒🍋 Multi Hot 5 ይጫወቱ', slotUrl)],
         [
           Markup.button.callback('🎮 Bingo ይጫወቱ', 'cmd_play_bingo'),
           Markup.button.callback('✈️ Aviator', 'cmd_play_aviator'),
