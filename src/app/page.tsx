@@ -553,25 +553,7 @@ export default function LobbyPage() {
           </div>
         </div>
 
-      {/* ── Premium Navbar ── */}
-      <div style={{ position: 'fixed', bottom: 15, left: 15, right: 15, background: T.header, display: 'flex', justifyContent: 'space-around', padding: '10px 5px', borderRadius: '20px', border: `1px solid ${T.gold}`, boxShadow: '0 8px 32px rgba(0,0,0,0.3)', zIndex: 1000 }}>
-         {[
-           { label: 'Game',    icon: <Play size={20} fill={T.gold} color={T.gold} />, active: true, path: '/' },
-           { label: 'Scores',  icon: <Trophy size={20} color={T.gold} />, active: false, path: '/scores' },
-           { label: 'History', icon: <History size={20} color={T.gold} />, active: false, path: '/history' },
-           { label: 'Wallet',  icon: <WalletIcon size={20} color={T.gold} />, active: false, path: '/wallet' },
-           { label: 'Profile', icon: <User size={20} color={T.gold} />, active: false, path: '/profile' },
-         ].map((item) => (
-           <div 
-              key={item.label} 
-              onClick={() => router.push(item.path)}
-              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', flex: 1, opacity: item.active ? 1 : 0.5, cursor: 'pointer' }}
-           >
-             {item.icon}
-             <span style={{ fontSize: '10px', fontWeight: '900', color: T.gold }}>{item.label}</span>
-           </div>
-         ))}
-      </div>
+
 
       <JackpotSplash
         show={showJackpot}

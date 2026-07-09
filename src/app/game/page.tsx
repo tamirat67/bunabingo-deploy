@@ -350,14 +350,27 @@ function GameContent() {
 
   const loadData = useCallback(() => {
     if (!gameId) return;
+    const fetchMyCardWithRetry = async (retryCount = 0): Promise<any> => {
+      try {
+        const res = await getMyCard(gameId);
+        if ((!res.tickets || res.tickets.length === 0) && retryCount < 2) {
+          // Retry if empty, because DB write might not have committed yet
+          await new Promise(r => setTimeout(r, 1500));
+          return fetchMyCardWithRetry(retryCount + 1);
+        }
+        return res;
+      } catch (err) {
+        if (retryCount < 2) {
+          await new Promise(r => setTimeout(r, 1500));
+          return fetchMyCardWithRetry(retryCount + 1);
+        }
+        return { tickets: [] };
+      }
+    };
+
     Promise.all([
       getGame(gameId), 
-      // ── Retry once on failure to handle DB write timing races ─────────────────
-      // (tickets may not be committed yet when this fires immediately after redirect)
-      getMyCard(gameId).catch(async () => {
-        await new Promise(r => setTimeout(r, 1500));
-        return getMyCard(gameId).catch(() => ({ tickets: [] }));
-      })
+      fetchMyCardWithRetry()
     ]).then(([g, t]) => {
       setGame(g);
 

@@ -36,15 +36,8 @@ function NavContent() {
 }
 
 export default function Navbar() {
-  const [mounted, setMounted] = useState(false);
   const { T } = useTheme();
   const pathname = usePathname();
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) return null;
 
   // Hide navbar on management and full-screen game pages
   if (
