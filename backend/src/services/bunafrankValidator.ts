@@ -101,6 +101,7 @@ export function parseTelebirrSms(smsText: string): TelebirrSmsData | null {
       }
 
       const amDate = text.match(/በ\s+(\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2}:\d{2})/i);
+      if (amDate) dateTime = amDate[1];
       // Fee
       const amFee = text.match(/የአገልግሎት ክፍያው\s+([\d.]+)/i);
       serviceFee = amFee ? parseFloat(amFee[1]) : 0;
