@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { io } from 'socket.io-client';
-import { Loader2, Wallet, Gift } from 'lucide-react';
+import { Loader2, Wallet, Gift, HelpCircle } from 'lucide-react';
 import { getMe } from '../../../lib/api';
 
 import SplashScreen from './components/SplashScreen';
@@ -12,6 +12,7 @@ import MultiplierReel from './components/MultiplierReel';
 import BetControls from './components/BetControls';
 import AutoplayPanel from './components/AutoplayPanel';
 import GambleModal from './components/GambleModal';
+import RulesModal from './components/RulesModal';
 import WinBanner from './components/WinBanner';
 import WeeklyBlastModal from '../../../components/WeeklyBlastModal';
 import WeeklyBlastFab from '../../../components/WeeklyBlastFab';
@@ -36,6 +37,7 @@ export default function BunaHot5() {
   const [bet, setBet] = useState<number>(10);
   const [splashDone, setSplashDone] = useState(false);
   const [blastOpen, setBlastOpen] = useState(false);
+  const [showRules, setShowRules] = useState(false);
 
   // Result state
   const [grid, setGrid] = useState<SlotSymbol[][]>([
@@ -248,16 +250,21 @@ export default function BunaHot5() {
             BACK
           </button>
         </div>
-        
-        <div className="font-black italic tracking-widest text-xl drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] flex-none text-center">
-          <span className="bg-gradient-to-b from-yellow-300 via-yellow-500 to-yellow-600 bg-clip-text text-transparent">MULTI HOT </span>
-          <span className="bg-gradient-to-b from-pink-400 to-pink-600 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(236,72,153,0.8)]">5</span>
+        <div className="flex-none text-center">
+          <h1 className="text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-600 italic tracking-wider drop-shadow-lg">
+            MULTI HOT <span className="text-pink-500">5</span>
+          </h1>
         </div>
-
-        <div className="flex-1 flex justify-end items-center gap-2">
-          <div className="flex items-center bg-black/40 rounded-full px-3 py-1 border border-white/10 gap-2 shadow-inner">
-            <Wallet className="w-3.5 h-3.5 text-yellow-500" strokeWidth={2.5} />
-            <span className="text-[13px] font-bold text-white font-mono">{balance.toFixed(2)}</span>
+        <div className="flex-1 flex items-center justify-end gap-3">
+          <button 
+            onClick={() => setShowRules(true)}
+            className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/20 transition-colors border border-white/20"
+          >
+            <HelpCircle size={16} />
+          </button>
+          <div className="flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-full border border-[#D4AF37]/30 shadow-inner">
+            <Wallet size={12} className="text-[#D4AF37]" />
+            <span className="font-bold text-[#F5E6BE] text-sm tracking-wide">{balance.toFixed(2)}</span>
           </div>
         </div>
       </header>
@@ -300,6 +307,11 @@ export default function BunaHot5() {
             onAutoplayToggle={() => autoActive ? setAutoActive(false) : setAutoPanelOpen(true)}
           />
         </div>
+        
+        {/* Rules Modal */}
+        {showRules && (
+          <RulesModal onClose={() => setShowRules(false)} />
+        )}
       </main>
 
       <AutoplayPanel
