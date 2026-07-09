@@ -1,5 +1,4 @@
 'use client';
-import { scopedLocalStorage } from './storage';
 
 export const tg = () => {
   if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp) {
@@ -33,7 +32,10 @@ export const getTgInitData = () => {
 
 export const getLanguage = () => {
   if (typeof window !== 'undefined') {
-    const override = scopedLocalStorage.getItem('app_language');
+    // Read from localStorage directly to avoid circular imports with storage.ts
+    const uid = (window as any).Telegram?.WebApp?.initDataUnsafe?.user?.id;
+    const prefix = uid ? `tg_${uid}_` : '';
+    const override = localStorage.getItem(prefix + 'app_language') || localStorage.getItem('app_language');
     if (override === 'am' || override === 'en') return override;
   }
   try {
@@ -46,7 +48,11 @@ export const getLanguage = () => {
 
 export const setLanguage = (lang: 'en' | 'am') => {
   if (typeof window !== 'undefined') {
-    scopedLocalStorage.setItem('app_language', lang);
+    const uid = (window as any).Telegram?.WebApp?.initDataUnsafe?.user?.id;
+    const prefix = uid ? `tg_${uid}_` : '';
+    localStorage.setItem(prefix + 'app_language', lang);
+    // Clean up old unprefixed key
+    if (prefix) try { localStorage.removeItem('app_language'); } catch (e) {}
     window.dispatchEvent(new Event('languageChange'));
   }
 };

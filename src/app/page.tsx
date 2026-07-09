@@ -22,11 +22,11 @@ export default function LobbyPage() {
   const [user, setUser] = useState<any>(null);
   const [wallet, setWallet] = useState<any>(null);
   const [rooms, setRooms] = useState<any[]>([]);
-  const [isMounted, setIsMounted] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
-  // Hydrate from cache only on client to avoid Next.js SSR mismatch (white screen crash)
+  // Hydrate from cache only on client to avoid Next.js SSR mismatch
   useEffect(() => {
-    setIsMounted(true);
+    setMounted(true);
     if (typeof window !== 'undefined') {
         const cachedUser = scopedSessionStorage.getItem('lobby_user');
         if (cachedUser) {
@@ -43,7 +43,6 @@ export default function LobbyPage() {
     }
   }, []);
   const [activeGame, setActiveGame] = useState<any>(null);
-  const [mounted, setMounted] = useState(false);
   const [langToggle, setLangToggle] = useState(0);
 
   useEffect(() => {
@@ -74,7 +73,6 @@ export default function LobbyPage() {
   }, []);
 
   useEffect(() => {
-    setMounted(true);
     initTelegram();
     refreshData();
     const interval = setInterval(refreshData, 10000);
