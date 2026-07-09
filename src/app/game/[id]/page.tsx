@@ -42,8 +42,9 @@ export default function GamePage() {
   const [hasClaimed, setHasClaimed] = useState<boolean>(false);
   const [canClaim, setCanClaim] = useState<boolean>(false);
 
-  const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  // dataReady: true once the first API call completes — used to switch from shimmer to real content
+  const [dataReady, setDataReady] = useState(false);
 
   const { socket, isConnected } = useSocket();
   const gameIdRef = useRef(gameId);
@@ -131,13 +132,10 @@ export default function GamePage() {
         }
       }
 
-      if (initial) setIsLoading(false);
+      if (initial) setDataReady(true);
     } catch (err) {
       console.error('Failed to load game data:', err);
-      if (initial) {
-        setLoadError('Connection error. Please go back and try again.');
-        setIsLoading(false);
-      }
+      if (initial) setDataReady(true); // still show page, just with empty state
     }
   };
 
@@ -348,74 +346,30 @@ export default function GamePage() {
     router.push('/');
   };
 
-  // Show loading spinner while initial data is being fetched
-  if (!mounted || isLoading) {
-    return (
-      <div style={{
-        background: '#1C1208',
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '16px',
-        fontFamily: "'Outfit', sans-serif",
-      }}>
-        <div style={{
-          width: '48px',
-          height: '48px',
-          borderRadius: '50%',
-          border: '4px solid rgba(212,175,55,0.2)',
-          borderTopColor: '#D4AF37',
-          animation: 'spin 0.9s linear infinite',
-        }} />
-        <div style={{ color: '#D4AF37', fontSize: '14px', fontWeight: '700', opacity: 0.8 }}>
-          Loading game…
-        </div>
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      </div>
-    );
-  }
+  // Shimmer helper — renders a pulsing placeholder block
+  const Shimmer = ({ w = '100%', h = 20, r = 6 }: { w?: string | number; h?: number; r?: number }) => (
+    <div style={{
+      width: w,
+      height: h,
+      borderRadius: r,
+      background: 'linear-gradient(90deg, rgba(212,175,55,0.06) 25%, rgba(212,175,55,0.15) 50%, rgba(212,175,55,0.06) 75%)',
+      backgroundSize: '200% 100%',
+      animation: 'shimmer 1.4s ease-in-out infinite',
+      flexShrink: 0,
+    }} />
+  );
 
-  // Show error state if game failed to load
-  if (loadError) {
-    return (
-      <div style={{
-        background: '#1C1208',
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '16px',
-        padding: '20px',
-        fontFamily: "'Outfit', sans-serif",
-        textAlign: 'center',
-      }}>
-        <div style={{ fontSize: '40px' }}>⚠️</div>
-        <div style={{ color: '#F5E6BE', fontSize: '16px', fontWeight: '700' }}>Game Not Found</div>
-        <div style={{ color: 'rgba(245,230,190,0.6)', fontSize: '13px', maxWidth: '280px', lineHeight: 1.5 }}>
-          {loadError}
-        </div>
-        <button
-          onClick={() => router.push('/')}
-          style={{
-            background: 'linear-gradient(135deg, #D4AF37, #B8860B)',
-            color: '#1C1208',
-            border: 'none',
-            borderRadius: '12px',
-            padding: '12px 28px',
-            fontSize: '14px',
-            fontWeight: '900',
-            cursor: 'pointer',
-            marginTop: '8px',
-          }}
-        >
-          ← Back to Lobby
-        </button>
-      </div>
-    );
-  }
+  const shimmerStyles = `
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;900&display=swap');
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 0px rgba(212,175,55,0); }
+      50%       { box-shadow: 0 0 18px rgba(212,175,55,0.35); }
+    }
+  `;
 
   // Bingo columns for calling board
   const bingoColumns = {
@@ -469,6 +423,8 @@ export default function GamePage() {
       fontFamily: "'Outfit', sans-serif",
       padding: '10px'
     }}>
+      {/* Inject shimmer keyframes alongside the font import */}
+      <style>{shimmerStyles}</style>
       {/* Header */}
       <div style={{
         display: 'flex',
@@ -558,7 +514,11 @@ export default function GamePage() {
       }}>
         <div>
           <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.5)', fontWeight: '700', marginBottom: '4px' }}>PRIZE POOL</div>
-          <div style={{ fontSize: '22px', fontWeight: '900', color: '#D4AF37' }}>{prizePool.toFixed(0)} ETB</div>
+          {dataReady ? (
+            <div style={{ fontSize: '22px', fontWeight: '900', color: '#D4AF37' }}>{prizePool.toFixed(0)} ETB</div>
+          ) : (
+            <Shimmer w="120px" h={26} r={6} />
+          )}
           <div style={{ fontSize: '8px', color: 'rgba(255,255,255,0.4)' }}>
             Stake: {totalStake.toFixed(0)} | House: {houseEdge.toFixed(0)} (30%)
           </div>
@@ -685,8 +645,49 @@ export default function GamePage() {
           )}
         </motion.div>
 
-        {/* Player's Card */}
-        {myCard && (
+        {/* Player's Card — shimmer until data arrives, then reveal */}
+        {!dataReady ? (
+          <div style={{
+            background: 'rgba(255,255,255,0.03)',
+            borderRadius: '12px',
+            padding: '10px',
+            border: '1px solid rgba(212,175,55,0.1)',
+          }}>
+            {/* Card header shimmer */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <Shimmer w="100px" h={14} />
+              <Shimmer w="50px" h={20} r={8} />
+            </div>
+            {/* BINGO letter bar shimmer */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '3px', marginBottom: '3px' }}>
+              {['B','I','N','G','O'].map(c => (
+                <div key={c} style={{
+                  background: c === 'N' ? 'rgba(212,175,55,0.18)' : 'rgba(212,175,55,0.06)',
+                  borderRadius: '4px', height: '26px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: 'rgba(212,175,55,0.3)', fontWeight: '900', fontSize: '11px',
+                }}>{c}</div>
+              ))}
+            </div>
+            {/* 5×5 cell shimmer grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '3px' }}>
+              {Array.from({ length: 25 }).map((_, i) => (
+                <div key={i} style={{
+                  height: '36px', borderRadius: '4px',
+                  background: i === 12
+                    ? 'rgba(212,175,55,0.15)' // FREE space hint
+                    : 'linear-gradient(90deg, rgba(212,175,55,0.04) 25%, rgba(212,175,55,0.10) 50%, rgba(212,175,55,0.04) 75%)',
+                  backgroundSize: '200% 100%',
+                  animation: i !== 12 ? `shimmer ${1.2 + (i % 5) * 0.08}s ease-in-out infinite` : 'none',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: i === 12 ? 'rgba(212,175,55,0.4)' : 'transparent',
+                  fontSize: '12px',
+                }}>{ i === 12 ? '★' : '' }</div>
+              ))}
+            </div>
+          </div>
+        ) : myCard ? (
           <div style={{
             background: 'rgba(255,255,255,0.03)',
             borderRadius: '12px',
@@ -774,7 +775,7 @@ export default function GamePage() {
               ))}
             </div>
           </div>
-        )}
+        ) : null}
 
         {/* Progress Indicator */}
         <div style={{
