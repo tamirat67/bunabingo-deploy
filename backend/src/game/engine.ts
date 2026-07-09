@@ -268,8 +268,7 @@ async function runGame(gameId: string): Promise<void> {
     activeGames.delete(gameId);
     // Spawn a fresh WAITING game for this room so the lobby stays active
     try {
-      const { createGameForRoom } = await import('../services/game.service');
-      await createGameForRoom(game.roomId);
+      await createWaitingGame(game.roomId);
     } catch (e) {
       logger.error(`[Game ${gameId}] Failed to spawn replacement game after 0-player cancel:`, e);
     }
