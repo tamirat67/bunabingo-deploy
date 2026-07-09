@@ -80,7 +80,7 @@ export default function GamePage() {
 
       if (!gameData && initial) {
         setLoadError('Could not load the game. Please go back and try again.');
-        setIsLoading(false);
+        setDataReady(true);
         return;
       }
 
