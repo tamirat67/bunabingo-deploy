@@ -135,8 +135,8 @@ export function parseTelebirrSms(smsText: string): TelebirrSmsData | null {
         // [1]=amount, [2]=name, [3]=phonePrefix(e.g."+251"), [4]=phoneSuffix(e.g."55111")
         amount               = parseFloat(enMatch[1].replace(/,/g, ''));
         recipientName        = enMatch[2].trim();
-        recipientPhoneMasked = (enMatch[3] || '') + '...' + (enMatch[4] || '');
-        recipientPhoneLast4  = enMatch[4] || '';
+        recipientPhoneMasked = enMatch[3] || '';
+        recipientPhoneLast4  = enMatch[5] || '';
       } else {
         // Fallback: full unmasked phone (e.g. +251969455111)
         const enFull = text.match(
