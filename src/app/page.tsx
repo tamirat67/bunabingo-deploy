@@ -432,7 +432,7 @@ export default function LobbyPage() {
                   letterSpacing: '0.5px',
                   textShadow: '0 2px 4px rgba(0,0,0,0.8)'
                 }}>
-                  BUNA HOT 5
+                  MULTI HOT 5
                 </div>
                 <div style={{ 
                   fontSize: '10px', 
