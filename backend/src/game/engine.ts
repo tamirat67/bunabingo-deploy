@@ -390,6 +390,17 @@ async function runGame(gameId: string): Promise<void> {
     liveTicketCount = visibleTix.length;
   }
 
+  // ─── Guard: Abort if 0 tickets left after charge loop ───────────────────
+  if (liveTicketCount === 0) {
+    logger.warn(`[Game ${gameId}] 0 tickets remaining after charge loop. Cancelling game to avoid empty draw loop.`);
+    await prisma.game.update({
+      where: { id: gameId },
+      data: { status: GameStatus.CANCELLED, cancelledAt: new Date(), cancelReason: 'No tickets remaining after charge loop' },
+    });
+    await triggerGameEvent(gameId, 'game-cancelled', { gameId, reason: 'No valid tickets remaining' });
+    return;
+  }
+
   // Prize pool = 70% of ALL tickets (real players + house bots both pay real money now)
   // House commission = 30% of ALL tickets
   // Agent pre-deposit covers company commission (20%) from real player stakes only
