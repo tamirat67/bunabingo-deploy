@@ -754,10 +754,8 @@ function SelectionContent() {
         const endTime = Date.now() + (cycleMs - elapsed);
         liveGameEndTimeRef.current = endTime;
         setLiveGameEndTime(endTime);
-        // Auto-join the running game's socket room so we receive real-time events
-        if (d.gameId && socket) {
-          socket.emit('join-game', d.gameId);
-        }
+        // Backend auto-joins the socket to the game channel when it emits this sync event,
+        // so we DO NOT need to emit 'join-game' again here (which causes an infinite loop).
       });
 
       socket.on('player-joined', (d: any) => {
