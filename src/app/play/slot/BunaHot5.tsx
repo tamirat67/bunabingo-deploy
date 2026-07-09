@@ -243,31 +243,42 @@ export default function BunaHot5() {
       {/* Premium subtle emerald glow at top */}
       <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(circle at 50% 0%, rgba(16,185,129,0.3) 0%, transparent 60%)' }} />
 
-      {/* Header */}
-      <header className="flex justify-between items-center px-4 py-3 z-10 border-b border-white/10 bg-black/30 backdrop-blur-sm">
-        <div className="flex-1 flex items-center justify-start">
-          <button onClick={() => router.push('/')} className="text-gray-300 hover:text-white transition-colors font-bold text-[11px] tracking-widest uppercase drop-shadow-md">
+      {/* Header — 3-column grid keeps title perfectly centered and ? at far right */}
+      <header className="grid grid-cols-3 items-center px-4 py-3 z-10 border-b border-white/10 bg-black/30 backdrop-blur-sm">
+        {/* Left: BACK */}
+        <div className="flex items-center justify-start">
+          <button
+            onClick={() => router.push('/')}
+            className="text-gray-300 hover:text-white transition-colors font-bold text-[11px] tracking-widest uppercase drop-shadow-md"
+          >
             BACK
           </button>
         </div>
-        <div className="flex-none text-center">
-          <h1 className="text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-600 italic tracking-wider drop-shadow-lg">
-            MULTI HOT <span className="text-pink-500">5</span>
+
+        {/* Center: Title */}
+        <div className="flex items-center justify-center">
+          <h1 className="text-lg font-black italic tracking-wider drop-shadow-lg whitespace-nowrap">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-600">MULTI HOT </span>
+            <span className="text-pink-500">5</span>
           </h1>
         </div>
-        <div className="flex-1 flex items-center justify-end gap-3">
-          <button 
-            onClick={() => setShowRules(true)}
-            className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/20 transition-colors border border-white/20"
-          >
-            <HelpCircle size={16} />
-          </button>
-          <div className="flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-full border border-[#D4AF37]/30 shadow-inner">
-            <Wallet size={12} className="text-[#D4AF37]" />
-            <span className="font-bold text-[#F5E6BE] text-sm tracking-wide">{balance.toFixed(2)}</span>
+
+        {/* Right: Wallet balance + red ? button */}
+        <div className="flex items-center justify-end gap-2">
+          <div className="flex items-center gap-1.5 bg-black/40 px-2.5 py-1.5 rounded-full border border-[#D4AF37]/30 shadow-inner">
+            <Wallet size={11} className="text-[#D4AF37]" />
+            <span className="font-bold text-[#F5E6BE] text-xs tracking-wide">{balance.toFixed(0)}</span>
           </div>
+          <button
+            onClick={() => setShowRules(true)}
+            className="w-7 h-7 rounded-full bg-red-600 flex items-center justify-center text-white hover:bg-red-500 active:scale-95 transition-all shadow-[0_2px_0_#7f1d1d] border border-red-400/40"
+            title="ደንቦች / Rules"
+          >
+            <HelpCircle size={14} />
+          </button>
         </div>
       </header>
+
 
       {/* Main Game Area */}
       <main className="flex-1 flex flex-col items-center justify-start px-4 pt-2 pb-24 gap-4 z-10 w-full max-w-md mx-auto relative overflow-y-auto">
