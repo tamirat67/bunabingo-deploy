@@ -259,8 +259,20 @@ async function runGame(gameId: string): Promise<void> {
   let totalHouseEdge = new Decimal(0);
 
   if (!isDemo && realPlayerCount < 1) {
-    logger.info(`[Game ${gameId}] Loop Guard: 0 real players found. Restarting 50s countdown to wait for real players.`);
-    await startCountdown(gameId, ticketCount);
+    logger.warn(`[Game ${gameId}] Loop Guard: 0 real players after countdown — cancelling game and spawning replacement.`);
+    // Cancel this ghost game
+    await prisma.game.update({
+      where: { id: gameId },
+      data: { status: GameStatus.CANCELLED },
+    });
+    activeGames.delete(gameId);
+    // Spawn a fresh WAITING game for this room so the lobby stays active
+    try {
+      const { createGameForRoom } = await import('../services/game.service');
+      await createGameForRoom(game.roomId);
+    } catch (e) {
+      logger.error(`[Game ${gameId}] Failed to spawn replacement game after 0-player cancel:`, e);
+    }
     return;
   }
 

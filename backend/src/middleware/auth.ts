@@ -33,7 +33,7 @@ export async function telegramAuthMiddleware(
           logger.warn(`[Auth] JWT valid but user not found for telegramId: ${decoded.telegramId}`);
         }
       } catch (err) {
-        logger.warn('[Auth] Invalid JWT token provided');
+        logger.debug('[Auth] Invalid/expired JWT token \u2014 falling through to Telegram initData auth.');
       }
     }
 

@@ -30,6 +30,23 @@ api.interceptors.request.use((config) => {
   return config;
 }, (error) => Promise.reject(error));
 
+// Auto-clear stale JWT tokens when server rejects them with 401
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401 && typeof window !== 'undefined') {
+      const hadToken = localStorage.getItem('buna_admin_token') || localStorage.getItem('admin_token');
+      // Only clear if the request actually sent a Bearer token (not just missing initData)
+      if (hadToken && error.config?.headers?.Authorization?.startsWith('Bearer ')) {
+        localStorage.removeItem('buna_admin_token');
+        localStorage.removeItem('admin_token');
+        console.warn('[API] Stale JWT cleared from localStorage after 401 response.');
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export const getRooms = () => api.get('/rooms').then(res => res.data).catch(() => []);
 export const getMe = () => api.get('/me').then(res => res.data).catch(() => null);
 export const getProfile = () => api.get('/me/profile').then(res => res.data).catch(() => null);
