@@ -180,23 +180,31 @@ export async function spin(
   let rngIdx = 0;
 
   if (forceLoss) {
-    // Build a guaranteed no-match grid:
-    // Each row gets 3 DIFFERENT symbols so no payline can ever match
-    const symbolList = Object.keys(symbolWeights) as SlotSymbol[];
-    const numSymbols = symbolList.length;
-    for (let row = 0; row < 3; row++) {
-      grid[row] = [];
-      for (let col = 0; col < 3; col++) {
-        // Pick a symbol, but offset by col so no row is all-same
-        const rng = seededRandom(serverSeed, resolvedClient, nonce, rngIdx++);
-        const idx = Math.floor(rng * numSymbols);
-        // Offset each column by 1 to guarantee no match on any row
-        grid[row][col] = symbolList[(idx + col) % numSymbols];
+    // Generate grids until we find one with absolutely NO wins
+    // (prevents fake visual diagonal/column wins that pay 0)
+    let hasWin = true;
+    while (hasWin) {
+      grid = [[], [], []];
+      for (let row = 0; row < 3; row++) {
+        for (let col = 0; col < 3; col++) {
+          const rng = seededRandom(serverSeed, resolvedClient, nonce, rngIdx++);
+          grid[row][col] = weightedPick<SlotSymbol>(symbolWeights, rng);
+        }
+      }
+      
+      hasWin = false;
+      for (const pl of PAYLINES) {
+        const [s0, s1, s2] = pl.cells.map(([r, c]) => grid[r][c]);
+        if (s0 === s1 && s1 === s2) {
+          hasWin = true;
+          break;
+        }
       }
     }
   } else {
     // Normal spin — use weighted RNG
     for (let row = 0; row < 3; row++) {
+      grid[row] = [];
       for (let col = 0; col < 3; col++) {
         const rng = seededRandom(serverSeed, resolvedClient, nonce, rngIdx++);
         grid[row][col] = weightedPick<SlotSymbol>(symbolWeights, rng);
