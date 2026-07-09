@@ -585,7 +585,6 @@ export default function LobbyPage() {
 
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;900&display=swap');
-        body { background: #F5E6BE !important; margin: 0; padding: 0; }
       `}</style>
     </div>
   );

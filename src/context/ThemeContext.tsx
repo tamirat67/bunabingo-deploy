@@ -79,14 +79,14 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [activeThemeKey, setActiveThemeKey] = useState<ThemeKey>('PREMIUM_DARK');
-
-  useEffect(() => {
-    const saved = localStorage.getItem('app_theme') as ThemeKey;
-    if (saved && THEMES[saved]) {
-      setActiveThemeKey(saved);
+  // Read saved theme synchronously to avoid flash on first render
+  const [activeThemeKey, setActiveThemeKey] = useState<ThemeKey>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('app_theme') as ThemeKey;
+      if (saved && THEMES[saved]) return saved;
     }
-  }, []);
+    return 'PREMIUM_DARK';
+  });
 
   const setTheme = (key: ThemeKey) => {
     setActiveThemeKey(key);

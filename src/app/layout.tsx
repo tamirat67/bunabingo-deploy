@@ -34,7 +34,9 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
         <script src="https://telegram.org/js/telegram-web-app.js"></script>
       </head>
-      <body className={inter.className}>
+      <body className={inter.className} style={{ backgroundColor: '#0F172A', margin: 0, padding: 0 }}>
+        {/* Prevent white flash before React hydrates */}
+        <style>{`html,body{background-color:#0F172A!important;}`}</style>
 
 
 
