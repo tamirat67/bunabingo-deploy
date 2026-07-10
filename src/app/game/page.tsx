@@ -233,11 +233,9 @@ function GameContent() {
   }, []);
 
   const processAudioQueue = useCallback((setLastBallFn: (n: number) => void) => {
-    // If the game started audio is currently playing, defer calling the ball so they don't overlap
-    if (isStartAudioPlayingRef.current) {
-      setTimeout(() => processAudioQueue(setLastBallFn), 500);
-      return;
-    }
+    // NOTE: start.mp3 uses a separate new Audio() element, so it CANNOT block ballAudioRef.
+    // We do NOT defer here — balls accumulate in the queue and start immediately after start.mp3
+    // fires safeComplete which kicks the queue via queueBallSounds.
 
     if (isGameFinishedRef.current || audioQueueRef.current.length === 0) {
       isPlayingQueueRef.current = false;
@@ -282,8 +280,9 @@ function GameContent() {
     // Append to queue — NEVER drop any ball, every ball must be called
     audioQueueRef.current = [...audioQueueRef.current, ...toAdd];
 
-    // Only start the processor if it is not already running
-    if (!isPlayingQueueRef.current) {
+    // Only start the processor if it is not already running AND start.mp3 is not still playing.
+    // If start.mp3 is playing, balls pile up in the queue — onGameStarted's callback will kick it.
+    if (!isPlayingQueueRef.current && !isStartAudioPlayingRef.current) {
       console.log('[AudioQueue] Starting queue processor');
       processAudioQueue(setLastBallFn);
     }
@@ -645,7 +644,10 @@ function GameContent() {
     socket.on('countdown-tick', onCountdownTick);
 
     const onGameStarted = (d: any) => {
-      // ✅ REAL-TIME: start.mp3 plays first, THEN loadData fetches balls and queues them one by one.
+      // ✅ REAL-TIME: start.mp3 plays first.
+      // After it finishes, kick the audio queue (balls that arrived via number-drawn
+      // during start.mp3 are already in audioQueueRef — start the processor now).
+      // We do NOT call loadData() here — that adds 1.5-3s latency before any ball is called.
       setCountdown(null);
       setEndTime(null);
       // Immediately patch game state with the final authoritative ticket count + prize
@@ -653,13 +655,21 @@ function GameContent() {
       if (d?.ticketCount || d?.totalPrize) {
         setGame((prev: any) => prev ? {
           ...prev,
+          status: 'RUNNING',
           ticketCount: d.ticketCount ?? prev.ticketCount,
           visibleTicketCount: d.ticketCount ?? prev.visibleTicketCount,
           totalPrize: d.totalPrize ?? prev.totalPrize,
         } : prev);
       }
       playStartAudio(() => {
-        loadData();
+        // After start.mp3 completes: if the queue already has balls (from socket events
+        // that arrived during the audio), start the processor immediately.
+        // If empty, number-drawn events will kick queueBallSounds naturally.
+        if (audioQueueRef.current.length > 0 && !isPlayingQueueRef.current) {
+          processAudioQueue(setLastBall);
+        }
+        // Also do a background data refresh (non-blocking) for UI accuracy
+        setTimeout(() => loadData(), 500);
       });
     };
 
