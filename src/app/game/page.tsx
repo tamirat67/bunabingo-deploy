@@ -436,11 +436,6 @@ function GameContent() {
       }
 
       const hist = (g.drawHistory || []).map((d: any) => d.number);
-      // Sync UI drawn states immediately (board highlights) without removing socket-received balls
-      setDrawn(prev => {
-        const merged = new Set([...prev, ...hist]);
-        return Array.from(merged);
-      });
       const latestBall = hist.at(-1);
 
       // ── Audio queue management ──────────────────────────────────────────────────
@@ -463,8 +458,9 @@ function GameContent() {
             hist.slice(0, hist.length - 1).forEach((n: number) => {
               announcedBallsRef.current.add(n);
             });
-            // Also pre-populate calledHistory visually (no audio for old balls)
+            // Also pre-populate calledHistory visually and board highlights (no audio for old balls)
             setCalledHistory(hist.slice(0, hist.length - 1));
+            setDrawn(prev => Array.from(new Set([...prev, ...hist.slice(0, hist.length - 1)])));
             // Queue only the most recent ball for audio announcement
             queueBallSounds([hist[hist.length - 1]], setLastBall, setDrawn);
           } else {
