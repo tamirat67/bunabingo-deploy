@@ -673,7 +673,7 @@ router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
     const botUserIds = new Set(tickets.filter(t => t.user?.isBot).map(t => t.userId));
     const playerCount = realUserIds.size + botUserIds.size;
     
-    const { getVisibleTickets } = await import('../game/engine');
+    const { getVisibleTickets, getActiveGames } = await import('../game/engine');
     const { getVisibleBotCount } = await import('../services/houseBot.service');
     const { getReservedCardIds } = await import('../lib/cardReservations');
 
@@ -684,6 +684,8 @@ router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
 
     const reservedByOthers = gameId ? getReservedCardIds(gameId, user?.id) : [];
     const allOccupiedIds = Array.from(new Set([...otherOccupiedIds, ...reservedByOthers]));
+    
+    const activeState = gameId ? getActiveGames().get(gameId) : undefined;
     
     const responseData = { 
       occupiedIds: allOccupiedIds, 
@@ -700,7 +702,9 @@ router.get('/rooms/:type/occupied', async (req: Request, res: Response) => {
       hasTicketsInRunningGame,
       runningGameId,
       gameStartedAt: isGameRunning && runningGame?.startedAt ? runningGame.startedAt.getTime() : undefined,
-      drawnNumbers
+      drawnNumbers,
+      countdownTargetTime: activeState?.countdownTargetTime,
+      serverTime: Date.now()
     };
 
     occupiedCache.set(cacheKey, { data: responseData, timestamp: now });

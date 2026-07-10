@@ -526,10 +526,8 @@ function SelectionContent() {
         clearInterval(timer);
         setEndTime(null);
 
-        // ── ULTIMATE FAIL-SAFE REDIRECT ──
-        // Because auto-buy now fires at 3s, tickets are guaranteed to be
-        // purchased by the time we hit 0s. We can force the redirect instantly!
         if (!redirectedRef.current && ownedRef.current.length > 0) {
+          // Player has tickets — redirect to game immediately
           redirectedRef.current = true;
           const destId = joinedGameIdRef.current || activeGameIdRef.current;
           if (destId) {
@@ -539,6 +537,10 @@ function SelectionContent() {
               router.push(`/game?id=${destId}&type=${roomType}&price=${stake}`);
             }
           }
+        } else {
+          // No tickets — silent loop reset. Show 50 immediately so UI never
+          // sticks at 0. Backend countdown-start will correct the exact value.
+          setCountdown(50);
         }
       }
     }, 100);
@@ -877,7 +879,13 @@ function SelectionContent() {
 
       socket.on('game-cancelled', (d: any) => {
         if (d.gameId && activeGameIdRef.current && d.gameId !== activeGameIdRef.current) return;
-        showAlert('Game Cancelled', d.reason || 'The game was cancelled due to a system error. Your tickets have been refunded.', 'error');
+        // ── Silent background reset — NO popup shown to lobby players ──
+        // If the user had actual paid tickets, show a gentle notice.
+        // For 0-player loop resets the lobby simply refreshes invisibly.
+        const hadTickets = ownedRef.current.length > 0;
+        if (hadTickets) {
+          showAlert('Game Cancelled', d.reason || 'The game was cancelled. Your tickets have been refunded.', 'error');
+        }
         isGameRunningRef.current = false;
         setIsGameRunning(false);
         setLiveGameDismissed(true);
@@ -893,7 +901,7 @@ function SelectionContent() {
           try { sessionStorage.removeItem(`game_tickets_${d.gameId}`); } catch (e) { }
         }
 
-        // FIX Bug 1 & 2: Reset ALL per-game guards so the NEXT game works
+        // Reset ALL per-game guards so the NEXT game works
         redirectedRef.current = false;
         launchedRef.current = false;
         gameStartedRef.current = false;
@@ -902,7 +910,7 @@ function SelectionContent() {
         joinedGameIdRef.current = null;
         ownedRef.current = [];
 
-        // Fetch new state
+        // Silently fetch new state — lobby refreshes without any flash
         getOccupiedCards(roomType, activeGameIdRef.current).then(res => {
           if (res.gameId) {
             activeGameIdRef.current = res.gameId;
@@ -920,6 +928,7 @@ function SelectionContent() {
           }
         }).catch(() => { });
       });
+
     }
 
     return () => {
@@ -1078,6 +1087,17 @@ function SelectionContent() {
           if (res.realPlayerCount !== undefined) setRealPlayerCount(res.realPlayerCount);
         }
 
+        // --- NEW: Sync actual backend countdown ---
+        if (!nowRunning && (res as any).countdownTargetTime && (res as any).serverTime) {
+          const st = new Date((res as any).serverTime).getTime();
+          const et = new Date((res as any).countdownTargetTime).getTime();
+          const offset = st - Date.now();
+          setServerOff(offset);
+          setEndTime(et);
+          const rem = Math.max(0, Math.ceil((et - Date.now() - offset) / 1000));
+          if (rem >= 0) setCountdown(rem);
+        }
+
         const hasTicketsVal = !!res.hasTicketsInRunningGame;
         setHasTicketsInRunningGame(hasTicketsVal);
         // Persist immediately so next page refresh won't flash the GAME IN PROGRESS mask
@@ -1141,6 +1161,12 @@ function SelectionContent() {
   const toggleSelect = (num: number) => {
     // Hard block: never allow selection while a game is running
     if (isGameRunningRef.current || isInitializing) return;
+
+    // Lock selection in the final 3 seconds — too late to buy!
+    if (countdown !== null && countdown <= 3 && countdown >= 0) {
+      showAlert('⏰ ጊዜው አለቀ!', 'ካርቴላ ለመምረጥ ጊዜው አልፏል። ቀጣይ ዙር ይጠብቁ።', 'info');
+      return;
+    }
 
     if (!user && roomType !== 'DEMO') {
       showAlert('እባክዎ ይጠብቁ...', 'የኪስዎን ቀሪ ሂሳብ እያጣራን ነው...', 'info');
@@ -1227,11 +1253,15 @@ function SelectionContent() {
   const handleStart = async () => {
     if (isInitializing || selected.length === 0 || joining) return;
 
+    // Do not allow manual actions if the game is in the final 3s lock down
+    if (countdown !== null && countdown <= 3 && countdown >= 0) return;
+
     if (!user && roomType !== 'DEMO') {
       showAlert('እባክዎ ይጠብቁ...', 'የኪስዎን ቀሪ ሂሳብ እያጣራን ነው...', 'info');
       getMe().then(setUser).catch(() => { });
       return;
     }
+
 
     setJoining(true);
 
@@ -1871,25 +1901,28 @@ function SelectionContent() {
           const isOwned = ownedCardIds.includes(num);
           const isNewlySnatched = newlyOccupied.includes(num);
 
+          const isSelectionLocked = countdown !== null && countdown <= 3 && countdown >= 0;
+
           return (
             <div
               key={num}
               className={`num-brown ${isSelected ? 'selected' : ''} ${isOccupied ? 'occupied' : ''} ${isOwned ? 'owned' : ''} ${isNewlySnatched ? 'newly-snatched' : ''}`}
               style={{
-                background: isOwned
-                  ? 'linear-gradient(135deg, #1C0A35, #D4AF37)'
-                  : (isOccupied || isSelected) ? 'linear-gradient(135deg, #27AE60, #1E8449)' : undefined,
+                background: (isOwned || isOccupied || isSelected)
+                  ? 'linear-gradient(135deg, #27AE60, #1E8449)'
+                  : undefined,
                 color: (isOwned || isOccupied || isSelected)
                   ? 'white'
                   : T.text,
-                cursor: isOccupied ? 'not-allowed' : 'pointer',
+                cursor: (isOccupied || isSelectionLocked) ? 'not-allowed' : 'pointer',
+
                 opacity: 1,
-                border: isOwned
-                  ? '2.5px solid #D4AF37'
-                  : (isOccupied || isSelected) ? '2px solid #2ECC71' : undefined,
-                boxShadow: isOwned
-                  ? '0 0 12px rgba(212, 175, 55, 0.6)'
-                  : (isOccupied || isSelected) ? '0 0 8px rgba(46, 204, 113, 0.5)' : 'none',
+                border: (isOwned || isOccupied || isSelected)
+                  ? '2px solid #2ECC71' 
+                  : undefined,
+                boxShadow: (isOwned || isOccupied || isSelected)
+                  ? '0 0 8px rgba(46, 204, 113, 0.5)' 
+                  : 'none',
                 position: 'relative',
                 overflow: 'hidden',
                 fontWeight: '900',

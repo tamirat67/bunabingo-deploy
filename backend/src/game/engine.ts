@@ -259,21 +259,26 @@ async function runGame(gameId: string): Promise<void> {
   let totalHouseEdge = new Decimal(0);
 
   if (!isDemo && realPlayerCount < 1) {
-    logger.warn(`[Game ${gameId}] Loop Guard: 0 real players after countdown — cancelling game and spawning replacement.`);
-    // Cancel this ghost game
+    logger.info(`[Game ${gameId}] Loop Guard: 0 real players — silently resetting 50s countdown. No alert sent to players.`);
+    
+    // Clear in-memory state so startCountdown rebuilds it cleanly
+    const existingState = activeGames.get(gameId);
+    if (existingState?.countdownInterval) clearInterval(existingState.countdownInterval);
+    if (existingState?.countdownTimer) clearTimeout(existingState.countdownTimer);
+    activeGames.delete(gameId);
+
+    // Reset DB status to WAITING so startCountdown can transition it to COUNTDOWN
     await prisma.game.update({
       where: { id: gameId },
-      data: { status: GameStatus.CANCELLED },
+      data: { status: GameStatus.WAITING },
     });
-    activeGames.delete(gameId);
-    // Spawn a fresh WAITING game for this room so the lobby stays active
-    try {
-      await createWaitingGame(game.roomId);
-    } catch (e) {
-      logger.error(`[Game ${gameId}] Failed to spawn replacement game after 0-player cancel:`, e);
-    }
+
+    // Silently restart the 50s countdown on the same game — no game-cancelled event emitted
+    const fullCount = await prisma.ticket.count({ where: { gameId } });
+    await startCountdown(gameId, fullCount);
     return;
   }
+
 
   const ticketsByUser = new Map<string, typeof game.tickets>();
   for (const ticket of game.tickets) {
@@ -1547,67 +1552,9 @@ export async function joinGame(
       }
 
       // ─── Max Wait Time Timeout Trigger ──────────────────────────────────
-      if (game.status === GameStatus.WAITING && !isDemo && !waitingTimers.has(gameId)) {
-        const maxWaitTimeMs = 50 * 1000; // 50 seconds
-        const timer = setTimeout(async () => {
-          waitingTimers.delete(gameId);
-          try {
-            const checkGame = await prisma.game.findUnique({
-              where: { id: gameId },
-              include: { room: true, tickets: { include: { user: true } } }
-            });
-            if (checkGame && checkGame.status === GameStatus.WAITING) {
-              // Don't force-start if there are ZERO real players — bot-only games are pointless
-              const realPlayerTickets = checkGame.tickets.filter(t => !t.user?.isBot);
-              if (realPlayerTickets.length === 0) {
-                logger.info(`[Engine] Game ${gameId} (${checkGame.room.type}) max wait reached but NO real players — skipping force-start. Waiting for a real player...`);
-                return;
-              }
+      // ─── 50-second max wait timer logic REMOVED ───
+      // Countdown is now strictly 50s from creation, ignoring minPlayers.
 
-              logger.info(`[Engine] Game ${gameId} (${checkGame.room.type}) reached max wait time with ${realPlayerTickets.length} real player(s). Force-starting countdown...`);
-              const playerCount = checkGame.tickets.length;
-              
-              // Try bot injection if enabled
-              const botEnabled = await getHouseBotEnabled();
-              const expectedBots = getExpectedBotCount(checkGame.room.type);
-              const isBotRoom = expectedBots > 0;
-              if (botEnabled && isBotRoom) {
-                const hasBots = checkGame.tickets.some(t => t.user?.isBot);
-                if (!hasBots) {
-                  const takenCardIds = checkGame.tickets.map(t => (t.card as any).id as number);
-                  await injectBotTickets(gameId, checkGame.room.type, takenCardIds);
-                  const fullCount = await prisma.ticket.count({ where: { gameId } });
-                  const botCount = expectedBots;
-                  
-                  const updatedPrize = await recalculateGamePrizePool(gameId, checkGame.room.ticketPrice);
-                  
-                  const uniqueUsers = await prisma.ticket.findMany({ where: { gameId }, select: { userId: true }, distinct: ['userId'] });
-                  const pCountWithBots = uniqueUsers.length;
-                  
-                  await Promise.all([
-                    triggerGameEvent(gameId, 'player-joined', {
-                      userId: 'bots',
-                      playerCount: pCountWithBots,
-                      numTickets: botCount,
-                      ticketCount: fullCount,
-                      totalPrize: updatedPrize.totalPrize,
-                      serverTime: Date.now(),
-                    }),
-                    triggerGameEvent(checkGame.roomId, 'player-count-update', { playerCount: pCountWithBots, ticketCount: fullCount }),
-                  ]);
-                  await startCountdown(gameId, fullCount);
-                  return;
-                }
-              }
-              await startCountdown(gameId, playerCount);
-            }
-          } catch (err) {
-            logger.error(`[Engine] Failed to force-start game ${gameId}:`, err);
-          }
-        }, maxWaitTimeMs);
-        waitingTimers.set(gameId, timer);
-        logger.info(`[Engine] Scheduled 50-second max wait timeout for game ${gameId}`);
-      }
 
       // ─── Invalidate active room cache ───────────────────────────────────
       try {
@@ -1675,73 +1622,12 @@ export async function joinGame(
         }),
       ]);
 
-      // ─── House Bot Injection + Auto-Start ───────────────────────────────
-      const houseBotEnabled = await getHouseBotEnabled();
-      const expectedBots = getExpectedBotCount(game.room.type);
-      const isBotRoom = expectedBots > 0;
-
-      if (game.status === GameStatus.WAITING && isDemo) {
-        await startCountdown(gameId, currentTicketCount);
-
-      } else if (game.status === GameStatus.WAITING && !isDemo) {
-        const joiningUser = await prisma.user.findUnique({ where: { id: userId }, select: { isBot: true } });
-        const joinerIsReal = !joiningUser?.isBot;
-
-        if (joinerIsReal && !gamesWithBotsInjectedPublic.has(gameId)) {
-          const ticketsWithUsers = await prisma.ticket.findMany({
-            where: { gameId },
-            select: { userId: true, user: { select: { isBot: true } } }
-          });
-          const realUserIds = new Set(
-            ticketsWithUsers.filter(t => !t.user.isBot).map(t => t.userId)
-          );
-          const realPlayerCount = realUserIds.size;
-
-          if (houseBotEnabled && isBotRoom) {
-            if (realPlayerCount >= 1) {
-              if (!waitingTimers.has(gameId) && !gamesWithBotsInjectedPublic.has(gameId)) {
-                gamesWithBotsInjectedPublic.add(gameId);
-                try {
-                  // Inject bots immediately so real players can see the full lobby
-                  const currentTickets = await prisma.ticket.findMany({ where: { gameId }, select: { card: true } });
-                  const takenCardIds = currentTickets.map(t => (t.card as any).id as number);
-
-                  await injectBotTickets(gameId, game.room.type, takenCardIds);
-                  const fullTickets = await prisma.ticket.findMany({ where: { gameId }, include: { user: { select: { isBot: true } } } });
-                  const fullVisible = getVisibleTickets(fullTickets, game.room.type);
-                  const botCount = expectedBots;
-                  
-                  const updatedPrize = await recalculateGamePrizePool(gameId, game.room.ticketPrice);
-                  
-                  logger.info(`[HouseBot] Real player joined. Injected ${botCount} bots. Starting 50s countdown for game ${gameId}.`);
-
-                  await Promise.all([
-                    triggerGameEvent(gameId, 'player-joined', {
-                      userId: 'bots',
-                      ticketCount: fullVisible.length,
-                      totalPrize: updatedPrize.totalPrize,
-                      serverTime: Date.now(),
-                    }),
-                    triggerGameEvent(game.roomId, 'player-count-update', { playerCount: fullVisible.length }),
-                  ]);
-
-                  // Start the proper 50s countdown — ticks every second, game launches at 0s
-                  await startCountdown(gameId, fullVisible.length);
-                } catch (e) {
-                  gamesWithBotsInjectedPublic.delete(gameId);
-                  logger.error('[HouseBot] Bot injection / auto-start error:', e);
-                }
-              }
-            }
-          } else {
-            // REAL PLAYERS ONLY MODE
-            if (realPlayerCount >= game.room.minPlayers) {
-              logger.info(`[Game ${gameId}] Minimum real players reached (${realPlayerCount}/${game.room.minPlayers}). Auto-starting countdown.`);
-              await startCountdown(gameId, currentTicketCount);
-            }
-          }
-        }
-      } else if (game.status === GameStatus.COUNTDOWN) {
+      if (game.status === GameStatus.COUNTDOWN) {
+        await triggerGameEvent(gameId, 'game-update', { playerCount });
+      } else if (game.status === GameStatus.WAITING) {
+        // If the game is still WAITING, it means the previous game is still RUNNING.
+        // We do NOT start the countdown here. `createWaitingGame` will start the countdown
+        // automatically when the previous game finishes.
         await triggerGameEvent(gameId, 'game-update', { playerCount });
       }
 
