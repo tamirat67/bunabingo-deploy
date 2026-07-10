@@ -1,4 +1,5 @@
 import prisma from '../lib/prisma';
+import bcrypt from 'bcrypt';
 import { logger } from '../lib/logger';
 import { config } from '../config';
 import { Decimal } from '@prisma/client/runtime/library';
@@ -387,15 +388,30 @@ export async function isAdmin(telegramId: number): Promise<boolean> {
 
 export async function updateUserPhone(
   telegramId: number,
-  phoneNumber: string
+  phoneNumber: string,
+  generatePassword = false
 ): Promise<{
   user: any;
   referrer: { id: string; telegramId: bigint; username: string } | null;
   welcomeBonusGranted: boolean;
+  generatedPassword?: string;
 }> {
+  let updateData: any = { phone: phoneNumber };
+  let generatedPassword;
+
+  if (generatePassword) {
+    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    generatedPassword = '';
+    for (let i = 0; i < 10; i++) {
+      generatedPassword += chars[Math.floor(Math.random() * chars.length)];
+    }
+    const passwordHash = await bcrypt.hash(generatedPassword, 10);
+    updateData.passwordHash = passwordHash;
+  }
+
   const user = await prisma.user.update({
     where: { telegramId: BigInt(telegramId) },
-    data:  { phone: phoneNumber },
+    data: updateData,
   });
 
   let referrer: { id: string; telegramId: bigint; username: string } | null = null;
@@ -444,7 +460,7 @@ export async function updateUserPhone(
   //   logger.error('[WelcomeBonus] Failed to grant welcome bonus:', err);
   // }
 
-  return { user, referrer, welcomeBonusGranted };
+  return { user, referrer, welcomeBonusGranted, generatedPassword };
 }
 
 export async function promoteToAgent(userId: string, adminId: string) {

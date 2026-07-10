@@ -13,6 +13,7 @@ import JackpotSplash from '../components/JackpotSplash';
 import BunaModal from '../components/BunaModal';
 import WeeklyBlastModal from '../components/WeeklyBlastModal';
 import WeeklyBlastFab from '../components/WeeklyBlastFab';
+import LoginModal from '../components/LoginModal';
 import api from '../lib/api';
 import { useSocket } from '../context/SocketContext';
 
@@ -23,6 +24,7 @@ export default function LobbyPage() {
   const [wallet, setWallet] = useState<any>(null);
   const [rooms, setRooms] = useState<any[]>([]);
   const [mounted, setMounted] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
 
   // Hydrate from cache only on client to avoid Next.js SSR mismatch
   useEffect(() => {
@@ -246,9 +248,23 @@ export default function LobbyPage() {
               {mounted && getLanguage() === 'am' ? 'ቡና ጌም ዞን' : 'BUNA GAME ZONE'}
             </div>
          </div>
-         <div onClick={() => setLanguage(getLanguage() === 'en' ? 'am' : 'en')} style={{ cursor: 'pointer', display: 'flex', border: `1px solid ${T.gold}`, borderRadius: '6px', overflow: 'hidden', fontSize: '10px', fontWeight: 'bold' }}>
-           <div style={{ padding: '3px 8px', background: (!mounted || getLanguage() === 'en') ? T.gold : 'transparent', color: (!mounted || getLanguage() === 'en') ? T.header : T.gold }}>EN</div>
-           <div style={{ padding: '3px 8px', background: (mounted && getLanguage() === 'am') ? T.gold : 'transparent', color: (mounted && getLanguage() === 'am') ? T.header : T.gold }}>AM</div>
+         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+           {(!user && mounted) && (
+             <button 
+               onClick={() => setShowLogin(true)}
+               style={{ 
+                 background: T.gold, color: T.header, border: 'none', 
+                 padding: '4px 12px', borderRadius: '6px', fontSize: '12px', 
+                 fontWeight: 'bold', cursor: 'pointer' 
+               }}
+             >
+               Log in
+             </button>
+           )}
+           <div onClick={() => setLanguage(getLanguage() === 'en' ? 'am' : 'en')} style={{ cursor: 'pointer', display: 'flex', border: `1px solid ${T.gold}`, borderRadius: '6px', overflow: 'hidden', fontSize: '10px', fontWeight: 'bold' }}>
+             <div style={{ padding: '3px 8px', background: (!mounted || getLanguage() === 'en') ? T.gold : 'transparent', color: (!mounted || getLanguage() === 'en') ? T.header : T.gold }}>EN</div>
+             <div style={{ padding: '3px 8px', background: (mounted && getLanguage() === 'am') ? T.gold : 'transparent', color: (mounted && getLanguage() === 'am') ? T.header : T.gold }}>AM</div>
+           </div>
          </div>
       </div>
 
@@ -580,6 +596,12 @@ export default function LobbyPage() {
           }}
         />
       )}
+
+      <LoginModal 
+        isOpen={showLogin} 
+        onClose={() => setShowLogin(false)} 
+        onLoginSuccess={() => window.location.reload()} 
+      />
 
       <BunaModal
         isOpen={modalConfig.isOpen}

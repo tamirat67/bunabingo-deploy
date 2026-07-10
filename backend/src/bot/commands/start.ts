@@ -226,9 +226,10 @@ export async function handleStart(ctx: Context) {
           Markup.button.callback('ሂሳብ ማውጫ 💰', 'cmd_balance'),
           Markup.button.url('ድጋፍ ያግኙ 📞', 'https://t.me/Luel1616'),
         ],
-        // ── Row 5: Channel ───────────────────────────────────────────────────
+        // ── Row 5: Channel & Password ───────────────────────────────────────────
         [
-          Markup.button.url('📢 ቻናላችንን ይቀላቀሉ (Join Channel)', 'https://t.me/buna_bingobot1'),
+          Markup.button.callback('🔑 የይለፍ ቃል (Password)', 'cmd_password'),
+          Markup.button.url('📢 ቻናላችንን ይቀላቀሉ', 'https://t.me/buna_bingobot1'),
         ],
         // ── Row 6: Help & Referral ────────────────────────────────────────────
         [
@@ -265,7 +266,8 @@ export async function handleStart(ctx: Context) {
             Markup.button.url('ድጋፍ ያግኙ 📞', 'https://t.me/Luel1616'),
           ],
           [
-            Markup.button.url('📢 ቻናላችንን ይቀላቀሉ (Join Channel)', 'https://t.me/buna_bingobot1'),
+            Markup.button.callback('🔑 የይለፍ ቃል (Password)', 'cmd_password'),
+            Markup.button.url('📢 ቻናላችንን ይቀላቀሉ', 'https://t.me/buna_bingobot1'),
           ],
           [
             Markup.button.callback('አጠቃቀም መመሪያ 📖', 'cmd_instructions'),

@@ -18,6 +18,7 @@ import { handleChangeName,
          handleChangeNameMessage }              from './commands/change_name';
 import { handleGameHistory }                    from './commands/game_history';
 import { handleCheckTransaction }              from './commands/check_transaction';
+import { handlePassword }                       from './commands/password';
 import { handleTransfer,
          handleTransferConfirm,
          handleTransferCancel,
@@ -62,6 +63,7 @@ export function createBot(): Telegraf {
   bot.command('playbingo',         ctx => handlePlayBingoMenu(ctx));
   bot.command('playkeno',          ctx => handlePlayKeno(ctx));
   bot.command('register',          ctx => handleRegister(ctx));
+  bot.command('password',          ctx => handlePassword(ctx));
   bot.command('vip',               ctx => handleVipRoom(ctx));
 
   // ─── Wallet ───────────────────────────────────────────────────────────────
@@ -109,6 +111,7 @@ export function createBot(): Telegraf {
   bot.action('cmd_play_keno',      ctx => handlePlayKeno(ctx));
   bot.action('cmd_play_slot',      ctx => handlePlaySlot(ctx));
   bot.action('cmd_register',       ctx => handleRegister(ctx));
+  bot.action('cmd_password',       ctx => handlePassword(ctx));
   bot.action('cmd_vip',            ctx => handleVipRoom(ctx));
 
 
@@ -213,11 +216,25 @@ export function createBot(): Telegraf {
 
     try {
       // updateUserPhone saves phone, fires referral bonus to referrer,
-      // and grants the one-time 100 ETB welcome bonus to the new player
-      const { user, referrer, welcomeBonusGranted } = await updateUserPhone(tgUser.id, contact.phone_number);
+      // and optionally generates a password
+      const { user, referrer, welcomeBonusGranted, generatedPassword } = await updateUserPhone(tgUser.id, contact.phone_number, true);
       logger.info(`[Bot] Phone verified for user ${tgUser.id}: ${contact.phone_number}`);
 
-      await ctx.reply('✅ ስልክ ቁጥርዎ በተሳካ ሁኔታ ተረጋግጧል!', Markup.keyboard([
+      // ── Welcome / Password Message ──────────────────────────────
+      if (generatedPassword) {
+        await ctx.reply(
+          `🎉 Welcome, ${user.firstName}!\n\n` +
+          `Your account has been created.\n\n` +
+          `📱 Phone: <code>${contact.phone_number}</code>\n` +
+          `🔑 Password: <code>${generatedPassword}</code>\n\n` +
+          `⚠️ Save this password! You'll need it to login on other devices.`,
+          { parse_mode: 'HTML' }
+        );
+      } else {
+        await ctx.reply('✅ ስልክ ቁጥርዎ በተሳካ ሁኔታ ተረጋግጧል!');
+      }
+
+      await ctx.reply('ምን ማድረግ ይፈልጋሉ?', Markup.keyboard([
         ['🎮 ይጫወቱ'],
         ['💰 ሂሳብ', '📥 ገቢ ለማድረግ'],
         ['📤 ወጪ ለማድረግ', '🔗 ጋብዝ & አግኝ'],

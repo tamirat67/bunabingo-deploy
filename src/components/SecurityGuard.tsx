@@ -6,7 +6,6 @@ import { getTgInitData } from '@/lib/telegram';
 
 export default function SecurityGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  // We start in a checking state so we don't render children (and fire API calls) before we know we are authorized.
   const [isChecking, setIsChecking] = useState(true);
   const [blocked, setBlocked] = useState(false);
 
@@ -29,16 +28,21 @@ export default function SecurityGuard({ children }: { children: React.ReactNode 
       }
     }
 
-    // 3. Retry loop for Telegram WebApp (handles Android async load race condition)
+    // 3. Check for Telegram WebApp environment
+    const isTelegramWebApp = typeof window !== 'undefined' && !!(window as any).Telegram?.WebApp;
+    if (isTelegramWebApp) {
+      setIsChecking(false);
+      return;
+    }
+
+    // 4. Retry loop for Telegram WebApp initData (for backend auth)
     let retries = 0;
-    const maxRetries = 40; // 4 seconds total (100ms × 40) — needed for slow Android Telegram SDK init
+    const maxRetries = 40;
     
     const checkTelegram = () => {
-      // Use getTgInitData which now includes our robust sessionStorage caching
       const hasInitData = getTgInitData() !== '';
       
       if (hasInitData) {
-        // Confirmed Telegram — no block needed
         setIsChecking(false);
         return;
       }
@@ -47,7 +51,6 @@ export default function SecurityGuard({ children }: { children: React.ReactNode 
       if (retries < maxRetries) {
         setTimeout(checkTelegram, 100);
       } else {
-        // After all retries, not Telegram — block access
         setIsChecking(false);
         setBlocked(true);
       }

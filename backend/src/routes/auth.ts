@@ -22,12 +22,16 @@ router.post('/login', async (req: Request, res: Response) => {
   }
 
   try {
-    // We use telegramUsername or telegramId as the "username" for login
+    // We use telegramUsername, telegramId, or phone as the "username" for login
+    const isNumeric = username.trim() !== '' && !isNaN(Number(username));
+    
     const user = await prisma.user.findFirst({
       where: {
         OR: [
           { telegramUsername: username },
-          ...(username.trim() !== '' && !isNaN(Number(username)) ? [{ telegramId: BigInt(username) }] : [])
+          { phone: username },
+          { phoneNumber: username },
+          ...(isNumeric ? [{ telegramId: BigInt(username) }] : [])
         ]
       },
       include: { wallet: true }
@@ -38,10 +42,10 @@ router.post('/login', async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Invalid credentials or access denied' });
     }
 
-    // Verify role
-    if (user.role !== 'ADMIN' && user.role !== 'AGENT' && user.role !== 'STAFF' && !user.isAdmin) {
-      return res.status(403).json({ error: 'Insufficient permissions' });
-    }
+    // Allow all roles (including PLAYER) to login via this route
+    // if (user.role !== 'ADMIN' && user.role !== 'AGENT' && user.role !== 'STAFF' && !user.isAdmin) {
+    //   return res.status(403).json({ error: 'Insufficient permissions' });
+    // }
 
     // Check password
     const isMatch = await bcrypt.compare(password, user.passwordHash);
