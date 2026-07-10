@@ -1064,14 +1064,6 @@ function GameContent() {
   const unlockAudio = () => {
     if (audioUnlockedRef.current) return;
     audioUnlockedRef.current = true;
-    
-    // If the game audio queue is actively announcing balls, the browser 
-    // has ALREADY unlocked the audio! Do NOT hijack it now.
-    if (isPlayingQueueRef.current) {
-      setAudioUnlocked(true);
-      return;
-    }
-
     setAudioUnlocked(true);
     // Unlock ballAudioRef with a silent play on first user gesture
     const unlock = (el: HTMLAudioElement | null, src: string) => {
