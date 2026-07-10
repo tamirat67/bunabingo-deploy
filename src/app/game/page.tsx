@@ -207,21 +207,23 @@ function GameContent() {
         ballAudioRef.current.onended = null;
         ballAudioRef.current.onerror = null;
         ballAudioRef.current.pause();
+
+        // 2. Reuse the ALREADY-UNLOCKED audio element for mobile autoplay policies
+        ballAudioRef.current.src = `/audio/${col}${num}.mp3`;
+        ballAudioRef.current.load();
+
+        ballAudioRef.current.onended = safeComplete;
+        ballAudioRef.current.onerror = safeComplete;
+        
+        // 3. Play and handle errors gracefully
+        ballAudioRef.current.play().catch((err) => {
+          console.warn(`[Audio] Failed to play ${col}${num}:`, err);
+          // Wait 1.5s so balls don't pass silently in 300ms blurs if audio is blocked
+          setTimeout(safeComplete, 1500); 
+        });
+      } else {
+        setTimeout(safeComplete, 1500);
       }
-
-      // 2. Create a fresh Audio object to guarantee src/playback synchronization
-      const el = new Audio(`/audio/${col}${num}.mp3`);
-      ballAudioRef.current = el; // Store reference so game end can pause it
-
-      el.onended = safeComplete;
-      el.onerror = safeComplete;
-      
-      // 3. Play and handle errors gracefully
-      el.play().catch((err) => {
-        console.warn(`[Audio] Failed to play ${col}${num}:`, err);
-        // Wait 1.5s so balls don't pass silently in 300ms blurs if audio is blocked
-        setTimeout(safeComplete, 1500); 
-      });
     } catch (e) {
       setTimeout(safeComplete, 1500);
     }
