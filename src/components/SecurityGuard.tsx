@@ -58,15 +58,8 @@ export default function SecurityGuard({ children }: { children: React.ReactNode 
 
   if (isChecking) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0F172A', color: 'white' }}>
-        {/* Simple CSS Spinner */}
-        <div style={{ width: '40px', height: '40px', border: '4px solid rgba(255, 255, 255, 0.1)', borderTopColor: '#F59E0B', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-        <style>{`
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}</style>
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0F172A', color: '#F59E0B', fontFamily: 'sans-serif' }}>
+        <div style={{ fontWeight: 'bold', fontSize: '18px', letterSpacing: '2px' }}>LOADING BINGO...</div>
       </div>
     );
   }
