@@ -185,6 +185,11 @@ function SelectionContent() {
       setInitialGameRunning(running);
       setIsGameRunning(running);
       isGameRunningRef.current = running;
+      // ── Restore hasTicketsInRunningGame immediately from sessionStorage ──
+      // This prevents the GAME IN PROGRESS mask from flashing for users who
+      // already have tickets, before the first poll completes.
+      const hasTickets = sessionStorage.getItem('select_has_tickets') === '1';
+      setHasTicketsInRunningGame(hasTickets);
       try {
         const raw = sessionStorage.getItem('select_drawn_numbers');
         if (raw) {
@@ -994,6 +999,7 @@ function SelectionContent() {
             sessionStorage.setItem('select_drawn_numbers', JSON.stringify((res as any).drawnNumbers));
           } else if (!nowRunning) {
             sessionStorage.removeItem('select_drawn_numbers');
+            sessionStorage.removeItem('select_has_tickets'); // reset for next game cycle
           }
         }
 
@@ -1048,7 +1054,10 @@ function SelectionContent() {
           if (res.realPlayerCount !== undefined) setRealPlayerCount(res.realPlayerCount);
         }
 
-        setHasTicketsInRunningGame(!!res.hasTicketsInRunningGame);
+        const hasTicketsVal = !!res.hasTicketsInRunningGame;
+        setHasTicketsInRunningGame(hasTicketsVal);
+        // Persist immediately so next page refresh won't flash the GAME IN PROGRESS mask
+        try { sessionStorage.setItem('select_has_tickets', hasTicketsVal ? '1' : '0'); } catch (e) {}
         const newRunningId = res.runningGameId || null;
         setRunningGameId(newRunningId);
         // Subscribe to the running game's socket channel ONLY if we haven't already
