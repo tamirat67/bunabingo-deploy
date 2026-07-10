@@ -292,8 +292,10 @@ export async function debitWallet(
     });
     const [wallet] = await tx.$queryRaw<any[]>`SELECT * FROM wallets WHERE user_id = ${userId}::uuid FOR UPDATE`;
 
+    // ⚠️ Raw SQL returns snake_case column names from PostgreSQL — NOT camelCase Prisma names.
+    // wallet.bonus_balance NOT wallet.bonusBalance, wallet.total_spent NOT wallet.totalSpent, etc.
     const balance = new Decimal(wallet.balance?.toString() ?? '0');
-    const bonus = new Decimal(wallet.bonusBalance?.toString() ?? '0');
+    const bonus = new Decimal((wallet.bonus_balance ?? wallet.bonusBalance)?.toString() ?? '0');
     const totalAvailable = type === 'TICKET_PURCHASE' ? balance.add(bonus) : balance;
 
     if (totalAvailable.lessThan(amt)) {
@@ -331,8 +333,8 @@ export async function debitWallet(
         balance: newBalance,
         bonusBalance: newBonus,
         totalSpent: type === 'TICKET_PURCHASE'
-          ? new Decimal(wallet.totalSpent?.toString() ?? '0').add(amt)
-          : (wallet.totalSpent ?? 0),
+          ? new Decimal((wallet.total_spent ?? wallet.totalSpent)?.toString() ?? '0').add(amt)
+          : (wallet.total_spent ?? wallet.totalSpent ?? 0),
         // totalWithdrawn intentionally NOT updated here for WITHDRAWAL type
       },
     });
