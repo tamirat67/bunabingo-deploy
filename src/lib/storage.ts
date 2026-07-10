@@ -30,25 +30,31 @@ export const scopedLocalStorage = {
   getItem: (key: string): string | null => {
     if (typeof window === 'undefined') return null;
     const prefix = getStoragePrefix();
-    // Try prefixed key first, fall back to unprefixed (migration)
-    const prefixed = prefix ? localStorage.getItem(prefix + key) : null;
-    if (prefixed !== null) return prefixed;
-    return localStorage.getItem(key);
+    try {
+      const prefixed = prefix ? localStorage.getItem(prefix + key) : null;
+      if (prefixed !== null) return prefixed;
+      return localStorage.getItem(key);
+    } catch (e) {
+      return null;
+    }
   },
   setItem: (key: string, value: string): void => {
     if (typeof window === 'undefined') return;
     const prefix = getStoragePrefix();
-    localStorage.setItem(prefix + key, value);
-    // If we now have a prefix, remove the old unprefixed key to avoid stale data
-    if (prefix) {
-      try { localStorage.removeItem(key); } catch (e) {}
-    }
+    try {
+      localStorage.setItem(prefix + key, value);
+      if (prefix) {
+        localStorage.removeItem(key);
+      }
+    } catch (e) {}
   },
   removeItem: (key: string): void => {
     if (typeof window === 'undefined') return;
     const prefix = getStoragePrefix();
-    localStorage.removeItem(prefix + key);
-    localStorage.removeItem(key);
+    try {
+      localStorage.removeItem(prefix + key);
+      localStorage.removeItem(key);
+    } catch (e) {}
   }
 };
 
@@ -56,22 +62,30 @@ export const scopedSessionStorage = {
   getItem: (key: string): string | null => {
     if (typeof window === 'undefined') return null;
     const prefix = getStoragePrefix();
-    const prefixed = prefix ? sessionStorage.getItem(prefix + key) : null;
-    if (prefixed !== null) return prefixed;
-    return sessionStorage.getItem(key);
+    try {
+      const prefixed = prefix ? sessionStorage.getItem(prefix + key) : null;
+      if (prefixed !== null) return prefixed;
+      return sessionStorage.getItem(key);
+    } catch (e) {
+      return null;
+    }
   },
   setItem: (key: string, value: string): void => {
     if (typeof window === 'undefined') return;
     const prefix = getStoragePrefix();
-    sessionStorage.setItem(prefix + key, value);
-    if (prefix) {
-      try { sessionStorage.removeItem(key); } catch (e) {}
-    }
+    try {
+      sessionStorage.setItem(prefix + key, value);
+      if (prefix) {
+        sessionStorage.removeItem(key);
+      }
+    } catch (e) {}
   },
   removeItem: (key: string): void => {
     if (typeof window === 'undefined') return;
     const prefix = getStoragePrefix();
-    sessionStorage.removeItem(prefix + key);
-    sessionStorage.removeItem(key);
+    try {
+      sessionStorage.removeItem(prefix + key);
+      sessionStorage.removeItem(key);
+    } catch (e) {}
   }
 };

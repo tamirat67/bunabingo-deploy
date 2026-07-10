@@ -15,8 +15,12 @@ export default function SecurityGuard({ children }: { children: React.ReactNode 
     }
 
     // 2. Allow if the user has an admin token in localStorage
-    if (typeof window !== 'undefined' && localStorage.getItem('admin_token')) {
-      return;
+    if (typeof window !== 'undefined') {
+      try {
+        if (localStorage.getItem('admin_token')) return;
+      } catch (e) {
+        // Ignore localStorage errors
+      }
     }
 
     // 3. Retry loop for Telegram WebApp (handles Android async load race condition)

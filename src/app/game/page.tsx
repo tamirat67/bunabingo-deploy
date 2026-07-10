@@ -543,11 +543,15 @@ function GameContent() {
     setMounted(true);
     
     // Load local sound preference
-    const savedSound = localStorage.getItem('game_sound');
-    if (savedSound !== null) {
-      const val = savedSound === 'true';
-      setSoundOn(val);
-      soundOnRef.current = val;
+    try {
+      const savedSound = localStorage.getItem('game_sound');
+      if (savedSound !== null) {
+        const val = savedSound === 'true';
+        setSoundOn(val);
+        soundOnRef.current = val;
+      }
+    } catch (e) {
+      // Ignore
     }
 
     if (!gameId) return;
@@ -1266,7 +1270,11 @@ function GameContent() {
               e.stopPropagation();
               const next = !soundOn;
               setSoundOn(next);
-              localStorage.setItem('game_sound', String(next));
+              try {
+                localStorage.setItem('game_sound', String(next));
+              } catch (e) {
+                // Ignore
+              }
               if (!audioUnlocked) unlockAudio();
             }} 
             style={{ 

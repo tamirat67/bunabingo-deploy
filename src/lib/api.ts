@@ -19,9 +19,13 @@ api.interceptors.request.use((config) => {
     // 2. Check for Web Auth Token (JWT)
     // Send on all pages so that web-logged users (agents/admins) can play games.
     if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('buna_admin_token') || localStorage.getItem('admin_token');
-      if (token) {
-        config.headers['Authorization'] = `Bearer ${token}`;
+      try {
+        const token = localStorage.getItem('buna_admin_token') || localStorage.getItem('admin_token');
+        if (token) {
+          config.headers['Authorization'] = `Bearer ${token}`;
+        }
+      } catch (e) {
+        // Ignore
       }
     }
   } catch (e) {
@@ -35,12 +39,16 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401 && typeof window !== 'undefined') {
-      const hadToken = localStorage.getItem('buna_admin_token') || localStorage.getItem('admin_token');
-      // Only clear if the request actually sent a Bearer token (not just missing initData)
-      if (hadToken && error.config?.headers?.Authorization?.startsWith('Bearer ')) {
-        localStorage.removeItem('buna_admin_token');
-        localStorage.removeItem('admin_token');
-        console.warn('[API] Stale JWT cleared from localStorage after 401 response.');
+      try {
+        const hadToken = localStorage.getItem('buna_admin_token') || localStorage.getItem('admin_token');
+        // Only clear if the request actually sent a Bearer token (not just missing initData)
+        if (hadToken && error.config?.headers?.Authorization?.startsWith('Bearer ')) {
+          localStorage.removeItem('buna_admin_token');
+          localStorage.removeItem('admin_token');
+          console.warn('[API] Stale JWT cleared from localStorage after 401 response.');
+        }
+      } catch (e) {
+        // Ignore
       }
     }
     return Promise.reject(error);

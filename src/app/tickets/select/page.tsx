@@ -76,8 +76,12 @@ function SelectionContent() {
   const [realPlayerCount, setRealPlayerCount] = useState(0);
   const [dripPlayerCount, setDripPlayerCount] = useState(() => {
     if (typeof window !== 'undefined') {
-      const saved = sessionStorage.getItem('drip_player_count');
-      if (saved) return parseInt(saved, 10);
+      try {
+        const saved = sessionStorage.getItem('drip_player_count');
+        if (saved) return parseInt(saved, 10);
+      } catch (e) {
+        // Ignore
+      }
     }
     return 0;
   });
@@ -343,8 +347,12 @@ function SelectionContent() {
     mountedRef.current = true;
     if (typeof window !== 'undefined') {
       ballAudioRefSelect.current = new Audio();
-      const saved = localStorage.getItem('game_sound');
-      soundOnSelectRef.current = saved !== 'false';
+      try {
+        const saved = localStorage.getItem('game_sound');
+        soundOnSelectRef.current = saved !== 'false';
+      } catch (e) {
+        soundOnSelectRef.current = true;
+      }
     }
     // Cleanup: stop audio + clear queue when component unmounts (navigating away)
     return () => {
@@ -1609,7 +1617,11 @@ function SelectionContent() {
                       const next = !soundOn;
                       setSoundOn(next);
                       soundOnSelectRef.current = next;
-                      localStorage.setItem('game_sound', next ? 'true' : 'false');
+                      try {
+                        localStorage.setItem('game_sound', next ? 'true' : 'false');
+                      } catch (e) {
+                        // Ignore
+                      }
                       // Unlock audio context on mobile (requires user gesture)
                       if (next) {
                         const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();

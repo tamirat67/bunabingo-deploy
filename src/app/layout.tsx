@@ -37,6 +37,26 @@ export default function RootLayout({
       <body className={inter.className} style={{ backgroundColor: '#0F172A', margin: 0, padding: 0 }}>
         {/* Prevent white flash before React hydrates */}
         <style>{`html,body{background-color:#0F172A!important;}`}</style>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                var originalGetItem = Storage.prototype.getItem;
+                Storage.prototype.getItem = function() {
+                  try { return originalGetItem.apply(this, arguments); } catch(e) { return null; }
+                };
+                var originalSetItem = Storage.prototype.setItem;
+                Storage.prototype.setItem = function() {
+                  try { originalSetItem.apply(this, arguments); } catch(e) {}
+                };
+                var originalRemoveItem = Storage.prototype.removeItem;
+                Storage.prototype.removeItem = function() {
+                  try { originalRemoveItem.apply(this, arguments); } catch(e) {}
+                };
+              } catch(e) {}
+            `
+          }}
+        />
 
 
 
