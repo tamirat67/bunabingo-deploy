@@ -24,8 +24,22 @@ export const initTelegram = (retryCount = 0) => {
 
 export const getTgInitData = () => {
   try {
-    return tg()?.initData || '';
+    const liveData = tg()?.initData;
+    if (liveData) {
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('tg_init_data_cache', liveData);
+      }
+      return liveData;
+    }
+    // Fallback to cache if live is empty (happens briefly during account switch on some Android devices)
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('tg_init_data_cache') || '';
+    }
+    return '';
   } catch (e) {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('tg_init_data_cache') || '';
+    }
     return '';
   }
 };
