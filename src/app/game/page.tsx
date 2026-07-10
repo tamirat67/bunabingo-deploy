@@ -283,8 +283,9 @@ function GameContent() {
     audioQueueRef.current = [...audioQueueRef.current, ...toAdd];
 
     // Only start the processor if it is not already running AND start.mp3 is not still playing.
-    // If start.mp3 is playing, balls pile up in the queue — onGameStarted's callback will kick it.
-    if (!isPlayingQueueRef.current && !isStartAudioPlayingRef.current) {
+    // AND we are not still in the first load phase (which could cause balls to play before start.mp3).
+    // If start.mp3 is playing or we are loading, balls pile up in the queue — onGameStarted or loadData will kick it.
+    if (!isPlayingQueueRef.current && !isStartAudioPlayingRef.current && !isFirstLoadRef.current) {
       console.log('[AudioQueue] Starting queue processor');
       processAudioQueue(setLastBallFn, setDrawnFn);
     }
@@ -388,10 +389,7 @@ function GameContent() {
       }
     };
 
-    Promise.all([
-      getGame(gameId), 
-      fetchMyCardWithRetry()
-    ]).then(([g, t]) => {
+    const fetchGameData = getGame(gameId).then(g => {
       setGame(g);
 
       // Cache in sessionStorage for instant re-open without flicker
@@ -424,12 +422,22 @@ function GameContent() {
           return g.countdownSeconds;
         });
       }
+      
+      return g;
+    });
+
+    const fetchCardsData = fetchMyCardWithRetry().then(t => {
       const sorted = (t.tickets || []).sort((a: any, b: any) => (a.card?.id || 0) - (b.card?.id || 0));
       setTickets(sorted);
       setIsFetchingCards(false);
       try { sessionStorage.setItem(`game_tickets_${gameId}`, JSON.stringify(sorted)); } catch (e) {}
 
       // Instant kick if they have 0 tickets and the game is active or cancelled
+      // Note: We check game state safely in case it hasn't loaded yet.
+      return sorted;
+    });
+
+    Promise.all([fetchGameData, fetchCardsData]).then(([g, sorted]) => {
       if (sorted.length === 0 && g.status !== 'FINISHED') {
         router.replace('/');
         return;
@@ -463,6 +471,7 @@ function GameContent() {
             setDrawn(prev => Array.from(new Set([...prev, ...hist.slice(0, hist.length - 1)])));
             // Queue only the most recent ball for audio announcement
             queueBallSounds([hist[hist.length - 1]], setLastBall, setDrawn);
+            if (!isPlayingQueueRef.current && audioQueueRef.current.length > 0) processAudioQueue(setLastBall, setDrawn);
           } else {
             // ── GENUINE GAME START (0 or 1 ball drawn) ───────────────────────────
             // play start.mp3, then call all balls in order
@@ -470,6 +479,7 @@ function GameContent() {
               if (hist.length > 0) {
                 queueBallSounds(hist, setLastBall, setDrawn);
               }
+              if (!isPlayingQueueRef.current && audioQueueRef.current.length > 0) processAudioQueue(setLastBall, setDrawn);
             });
           }
         } else if (hist.length > 0) {
