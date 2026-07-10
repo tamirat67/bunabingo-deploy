@@ -19,9 +19,9 @@ export const metadata: Metadata = {
 import { ThemeProvider } from '../context/ThemeContext';
 import { SocketProvider } from '../context/SocketContext';
 import SecurityGuard from '../components/SecurityGuard';
-import { Inter } from 'next/font/google';
+import { Outfit } from 'next/font/google';
 
-const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '700', '800', '900'] });
+const outfit = Outfit({ subsets: ['latin'], weight: ['400', '500', '700', '800', '900'] });
 
 export default function RootLayout({
   children,
@@ -33,7 +33,7 @@ export default function RootLayout({
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
       </head>
-      <body className={inter.className} style={{ backgroundColor: '#0F172A', margin: 0, padding: 0 }}>
+      <body className={outfit.className} style={{ backgroundColor: '#0F172A', margin: 0, padding: 0 }}>
         <Script src="/telegram-web-app.js" strategy="beforeInteractive" />
         {/* Prevent white flash before React hydrates */}
         <style>{`html,body{background-color:#0F172A!important;}`}</style>
