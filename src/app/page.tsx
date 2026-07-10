@@ -1,11 +1,11 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { scopedSessionStorage } from '../lib/storage';
-import { getRooms, getWallet, getMe } from '../lib/api';
+import { api, getRooms, getWallet, getMe } from '../lib/api';
 import { initTelegram, getLanguage, setLanguage } from '../lib/telegram';
 import t from '../lib/i18n';
 import { useRouter } from 'next/navigation';
-import { Trophy, Gift, Wallet as WalletIcon, Target, Play, Dices, ShieldCheck, History, User, ChevronDown, MoreVertical, X, Coffee, Plane } from 'lucide-react';
+import { Trophy, Gift, Wallet as WalletIcon, Target, Play, Dices, ShieldCheck, History, User, ChevronDown, MoreVertical, X, Coffee, Plane, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { useTheme } from '../context/ThemeContext';
