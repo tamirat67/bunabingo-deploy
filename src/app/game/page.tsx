@@ -51,6 +51,7 @@ function GameContent() {
   }, []);
 
   const [game,      setGame]      = useState<any>(null);
+  const [isFetchingCards, setIsFetchingCards] = useState(true);
   const [tickets, setTickets] = useState<any[]>(() => {
     // ── Sync hydration: instantly load tickets on first render to prevent "Fetching cards..." flash
     if (typeof window !== 'undefined' && gameId) {
@@ -58,7 +59,11 @@ function GameContent() {
         const cached = sessionStorage.getItem(`game_tickets_${gameId}`);
         if (cached) {
           const parsed = JSON.parse(cached);
-          return parsed.sort((a: any, b: any) => (a.card?.id || 0) - (b.card?.id || 0));
+          // Only use cache if it actually contains tickets
+          if (parsed && parsed.length > 0) {
+            setIsFetchingCards(false);
+            return parsed.sort((a: any, b: any) => (a.card?.id || 0) - (b.card?.id || 0));
+          }
         }
       } catch (e) {}
     }
@@ -123,6 +128,7 @@ function GameContent() {
   const announcedBallsRef = useRef<Set<number>>(new Set());
   // Ref for precisely scheduling start.mp3 so all devices play it at the same server-time moment
   const startAudioScheduled = useRef<any>(null);
+  const isStartAudioPlayingRef = useRef<boolean>(false);
   // Guards to prevent start.mp3 / stop.mp3 from firing more than once per game lifecycle
   const startAudioFiredRef = useRef<boolean>(false);
   const stopAudioFiredRef  = useRef<boolean>(false);
@@ -225,6 +231,12 @@ function GameContent() {
   }, []);
 
   const processAudioQueue = useCallback((setLastBallFn: (n: number) => void) => {
+    // If the game started audio is currently playing, defer calling the ball so they don't overlap
+    if (isStartAudioPlayingRef.current) {
+      setTimeout(() => processAudioQueue(setLastBallFn), 500);
+      return;
+    }
+
     if (isGameFinishedRef.current || audioQueueRef.current.length === 0) {
       isPlayingQueueRef.current = false;
       return;
@@ -280,6 +292,7 @@ function GameContent() {
   const playStartAudio = useCallback((onComplete?: () => void) => {
     let completedOnce = false;
     const safeComplete = () => {
+      isStartAudioPlayingRef.current = false;
       if (!completedOnce) {
         completedOnce = true;
         if (onComplete) onComplete();
@@ -297,6 +310,7 @@ function GameContent() {
     }
     startAudioFiredRef.current = true;
     lastStartAudioPlayed.current = Date.now();
+    isStartAudioPlayingRef.current = true;
     try {
       const startEl = new Audio('/audio/start.mp3');
       startEl.onended = safeComplete;
@@ -409,6 +423,7 @@ function GameContent() {
       }
       const sorted = (t.tickets || []).sort((a: any, b: any) => (a.card?.id || 0) - (b.card?.id || 0));
       setTickets(sorted);
+      setIsFetchingCards(false);
       try { sessionStorage.setItem(`game_tickets_${gameId}`, JSON.stringify(sorted)); } catch (e) {}
 
       const hist = (g.drawHistory || []).map((d: any) => d.number);
@@ -1661,7 +1676,21 @@ function GameContent() {
               </div>
             );
           })}
-          {tickets.length === 0 && <div style={{ textAlign: 'center', color: isVip ? 'white' : T.brown, padding: '40px' }}>Fetching cards...</div>}
+          {isFetchingCards && tickets.length === 0 && <div style={{ textAlign: 'center', color: isVip ? 'white' : T.brown, padding: '40px' }}>Fetching cards...</div>}
+          {!isFetchingCards && tickets.length === 0 && (
+            <div style={{ textAlign: 'center', color: isVip ? 'white' : T.brown, padding: '40px', background: isVip ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.8)', borderRadius: '15px', margin: '20px' }}>
+              <h3 style={{ marginBottom: '10px' }}>No Cards Found</h3>
+              <p style={{ opacity: 0.8, fontSize: '14px', marginBottom: '20px' }}>
+                You don't have any tickets for this game. If you joined, they may have been refunded due to insufficient balance.
+              </p>
+              <button 
+                onClick={() => router.push('/')} 
+                style={{ padding: '12px 24px', borderRadius: '10px', background: isVip ? '#FFD700' : T.gold, color: isVip ? '#1C0A35' : 'white', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}
+              >
+                Return to Lobby
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
