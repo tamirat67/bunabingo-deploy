@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const SAVED_PHONE_KEY = 'buna_saved_phone';
-const SAVED_PASS_KEY  = 'buna_saved_pass';
+const SAVED_PHONE_KEY = 'buna_saved_phone'; // Only phone is saved — never the password
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.bunatechhub.net';
 
 export default function LoginModal({ isOpen, onClose, onLoginSuccess }: {
@@ -17,13 +16,11 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: {
   const [error, setError]       = useState('');
   const [loading, setLoading]   = useState(false);
 
-  // Auto-fill saved credentials on open
+  // Auto-fill saved phone on open (password is never stored for security)
   useEffect(() => {
     if (isOpen && typeof window !== 'undefined') {
       const savedPhone = localStorage.getItem(SAVED_PHONE_KEY) || '';
-      const savedPass  = localStorage.getItem(SAVED_PASS_KEY)  || '';
       if (savedPhone) setPhone(savedPhone);
-      if (savedPass)  setPassword(savedPass);
     }
   }, [isOpen]);
 
@@ -44,9 +41,8 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: {
         // Save session token (lasts 365 days — permanent login)
         localStorage.setItem('admin_token', res.data.token);
 
-        // Remember phone & password for next time
+        // Remember only the phone for next time convenience (never save password)
         localStorage.setItem(SAVED_PHONE_KEY, phone.trim());
-        localStorage.setItem(SAVED_PASS_KEY, password);
 
         onLoginSuccess();
       }

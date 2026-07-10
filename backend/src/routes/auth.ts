@@ -6,14 +6,24 @@ import { config } from '../config';
 import { logger } from '../lib/logger';
 import { verifyMagicLink } from '../lib/magicLink';
 import { getUserByTelegramIdBigInt } from '../services/user.service';
+import rateLimit from 'express-rate-limit';
 
 const router = Router();
+
+// ── Rate limiter: 5 login attempts per 15 minutes per IP ─────────────────────
+const loginRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5,
+  message: { error: 'Too many login attempts. Please try again in 15 minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 /**
  * POST /api/auth/login
  * Standard username (telegramId) and password login for Admins/Agents
  */
-router.post('/login', async (req: Request, res: Response) => {
+router.post('/login', loginRateLimiter, async (req: Request, res: Response) => {
   let { username, password } = req.body;
   if (username && username.startsWith('@')) {
     username = username.substring(1);
