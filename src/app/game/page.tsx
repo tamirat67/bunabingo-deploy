@@ -232,7 +232,7 @@ function GameContent() {
     setTimeout(safeComplete, 4000);
   }, []);
 
-  const processAudioQueue = useCallback((setLastBallFn: (n: number) => void) => {
+  const processAudioQueue = useCallback((setLastBallFn: (n: number) => void, setDrawnFn: (fn: (prev: number[]) => number[]) => void) => {
     // NOTE: start.mp3 uses a separate new Audio() element, so it CANNOT block ballAudioRef.
     // We do NOT defer here — balls accumulate in the queue and start immediately after start.mp3
     // fires safeComplete which kicks the queue via queueBallSounds.
@@ -246,15 +246,17 @@ function GameContent() {
     if (nextBall !== undefined) {
       console.log('[AudioQueue] Playing ball:', nextBall);
       lastDrawnRef.current = nextBall;
-      // ── Synchronize visual BIG BALL and RECENT BALLS with the audio ──
+      // ── Step 1: BIG BALL + RECENT BALLS update simultaneously with audio start ──
       setLastBallFn(nextBall);
       setCalledHistory(prev => prev.includes(nextBall) ? prev : [...prev, nextBall]);
       
-      // Wait for ball audio to ACTUALLY finish before playing next
+      // ── Step 2: Wait for ball audio to ACTUALLY finish before highlighting board + cartela ──
       playBallSound(nextBall, () => {
+        // Highlight the Bingo Board (1-75) AND the player cartelas at the same moment audio ends
+        setDrawnFn(p => p.includes(nextBall) ? p : [...p, nextBall]);
         if (!isGameFinishedRef.current) {
           playNextTimeoutRef.current = setTimeout(() => {
-            processAudioQueue(setLastBallFn);
+            processAudioQueue(setLastBallFn, setDrawnFn);
           }, 300); // 300ms natural gap after audio finishes
         } else {
           isPlayingQueueRef.current = false;
@@ -265,7 +267,7 @@ function GameContent() {
     }
   }, [playBallSound, setCalledHistory]);
 
-  const queueBallSounds = useCallback((numbers: number[], setLastBallFn: (n: number) => void) => {
+  const queueBallSounds = useCallback((numbers: number[], setLastBallFn: (n: number) => void, setDrawnFn: (fn: (prev: number[]) => number[]) => void) => {
     if (isGameFinishedRef.current) return;
 
     // Only add balls that have never been announced yet — prevents duplicates AND ensures
@@ -284,7 +286,7 @@ function GameContent() {
     // If start.mp3 is playing, balls pile up in the queue — onGameStarted's callback will kick it.
     if (!isPlayingQueueRef.current && !isStartAudioPlayingRef.current) {
       console.log('[AudioQueue] Starting queue processor');
-      processAudioQueue(setLastBallFn);
+      processAudioQueue(setLastBallFn, setDrawnFn);
     }
   }, [processAudioQueue]);
 
@@ -595,10 +597,9 @@ function GameContent() {
 
     const onNumberDrawn = (d: { number: number }) => {
       const num = Number(d.number);
-      // Board highlights update immediately (so card numbers are marked)
-      setDrawn(p => p.includes(num) ? p : [...p, num]);
-      // Big ball display + Recent Balls: driven by audio queue together
-      queueBallSounds([num], setLastBall);
+      // Big ball + Recent Balls update immediately when audio starts.
+      // Board (1-75) + cartela highlights are deferred until after audio finishes (inside queueBallSounds).
+      queueBallSounds([num], setLastBall, setDrawn);
     };
 
     socket.on('number-drawn', onNumberDrawn);
@@ -1575,21 +1576,6 @@ function GameContent() {
                   transition: 'border 0.2s, box-shadow 0.2s',
                 }}
               >
-                <button onClick={(e) => { e.stopPropagation(); hideCard(t.id); }} style={{ position: 'absolute', top: '4px', right: '5px', width: '20px', height: '20px', background: '#C0392B', color: 'white', border: 'none', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}><X size={10} /></button>
-                {/* Card header */}
-                <div style={{
-                  background: isSelected
-                    ? (isVip ? 'linear-gradient(90deg, #FFD700, #C471ED)' : T.gold)
-                    : (isVip ? '#1C0A35' : T.header),
-                  padding: '4px 10px',
-                  color: isSelected
-                    ? (isVip ? '#1C0A35' : T.header)
-                    : (isVip ? '#FFD700' : T.gold),
-                  fontWeight: '900',
-                  fontSize: '11px'
-                }}>
-                  Cartela #{cardId} {isSelected ? '(SELECTED)' : ''}
-                </div>
 
                 {/* 5×5 grid */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '2px', padding: '5px' }}>
