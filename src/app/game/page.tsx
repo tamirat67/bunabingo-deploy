@@ -196,25 +196,28 @@ function GameContent() {
 
     const col = colLabel(num);
     try {
-      const el = ballAudioRef.current;
-      if (el) {
-        // Fully reset the element before loading a new source to avoid overlap
-        el.onended = null;
-        el.onerror = null;
-        el.pause();
-        el.currentTime = 0;
-        el.src = `/audio/${col}${num}.mp3`;
-        el.load();
-        el.onended = safeComplete;
-        el.onerror = safeComplete;
-        // Android WebView: play() may reject silently — always attach a catch
-        el.play().catch(safeComplete);
-      } else {
-        // No persistent element available — skip audio on Android to avoid crash
-        safeComplete();
+      // 1. Pause any currently playing audio to prevent overlap
+      if (ballAudioRef.current) {
+        ballAudioRef.current.onended = null;
+        ballAudioRef.current.onerror = null;
+        ballAudioRef.current.pause();
       }
+
+      // 2. Create a fresh Audio object to guarantee src/playback synchronization
+      const el = new Audio(`/audio/${col}${num}.mp3`);
+      ballAudioRef.current = el; // Store reference so game end can pause it
+
+      el.onended = safeComplete;
+      el.onerror = safeComplete;
+      
+      // 3. Play and handle errors gracefully
+      el.play().catch((err) => {
+        console.warn(`[Audio] Failed to play ${col}${num}:`, err);
+        // Wait 1.5s so balls don't pass silently in 300ms blurs if audio is blocked
+        setTimeout(safeComplete, 1500); 
+      });
     } catch (e) {
-      safeComplete();
+      setTimeout(safeComplete, 1500);
     }
 
     // Safety timeout in case audio hangs indefinitely (reduced to 4s for faster queue)
