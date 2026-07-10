@@ -186,9 +186,19 @@ function GameContent() {
     }
   }, []);
 
-  const playBallSound = useCallback((num: number, onComplete?: () => void) => {
+  const playBallSound = useCallback((num: number, onStart?: () => void, onComplete?: () => void) => {
     let completed = false;
+    let started = false;
+    
+    const safeStart = () => {
+      if (!started) {
+        started = true;
+        if (onStart) onStart();
+      }
+    };
+    
     const safeComplete = () => {
+      safeStart(); // ensure start was called if it somehow skipped
       if (!completed) {
         completed = true;
         if (onComplete) onComplete();
@@ -196,6 +206,7 @@ function GameContent() {
     };
 
     if (!soundOnRef.current) {
+      safeStart();
       if (onComplete) setTimeout(safeComplete, 100); // Simulate gap if muted
       return;
     }
@@ -206,6 +217,7 @@ function GameContent() {
       if (ballAudioRef.current) {
         ballAudioRef.current.onended = null;
         ballAudioRef.current.onerror = null;
+        ballAudioRef.current.onplay = null;
         ballAudioRef.current.pause();
 
         // 2. Reuse the ALREADY-UNLOCKED audio element for mobile autoplay policies
@@ -214,17 +226,21 @@ function GameContent() {
 
         ballAudioRef.current.onended = safeComplete;
         ballAudioRef.current.onerror = safeComplete;
+        ballAudioRef.current.onplay = safeStart; // ── FIRE WHEN AUDIO ACTUALLY STARTS ──
         
         // 3. Play and handle errors gracefully
         ballAudioRef.current.play().catch((err) => {
           console.warn(`[Audio] Failed to play ${col}${num}:`, err);
+          safeStart();
           // Wait 1.5s so balls don't pass silently in 300ms blurs if audio is blocked
           setTimeout(safeComplete, 1500); 
         });
       } else {
+        safeStart();
         setTimeout(safeComplete, 1500);
       }
     } catch (e) {
+      safeStart();
       setTimeout(safeComplete, 1500);
     }
 
@@ -246,22 +262,28 @@ function GameContent() {
     if (nextBall !== undefined) {
       console.log('[AudioQueue] Playing ball:', nextBall);
       lastDrawnRef.current = nextBall;
-      // ── Step 1: BIG BALL + RECENT BALLS update simultaneously with audio start ──
-      setLastBallFn(nextBall);
-      setCalledHistory(prev => prev.includes(nextBall) ? prev : [...prev, nextBall]);
       
-      // ── Step 2: Wait for ball audio to ACTUALLY finish before highlighting board + cartela ──
-      playBallSound(nextBall, () => {
-        // Highlight the Bingo Board (1-75) AND the player cartelas at the same moment audio ends
-        setDrawnFn(p => p.includes(nextBall) ? p : [...p, nextBall]);
-        if (!isGameFinishedRef.current) {
-          playNextTimeoutRef.current = setTimeout(() => {
-            processAudioQueue(setLastBallFn, setDrawnFn);
-          }, 300); // 300ms natural gap after audio finishes
-        } else {
-          isPlayingQueueRef.current = false;
+      // ── Make audio play and bingo ball arrive at EQUAL time ──
+      // visual state is only updated exactly when the audio onplay event fires
+      playBallSound(nextBall, 
+        // onStart callback
+        () => {
+          setLastBallFn(nextBall);
+          setCalledHistory(prev => prev.includes(nextBall) ? prev : [...prev, nextBall]);
+        },
+        // onComplete callback
+        () => {
+          // Highlight the Bingo Board (1-75) AND the player cartelas at the same moment audio ends
+          setDrawnFn(p => p.includes(nextBall) ? p : [...p, nextBall]);
+          if (!isGameFinishedRef.current) {
+            playNextTimeoutRef.current = setTimeout(() => {
+              processAudioQueue(setLastBallFn, setDrawnFn);
+            }, 300); // 300ms natural gap after audio finishes
+          } else {
+            isPlayingQueueRef.current = false;
+          }
         }
-      });
+      );
     } else {
       isPlayingQueueRef.current = false;
     }
