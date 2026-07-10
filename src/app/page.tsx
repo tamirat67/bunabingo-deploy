@@ -14,7 +14,7 @@ import BunaModal from '../components/BunaModal';
 import WeeklyBlastModal from '../components/WeeklyBlastModal';
 import WeeklyBlastFab from '../components/WeeklyBlastFab';
 import LoginModal from '../components/LoginModal';
-import api from '../lib/api';
+import { api } from '../lib/api';
 import { useSocket } from '../context/SocketContext';
 
 export default function LobbyPage() {
@@ -25,6 +25,7 @@ export default function LobbyPage() {
   const [rooms, setRooms] = useState<any[]>([]);
   const [mounted, setMounted] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
+  const [openingChrome, setOpeningChrome] = useState(false);
 
   // Hydrate from cache only on client to avoid Next.js SSR mismatch
   useEffect(() => {
@@ -80,6 +81,26 @@ export default function LobbyPage() {
     const interval = setInterval(refreshData, 10000);
     return () => clearInterval(interval);
   }, []);
+
+  const handleOpenInChrome = async () => {
+    try {
+      setOpeningChrome(true);
+      const res = await api.get('/auth/me/magic-link');
+      if (res.data.success && res.data.url) {
+        // @ts-ignore
+        if (window.Telegram?.WebApp?.openLink) {
+          // @ts-ignore
+          window.Telegram.WebApp.openLink(res.data.url, { try_instant_view: false });
+        } else {
+          window.open(res.data.url, '_blank');
+        }
+      }
+    } catch (err) {
+      console.error('Failed to get chrome link', err);
+    } finally {
+      setOpeningChrome(false);
+    }
+  };
 
   // Real-time Updates
   useEffect(() => {
@@ -570,6 +591,36 @@ export default function LobbyPage() {
           </div>
         </div>
 
+        {/* ── OPEN IN CHROME BUTTON ── */}
+        <div style={{ padding: '0 15px', marginBottom: '24px', marginTop: '16px' }}>
+          <button 
+            onClick={handleOpenInChrome}
+            disabled={openingChrome}
+            style={{
+              width: '100%',
+              background: 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: '12px',
+              padding: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '12px',
+              color: 'white',
+              fontSize: '15px',
+              fontWeight: '700',
+              cursor: openingChrome ? 'wait' : 'pointer',
+              opacity: openingChrome ? 0.7 : 1,
+              boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
+            }}
+          >
+            <ExternalLink size={20} color="#D4AF37" />
+            {openingChrome ? 'GENERATING LINK...' : '🌐 PLAY IN BROWSER (CHROME)'}
+          </button>
+          <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontSize: '11px', marginTop: '8px', padding: '0 20px', lineHeight: '1.4' }}>
+            Open in your phone's browser for a faster experience. Your login session will be permanently saved!
+          </div>
+        </div>
 
 
       <JackpotSplash

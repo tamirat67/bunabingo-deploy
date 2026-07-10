@@ -19,7 +19,6 @@ import { handleChangeName,
 import { handleGameHistory }                    from './commands/game_history';
 import { handleCheckTransaction }              from './commands/check_transaction';
 import { handlePassword }                       from './commands/password';
-import { handleOpenInChrome }                   from './commands/openInChrome';
 import { handleTransfer,
          handleTransferConfirm,
          handleTransferCancel,
@@ -65,7 +64,6 @@ export function createBot(): Telegraf {
   bot.command('playkeno',          ctx => handlePlayKeno(ctx));
   bot.command('register',          ctx => handleRegister(ctx));
   bot.command('password',          ctx => handlePassword(ctx));
-  bot.command('chrome',            ctx => handleOpenInChrome(ctx));
   bot.command('vip',               ctx => handleVipRoom(ctx));
 
   // ─── Wallet ───────────────────────────────────────────────────────────────
@@ -114,7 +112,6 @@ export function createBot(): Telegraf {
   bot.action('cmd_play_slot',      ctx => handlePlaySlot(ctx));
   bot.action('cmd_register',       ctx => handleRegister(ctx));
   bot.action('cmd_password',       ctx => handlePassword(ctx));
-  bot.action('cmd_open_chrome',    ctx => handleOpenInChrome(ctx));
   bot.action('cmd_vip',            ctx => handleVipRoom(ctx));
 
 

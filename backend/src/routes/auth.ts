@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma';
 import { config } from '../config';
 import { logger } from '../lib/logger';
-import { verifyMagicLink } from '../lib/magicLink';
+import { verifyMagicLink, resolvePlayToken } from '../lib/magicLink';
 import { getUserByTelegramIdBigInt } from '../services/user.service';
 import rateLimit from 'express-rate-limit';
 
@@ -17,6 +17,63 @@ const loginRateLimiter = rateLimit({
   message: { error: 'Too many login attempts. Please try again in 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
+});
+
+/**
+ * GET /api/auth/play-login?k=...
+ * Validates a short play token and returns a JWT access token.
+ */
+router.get('/play-login', async (req: Request, res: Response) => {
+  const { k } = req.query as Record<string, string>;
+
+  if (!k) {
+    return res.status(400).json({ error: 'Missing token parameter' });
+  }
+
+  const validTgId = resolvePlayToken(k);
+  if (!validTgId) {
+    logger.warn(`[PlayLogin] Invalid or expired short token: ${k}`);
+    return res.status(401).json({ error: 'Link expired. Please open the Mini App again to get a fresh link.' });
+  }
+
+  try {
+    const user = await getUserByTelegramIdBigInt(BigInt(validTgId));
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found. Please register in the bot first.' });
+    }
+
+    if (user.status === 'BANNED') {
+      return res.status(403).json({ error: 'Account banned.' });
+    }
+
+    const token = jwt.sign(
+      {
+        id: user.id,
+        telegramId: user.telegramId.toString(),
+        role: user.role,
+        isAdmin: user.isAdmin,
+      },
+      config.server.jwtSecret,
+      { expiresIn: '365d' }
+    );
+
+    logger.info(`[PlayLogin] User ${user.id} authenticated via short play link`);
+
+    return res.json({
+      success: true,
+      token,
+      user: {
+        id: user.id,
+        firstName: user.firstName,
+        role: user.role,
+        telegramId: user.telegramId.toString(),
+      },
+    });
+  } catch (err) {
+    logger.error('[PlayLogin] Error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 /**

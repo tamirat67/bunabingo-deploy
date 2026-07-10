@@ -3,7 +3,7 @@ import { getTgInitData } from './telegram';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.bunatechhub.net';
 
-const api = axios.create({
+export const api = axios.create({
   baseURL: `${API_URL}/api`,
   timeout: 120000, // 120s global timeout — prevents silent "Network Error" on slow mobile uploads
 });
