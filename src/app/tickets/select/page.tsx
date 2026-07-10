@@ -713,7 +713,9 @@ function SelectionContent() {
         isGameRunningRef.current = true;
         lastGameRunningChangeTimeRef.current = Date.now();
         setIsGameRunning(true);
+        // FIX Bug 3: clear endTime so the local countdown interval stops cleanly
         setCountdown(null);
+        setEndTime(null);
         // Anchor the 50s NEXT CHECK cycle to the real server timestamp
         const endTime = (d.serverTime || Date.now()) + 50000;
         liveGameEndTimeRef.current = endTime;
@@ -837,6 +839,18 @@ function SelectionContent() {
           ballAudioRefSelect.current.currentTime = 0;
         }
 
+        // FIX Bug 1 & 2: Reset ALL per-game guards so the NEXT game can
+        // fire auto-buy at 3s and redirect on game-started correctly.
+        redirectedRef.current = false;
+        launchedRef.current = false;
+        gameStartedRef.current = false;
+        gameStartedDataRef.current = null;
+        pendingJoinRef.current = false;
+        joinedGameIdRef.current = null;
+        ownedRef.current = [];
+        setOwnedCardIds([]);
+        setSelected([]);
+
         // Winner modal logic has been removed from the selection page per user request.
         // It now only displays inside the active game page.
 
@@ -857,6 +871,7 @@ function SelectionContent() {
           }
           const myNewCardIds = res.myCardIds || [];
           setOwnedCardIds(myNewCardIds);
+          ownedRef.current = myNewCardIds;
         }).catch(() => { });
       });
 
@@ -877,6 +892,15 @@ function SelectionContent() {
         if (d.gameId) {
           try { sessionStorage.removeItem(`game_tickets_${d.gameId}`); } catch (e) { }
         }
+
+        // FIX Bug 1 & 2: Reset ALL per-game guards so the NEXT game works
+        redirectedRef.current = false;
+        launchedRef.current = false;
+        gameStartedRef.current = false;
+        gameStartedDataRef.current = null;
+        pendingJoinRef.current = false;
+        joinedGameIdRef.current = null;
+        ownedRef.current = [];
 
         // Fetch new state
         getOccupiedCards(roomType, activeGameIdRef.current).then(res => {
