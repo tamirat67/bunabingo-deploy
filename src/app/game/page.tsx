@@ -466,19 +466,19 @@ function GameContent() {
             // Also pre-populate calledHistory visually (no audio for old balls)
             setCalledHistory(hist.slice(0, hist.length - 1));
             // Queue only the most recent ball for audio announcement
-            queueBallSounds([hist[hist.length - 1]], setLastBall);
+            queueBallSounds([hist[hist.length - 1]], setLastBall, setDrawn);
           } else {
             // ── GENUINE GAME START (0 or 1 ball drawn) ───────────────────────────
             // play start.mp3, then call all balls in order
             playStartAudio(() => {
               if (hist.length > 0) {
-                queueBallSounds(hist, setLastBall);
+                queueBallSounds(hist, setLastBall, setDrawn);
               }
             });
           }
         } else if (hist.length > 0) {
           // Game not yet running but has history (rare edge case)
-          queueBallSounds(hist, setLastBall);
+          queueBallSounds(hist, setLastBall, setDrawn);
         }
       } else {
         // During active game: board highlights sync from server history immediately.
@@ -488,7 +488,7 @@ function GameContent() {
         // Queue audio for every ball NOT yet announced (catches socket-missed events).
         const newBalls: number[] = hist.filter((n: number) => !announcedBallsRef.current.has(n));
         if (newBalls.length > 0) {
-          queueBallSounds(newBalls, setLastBall);
+          queueBallSounds(newBalls, setLastBall, setDrawn);
         }
       }
     }).catch(console.error);
