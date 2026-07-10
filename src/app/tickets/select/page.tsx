@@ -1177,8 +1177,14 @@ function SelectionContent() {
     }
 
     if (!user && roomType !== 'DEMO') {
-      showAlert('እባክዎ ይጠብቁ...', 'የኪስዎን ቀሪ ሂሳብ እያጣራን ነው...', 'info');
-      getMe().then(setUser).catch(() => { });
+      // Silently fetch user in background, then retry the card selection automatically
+      getMe().then(u => {
+        if (u) {
+          setUser(u);
+          // Small delay to let state update settle, then auto-retry the selection
+          setTimeout(() => handleSelect(num), 100);
+        }
+      }).catch(() => {});
       return;
     }
 
@@ -1265,8 +1271,13 @@ function SelectionContent() {
     if (countdown !== null && countdown <= 3 && countdown >= 0) return;
 
     if (!user && roomType !== 'DEMO') {
-      showAlert('እባክዎ ይጠብቁ...', 'የኪስዎን ቀሪ ሂሳብ እያጣራን ነው...', 'info');
-      getMe().then(setUser).catch(() => { });
+      // Silently fetch user in background, then retry the start action automatically
+      getMe().then(u => {
+        if (u) {
+          setUser(u);
+          setTimeout(() => handleStart(), 100);
+        }
+      }).catch(() => {});
       return;
     }
 
