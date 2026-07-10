@@ -109,7 +109,7 @@ export default function AutoLoginPage() {
           }}>
             Go back to the bot and tap<br />
             <strong>"🌐 Chrome ውስጥ ክፈት"</strong><br />
-            to get a fresh link.
+            to get a fresh 24-hour link.
           </div>
         </div>
       )}

@@ -65,7 +65,7 @@ router.post('/login', async (req: Request, res: Response) => {
         isAdmin: user.isAdmin 
       },
       config.server.jwtSecret,
-      { expiresIn: '7d' }
+      { expiresIn: '365d' }  // Players stay logged in for 1 year
     );
 
     res.json({
@@ -241,10 +241,10 @@ router.get('/magic-login', async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Missing parameters' });
   }
 
-  const validTgId = verifyMagicLink(tgId, ts, sig);
+  const validTgId = verifyMagicLink(tgId, ts, sig, 86400); // 24-hour link window
   if (!validTgId) {
     logger.warn(`[MagicLogin] Invalid or expired link for tgId=${tgId}`);
-    return res.status(401).json({ error: 'Link expired or invalid. Please request a new one from the bot.' });
+    return res.status(401).json({ error: 'Link expired. Go back to the bot and tap "\uD83C\uDF10 Chrome \u12CD\u1235\u1325 \u12AD\u1348\u1275" to get a fresh one.' });
   }
 
   try {
@@ -266,7 +266,7 @@ router.get('/magic-login', async (req: Request, res: Response) => {
         isAdmin: user.isAdmin,
       },
       config.server.jwtSecret,
-      { expiresIn: '7d' }
+      { expiresIn: '365d' }  // Players stay logged in for 1 year in their browser
     );
 
     logger.info(`[MagicLogin] User ${user.id} authenticated via magic link`);

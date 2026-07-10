@@ -32,8 +32,7 @@ export async function handleOpenInChrome(ctx: Context) {
 
     await ctx.reply(
       `🎮 <b>ጨዋታ ክፈት!</b>\n\n` +
-      `ከታች ያለውን ቁልፍ ጫን ጨዋታው ወዲያውኑ ይከፈታል! 🚀\n\n` +
-      `<i>(ይህ ሊንክ ለ1 ሰዓት ብቻ ይሠራል)</i>`,
+      `ከታች ያለውን ቁልፍ ጫን ጨዋታው ወዲያውኑ ይከፈታል! 🚀`,
       {
         parse_mode: 'HTML',
         ...Markup.inlineKeyboard([
