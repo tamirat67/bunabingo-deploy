@@ -426,6 +426,12 @@ function GameContent() {
       setIsFetchingCards(false);
       try { sessionStorage.setItem(`game_tickets_${gameId}`, JSON.stringify(sorted)); } catch (e) {}
 
+      // Instant kick if they have 0 tickets and the game is active (not finished/cancelled)
+      if (sorted.length === 0 && g.status !== 'FINISHED' && g.status !== 'CANCELLED') {
+        router.replace('/');
+        return;
+      }
+
       const hist = (g.drawHistory || []).map((d: any) => d.number);
       // Sync UI drawn states immediately (board highlights) without removing socket-received balls
       setDrawn(prev => {
