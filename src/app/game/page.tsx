@@ -423,7 +423,7 @@ function GameContent() {
       } catch (e) {}
 
       if (g.serverTime) {
-        setServerOff(g.serverTime - Date.now());
+        setServerOff(prev => prev === 0 ? (g.serverTime - Date.now()) : prev);
       }
 
       if (g.status === 'RUNNING' || g.status === 'FINISHED') {
@@ -431,11 +431,14 @@ function GameContent() {
         setEndTime(null);
       } else if (g.endTime) {
         // ── Server-provided endTime: derive remaining from absolute epoch ──────
-        setEndTime(g.endTime);
-        if (g.status === 'COUNTDOWN') {
-          const offset = g.serverTime ? (g.serverTime - Date.now()) : 0;
-          const rem = Math.max(0, Math.ceil((g.endTime - Date.now() - offset) / 1000));
-          if (rem > 0) setCountdown(rem);
+        const offset = g.serverTime ? (g.serverTime - Date.now()) : 0;
+        const rem = Math.max(0, Math.ceil((g.endTime - Date.now() - offset) / 1000));
+        if (rem > 0) {
+          setEndTime(g.endTime);
+          setCountdown(rem);
+        } else {
+          setEndTime(null);
+          setCountdown(0);
         }
       } else if (g.status === 'COUNTDOWN' && g.countdownSeconds) {
         // Last-resort fallback: no endTime from server (rare, state not yet in memory)
@@ -633,44 +636,26 @@ function GameContent() {
     socket.on('number-drawn', onNumberDrawn);
 
     const onCountdownStart = (d: any) => {
-      // countdown-start: update display only — NO audio here.
-      // start.mp3 fires exclusively on the 'game-started' event.
       if (d.endTime) {
         const offset = d.serverTime ? (d.serverTime - Date.now()) : 0;
-        setServerOff(offset);
+        setServerOff(prev => prev === 0 && offset !== 0 ? offset : prev);
         setEndTime(d.endTime);
-        const remMs = d.endTime - Date.now() - offset;
-        const rem = Math.max(0, Math.ceil(remMs / 1000));
-        setCountdown(rem > 0 ? rem : null);
+        // Do NOT setCountdown manually here, let the local setInterval handle it smoothly
       } else {
         setCountdown(d.seconds);
-      }
-      if (d.seconds === 0) {
-        setCountdown(null);
-        setEndTime(null);
-        setTimeout(loadData, 300);
       }
     };
 
     socket.on('countdown-start', onCountdownStart);
 
     const onCountdownTick = (d: any) => {
-      // countdown-tick: update display only — NO audio here.
-      // start.mp3 fires exclusively on the 'game-started' event.
       if (d.endTime) {
         const offset = d.serverTime ? (d.serverTime - Date.now()) : 0;
-        setServerOff(offset);
-        setEndTime(d.endTime);
-        const remMs = d.endTime - Date.now() - offset;
-        const rem = Math.max(0, Math.ceil(remMs / 1000));
-        setCountdown(rem > 0 ? rem : null);
+        setServerOff(prev => prev === 0 && offset !== 0 ? offset : prev);
+        // Only update if it changed to prevent resetting the setInterval dependency unnecessarily
+        setEndTime(prev => prev === d.endTime ? prev : d.endTime);
       } else {
         setCountdown(d.secondsRemaining);
-      }
-      const offset = d.serverTime ? (d.serverTime - Date.now()) : 0;
-      if (d.secondsRemaining === 0 || (d.endTime && d.endTime - offset <= Date.now())) {
-        setEndTime(null);
-        setTimeout(loadData, 300);
       }
     };
 
