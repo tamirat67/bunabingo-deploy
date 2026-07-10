@@ -1166,7 +1166,7 @@ function GameContent() {
 
   const LoadingScreen = () => (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: isVip ? '#1C0A35' : '#2D1B14' }}>
-      <div className="animate-spin" style={{ width: '40px', height: '40px', border: '3px solid #D4AF37', borderTopColor: 'transparent', borderRadius: '50%', marginBottom: '16px' }}></div>
+      <div className="animate-spin" style={{ width: '40px', height: '40px', border: '3px solid #D4AF37', borderTop: '3px solid transparent', borderRadius: '50%', marginBottom: '16px' }}></div>
       <div style={{ color: '#D4AF37', fontWeight: '900', fontSize: '12px', letterSpacing: '2px', textShadow: '0 0 10px rgba(212,175,55,0.5)' }}>LOADING BUNA BINGO...</div>
     </div>
   );
@@ -1327,7 +1327,7 @@ function GameContent() {
       {/* ── Stats Row ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px', padding: '4px', background: isVip ? 'rgba(255,255,255,0.02)' : T.statBg, borderBottom: isVip ? '1px solid rgba(255,215,0,0.2)' : `1px solid ${T.gold}44` }}>
         {[
-          ['GAME ID',   gameId?.slice(-6).toUpperCase() || '--'],
+          ['GAME ID',   gameId ? gameId.slice(-6).toUpperCase() : '--'],
           ['CARDS',     `${allCards}`],
           ['STAKE/CARD',`${stake} ETB`],
           ['PRIZE', `${prize.toFixed ? prize.toFixed(0) : prize} ETB`]
@@ -1607,7 +1607,7 @@ function GameContent() {
 
                 {/* 5×5 grid */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '2px', padding: '5px' }}>
-                  {rows.map((row: any[], ri: number) => row.map((cell: any, ci: number) => {
+                  {rows.map((row: any[], ri: number) => (Array.isArray(row) ? row : []).map((cell: any, ci: number) => {
                     const numVal  = Number(cell);
                     const isFree  = cell === 'FREE' || cell === 0 || cell === null;
                     const isBallCalled = !isFree && drawn.includes(numVal);
