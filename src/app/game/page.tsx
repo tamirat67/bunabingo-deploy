@@ -427,8 +427,8 @@ function GameContent() {
       setIsFetchingCards(false);
       try { sessionStorage.setItem(`game_tickets_${gameId}`, JSON.stringify(sorted)); } catch (e) {}
 
-      // Instant kick if they have 0 tickets and the game is active (not finished/cancelled)
-      if (sorted.length === 0 && g.status !== 'FINISHED' && g.status !== 'CANCELLED') {
+      // Instant kick if they have 0 tickets and the game is active or cancelled
+      if (sorted.length === 0 && g.status !== 'FINISHED') {
         router.replace('/');
         return;
       }
@@ -1695,20 +1695,6 @@ function GameContent() {
             );
           })}
           {isFetchingCards && tickets.length === 0 && <div style={{ textAlign: 'center', color: isVip ? 'white' : T.brown, padding: '40px' }}>Fetching cards...</div>}
-          {!isFetchingCards && tickets.length === 0 && (
-            <div style={{ textAlign: 'center', color: isVip ? 'white' : T.brown, padding: '40px', background: isVip ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.8)', borderRadius: '15px', margin: '20px' }}>
-              <h3 style={{ marginBottom: '10px' }}>No Cards Found</h3>
-              <p style={{ opacity: 0.8, fontSize: '14px', marginBottom: '20px' }}>
-                You don't have any tickets for this game. If you joined, they may have been refunded due to insufficient balance.
-              </p>
-              <button 
-                onClick={() => router.push('/')} 
-                style={{ padding: '12px 24px', borderRadius: '10px', background: isVip ? '#FFD700' : T.gold, color: isVip ? '#1C0A35' : 'white', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}
-              >
-                Return to Lobby
-              </button>
-            </div>
-          )}
         </div>
       </div>
 
