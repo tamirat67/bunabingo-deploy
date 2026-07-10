@@ -1746,10 +1746,10 @@ function SelectionContent() {
 
 
       {/* \u2500\u2500 Card Grid \u2500\u2500 */}
-      <div className="grid-brown" style={{ position: 'relative', overflow: 'hidden', pointerEvents: effectiveGameRunning ? 'none' : undefined }}>
+      <div className="grid-brown" style={{ position: 'relative', overflow: 'hidden', pointerEvents: effectiveGameRunning && !hasTicketsInRunningGame ? 'none' : undefined }}>
 
         {/* \u2550\u2550\u2550\u2550\u2550\u2550 GAME IN PROGRESS MASK \u2550\u2550\u2550\u2550\u2550\u2550 */}
-        {effectiveGameRunning && (
+        {effectiveGameRunning && !hasTicketsInRunningGame && (
           <div style={{
             position: 'absolute',
             inset: 0,
