@@ -205,6 +205,7 @@ export async function handleStart(ctx: Context) {
         // ── Top Row: Open App ────────────────────────────────────────────────
         [
           Markup.button.webApp('🚀 Open App / አፕ ክፈት', config.bot.miniAppUrl),
+          Markup.button.callback('🌐 Chrome ውስጥ ክፈት', 'cmd_open_chrome'),
         ],
         // ── Row 1: Games ─────────────────────────────────────────────────────
         [
@@ -247,6 +248,7 @@ export async function handleStart(ctx: Context) {
         ...Markup.inlineKeyboard([
           [
             Markup.button.webApp('🚀 Open App / አፕ ክፈት', config.bot.miniAppUrl),
+            Markup.button.callback('🌐 Chrome ውስጥ ክፈት', 'cmd_open_chrome'),
           ],
           [
             Markup.button.callback('Bingo ይጫወቱ 🎮',   'cmd_play_bingo'),

@@ -4,6 +4,8 @@ import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma';
 import { config } from '../config';
 import { logger } from '../lib/logger';
+import { verifyMagicLink } from '../lib/magicLink';
+import { getUserByTelegramIdBigInt } from '../services/user.service';
 
 const router = Router();
 
@@ -224,6 +226,64 @@ router.post('/reset-password', async (req: Request, res: Response) => {
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'Failed to reset password' });
+  }
+});
+
+/**
+ * GET /api/auth/magic-login?tgId=...&ts=...&sig=...
+ * Validates a magic link and returns a JWT access token.
+ * The frontend /autologin page hits this to silently log the user in.
+ */
+router.get('/magic-login', async (req: Request, res: Response) => {
+  const { tgId, ts, sig } = req.query as Record<string, string>;
+
+  if (!tgId || !ts || !sig) {
+    return res.status(400).json({ error: 'Missing parameters' });
+  }
+
+  const validTgId = verifyMagicLink(tgId, ts, sig);
+  if (!validTgId) {
+    logger.warn(`[MagicLogin] Invalid or expired link for tgId=${tgId}`);
+    return res.status(401).json({ error: 'Link expired or invalid. Please request a new one from the bot.' });
+  }
+
+  try {
+    const user = await getUserByTelegramIdBigInt(BigInt(validTgId));
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found. Please register in the bot first.' });
+    }
+
+    if (user.status === 'BANNED') {
+      return res.status(403).json({ error: 'Account banned.' });
+    }
+
+    const token = jwt.sign(
+      {
+        id: user.id,
+        telegramId: user.telegramId.toString(),
+        role: user.role,
+        isAdmin: user.isAdmin,
+      },
+      config.server.jwtSecret,
+      { expiresIn: '7d' }
+    );
+
+    logger.info(`[MagicLogin] User ${user.id} authenticated via magic link`);
+
+    return res.json({
+      success: true,
+      token,
+      user: {
+        id: user.id,
+        firstName: user.firstName,
+        role: user.role,
+        telegramId: user.telegramId.toString(),
+      },
+    });
+  } catch (err) {
+    logger.error('[MagicLogin] Error:', err);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
