@@ -671,7 +671,7 @@ function GameContent() {
         // that arrived during the audio), start the processor immediately.
         // If empty, number-drawn events will kick queueBallSounds naturally.
         if (audioQueueRef.current.length > 0 && !isPlayingQueueRef.current) {
-          processAudioQueue(setLastBall);
+          processAudioQueue(setLastBall, setDrawn);
         }
         // Also do a background data refresh (non-blocking) for UI accuracy
         setTimeout(() => loadData(), 500);
