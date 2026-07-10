@@ -118,24 +118,9 @@ router.get('/file/:fileId', async (req: Request, res: Response) => {
   }
 });
 
-import { generatePlayLink } from '../lib/magicLink';
-
 // ─── Auth for all routes ──────────────────────────────────────
 router.use(telegramAuthMiddleware);
 
-// ─── Generate Short Magic Link for Chrome ───────────────────
-router.get('/auth/me/magic-link', async (req: Request, res: Response) => {
-  const user = (req as any).user;
-  if (!user) return res.status(401).json({ error: 'Unauthorized' });
-
-  try {
-    const playUrl = generatePlayLink(user.telegramId, config.bot.miniAppUrl);
-    res.json({ success: true, url: playUrl });
-  } catch (err) {
-    logger.error('[API] Failed to generate magic link:', err);
-    res.status(500).json({ error: 'Failed to generate link' });
-  }
-});
 
 // ─── Registration (Manual / Auto) ───────────────────────────
 router.post('/auth/register', async (req: Request, res: Response) => {
