@@ -994,17 +994,21 @@ function SelectionContent() {
   // Catches cases where the game-started socket event was missed due to timing.
   useEffect(() => {
     // Redirect ONLY users who bought tickets when the game status becomes RUNNING
-    if (game?.status === 'RUNNING' && activeGameId && !redirectedRef.current && ownedCardIds.length > 0) {
-      redirectedRef.current = true;
-      // ── Prefer the gameId saved at purchase time (most reliable) ─────────────
-      const destId = joinedGameIdRef.current || activeGameId;
-      if (roomType.startsWith('SPIN_')) {
-        router.push(`/play/spin?id=${destId}&stake=${stake}`);
-      } else {
-        router.push(`/game?id=${destId}&type=${roomType}&price=${stake}`);
+    // We ALSO redirect if hasTicketsInRunningGame is true (e.g. user refreshed or navigated back)
+    if ((game?.status === 'RUNNING' && activeGameId && ownedCardIds.length > 0) || hasTicketsInRunningGame) {
+      if (!redirectedRef.current) {
+        redirectedRef.current = true;
+        const destId = joinedGameIdRef.current || runningGameId || activeGameId;
+        if (destId) {
+          if (roomType.startsWith('SPIN_')) {
+            router.push(`/play/spin?id=${destId}&stake=${stake}`);
+          } else {
+            router.push(`/game?id=${destId}&type=${roomType}&price=${stake}`);
+          }
+        }
       }
     }
-  }, [game?.status, activeGameId, roomType, stake, router, ownedCardIds.length]);
+  }, [game?.status, activeGameId, roomType, stake, router, ownedCardIds.length, hasTicketsInRunningGame, runningGameId]);
 
   // Ensure we rejoin socket rooms on reconnect
   useEffect(() => {
