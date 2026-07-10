@@ -571,8 +571,12 @@ export default function LobbyPage() {
       {showWeeklyBlast && (
         <WeeklyBlastModal
           onClose={() => setShowWeeklyBlast(false)}
-          onRewardClaimed={() => {
+          onRewardClaimed={(amount) => {
             setWeeklyBlastStatus(prev => prev ? { ...prev, hasParticipated: true } : null);
+            // ✅ FIX: update balance immediately so user sees their reward without refresh
+            if (amount > 0) {
+              setWallet((prev: any) => prev ? { ...prev, balance: (prev.balance || 0) + amount } : prev);
+            }
           }}
         />
       )}

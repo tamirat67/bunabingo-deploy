@@ -634,6 +634,8 @@ function SelectionContent() {
 
     // 1. Initial Quick Fetch (REST Fallback)
     getOccupiedCards(roomType, activeGameIdRef.current).then(res => {
+      // ✅ FIX: Unblock the UI immediately once the first fetch resolves
+      setIsInitializing(false);
       setOccupied(res.occupiedIds || []);
       prevOccupied.current = res.occupiedIds || [];
       setPlayerCount(res.playerCount || 0);
@@ -656,7 +658,10 @@ function SelectionContent() {
       // NOTE: isGameRunning is NOT set here — syncRunningState (polling) is the
       // single source of truth. Setting it here causes a race condition where
       // stale cached backend data can lock the UI permanently.
-    }).catch(() => { });
+    }).catch(() => {
+      // ✅ FIX: Always unblock UI on failure too — user should never be stuck on loading
+      setIsInitializing(false);
+    });
 
     // 2. High-Performance WebSocket Sync (Real-time & Zero Network Overhead)
     if (socket) {
@@ -1478,9 +1483,9 @@ function SelectionContent() {
   if (!mounted || (isInitializing && !initialGameRunning)) {
     return (
       <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center', background: T.bg }}>
-        <div style={{ width: '40px', height: '40px', border: `4px solid ${T.gold}`, borderTopColor: 'transparent', borderRadius: '50%', animation: 'loader-spin 1s linear infinite' }}>
-          <style>{`@keyframes loader-spin { 100% { transform: rotate(360deg); } }`}</style>
-        </div>
+        {/* ✅ FIX: <style> must be a sibling element, not a child of the spinner div */}
+        <style>{`@keyframes loader-spin { 100% { transform: rotate(360deg); } }`}</style>
+        <div style={{ width: '40px', height: '40px', border: `4px solid ${T.gold}`, borderTopColor: 'transparent', borderRadius: '50%', animation: 'loader-spin 1s linear infinite' }} />
       </div>
     );
   }

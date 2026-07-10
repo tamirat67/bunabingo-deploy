@@ -1,6 +1,7 @@
 'use client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 
 export default function SplashScreen({ onDone }: { onDone: () => void }) {
   const [visible, setVisible] = useState(true);
@@ -26,16 +27,23 @@ export default function SplashScreen({ onDone }: { onDone: () => void }) {
           <div className="absolute inset-0 pointer-events-none"
                style={{ background: 'radial-gradient(circle at 50% 0%, rgba(187,247,208,0.6) 0%, transparent 50%)' }} />
 
-          {/* Splash image */}
-          <motion.img
-            src="/buna_hot5_splash.png"
-            alt="Buna Hot 5"
+          {/* Splash image — Next.js Image auto-serves compressed WebP (~80 KB vs 2.34 MB raw PNG) */}
+          <motion.div
             initial={{ scale: 0.85, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.5, ease: 'easeOut' }}
-            className="w-full max-w-sm object-contain drop-shadow-2xl"
+            className="relative w-full max-w-sm aspect-square"
             style={{ filter: 'drop-shadow(0 0 30px rgba(52,211,153,0.5))' }}
-          />
+          >
+            <Image
+              src="/buna_hot5_splash.png"
+              alt="Buna Hot 5"
+              fill
+              priority
+              sizes="(max-width: 640px) 100vw, 384px"
+              className="object-contain drop-shadow-2xl"
+            />
+          </motion.div>
 
           {/* Tap to play hint */}
           <motion.p
@@ -51,3 +59,4 @@ export default function SplashScreen({ onDone }: { onDone: () => void }) {
     </AnimatePresence>
   );
 }
+

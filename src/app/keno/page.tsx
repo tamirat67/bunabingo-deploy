@@ -152,7 +152,7 @@ export default function KenoPage() {
       {showWeeklyBlast && (
         <WeeklyBlastModal
           onClose={() => setShowWeeklyBlast(false)}
-          onRewardClaimed={() => {
+          onRewardClaimed={(amount) => {
             setWeeklyBlastStatus(prev => prev ? { ...prev, hasParticipated: true } : null);
           }}
         />

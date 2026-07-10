@@ -821,8 +821,10 @@ export default function AviatorPage() {
       {showWeeklyBlast && (
         <WeeklyBlastModal
           onClose={() => setShowWeeklyBlast(false)}
-          onRewardClaimed={() => {
+          onRewardClaimed={(amount) => {
             setWeeklyBlastStatus(prev => prev ? { ...prev, hasParticipated: true } : null);
+            // ✅ FIX: update balance immediately so user sees their reward without refresh
+            if (amount > 0) setBalance(prev => prev + amount);
           }}
         />
       )}

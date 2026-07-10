@@ -5,6 +5,17 @@ const nextConfig = {
   // Use 'standalone' for VPS Docker, but disable it for Cloudflare Pages
   output: process.env.CF_PAGES ? undefined : 'standalone',
 
+  // ── Image Optimization ────────────────────────────────────────────
+  // The slot splash image (buna_hot5_splash.png) is 1254×1254 at 2.34 MB.
+  // Next.js will auto-serve it as a compressed WebP at the device's actual
+  // pixel width (max 640px on mobile), reducing download to ~80–120 KB.
+  images: {
+    formats: ['image/avif', 'image/webp'],
+    deviceSizes: [320, 375, 414, 640],
+    imageSizes: [128, 256, 384],
+    minimumCacheTTL: 86400,
+  },
+
   async headers() {
     return [
       {

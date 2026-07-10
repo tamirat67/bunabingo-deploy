@@ -31,7 +31,7 @@ export default function SecurityGuard({ children }: { children: React.ReactNode 
 
     // 3. Retry loop for Telegram WebApp (handles Android async load race condition)
     let retries = 0;
-    const maxRetries = 20; // 2 seconds total (100ms * 20), shorter since we have cache now
+    const maxRetries = 40; // 4 seconds total (100ms × 40) — needed for slow Android Telegram SDK init
     
     const checkTelegram = () => {
       // Use getTgInitData which now includes our robust sessionStorage caching

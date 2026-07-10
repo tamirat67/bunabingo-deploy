@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { io } from 'socket.io-client';
 import { Loader2, Wallet, Gift, HelpCircle } from 'lucide-react';
 import { getMe } from '../../../lib/api';
+import { useSocket } from '../../../context/SocketContext';
 
 import SplashScreen from './components/SplashScreen';
 import ReelGrid from './components/ReelGrid';
@@ -26,6 +26,10 @@ import { SpinPhase, SlotSymbol, WinTier, SpinResult } from './types';
 export default function BunaHot5() {
   const router = useRouter();
   const haptic = useTelegramHaptics();
+  // ✅ FIX: Use the global SocketContext — it connects to the correct backend URL
+  // and handles auth automatically. The old code created a second socket to an
+  // empty URL (NEXT_PUBLIC_SOCKET_URL was undefined), so balance updates never arrived.
+  const { socket } = useSocket();
 
   const { config, fetchConfig, loading: configLoading } = useSlotConfig();
   const { history, fetchHistory } = useSlotHistory();
@@ -86,29 +90,17 @@ export default function BunaHot5() {
     if (config && bet < config.minBet) setBet(config.minBet);
   }, [config, bet]);
 
-  // Socket for balance updates
+  // Listen for balance updates via the global socket
   useEffect(() => {
-    try {
-      const tg = (window as any).Telegram?.WebApp;
-      const user = tg?.initDataUnsafe?.user;
-      if (!user?.id) return;
-
-      const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || '';
-      const socket = io(socketUrl, { path: '/socket.io', transports: ['websocket'] });
-
-      socket.on('connect', () => {
-        socket.emit('authenticate', { userId: user.id.toString() });
-      });
-
-      socket.on('balance-updated', (data: any) => {
-        if (data && data.newBalance !== undefined) {
-          setBalance(Number(data.newBalance));
-        }
-      });
-
-      return () => { socket.disconnect(); };
-    } catch {}
-  }, []);
+    if (!socket) return;
+    const handler = (data: any) => {
+      if (data?.newBalance !== undefined) {
+        setBalance(Number(data.newBalance));
+      }
+    };
+    socket.on('balance-updated', handler);
+    return () => { socket.off('balance-updated', handler); };
+  }, [socket]);
 
   // Track current spin ID for gamble/collect
   const currentSpinId = useRef<string>('');
