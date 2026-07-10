@@ -372,9 +372,19 @@ export default function FastKenoBoard({
     return 0;
   });
 
-  const winningTickets = liveTickets.filter((t) => t.isOwn && t.status === 'WON');
-  const totalPayoutCents = winningTickets.reduce((sum, t) => sum + (t.payoutCents ?? 0), 0);
-  const showWinnerModal = isCompleted && winningTickets.length > 0 && winnerModalDismissedRound !== round?.roundCode;
+  // Personal results
+  const myTickets = liveTickets.filter((t) => t.isOwn);
+  const myWinningTickets = myTickets.filter((t) => t.status === 'WON');
+  const myTotalPayoutCents = myWinningTickets.reduce((sum, t) => sum + (t.payoutCents ?? 0), 0);
+  const iPlayed = myTickets.length > 0;
+  
+  // Public results
+  const allWinningTickets = liveTickets.filter((t) => t.status === 'WON').sort((a, b) => (b.payoutCents ?? 0) - (a.payoutCents ?? 0));
+  const publicTopWinners = allWinningTickets.slice(0, 5); // Show top 5 winners
+  const totalRoundPayoutCents = allWinningTickets.reduce((sum, t) => sum + (t.payoutCents ?? 0), 0);
+
+  // Show the modal at the end of the round for EVERYONE
+  const showWinnerModal = isCompleted && winnerModalDismissedRound !== round?.roundCode;
 
   /* ════════════════════════════════════════════════════════════
      SPLASH SCREEN
@@ -725,44 +735,50 @@ export default function FastKenoBoard({
                 maxHeight: '90vh', overflowY: 'auto'
               }}
             >
-              <div style={{ background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)', padding: '24px 16px', color: '#fff' }}>
-                <div style={{ fontSize: 56, lineHeight: 1, marginBottom: 8 }}>🏆</div>
-                <div style={{ fontSize: 26, fontWeight: 900, letterSpacing: 1, textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>YOU WON!</div>
-                <div style={{ fontSize: 13, fontWeight: 700, opacity: 0.9, marginTop: 4 }}>Prize credited to your wallet</div>
+              <div style={{ background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)', padding: '20px 16px', color: '#fff' }}>
+                <div style={{ fontSize: 40, lineHeight: 1, marginBottom: 8 }}>🏁</div>
+                <div style={{ fontSize: 24, fontWeight: 900, letterSpacing: 1, textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>ROUND COMPLETED</div>
               </div>
               
-              <div style={{ padding: '24px 16px' }}>
-                <div style={{ fontSize: 14, color: '#94a3b8', fontWeight: 600, marginBottom: 6 }}>Total Prize</div>
-                <div style={{ fontSize: 42, color: '#4ade80', fontWeight: 900, letterSpacing: -1, textShadow: '0 0 16px rgba(74,222,128,0.4)', marginBottom: 24 }}>
-                  {fmtETB(totalPayoutCents)} <span style={{ fontSize: 20 }}>ETB</span>
+              <div style={{ padding: '20px 16px' }}>
+                {iPlayed && (
+                  <div style={{ marginBottom: 20, padding: '16px', background: myTotalPayoutCents > 0 ? 'rgba(34,197,94,0.1)' : 'rgba(255,255,255,0.05)', border: myTotalPayoutCents > 0 ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(255,255,255,0.1)', borderRadius: 12 }}>
+                    <div style={{ fontSize: 13, color: '#cbd5e1', fontWeight: 600, marginBottom: 4 }}>Your Results</div>
+                    {myTotalPayoutCents > 0 ? (
+                      <div style={{ fontSize: 28, color: '#4ade80', fontWeight: 900, letterSpacing: -1 }}>
+                        +{fmtETB(myTotalPayoutCents)} <span style={{ fontSize: 16 }}>ETB</span>
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: 18, color: '#94a3b8', fontWeight: 700 }}>Better luck next time!</div>
+                    )}
+                  </div>
+                )}
+                
+                <div style={{ fontSize: 14, color: '#94a3b8', fontWeight: 600, marginBottom: 6 }}>Total Distributed This Round</div>
+                <div style={{ fontSize: 32, color: '#fbbf24', fontWeight: 900, letterSpacing: -1, textShadow: '0 0 16px rgba(251,191,36,0.2)', marginBottom: 20 }}>
+                  {fmtETB(totalRoundPayoutCents)} <span style={{ fontSize: 16 }}>ETB</span>
                 </div>
                 
-                <div style={{ textAlign: 'left', background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: '#cbd5e1', marginBottom: 10, letterSpacing: 1, textTransform: 'uppercase' }}>Winning Tickets</div>
-                  {winningTickets.map((t, i) => (
-                    <div key={t.id} style={{ marginBottom: i === winningTickets.length - 1 ? 0 : 8, paddingBottom: i === winningTickets.length - 1 ? 0 : 8, borderBottom: i === winningTickets.length - 1 ? 'none' : '1px solid rgba(255,255,255,0.05)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 6 }}>
-                        <span style={{ color: '#94a3b8' }}>Ticket #{t.id.slice(-4).toUpperCase()}</span>
-                        <span style={{ color: '#4ade80', fontWeight: 700 }}>+{fmtETB(t.payoutCents ?? 0)} ETB</span>
+                {publicTopWinners.length > 0 && (
+                  <div style={{ textAlign: 'left', background: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: '#cbd5e1', marginBottom: 10, letterSpacing: 1, textTransform: 'uppercase' }}>Top Winners</div>
+                    {publicTopWinners.map((t, i) => (
+                      <div key={t.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: i === publicTopWinners.length - 1 ? 0 : 8, paddingBottom: i === publicTopWinners.length - 1 ? 0 : 8, borderBottom: i === publicTopWinners.length - 1 ? 'none' : '1px solid rgba(255,255,255,0.05)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                           <div style={{ fontSize: 16, width: 24, textAlign: 'center', color: i === 0 ? '#fbbf24' : i === 1 ? '#94a3b8' : '#78350f' }}>
+                             {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`}
+                           </div>
+                           <div>
+                             <div style={{ fontSize: 13, fontWeight: 700, color: t.isOwn ? '#4ade80' : '#e2e8f0' }}>{t.isOwn ? 'You' : maskName(t.username)}</div>
+                           </div>
+                        </div>
+                        <div style={{ color: '#4ade80', fontWeight: 800, fontSize: 14 }}>
+                          +{fmtETB(t.payoutCents ?? 0)}
+                        </div>
                       </div>
-                      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                        {t.picks.map(p => {
-                          const isHit = drawnSet.has(p);
-                          return (
-                            <div key={p} style={{
-                              width: 26, height: 26, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800,
-                              background: isHit ? 'linear-gradient(135deg, #facc15, #ca8a04)' : 'rgba(255,255,255,0.05)',
-                              color: isHit ? '#1a0a00' : '#64748b',
-                              border: isHit ? 'none' : '1px solid rgba(255,255,255,0.05)'
-                            }}>
-                              {p}
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
               
               <div style={{ padding: '0 16px 20px' }}>
