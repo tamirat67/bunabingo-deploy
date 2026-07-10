@@ -1182,7 +1182,7 @@ function SelectionContent() {
         if (u) {
           setUser(u);
           // Small delay to let state update settle, then auto-retry the selection
-          setTimeout(() => handleSelect(num), 100);
+          setTimeout(() => toggleSelect(num), 100);
         }
       }).catch(() => {});
       return;
