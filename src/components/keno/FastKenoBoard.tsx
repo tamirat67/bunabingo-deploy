@@ -716,7 +716,7 @@ export default function FastKenoBoard({
             exit={{ opacity: 0 }}
             style={{
               position: 'fixed', inset: 0, zIndex: 99999,
-              background: 'rgba(0,0,0,0.85)',
+              background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               padding: '16px',
             }}
@@ -736,7 +736,19 @@ export default function FastKenoBoard({
               }}
             >
               <div style={{ background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)', padding: '20px 16px', color: '#fff' }}>
-                <div style={{ fontSize: 40, lineHeight: 1, marginBottom: 8 }}>🏁</div>
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
+                  <div style={{ position: 'relative', width: 80, height: 72, flexShrink: 0 }}>
+                    <div style={{ position: 'absolute', top: 0, left: 0, zIndex: 1 }}>
+                      <KenoBall number={80} size={30} />
+                    </div>
+                    <div style={{ position: 'absolute', top: 0, left: 22, zIndex: 2 }}>
+                      <KenoBall number={10} size={38} />
+                    </div>
+                    <div style={{ position: 'absolute', top: 22, left: 2, zIndex: 3 }}>
+                      <KenoBall number={1} size={52} />
+                    </div>
+                  </div>
+                </div>
                 <div style={{ fontSize: 24, fontWeight: 900, letterSpacing: 1, textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>ROUND COMPLETED</div>
               </div>
               

@@ -212,8 +212,12 @@ export const WeeklyBlastService = {
       };
     });
 
-    // Sort by calculated score descending
-    enriched.sort((a, b) => b.score - a.score);
+    // Sort by winners first, then calculated score descending
+    enriched.sort((a, b) => {
+      if (a.isWinner && !b.isWinner) return -1;
+      if (!a.isWinner && b.isWinner) return 1;
+      return b.score - a.score;
+    });
 
     // Return top 10 with assigned ranks
     return enriched.slice(0, 10).map((p, index) => ({

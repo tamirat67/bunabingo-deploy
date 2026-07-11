@@ -179,9 +179,12 @@ export class GhostBotEmitter {
           const mult       = this.getMultiplier(ghost.picks.length, hits);
           let payoutCents  = mult > 0 ? Math.floor(ghost.stakeCents * mult) : 0;
           
-          // ── Option A: Cap fake wins at 200 ETB (20,000 cents) ──
+          // ── Option A: Cap fake wins to avoid absurdly huge amounts ──
+          // Instead of hard-capping at exactly 20,000 (which makes top 5 identical),
+          // we cap at a reasonable random multiplier of their stake.
           if (payoutCents > 20000) {
-            payoutCents = 20000;
+            const safeMult = this.randomItem([5, 10, 15, 20, 25]);
+            payoutCents = ghost.stakeCents * safeMult;
           }
 
           const won = payoutCents > 0;
