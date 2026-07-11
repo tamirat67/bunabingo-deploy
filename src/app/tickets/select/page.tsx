@@ -1963,26 +1963,19 @@ function SelectionContent() {
             >
               {num}
 
-              {/* Gold crown for owned cards */}
+              {/* Gold crown for owned cards — large and prominent */}
               {isOwned && (
-                <div style={{ position: 'absolute', top: '1.5px', right: '1.5px', lineHeight: 1 }}>
-                  <Crown size={9} color="#F1C40F" fill="#F1C40F" />
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '1px' }}>
+                  <Crown size={16} color="#F1C40F" fill="#F1C40F" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))' }} />
+                  <span style={{ fontSize: '8px', fontWeight: 900, color: 'rgba(255,255,255,0.9)', lineHeight: 1 }}>{num}</span>
                 </div>
               )}
+              {/* Hide number when owned (crown takes center) */}
+              {isOwned && <span style={{ visibility: 'hidden' }}>{num}</span>}
 
-              {/* Green crown for selected cards — matches occupied/bot card style */}
-              {isSelected && !isOwned && (
-                <div style={{ position: 'absolute', top: '1.5px', right: '1.5px', lineHeight: 1 }}>
-                  <Crown size={9} color="#2ECC71" fill="#2ECC71" />
-                </div>
-              )}
 
-              {/* Green crown for occupied/sold cards */}
-              {isOccupied && (
-                <div style={{ position: 'absolute', top: '1.5px', right: '1.5px', lineHeight: 1 }}>
-                  <Crown size={9} color="#2ECC71" fill="#2ECC71" />
-                </div>
-              )}
+
+
 
               {/* "SNATCHED" flash overlay */}
               {isNewlySnatched && (
