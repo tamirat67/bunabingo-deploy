@@ -360,7 +360,6 @@ export default function GamePage() {
   );
 
   const shimmerStyles = `
-    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;900&display=swap');
     @keyframes shimmer {
       0%   { background-position: 200% 0; }
       100% { background-position: -200% 0; }
@@ -1015,7 +1014,6 @@ export default function GamePage() {
       </AnimatePresence>
 
       <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;900&display=swap');
         body { background: #1C1208 !important; margin: 0; }
       `}</style>
     </div>

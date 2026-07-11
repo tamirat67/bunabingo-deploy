@@ -949,15 +949,17 @@ function DrawingArea({
         boxShadow: '0 0 40px rgba(34,197,94,0.1) inset' // subtle inner glow
       }} />
 
-      {/* large animated ball - perfectly centered in the remaining flex space */}
-      <div style={{ display: 'flex', justifyContent: 'center', zIndex: 1 }}>
-        <div style={{
-          ...css.bigBallWrap,
-          opacity: bigBallVisible ? 1 : 0,
-          animation: bigBallVisible ? 'dropIn 0.45s cubic-bezier(.175,.885,.32,1.275) forwards' : 'none',
-        }}>
-          <KenoBall number={latestBall ?? 0} size={90} glow />
-        </div>
+      {/* large animated ball - only rendered when there's a valid ball to show */}
+      <div style={{ display: 'flex', justifyContent: 'center', zIndex: 1, minHeight: 90 }}>
+        {latestBall !== null && (
+          <div style={{
+            ...css.bigBallWrap,
+            visibility: bigBallVisible ? 'visible' : 'hidden',
+            animation: bigBallVisible ? 'dropIn 0.45s cubic-bezier(.175,.885,.32,1.275) forwards' : 'none',
+          }}>
+            <KenoBall number={latestBall} size={90} glow />
+          </div>
+        )}
       </div>
 
       {/* two rows: 10 balls each, pushed to the absolute bottom */}
@@ -1774,7 +1776,6 @@ const css: Record<string, React.CSSProperties> = {
 function GlobalStyle() {
   return (
     <style>{`
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
       *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
       ::-webkit-scrollbar{width:0;height:0;}
       @keyframes fadeSlide{

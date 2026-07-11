@@ -27,6 +27,7 @@ import { ThemeProvider } from '../context/ThemeContext';
 import { SocketProvider } from '../context/SocketContext';
 import SecurityGuard from '../components/SecurityGuard';
 import { Outfit } from 'next/font/google';
+import ErrorBoundary from '../components/ErrorBoundary';
 
 const outfit = Outfit({ subsets: ['latin'], weight: ['400', '500', '700', '800', '900'] });
 
@@ -75,8 +76,10 @@ export default function RootLayout({
               </div>
             }>
               <SecurityGuard>
-                {children}
-                <Navbar />
+                <ErrorBoundary>
+                  {children}
+                  <Navbar />
+                </ErrorBoundary>
               </SecurityGuard>
             </Suspense>
           </ThemeProvider>

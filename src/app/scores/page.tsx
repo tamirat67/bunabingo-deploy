@@ -99,7 +99,6 @@ export default function ScoresPage() {
       </div>
 
       <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;900&display=swap');
         body { background: ${T.bg} !important; margin: 0; padding: 0; transition: background 0.3s ease; }
       `}</style>
     </div>

@@ -654,7 +654,6 @@ export default function AviatorPage() {
       fontFamily: "'Outfit', -apple-system, sans-serif",
     }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap');
         body { background: #0f0f1a !important; margin: 0; padding: 0; }
         * { box-sizing: border-box; }
         input[type=number]::-webkit-inner-spin-button,

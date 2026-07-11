@@ -477,7 +477,6 @@ export default function WalletPage() {
 
 
       <style dangerouslySetInnerHTML={{ __html: `
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;900&display=swap');
         body { background: ${T.bg} !important; margin: 0; padding: 0; transition: background 0.3s ease; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       ` }} />
