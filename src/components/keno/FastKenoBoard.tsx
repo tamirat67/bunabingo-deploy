@@ -728,14 +728,14 @@ export default function FastKenoBoard({
               transition={{ type: 'spring', damping: 20, stiffness: 300 }}
               style={{
                 width: '100%', maxWidth: '360px',
-                background: 'linear-gradient(160deg, #1c2718 0%, #0d1a10 60%, #152719 100%)',
-                borderRadius: '24px', border: '2px solid #22c55e',
-                boxShadow: '0 0 40px rgba(34,197,94,0.35), 0 20px 60px rgba(0,0,0,0.8)',
+                background: 'linear-gradient(160deg, #2b1d14 0%, #150d08 60%, #1f140e 100%)',
+                borderRadius: '24px', border: '2px solid #4a3222',
+                boxShadow: '0 0 40px rgba(74,50,34,0.35), 0 20px 60px rgba(0,0,0,0.8)',
                 overflow: 'hidden', textAlign: 'center',
                 maxHeight: '90vh', overflowY: 'auto'
               }}
             >
-              <div style={{ background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)', padding: '20px 16px', color: '#fff' }}>
+              <div style={{ background: 'linear-gradient(135deg, #4a3222 0%, #352216 100%)', padding: '20px 16px', color: '#fff' }}>
                 <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
                   <div style={{ position: 'relative', width: 80, height: 72, flexShrink: 0 }}>
                     <div style={{ position: 'absolute', top: 0, left: 0, zIndex: 1 }}>
@@ -796,7 +796,7 @@ export default function FastKenoBoard({
               <div style={{ padding: '0 16px 20px' }}>
                 <button 
                   onClick={() => setWinnerModalDismissedRound(round?.roundCode || null)}
-                  style={{ width: '100%', padding: '14px', borderRadius: 12, background: 'linear-gradient(135deg, #22c55e, #16a34a)', border: 'none', color: '#fff', fontSize: 16, fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 15px rgba(34,197,94,0.3)' }}
+                  style={{ width: '100%', padding: '14px', borderRadius: 12, background: 'linear-gradient(135deg, #4a3222, #352216)', border: 'none', color: '#fff', fontSize: 16, fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 15px rgba(74,50,34,0.3)' }}
                 >
                   Awesome!
                 </button>
