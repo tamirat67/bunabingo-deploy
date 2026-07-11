@@ -1150,7 +1150,8 @@ function GameContent() {
   };
 
   const LoadingScreen = () => (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: isVip ? '#1C0A35' : '#2D1B14' }}>
+    <div style={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#2D1B14', zIndex: 9999 }}>
+      <style>{`body { background: #2D1B14 !important; }`}</style>
       <div className="animate-spin" style={{ width: '40px', height: '40px', border: '3px solid #D4AF37', borderTop: '3px solid transparent', borderRadius: '50%', marginBottom: '16px' }}></div>
       <div style={{ color: '#D4AF37', fontWeight: '900', fontSize: '12px', letterSpacing: '2px', textShadow: '0 0 10px rgba(212,175,55,0.5)' }}>LOADING BUNA BINGO...</div>
     </div>
