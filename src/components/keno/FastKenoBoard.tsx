@@ -381,7 +381,7 @@ export default function FastKenoBoard({
   // Public results
   const allWinningTickets = liveTickets.filter((t) => t.status === 'WON').sort((a, b) => (b.payoutCents ?? 0) - (a.payoutCents ?? 0));
   const publicTopWinners = allWinningTickets.slice(0, 5); // Show top 5 winners
-  const totalRoundPayoutCents = allWinningTickets.reduce((sum, t) => sum + (t.payoutCents ?? 0), 0);
+  const totalRoundPayoutCents = publicTopWinners.reduce((sum, t) => sum + (t.payoutCents ?? 0), 0);
 
   // Show the modal at the end of the round for EVERYONE
   const showWinnerModal = isCompleted && winnerModalDismissedRound !== round?.roundCode;
