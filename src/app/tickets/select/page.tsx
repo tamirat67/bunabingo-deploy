@@ -1940,12 +1940,8 @@ function SelectionContent() {
               key={num}
               className={`num-brown ${isSelected ? 'selected' : ''} ${isOccupied ? 'occupied' : ''} ${isOwned ? 'owned' : ''} ${isNewlySnatched ? 'newly-snatched' : ''}`}
               style={{
-                background: isOwned
-                  ? 'linear-gradient(135deg, #27AE60, #1E8449)'  // owned by me: green
-                  : isSelected
-                  ? 'linear-gradient(135deg, #2980B9, #1A6FA8)'  // I selected: blue
-                  : isOccupied
-                  ? 'linear-gradient(135deg, #7D6142, #5C4433)'  // bot/other player: brown
+                background: (isOwned || isOccupied || isSelected)
+                  ? 'linear-gradient(135deg, #27AE60, #1E8449)'
                   : undefined,
                 color: (isOwned || isOccupied || isSelected)
                   ? 'white'
@@ -1953,19 +1949,11 @@ function SelectionContent() {
                 cursor: (isOccupied || isSelectionLocked) ? 'not-allowed' : 'pointer',
 
                 opacity: 1,
-                border: isOwned
+                border: (isOwned || isOccupied || isSelected)
                   ? '2px solid #2ECC71'
-                  : isSelected
-                  ? '2px solid #3498DB'
-                  : isOccupied
-                  ? '2px solid #8B7355'
                   : undefined,
-                boxShadow: isOwned
+                boxShadow: (isOwned || isOccupied || isSelected)
                   ? '0 0 8px rgba(46, 204, 113, 0.5)'
-                  : isSelected
-                  ? '0 0 8px rgba(52, 152, 219, 0.5)'
-                  : isOccupied
-                  ? '0 0 4px rgba(139, 115, 85, 0.4)'
                   : 'none',
                 position: 'relative',
                 overflow: 'hidden',
