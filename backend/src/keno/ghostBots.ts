@@ -21,15 +21,12 @@ const ETHIOPIAN_NAMES = [
    Weighted toward smaller bets to feel like real players
 ═══════════════════════════════════════════════════════════════════ */
 const STAKE_POOL_CENTS = [
-  1000, 1000, 1000, 1000,  // 10 ETB (most common)
-  1500, 1500, 1500,        // 15 ETB
+  1000, 1000, 1000, 1000, 1000, 1000, // 10 ETB (most common)
+  1500, 1500, 1500, 1500,  // 15 ETB
   2000, 2000, 2000,        // 20 ETB
   2500, 2500,              // 25 ETB
   3000, 3000,              // 30 ETB
-  5000, 5000,              // 50 ETB
-  10000,                   // 100 ETB
-  20000,                   // 200 ETB
-  50000,                   // 500 ETB (rare high roller)
+  5000,                    // 50 ETB (max)
 ];
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -182,8 +179,8 @@ export class GhostBotEmitter {
           // ── Option A: Cap fake wins to avoid absurdly huge amounts ──
           // Instead of hard-capping at exactly 20,000 (which makes top 5 identical),
           // we cap at a reasonable random multiplier of their stake.
-          if (payoutCents > 20000) {
-            const safeMult = this.randomItem([5, 10, 15, 20, 25]);
+          if (payoutCents > 15000) {
+            const safeMult = this.randomItem([2, 3, 5, 8, 10]);
             payoutCents = ghost.stakeCents * safeMult;
           }
 
