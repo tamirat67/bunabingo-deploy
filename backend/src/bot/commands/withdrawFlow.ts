@@ -86,13 +86,16 @@ export async function handleWithdrawMessage(ctx: Context): Promise<boolean> {
       let agentName = '';
       if ((user as any)?.referrer) {
         const referrer = (user as any).referrer;
-        const phones = referrer.depositPhones as any[];
-        if (phones && phones.length > 0) {
-          agentPhone = phones[0].phone;
-          agentName = phones[0].name || referrer.firstName || referrer.telegramUsername || 'Agent';
-        } else if (referrer.phone || referrer.phoneNumber) {
-          agentPhone = referrer.phone || referrer.phoneNumber;
-          agentName = referrer.firstName || referrer.telegramUsername || 'Agent';
+        const isAgentOrAdmin = referrer.role === 'AGENT' || referrer.role === 'ADMIN' || referrer.role === 'admin' || referrer.isAdmin;
+        if (isAgentOrAdmin) {
+          const phones = referrer.depositPhones as any[];
+          if (phones && phones.length > 0) {
+            agentPhone = phones[0].phone;
+            agentName = phones[0].name || referrer.firstName || referrer.telegramUsername || 'Agent';
+          } else if (referrer.phone || referrer.phoneNumber) {
+            agentPhone = referrer.phone || referrer.phoneNumber;
+            agentName = referrer.firstName || referrer.telegramUsername || 'Agent';
+          }
         }
       }
 

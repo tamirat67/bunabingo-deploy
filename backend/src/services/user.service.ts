@@ -207,6 +207,8 @@ export async function getUserByTelegramId(telegramId: number) {
           firstName: true,
           phone: true,
           phoneNumber: true,
+          role: true,
+          isAdmin: true,
         }
       },
       _count: { select: { referrals: true } }
@@ -231,6 +233,8 @@ export async function getUserByTelegramIdBigInt(telegramId: bigint) {
           firstName: true,
           phone: true,
           phoneNumber: true,
+          role: true,
+          isAdmin: true,
         }
       },
       _count: { select: { referrals: true } }

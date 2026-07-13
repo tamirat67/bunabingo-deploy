@@ -14,10 +14,15 @@ export async function handleSupport(ctx: Context) {
 
   if (ctx.from?.id) {
     const user = await getUserByTelegramId(ctx.from.id);
-    if (user?.referrer?.telegramUsername) {
-      supportHandle = `@${user.referrer.telegramUsername}`;
-    } else if (user?.referrer?.phone) {
-      supportHandle = `ስልክ: ${user.referrer.phone}`;
+    if (user?.referrer) {
+      const isAgentOrAdmin = user.referrer.role === 'AGENT' || user.referrer.role === 'ADMIN' || user.referrer.role === 'admin' || user.referrer.isAdmin;
+      if (isAgentOrAdmin) {
+        if (user.referrer.telegramUsername) {
+          supportHandle = `@${user.referrer.telegramUsername}`;
+        } else if (user.referrer.phone) {
+          supportHandle = `ስልክ: ${user.referrer.phone}`;
+        }
+      }
     }
   }
 
