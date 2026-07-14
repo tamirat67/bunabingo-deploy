@@ -419,11 +419,11 @@
     #chickenImg.celebrate { animation: chickenDance 0.6s ease-in-out infinite; }
     #chickenImg.burn      { animation: chickenBurn 0.22s ease 3 both; filter: brightness(0.3) sepia(1) hue-rotate(-30deg) saturate(8); }
 
-    @keyframes chickenBob      { 0%,100%{transform:scaleX(-1) translateY(0) rotate(-2deg)} 50%{transform:scaleX(-1) translateY(-7px) rotate(2deg)} }
-    @keyframes chickenHop      { 0%{transform:scaleX(-1) scaleY(0.85) translateY(0)} 30%{transform:scaleX(-1) scaleY(1.15) translateY(-32px) rotate(-8deg)} 60%{transform:scaleX(-1) scaleY(1) translateY(-42px)} 85%{transform:scaleX(-1) scaleY(0.9) translateY(0) rotate(6deg)} 100%{transform:scaleX(-1) scaleY(1) translateY(0)} }
-    @keyframes chickenStumble  { 0%{transform:scaleX(-1) rotate(0)} 20%{transform:scaleX(-1) rotate(-22deg) translateX(-5px)} 45%{transform:scaleX(-1) rotate(16deg) translateX(5px)} 70%{transform:scaleX(-1) rotate(-7deg)} 100%{transform:scaleX(-1) rotate(0)} }
-    @keyframes chickenDance    { 0%,100%{transform:scaleX(-1) translateY(0) rotate(-10deg) scale(1.05)} 50%{transform:scaleX(-1) translateY(-13px) rotate(10deg) scale(1.1)} }
-    @keyframes chickenBurn     { 0%,100%{transform:scaleX(-1) translateX(0) rotate(10deg)} 50%{transform:scaleX(-1) translateX(7px) rotate(-10deg)} }
+    @keyframes chickenBob      { 0%,100%{transform:scaleX(1) translateY(0) rotate(-2deg)} 50%{transform:scaleX(1) translateY(-7px) rotate(2deg)} }
+    @keyframes chickenHop      { 0%{transform:scaleX(1) scaleY(0.85) translateY(0)} 30%{transform:scaleX(1) scaleY(1.15) translateY(-32px) rotate(8deg)} 60%{transform:scaleX(1) scaleY(1) translateY(-42px)} 85%{transform:scaleX(1) scaleY(0.9) translateY(0) rotate(-6deg)} 100%{transform:scaleX(1) scaleY(1) translateY(0)} }
+    @keyframes chickenStumble  { 0%{transform:scaleX(1) rotate(0)} 20%{transform:scaleX(1) rotate(-22deg) translateX(-5px)} 45%{transform:scaleX(1) rotate(16deg) translateX(5px)} 70%{transform:scaleX(1) rotate(-7deg)} 100%{transform:scaleX(1) rotate(0)} }
+    @keyframes chickenDance    { 0%,100%{transform:scaleX(1) translateY(0) rotate(-10deg) scale(1.05)} 50%{transform:scaleX(1) translateY(-13px) rotate(10deg) scale(1.1)} }
+    @keyframes chickenBurn     { 0%,100%{transform:scaleX(1) translateX(0) rotate(10deg)} 50%{transform:scaleX(1) translateX(7px) rotate(-10deg)} }
 
     /* ─── Cars ─── */
     .car { position:absolute; z-index:10; transform:translateX(-50%); }
@@ -685,6 +685,7 @@
       grid-column: 3;
       grid-row: 1 / 3;
       display: flex;
+      gap: 8px;
       gap: 10px;
       align-self: stretch;
     }
@@ -905,8 +906,8 @@
       <span id="walletAmount">— ETB</span>
       <div class="bal-icon">$</div>
     </div>
-    <button class="hdr-icon" id="fullscreenBtn" title="Fullscreen">⤢</button>
-    <button class="hdr-icon" title="Menu">☰</button>
+    <button class="hdr-icon" id="fullscreenBtn" title="Fullscreen" style="display:none">⤢</button>
+    <button class="hdr-icon" title="Menu" style="display:none">☰</button>
   </header>
 
   <!-- ── LIVE WINS STRIP ── -->
@@ -972,7 +973,7 @@
 
     <!-- Chicken (positioned by JS relative to gameArea) -->
     <div id="chickenContainer">
-      <img id="chickenImg" src="/src/assets/chicken-road/chicken.png" alt="Chicken" />
+      <img id="chickenImg" src="/src/assets/chicken-road/chicken.png?v=2" alt="Chicken" />
       <div class="active-tooltip" id="chickenTooltip">1.00x</div>
     </div>
 
@@ -1467,13 +1468,12 @@ function updateUI() {
     DOM.multDisp.textContent = '1.00x';
     updateLaneCircles();
   } else if (playing) {
-    DOM.btnStep.textContent = 'Step';
+    DOM.btnStep.textContent = 'Next';
     DOM.btnStep.style.display = 'flex';
     DOM.btnStep.disabled    = false;
     const showCash = stepCount > 0;
     DOM.btnCashOut.style.display = showCash ? 'flex' : 'none';
     DOM.btnCashOut.disabled = !showCash;
-    DOM.btnStep.style.display = showCash ? 'none' : 'flex';
     DOM.cashOutSub.textContent = showCash ? potWin + ' ETB' : '';
     DOM.stepCounter.textContent = `STEP ${stepCount}`;
     updateLaneCircles();
