@@ -3,628 +3,725 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#1e100b">
-  <meta name="description" content="Chicken Road — Buna Games crash/risk arcade. Advance your chicken step by step and cash out before hitting fire!">
+  <meta name="theme-color" content="#0a1628">
+  <meta name="description" content="Chicken Road — Buna Games premium arcade. Guide your chicken safely across busy traffic lanes!">
   <title>🐔 Chicken Road — Buna Games</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <style>
-    /* ============================================================
-       DESIGN TOKENS — match Buna Games coffee-gold palette
-    ============================================================ */
+    /* ═══════════════════════════════════════════════════════════
+       DESIGN TOKENS
+    ═══════════════════════════════════════════════════════════ */
     :root {
-      --bg-deep:      #0d0600;
-      --bg-coffee:    #1e100b;
-      --bg-panel:     rgba(0,0,0,0.55);
-      --accent-gold:  #d4af37;
-      --accent-amber: #f39c12;
-      --accent-orange:#ff7b00;
-      --safe-green:   #2ecc71;
-      --danger-red:   #e74c3c;
-      --text-main:    #ffffff;
-      --text-muted:   #a0928a;
-      --text-gold:    #f5e6be;
-      --border-dim:   rgba(255,255,255,0.07);
-      --border-gold:  rgba(212,175,55,0.35);
-      --radius-md:    12px;
-      --radius-pill:  999px;
+      --grass:       #2d5a27;
+      --grass-light: #3a7a32;
+      --sidewalk:    #8a8070;
+      --asphalt:     #1a1a2e;
+      --asphalt-mid: #16213e;
+      --lane-line:   rgba(255,255,255,0.15);
+      --gold:        #f5c518;
+      --gold-glow:   rgba(245,197,24,0.5);
+      --green:       #00e676;
+      --green-glow:  rgba(0,230,118,0.4);
+      --red:         #ff1744;
+      --red-glow:    rgba(255,23,68,0.5);
+      --text:        #ffffff;
+      --text-dim:    rgba(255,255,255,0.55);
+      --panel-bg:    rgba(8,14,30,0.92);
+      --panel-border:rgba(255,255,255,0.08);
+      --radius:      14px;
     }
 
-    /* ============================================================
-       RESET & BASE
-    ============================================================ */
     *, *::before, *::after {
-      box-sizing: border-box;
-      margin: 0; padding: 0;
-      user-select: none;
-      -webkit-tap-highlight-color: transparent;
+      box-sizing: border-box; margin: 0; padding: 0;
+      user-select: none; -webkit-tap-highlight-color: transparent;
+      font-family: 'Outfit', -apple-system, sans-serif;
     }
-
-    html, body {
-      height: 100%; width: 100%;
-      overflow: hidden;
-    }
+    html, body { height: 100%; width: 100%; overflow: hidden; }
 
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: radial-gradient(ellipse at 50% -10%, #3a1a08 0%, var(--bg-coffee) 40%, var(--bg-deep) 100%);
-      color: var(--text-main);
+      background: #0a1628;
+      color: var(--text);
       display: flex;
       flex-direction: column;
-      height: 100dvh; /* dynamic viewport height — avoids mobile browser chrome issues */
+      height: 100dvh;
     }
 
-    /* ============================================================
-       HEADER
-    ============================================================ */
-    header {
+    /* ═══════════════════════════════════════════════════════════
+       LIVE WINS TICKER (top bar)
+    ═══════════════════════════════════════════════════════════ */
+    .live-ticker {
+      background: rgba(0,0,0,0.7);
+      border-bottom: 1px solid var(--panel-border);
+      padding: 6px 12px;
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      padding: 10px 16px;
-      background: var(--bg-panel);
-      border-bottom: 1px solid var(--border-dim);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      z-index: 20;
+      gap: 8px;
+      font-size: 11px;
       flex-shrink: 0;
+      overflow: hidden;
+      position: relative;
+      height: 30px;
     }
-
-    .brand-title {
-      font-size: 1.05rem;
-      font-weight: 900;
-      font-style: italic;
-      letter-spacing: 1.5px;
-      background: linear-gradient(90deg, var(--accent-gold) 0%, #ffe87a 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+    .ticker-label {
+      display: flex; align-items: center; gap: 4px;
+      font-weight: 700; color: var(--green); white-space: nowrap;
+      flex-shrink: 0; font-size: 10px;
     }
+    .live-dot { width:7px;height:7px;background:var(--green);border-radius:50%;animation:livePulse 1s ease-in-out infinite; }
+    .ticker-scroll { flex:1; overflow:hidden; position:relative; }
+    .ticker-inner { display:flex; gap:24px; animation:tickerMove 18s linear infinite; white-space:nowrap; }
+    .ticker-item { color:var(--text-dim); font-size:10px; }
+    .ticker-item .tw { color:var(--gold); font-weight:700; }
+    @keyframes tickerMove { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+    @keyframes livePulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.7)} }
 
-    .wallet-box {
-      display: flex;
-      align-items: center;
-      gap: 6px;
+    /* ═══════════════════════════════════════════════════════════
+       HEADER (balance + logo)
+    ═══════════════════════════════════════════════════════════ */
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 16px;
       background: rgba(0,0,0,0.5);
-      padding: 6px 14px;
-      border-radius: var(--radius-pill);
-      border: 1px solid var(--border-gold);
-      box-shadow: inset 0 1px 4px rgba(0,0,0,0.6);
+      border-bottom: 1px solid var(--panel-border);
+      backdrop-filter: blur(10px);
+      flex-shrink: 0; z-index: 30;
     }
+    .logo {
+      display: flex; align-items: center; gap: 8px;
+      font-weight: 900; font-size: 15px; letter-spacing: 0.5px;
+    }
+    .logo-icon { font-size: 20px; }
+    .logo-text { background: linear-gradient(90deg,#f5c518,#ffe87a); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    .online-badge {
+      font-size: 10px; background: rgba(0,230,118,0.15); border: 1px solid rgba(0,230,118,0.3);
+      border-radius: 20px; padding: 3px 8px; color: var(--green); font-weight: 700;
+      display: flex; align-items: center; gap: 4px;
+    }
+    .wallet-pill {
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(245,197,24,0.3);
+      border-radius: 20px; padding: 6px 14px; display: flex; flex-direction: column; align-items: flex-end;
+    }
+    .wallet-label { font-size: 9px; color: var(--text-dim); font-weight: 600; letter-spacing: 1px; }
+    .wallet-amount { font-size: 14px; font-weight: 800; color: var(--gold); }
+    .wallet-amount.pop { animation: pop 0.35s ease; }
+    @keyframes pop { 0%{transform:scale(1)} 50%{transform:scale(1.25)} 100%{transform:scale(1)} }
 
-    .wallet-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
-    .wallet-amount {
-      font-weight: 800;
-      font-size: 14px;
-      color: var(--text-gold);
-      transition: color 0.2s, transform 0.2s;
-    }
-    .wallet-amount.pop {
-      animation: balancePop 0.35s cubic-bezier(0.175,0.885,0.32,1.275);
-    }
-
-    /* ============================================================
+    /* ═══════════════════════════════════════════════════════════
        MAIN GAME AREA
-    ============================================================ */
-    main {
+    ═══════════════════════════════════════════════════════════ */
+    #gameArea {
+      flex: 1; position: relative; overflow: hidden; min-height: 0;
+    }
+
+    /* Multiplier HUD — floated top center */
+    .hud-overlay {
+      position: absolute; top: 12px; left: 0; right: 0;
+      display: flex; flex-direction: column; align-items: center;
+      z-index: 20; pointer-events: none; gap: 2px;
+    }
+    .step-badge {
+      background: rgba(0,0,0,0.6); border: 1px solid var(--panel-border);
+      border-radius: 20px; padding: 3px 12px;
+      font-size: 10px; font-weight: 700; letter-spacing: 2px;
+      color: var(--text-dim); text-transform: uppercase;
+    }
+    .mult-ring {
+      width: 100px; height: 100px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(245,197,24,0.15) 0%, rgba(0,0,0,0.8) 70%);
+      border: 2px solid rgba(245,197,24,0.5);
+      box-shadow: 0 0 30px rgba(245,197,24,0.25), inset 0 0 20px rgba(245,197,24,0.1);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+    .mult-ring.glow-green {
+      border-color: var(--green); box-shadow: 0 0 30px var(--green-glow), inset 0 0 20px var(--green-glow);
+    }
+    .mult-ring.glow-red {
+      border-color: var(--red); box-shadow: 0 0 30px var(--red-glow), inset 0 0 20px var(--red-glow);
+    }
+    #multiplierDisplay {
+      font-size: 1.9rem; font-weight: 900; color: var(--gold); line-height: 1;
+      text-shadow: 0 0 20px var(--gold-glow);
+      transition: color 0.3s;
+    }
+    #multiplierDisplay.pulse { animation: multPulse 0.4s ease; }
+    .mult-sub { font-size: 9px; color: var(--text-dim); font-weight: 600; letter-spacing: 1px; }
+    #potentialWin {
+      font-size: 11px; font-weight: 700; color: var(--green);
+      text-shadow: 0 0 10px var(--green-glow); opacity: 0;
+      transition: opacity 0.3s; margin-top: 2px;
+    }
+    #potentialWin.visible { opacity: 1; }
+
+    /* ═══════════════════════════════════════════════════════════
+       GAME WORLD — TOP DOWN
+    ═══════════════════════════════════════════════════════════ */
+    #gameWorld {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: row;
+    }
+
+    /* Grass strip left */
+    .grass-left, .grass-right {
+      flex-shrink: 0;
+      width: 32px;
+      background: linear-gradient(to right, var(--grass) 0%, var(--grass-light) 100%);
+      position: relative; overflow: hidden;
+    }
+    .grass-right {
+      background: linear-gradient(to left, var(--grass) 0%, var(--grass-light) 100%);
+    }
+    /* Animated grass texture */
+    .grass-left::before, .grass-right::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(0,0,0,0.1) 0px, transparent 3px,
+        transparent 20px, rgba(0,0,0,0.05) 23px
+      );
+      animation: grassMove 2s linear infinite;
+    }
+    @keyframes grassMove { from{background-position:0 0} to{background-position:0 40px} }
+
+    /* Sidewalk */
+    .sidewalk-left, .sidewalk-right {
+      flex-shrink: 0;
+      width: 28px;
+      background: repeating-linear-gradient(
+        0deg,
+        #8a8070 0px, #9a9080 6px,
+        #7a7060 7px, #8a8070 8px
+      );
+      border-right: 2px solid rgba(0,0,0,0.4);
+      animation: sidewalkMove 0.5s linear infinite paused;
+    }
+    .sidewalk-right { border-right: none; border-left: 2px solid rgba(0,0,0,0.4); }
+
+    /* Road center */
+    #roadCanvas {
       flex: 1;
       position: relative;
+      background: var(--asphalt);
       overflow: hidden;
-      min-height: 0; /* allow flex shrink */
     }
 
-    /* ── HUD (top overlay) ── */
-    .hud {
-      position: absolute;
-      top: 14px;
-      left: 0; right: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      z-index: 10;
-      pointer-events: none;
-      gap: 2px;
-    }
-
-    .step-counter {
-      font-size: 11px;
-      color: var(--text-muted);
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      font-weight: 700;
-    }
-
-    .multiplier-display {
-      font-size: 3.4rem;
-      font-weight: 900;
-      line-height: 1;
-      color: var(--text-main);
-      text-shadow: 0 3px 12px rgba(0,0,0,0.8), 0 0 30px rgba(212,175,55,0.2);
-      letter-spacing: -1px;
-    }
-    .multiplier-display.gold { color: var(--accent-gold); }
-    .multiplier-display.danger { color: var(--danger-red); }
-    .multiplier-display.pulse {
-      animation: multPulse 0.45s cubic-bezier(0.175,0.885,0.32,1.275);
-    }
-
-    .potential-win {
-      font-size: 0.9rem;
-      font-weight: 700;
-      color: var(--accent-gold);
-      opacity: 0;
-      transform: translateY(6px);
-      transition: opacity 0.3s ease, transform 0.3s ease;
-    }
-    .potential-win.visible { opacity: 1; transform: translateY(0); }
-
-    /* ── ROAD (pseudo-3D perspective) ── */
-    .road-container {
-      position: absolute;
-      bottom: 0; left: 0; right: 0;
-      height: 68%;
-      perspective: 400px;
-      perspective-origin: 50% 0%;
-      display: flex;
-      justify-content: center;
-    }
-
-    .road-surface {
-      width: 290px;
-      height: 300%;
-      position: absolute;
-      bottom: 0;
-      background: linear-gradient(to bottom, #151515 0%, #050505 100%);
-      border-left:  4px solid var(--accent-gold);
-      border-right: 4px solid var(--accent-gold);
-      box-shadow: 0 0 25px rgba(212,175,55,0.4), inset 0 0 40px rgba(212,175,55,0.15);
-      transform-origin: bottom center;
-      transform: rotateX(55deg) translateY(30px);
-      transition: transform 0.45s cubic-bezier(0.2,0.8,0.2,1);
+    /* Animated road lines */
+    #roadCanvas::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: repeating-linear-gradient(
+        180deg,
+        transparent 0px,
+        transparent 35px,
+        rgba(255,255,255,0.12) 35px,
+        rgba(255,255,255,0.12) 38px,
+        transparent 38px,
+        transparent 73px
+      );
+      animation: roadScroll 0.8s linear infinite;
       will-change: transform;
     }
+    @keyframes roadScroll { from{transform:translateY(0)} to{transform:translateY(73px)} }
 
-    /* Dashed centre line markings */
-    .road-surface::before {
-      content: '';
-      position: absolute;
-      left: calc(50% - 2px);
-      top: 0; bottom: 0;
-      width: 4px;
-      background: repeating-linear-gradient(to bottom,
-        rgba(255,255,255,0.4) 0px,
-        rgba(255,255,255,0.4) 40px,
-        transparent 40px,
-        transparent 80px
+    /* Lane dividers */
+    .lane-line {
+      position: absolute; top: 0; bottom: 0;
+      width: 2px;
+      background: repeating-linear-gradient(
+        180deg,
+        rgba(255,255,255,0.2) 0px, rgba(255,255,255,0.2) 25px,
+        transparent 25px, transparent 50px
       );
-      box-shadow: 0 0 8px rgba(255,255,255,0.3);
+      animation: roadScroll 0.8s linear infinite;
     }
 
-    /* ── TILE ROWS ── */
-    .row-marker {
+    /* ═══════════════════════════════════════════════════════════
+       CHICKEN
+    ═══════════════════════════════════════════════════════════ */
+    #chickenContainer {
       position: absolute;
-      width: 100%;
-      height: 54px;
-      display: flex;
-      justify-content: space-evenly;
-      align-items: center;
-      opacity: 0;
-      transition: opacity 0.3s ease;
-    }
-    .row-marker.visible { opacity: 1; }
-
-    .tile {
-      width: 66px;
-      height: 66px;
-      border-radius: 12px;
-      background: rgba(0,0,0,0.4);
-      border: 1px solid rgba(255,255,255,0.1);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.2s;
-    }
-    .tile:hover {
-      background: rgba(255,255,255,0.1);
-      cursor: pointer;
-    }
-    .tile.safe {
-      background: rgba(212,175,55,0.15);
-      border-color: var(--accent-gold);
-      box-shadow: 0 0 20px rgba(212,175,55,0.5), inset 0 0 15px rgba(212,175,55,0.2);
-    }
-    .tile.fire {
-      background: rgba(231,76,60,0.15);
-      border-color: var(--danger-red);
-      box-shadow: 0 0 20px rgba(231,76,60,0.5), inset 0 0 15px rgba(231,76,60,0.2);
-    }
-
-    /* ── CHICKEN SPRITE (Premium Image) ── */
-    .chicken-wrapper {
-      position: absolute;
-      bottom: 18%;
-      left: 50%;
+      bottom: 40%;
+      left: 0; /* will be set by JS */
       transform: translateX(-50%);
-      width: 100px;
-      height: 100px;
       z-index: 15;
-      display: flex;
-      align-items: flex-end;
-      justify-content: center;
+      transition: left 0.45s cubic-bezier(0.34,1.56,0.64,1);
+      filter: drop-shadow(0 8px 12px rgba(0,0,0,0.6));
     }
-
-    .premium-chicken {
-      width: 100px;
-      height: auto;
+    #chickenImg {
+      width: 72px; height: auto;
       transform-origin: bottom center;
-      transition: filter 0.3s ease;
-      filter: drop-shadow(0 10px 10px rgba(0,0,0,0.5));
+      animation: chickenBob 1.8s ease-in-out infinite;
+    }
+    #chickenImg.jump     { animation: chickenHop 0.45s cubic-bezier(0.34,1.56,0.64,1) both; }
+    #chickenImg.stumble  { animation: chickenStumble 0.5s ease both; }
+    #chickenImg.celebrate{ animation: chickenDance 0.6s ease-in-out infinite; }
+    #chickenImg.burn     { animation: chickenBurn 0.2s ease 3 both; filter: brightness(0.3) sepia(1) hue-rotate(-30deg) saturate(8); }
+
+    @keyframes chickenBob {
+      0%,100%{transform:translateY(0) rotate(-2deg)} 50%{transform:translateY(-6px) rotate(2deg)}
+    }
+    @keyframes chickenHop {
+      0%  {transform:scaleY(0.85) translateY(0)}
+      30% {transform:scaleY(1.15) translateY(-30px) rotate(-8deg)}
+      60% {transform:scaleY(1)    translateY(-40px) rotate(0)}
+      85% {transform:scaleY(0.9)  translateY(0) rotate(6deg)}
+      100%{transform:scaleY(1)    translateY(0) rotate(0)}
+    }
+    @keyframes chickenStumble {
+      0%  {transform:rotate(0)}
+      20% {transform:rotate(-25deg) translateX(-6px)}
+      45% {transform:rotate(18deg) translateX(5px)}
+      70% {transform:rotate(-8deg)}
+      100%{transform:rotate(0)}
+    }
+    @keyframes chickenDance {
+      0%,100%{transform:translateY(0) rotate(-10deg) scale(1.05)}
+      50%    {transform:translateY(-12px) rotate(10deg) scale(1.1)}
+    }
+    @keyframes chickenBurn {
+      0%,100%{transform:translateX(0) rotate(10deg)}
+      50%    {transform:translateX(6px) rotate(-10deg)}
     }
 
-    /* Chicken Animation States */
-    .premium-chicken.idle       { animation: idleBob 2.2s ease-in-out infinite; }
-    .premium-chicken.jump       { animation: chickenJump 0.45s cubic-bezier(0.33,1,0.68,1) forwards; }
-    .premium-chicken.stumble    { animation: chickenStumble 0.55s ease both; }
-    .premium-chicken.celebrate  { animation: victoryDance 0.9s ease-in-out infinite; }
-    .premium-chicken.burn       { 
-      animation: burnShake 0.2s ease 2; 
-      filter: brightness(0.2) sepia(1) hue-rotate(-50deg) saturate(5) drop-shadow(0 0 10px red); 
-    }
-
-
-
-    /* ============================================================
-       OVERLAY MESSAGES (WIN / BUST banners)
-    ============================================================ */
-    .overlay-msg {
+    /* ═══════════════════════════════════════════════════════════
+       CARS
+    ═══════════════════════════════════════════════════════════ */
+    .car {
       position: absolute;
-      top: 38%; left: 50%;
-      transform: translate(-50%, -50%) scale(0.8);
-      font-size: 2.6rem;
-      font-weight: 900;
-      letter-spacing: 2px;
-      text-align: center;
-      text-shadow: 0 4px 20px rgba(0,0,0,0.9);
-      z-index: 30;
-      opacity: 0;
-      pointer-events: none;
-      white-space: nowrap;
-      transition: none;
-    }
-    .overlay-msg.win  { color: var(--safe-green); }
-    .overlay-msg.bust { color: var(--danger-red); }
-    .overlay-msg.show { animation: overlayPop 0.5s cubic-bezier(0.175,0.885,0.32,1.275) forwards; }
-
-    /* ============================================================
-       CONFETTI PARTICLES
-    ============================================================ */
-    .particle-layer {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      z-index: 25;
-      overflow: hidden;
-    }
-    .confetti-piece {
-      position: absolute;
-      border-radius: 2px;
-      opacity: 0;
-      animation: confettiFall linear forwards;
-    }
-
-    /* ============================================================
-       PREMIUM CONTROLS FOOTER
-    ============================================================ */
-    .controls.premium-glass {
-      background: rgba(18, 18, 18, 0.85);
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
-      padding: 16px 16px 85px;
-      flex-shrink: 0;
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      z-index: 20;
-      border-radius: 24px 24px 0 0;
-      box-shadow: 0 -8px 30px rgba(0,0,0,0.5);
-    }
-    
-    .control-grid {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      max-width: 500px;
-      margin: 0 auto;
-      background: rgba(30, 30, 30, 0.6);
-      padding: 16px;
-      border-radius: 16px;
-      border: 1px solid rgba(255,255,255,0.05);
-    }
-
-    /* Bet Input Row */
-    .bet-input-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: #2a2a2a;
-      border-radius: 12px;
-      padding: 4px;
-    }
-    .bet-btn-small {
-      background: #3a3a3a;
-      border: none;
-      color: #aaa;
-      font-size: 0.8rem;
-      font-weight: 700;
-      padding: 10px 16px;
+      width: 42px;
       border-radius: 8px;
-      cursor: pointer;
-      transition: background 0.2s, color 0.2s;
+      z-index: 10;
+      transform: translateX(-50%);
+      will-change: transform;
     }
-    .bet-btn-small:active { background: #4a4a4a; color: #fff; }
-    .bet-display-box {
-      flex: 1;
-      text-align: center;
-      font-size: 1.2rem;
-      font-weight: 800;
-      color: #fff;
+    /* Car body via CSS */
+    .car-body {
+      width: 100%; height: 64px;
+      border-radius: 10px 10px 8px 8px;
+      position: relative;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+    }
+    .car-roof {
+      position: absolute;
+      top: 12px; left: 8px; right: 8px; height: 24px;
+      border-radius: 6px; opacity: 0.7;
+    }
+    .car-windshield {
+      position: absolute;
+      top: 14px; left: 9px; right: 9px; height: 18px;
+      background: rgba(150,220,255,0.5); border-radius: 4px;
+    }
+    .car-headlights {
+      position: absolute; top: 4px; left: 4px; right: 4px;
+      display: flex; justify-content: space-between;
+    }
+    .headlight {
+      width: 10px; height: 6px;
+      background: rgba(255,255,200,0.9); border-radius: 3px;
+      box-shadow: 0 0 8px rgba(255,255,180,0.8);
+    }
+    .car-taillights {
+      position: absolute; bottom: 4px; left: 4px; right: 4px;
+      display: flex; justify-content: space-between;
+    }
+    .taillight {
+      width: 10px; height: 5px;
+      background: rgba(255,80,80,0.9); border-radius: 2px;
+      box-shadow: 0 0 6px rgba(255,60,60,0.7);
+    }
+    /* Car colors */
+    .car-taxi   .car-body { background: linear-gradient(180deg, #f5c518 0%, #d4a806 100%); }
+    .car-police .car-body { background: linear-gradient(180deg, #3a4a6b 0%, #2a3a5b 100%); }
+    .car-red    .car-body { background: linear-gradient(180deg, #e53935 0%, #b71c1c 100%); }
+    .car-white  .car-body { background: linear-gradient(180deg, #f5f5f5 0%, #ddd 100%); }
+    .car-silver .car-body { background: linear-gradient(180deg, #b0bec5 0%, #78909c 100%); }
+    .car-police .car-lightbar {
+      position: absolute; top: 0; left: 10px; right: 10px; height: 5px;
+      border-radius: 3px; overflow: hidden;
+      animation: policeFlash 0.4s linear infinite;
+    }
+    @keyframes policeFlash {
+      0%,49%{ background:linear-gradient(90deg,#f44 50%,#44f 50%) }
+      50%,100%{ background:linear-gradient(90deg,#44f 50%,#f44 50%) }
     }
 
-    /* Preset Row */
+    /* Car lane animation */
+    .car.going-down  { animation: carDown  var(--dur, 2.5s) linear var(--delay,0s) infinite; }
+    .car.going-up    { animation: carUp    var(--dur, 2.5s) linear var(--delay,0s) infinite; }
+    @keyframes carDown {
+      from { top: -80px; }
+      to   { top: calc(100% + 80px); }
+    }
+    @keyframes carUp {
+      from { top: calc(100% + 80px); }
+      to   { top: -80px; }
+    }
+
+    /* Hit car (triggered by JS) */
+    .car.hit-animate {
+      animation: carHit 0.3s ease-out both !important;
+    }
+    @keyframes carHit {
+      0%  { transform:translateX(-50%) rotate(0) }
+      30% { transform:translateX(-70%) rotate(-12deg) }
+      70% { transform:translateX(-30%) rotate(15deg) }
+      100%{ transform:translateX(-50%) rotate(8deg) }
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       EXPLOSION
+    ═══════════════════════════════════════════════════════════ */
+    .explosion {
+      position: absolute; transform: translate(-50%,-50%);
+      pointer-events: none; z-index: 20;
+    }
+    .exp-ring {
+      position: absolute;
+      border-radius: 50%;
+      transform: translate(-50%,-50%);
+      border: 3px solid #ff6b35;
+      animation: expRing 0.6s ease-out forwards;
+    }
+    @keyframes expRing {
+      0%   { width:0;height:0;opacity:1; }
+      100% { width:120px;height:120px;opacity:0; }
+    }
+    .exp-core {
+      position: absolute; transform: translate(-50%,-50%);
+      background: radial-gradient(circle,#fff 0%,#ff6 30%,#f60 60%,transparent 80%);
+      width: 60px; height: 60px; border-radius: 50%;
+      animation: expCore 0.5s ease-out forwards;
+    }
+    @keyframes expCore {
+      0%  { opacity:1; transform:translate(-50%,-50%) scale(0.2); }
+      50% { opacity:1; transform:translate(-50%,-50%) scale(1.2); }
+      100%{ opacity:0; transform:translate(-50%,-50%) scale(1.6); }
+    }
+    .exp-spark {
+      position: absolute; transform-origin: 0 0;
+      width: 3px; height: 30px;
+      background: linear-gradient(to bottom,#ff0,transparent);
+      animation: expSpark 0.5s ease-out forwards;
+    }
+    @keyframes expSpark {
+      0%  { transform:rotate(var(--deg)) scaleY(0); opacity:1; }
+      50% { transform:rotate(var(--deg)) scaleY(1); opacity:1; }
+      100%{ transform:rotate(var(--deg)) scaleY(0.5) translateY(-30px); opacity:0; }
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       SAFE STEP EFFECT
+    ═══════════════════════════════════════════════════════════ */
+    .safe-ring {
+      position: absolute; transform: translate(-50%,-50%);
+      border-radius: 50%;
+      pointer-events: none; z-index: 16;
+      border: 3px solid var(--gold);
+      box-shadow: 0 0 15px var(--gold-glow);
+      animation: safeRing 0.6s ease-out forwards;
+    }
+    @keyframes safeRing {
+      0%  { width:20px;height:20px;opacity:1; }
+      100%{ width:90px;height:90px;opacity:0; }
+    }
+    .plus-badge {
+      position: absolute; transform: translate(-50%,-200%);
+      font-size: 18px; font-weight: 900; color: var(--gold);
+      text-shadow: 0 0 10px var(--gold-glow);
+      pointer-events: none; z-index: 16;
+      animation: floatUp 0.9s ease-out forwards;
+    }
+    @keyframes floatUp {
+      0%  { opacity:1; transform:translate(-50%,-150%); }
+      100%{ opacity:0; transform:translate(-50%,-300%); }
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       CONFETTI
+    ═══════════════════════════════════════════════════════════ */
+    #particleLayer {
+      position: absolute; inset: 0; pointer-events: none; z-index: 25; overflow: hidden;
+    }
+    .conf { position:absolute; border-radius:2px; opacity:0; animation:confFall linear forwards; }
+    @keyframes confFall {
+      0%  { opacity:1; }
+      100%{ opacity:0; transform:var(--cf-end); }
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       OVERLAY MESSAGES
+    ═══════════════════════════════════════════════════════════ */
+    #overlayMsg {
+      position: absolute; top: 38%; left: 50%;
+      transform: translate(-50%,-50%) scale(0.8);
+      font-size: 2.4rem; font-weight: 900;
+      text-align: center; z-index: 30;
+      opacity: 0; pointer-events: none; white-space: nowrap;
+      text-shadow: 0 4px 20px rgba(0,0,0,0.9);
+    }
+    #overlayMsg.win  { color: var(--green); }
+    #overlayMsg.bust { color: var(--red); }
+    #overlayMsg.show { animation: overlayPop 0.5s cubic-bezier(0.175,0.885,0.32,1.275) forwards; }
+    @keyframes overlayPop {
+      0%  {opacity:0;transform:translate(-50%,-50%) scale(0.6)}
+      60% {opacity:1;transform:translate(-50%,-50%) scale(1.1)}
+      100%{opacity:1;transform:translate(-50%,-50%) scale(1)}
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       SCREEN SHAKE
+    ═══════════════════════════════════════════════════════════ */
+    .screen-shake { animation: shake 0.4s cubic-bezier(0.36,0.07,0.19,0.97) both; }
+    @keyframes shake {
+      0%,100%{transform:translateX(0) rotate(0)}
+      20%    {transform:translateX(-8px) rotate(-1deg)}
+      40%    {transform:translateX(8px) rotate(1deg)}
+      60%    {transform:translateX(-5px) rotate(-0.5deg)}
+      80%    {transform:translateX(5px) rotate(0.5deg)}
+    }
+
+    /* Keyframes */
+    @keyframes multPulse {
+      0%{transform:scale(1)} 40%{transform:scale(1.3)} 100%{transform:scale(1)}
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       CONTROLS PANEL
+    ═══════════════════════════════════════════════════════════ */
+    #controls {
+      background: var(--panel-bg);
+      border-top: 1px solid var(--panel-border);
+      padding: 14px 16px;
+      padding-bottom: max(80px, calc(env(safe-area-inset-bottom) + 80px));
+      flex-shrink: 0;
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+    }
+    .ctrl-inner {
+      max-width: 480px; margin: 0 auto;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+
+    /* Bet row */
+    .bet-row {
+      display: flex; align-items: center;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px; overflow: hidden;
+    }
+    .bet-edge-btn {
+      width: 54px; padding: 12px 0;
+      background: rgba(255,255,255,0.05);
+      border: none; color: var(--text-dim);
+      font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
+      cursor: pointer; transition: all 0.2s;
+      font-family: 'Outfit', sans-serif;
+    }
+    .bet-edge-btn:active { background: rgba(255,255,255,0.12); color: var(--text); }
+    .bet-center {
+      flex: 1; text-align: center;
+      font-size: 1.3rem; font-weight: 900; color: var(--text);
+    }
+    .bet-center small { display: block; font-size: 9px; color: var(--text-dim); font-weight: 600; margin-top: -2px; }
+
+    /* Presets */
     .preset-row {
-      display: flex;
-      gap: 8px;
+      display: flex; gap: 8px;
     }
     .preset-btn {
-      flex: 1;
-      background: #2a2a2a;
-      border: 1px solid #3a3a3a;
-      color: #fff;
-      font-size: 0.9rem;
-      font-weight: 700;
-      padding: 12px 0;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.2s;
+      flex: 1; padding: 10px 4px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      color: var(--text); font-size: 13px; font-weight: 700;
+      cursor: pointer; transition: all 0.15s;
+      font-family: 'Outfit', sans-serif;
+      text-align: center;
     }
-    .preset-btn:active { background: #3a3a3a; border-color: #555; }
-    .preset-btn .curr { font-size: 0.65rem; color: #888; }
+    .preset-btn span { display:block; font-size:8px; color:var(--text-dim); font-weight:600; margin-top:1px; }
+    .preset-btn:active, .preset-btn.active-preset {
+      background: rgba(245,197,24,0.15);
+      border-color: rgba(245,197,24,0.5);
+      color: var(--gold);
+    }
 
-    /* Tier Row */
-    .tier-row {
-      display: flex;
+    /* Tier select */
+    .tier-select-wrap {
+      position: relative;
     }
-    .tier-select {
-      flex: 1;
-      background: #2a2a2a;
-      border: 1px solid #3a3a3a;
-      color: #fff;
-      font-size: 0.95rem;
-      font-weight: 700;
-      padding: 14px 16px;
-      border-radius: 8px;
-      outline: none;
-      -webkit-appearance: none;
-      appearance: none;
-      cursor: pointer;
+    .tier-select-wrap::after {
+      content: '▾';
+      position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+      color: var(--text-dim); font-size: 14px; pointer-events: none;
     }
+    #tierSelect {
+      width: 100%; padding: 12px 36px 12px 16px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      color: var(--text); font-size: 14px; font-weight: 700;
+      -webkit-appearance: none; appearance: none; outline: none;
+      cursor: pointer; font-family: 'Outfit', sans-serif;
+    }
+    #tierSelect:disabled { opacity: 0.4; }
 
     /* Action buttons */
-    .action-row {
-      display: flex;
-      margin-top: 4px;
+    .action-row { display: flex; gap: 10px; }
+    .play-btn {
+      flex: 1; padding: 17px 0;
+      border: none; border-radius: 14px;
+      font-size: 1.15rem; font-weight: 900;
+      color: #fff; cursor: pointer;
+      font-family: 'Outfit', sans-serif;
+      letter-spacing: 0.5px;
+      transition: transform 0.1s, box-shadow 0.2s;
     }
-    .game-btn {
-      flex: 1;
-      border: none;
-      border-radius: 12px;
-      font-size: 1.2rem;
-      font-weight: 900;
-      text-transform: uppercase;
-      padding: 18px 0;
-      color: #fff;
-      cursor: pointer;
-      transition: transform 0.1s, filter 0.2s;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    .play-btn:active { transform: scale(0.96); }
+    .play-btn:disabled { opacity: 0.4; pointer-events: none; filter: grayscale(0.7); }
+    #btnStep {
+      background: linear-gradient(180deg, #00e676 0%, #00b050 100%);
+      box-shadow: 0 6px 20px rgba(0,230,118,0.35);
     }
-    .game-btn:active { transform: scale(0.96); }
-    .game-btn:disabled { opacity: 0.5; filter: grayscale(1); pointer-events: none; }
-    
-    .btn-step {
-      background: linear-gradient(180deg, #4cd964 0%, #2ecc71 100%);
-      text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-    }
-    .btn-cashout {
-      background: linear-gradient(180deg, #ff9500 0%, #e67e22 100%);
-    }
-
-    /* ============================================================
-       SEED VERIFY PANEL (provably fair UI)
-    ============================================================ */
-    .verify-panel {
-      position: absolute;
-      bottom: 0; left: 0; right: 0;
-      background: #111;
-      border-top: 1px solid var(--border-dim);
-      padding: 12px 16px;
-      font-size: 10px;
-      color: var(--text-muted);
+    #btnCashOut {
+      background: linear-gradient(180deg, #ff9500 0%, #d47700 100%);
+      box-shadow: 0 6px 20px rgba(255,149,0,0.35);
       display: none;
-      z-index: 50;
-      word-break: break-all;
-      line-height: 1.7;
-    }
-    .verify-panel.show { display: block; }
-    .verify-panel strong { color: var(--accent-gold); }
-    .verify-close { float: right; cursor: pointer; font-size: 14px; color: var(--danger-red); }
-
-    /* ============================================================
-       KEYFRAMES
-    ============================================================ */
-    @keyframes idleBob {
-      0%, 100% { transform: translateY(0); }
-      50%       { transform: translateY(-5px); }
     }
 
-    @keyframes chickenJump {
-      0%   { transform: scale(1,1) translateY(0); }
-      20%  { transform: scale(1.15,0.85) translateY(0); }   /* squash */
-      45%  { transform: scale(0.85,1.2)  translateY(-42px); } /* stretch up */
-      65%  { transform: scale(1,1)       translateY(-46px); } /* apex */
-      85%  { transform: scale(1.1,0.9)   translateY(0); }   /* land squash */
-      100% { transform: scale(1,1)       translateY(0); }
+    /* ═══════════════════════════════════════════════════════════
+       PROVABLY FAIR PANEL
+    ═══════════════════════════════════════════════════════════ */
+    #verifyPanel {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: #050d1e; border-top: 1px solid var(--panel-border);
+      padding: 14px 16px; font-size: 10px; color: var(--text-dim);
+      display: none; z-index: 50; word-break: break-all; line-height: 1.8;
     }
-
-    @keyframes wingFlap {
-      0%,100% { transform: rotate(0deg); }
-      30%     { transform: rotate(-35deg) scaleY(1.2); }
-      60%     { transform: rotate(20deg); }
-    }
-
-    @keyframes chickenStumble {
-      0%   { transform: rotate(0)    translateX(0); }
-      20%  { transform: rotate(-22deg) translateX(-8px); }
-      45%  { transform: rotate(14deg)  translateX(6px); }
-      70%  { transform: rotate(-6deg)  translateX(-2px); }
-      100% { transform: rotate(0)    translateX(0); }
-    }
-
-    @keyframes burnShake {
-      0%,100% { transform: translateX(0) rotate(12deg); }
-      50%     { transform: translateX(5px) rotate(18deg); }
-    }
-
-    @keyframes victoryDance {
-      0%,100% { transform: translateY(0) rotate(0deg) scale(1); }
-      25%     { transform: translateY(-18px) rotate(-14deg) scale(1.1); }
-      50%     { transform: translateY(0) rotate(0deg) scale(1); }
-      75%     { transform: translateY(-18px) rotate(14deg) scale(1.1); }
-    }
-
-    @keyframes multPulse {
-      0%   { transform: scale(1); }
-      50%  { transform: scale(1.18); }
-      100% { transform: scale(1); }
-    }
-
-    @keyframes balancePop {
-      0%   { transform: scale(1); }
-      50%  { transform: scale(1.28); color: var(--safe-green); }
-      100% { transform: scale(1); }
-    }
-
-    @keyframes overlayPop {
-      0%   { opacity: 0; transform: translate(-50%,-50%) scale(0.7); }
-      60%  { opacity: 1; transform: translate(-50%,-50%) scale(1.08); }
-      100% { opacity: 1; transform: translate(-50%,-50%) scale(1); }
-    }
-
-    @keyframes screenShake {
-      0%,100% { transform: translateX(0); }
-      20%     { transform: translateX(-6px); }
-      40%     { transform: translateX(6px); }
-      60%     { transform: translateX(-4px); }
-      80%     { transform: translateX(4px); }
-    }
-
-    @keyframes confettiFall {
-      0%   { opacity: 1; }
-      100% { opacity: 0; transform: var(--cf-end); }
-    }
-
-    .screen-shake { animation: screenShake 0.35s cubic-bezier(0.36,0.07,0.19,0.97) both; }
+    #verifyPanel.show { display: block; }
+    #verifyPanel strong { color: var(--gold); }
+    #verifyClose { float: right; cursor: pointer; font-size: 14px; color: var(--red); }
   </style>
 </head>
 <body>
 
-  <!-- ========================================================
-       HEADER
-  ======================================================== -->
-  <header>
-    <div class="brand-title">🐔 CHICKEN ROAD</div>
-    <div class="wallet-box">
-      <div>
-        <div class="wallet-label">Balance</div>
-        <div class="wallet-amount" id="walletAmount">0.00 ETB</div>
+  <!-- Live wins ticker -->
+  <div class="live-ticker">
+    <div class="ticker-label"><span class="live-dot"></span> Live Wins</div>
+    <div class="ticker-scroll">
+      <div class="ticker-inner" id="tickerInner">
+        <span class="ticker-item">🏆 Abebe W. <span class="tw">+248 ETB</span></span>
+        <span class="ticker-item">🐔 Tigist M. <span class="tw">+520 ETB</span></span>
+        <span class="ticker-item">⚡ Biruk T. <span class="tw">+1,200 ETB</span></span>
+        <span class="ticker-item">🔥 Yonas G. <span class="tw">+85 ETB</span></span>
+        <span class="ticker-item">🎯 Meron S. <span class="tw">+390 ETB</span></span>
+        <span class="ticker-item">💰 Dawit K. <span class="tw">+760 ETB</span></span>
+        <span class="ticker-item">🏆 Abebe W. <span class="tw">+248 ETB</span></span>
+        <span class="ticker-item">🐔 Tigist M. <span class="tw">+520 ETB</span></span>
+        <span class="ticker-item">⚡ Biruk T. <span class="tw">+1,200 ETB</span></span>
+        <span class="ticker-item">🔥 Yonas G. <span class="tw">+85 ETB</span></span>
+        <span class="ticker-item">🎯 Meron S. <span class="tw">+390 ETB</span></span>
+        <span class="ticker-item">💰 Dawit K. <span class="tw">+760 ETB</span></span>
       </div>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <header>
+    <div class="logo">
+      <span class="logo-icon">🐔</span>
+      <span class="logo-text">CHICKEN ROAD</span>
+    </div>
+    <div class="online-badge"><span class="live-dot" style="width:5px;height:5px;"></span> <span id="onlineCount">11,170</span></div>
+    <div class="wallet-pill">
+      <span class="wallet-label">BALANCE</span>
+      <span class="wallet-amount" id="walletAmount">0.00 ETB</span>
     </div>
   </header>
 
-  <!-- ========================================================
-       MAIN GAME AREA
-  ======================================================== -->
-  <main id="gameArea">
+  <!-- Main Game Area -->
+  <div id="gameArea">
 
     <!-- HUD -->
-    <div class="hud">
-      <div class="step-counter" id="stepCounter">STEP 0</div>
-      <div class="multiplier-display" id="multiplierDisplay">1.00x</div>
-      <div class="potential-win" id="potentialWin">— ETB</div>
+    <div class="hud-overlay">
+      <div class="step-badge" id="stepCounter">STEP 0</div>
+      <div class="mult-ring" id="multRing">
+        <div id="multiplierDisplay">1.00x</div>
+        <div class="mult-sub">MULTIPLIER</div>
+      </div>
+      <div id="potentialWin">— ETB</div>
     </div>
 
-    <!-- WIN / BUST overlay -->
-    <div class="overlay-msg" id="overlayMsg"></div>
+    <!-- Overlay messages -->
+    <div id="overlayMsg"></div>
 
-    <!-- Particle / confetti layer -->
-    <div class="particle-layer" id="particleLayer"></div>
+    <!-- Particles -->
+    <div id="particleLayer"></div>
 
-    <!-- Road -->
-    <div class="road-container">
-      <div class="road-surface" id="roadSurface"></div>
-    </div>
-
-    <!-- Chicken -->
-    <div class="chicken-wrapper">
-      <img id="chickenSprite" src="/src/assets/chicken-road/chicken.png" class="premium-chicken idle" alt="Chicken" />
-    </div>
-
-  </main>
-
-  <!-- ========================================================
-       CONTROLS FOOTER
-  ======================================================== -->
-  <div class="controls premium-glass">
-    <div class="control-grid">
-      <!-- Row 1: Min, Display, Max -->
-      <div class="bet-input-row">
-        <button class="bet-btn-small" id="btnMin">MIN</button>
-        <div class="bet-display-box">
-          <span id="betDisplay" class="bet-val">10</span>
+    <!-- Game World -->
+    <div id="gameWorld">
+      <div class="grass-left"></div>
+      <div class="sidewalk-left"></div>
+      <div id="roadCanvas">
+        <!-- Cars injected by JS -->
+        <!-- Chicken -->
+        <div id="chickenContainer">
+          <img id="chickenImg" src="/src/assets/chicken-road/chicken.png" alt="Chicken" />
         </div>
-        <button class="bet-btn-small" id="btnMax">MAX</button>
       </div>
-      
-      <!-- Row 2: Presets -->
+      <div class="sidewalk-right"></div>
+      <div class="grass-right"></div>
+    </div>
+
+  </div>
+
+  <!-- Controls -->
+  <div id="controls">
+    <div class="ctrl-inner">
+
+      <!-- Bet row -->
+      <div class="bet-row">
+        <button class="bet-edge-btn" id="btnMin">MIN</button>
+        <div class="bet-center">
+          <span id="betDisplay">50</span>
+          <small>ETB BET</small>
+        </div>
+        <button class="bet-edge-btn" id="btnMax">MAX</button>
+      </div>
+
+      <!-- Presets -->
       <div class="preset-row">
-        <button class="preset-btn" data-val="30">30 <span class="curr">ETB</span></button>
-        <button class="preset-btn" data-val="50">50 <span class="curr">ETB</span></button>
-        <button class="preset-btn" data-val="150">150 <span class="curr">ETB</span></button>
-        <button class="preset-btn" data-val="300">300 <span class="curr">ETB</span></button>
+        <button class="preset-btn" data-val="30">30<span>ETB</span></button>
+        <button class="preset-btn" data-val="50">50<span>ETB</span></button>
+        <button class="preset-btn" data-val="150">150<span>ETB</span></button>
+        <button class="preset-btn" data-val="300">300<span>ETB</span></button>
       </div>
-      
-      <!-- Row 3: Dropdown -->
-      <div class="tier-row">
-        <select class="tier-select" id="tierSelect">
+
+      <!-- Tier -->
+      <div class="tier-select-wrap">
+        <select id="tierSelect">
           <option value="easy">Easy</option>
           <option value="medium">Medium</option>
           <option value="hard">Hard</option>
           <option value="extreme">Extreme</option>
         </select>
       </div>
-      
-      <!-- Row 4: Play button -->
+
+      <!-- Actions -->
       <div class="action-row">
-        <button class="game-btn btn-step" id="btnStep">Play</button>
-        <button class="game-btn btn-cashout" id="btnCashOut" style="display:none;" disabled>
-          Cash Out <span class="btn-sub" id="cashOutSub"></span>
-        </button>
+        <button class="play-btn" id="btnStep">Play</button>
+        <button class="play-btn" id="btnCashOut">Cash Out<br><small id="cashOutSub" style="font-size:11px;font-weight:600;opacity:0.85"></small></button>
       </div>
+
     </div>
   </div>
 
-  <!-- ========================================================
-       PROVABLY FAIR SEED PANEL
-  ======================================================== -->
-  <div class="verify-panel" id="verifyPanel">
-    <span class="verify-close" id="verifyClose">✕</span>
+  <!-- Provably Fair -->
+  <div id="verifyPanel">
+    <span id="verifyClose">✕</span>
     <strong>Provably Fair Verification</strong><br>
     Server Seed Hash: <span id="vpServerSeedHash">—</span><br>
     Client Seed: <span id="vpClientSeed">—</span><br>
@@ -632,32 +729,14 @@
     Server Seed (revealed on round end): <span id="vpServerSeed">—</span>
   </div>
 
-<!-- ========================================================
-     GAME SCRIPT
-======================================================== -->
 <script>
 'use strict';
 
-// ============================================================
-// 1. CONFIGURATION
-// ============================================================
-//
-//   successRate = probability the chicken survives one step
-//   houseEdge   = RTP factor (player receives this fraction of fair payout)
-//                 Company keeps (1 - houseEdge) per step.
-//
-//   Multiplier per step = (1 / successRate) * houseEdge
-//   This MUST be > 1.0, which requires houseEdge > successRate.
-//
-//   Easy:    (1/0.95) * 0.96 = 1.011x — company keeps 4%
-//   Medium:  (1/0.90) * 0.95 = 1.056x — company keeps 5%
-//   Hard:    (1/0.85) * 0.94 = 1.106x — company keeps 6%
-//   Extreme: (1/0.65) * 0.75 = 1.154x — company keeps 25% ← highest advantage
-//
+// ═══════════════════════════════════════════════════════════
+// 1. CONFIG
+// ═══════════════════════════════════════════════════════════
 const CONFIG = {
-  minBet:  10,
-  maxBet:  5000,
-  betStep: 10,
+  minBet: 10, maxBet: 5000, betStep: 10,
   tiers: {
     easy:    { successRate: 0.95, houseEdge: 0.96, label: 'Easy' },
     medium:  { successRate: 0.90, houseEdge: 0.95, label: 'Medium' },
@@ -666,401 +745,297 @@ const CONFIG = {
   }
 };
 
-// ============================================================
-// 2. AUDIO MANAGER — placeholder tones
-// ============================================================
+// Car types
+const CAR_TYPES = ['car-taxi','car-police','car-red','car-white','car-silver'];
+
+// ═══════════════════════════════════════════════════════════
+// 2. AUDIO
+// ═══════════════════════════════════════════════════════════
 const AudioMan = (function() {
-  const ctx = window.AudioContext
-    ? new AudioContext()
-    : (window.webkitAudioContext ? new webkitAudioContext() : null);
-
-  function beep(freq, dur, vol, type) {
-    if (!ctx) return;
-    try {
-      const osc  = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.frequency.value = freq;
-      osc.type = type || 'sine';
-      gain.gain.setValueAtTime(vol || 0.15, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
-      osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + dur);
-    } catch(e) {}
-  }
-
-  function resume() { if (ctx && ctx.state === 'suspended') ctx.resume(); }
-
+  const ctx = window.AudioContext ? new AudioContext() : (window.webkitAudioContext ? new webkitAudioContext() : null);
+  function beep(freq,dur,vol,type){ if(!ctx)return; try{ const o=ctx.createOscillator(),g=ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.frequency.value=freq; o.type=type||'sine'; g.gain.setValueAtTime(vol||0.12,ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur); o.start(ctx.currentTime); o.stop(ctx.currentTime+dur); }catch(e){} }
+  function resume(){ if(ctx&&ctx.state==='suspended')ctx.resume(); }
   return {
-    click:    () => { resume(); beep(440, 0.05, 0.10, 'square'); },
-    jump:     () => { resume(); beep(520, 0.12, 0.12, 'sine'); },
-    safe:     () => { resume(); beep(660, 0.18, 0.15, 'sine'); },
-    cashout:  () => {
-      resume();
-      beep(660, 0.1, 0.15, 'sine');
-      setTimeout(() => beep(880, 0.15, 0.15, 'sine'), 100);
-      setTimeout(() => beep(1100, 0.3, 0.2, 'sine'), 220);
-    },
-    bust:     () => { resume(); beep(180, 0.4, 0.18, 'sawtooth'); },
-    error:    () => { resume(); beep(200, 0.2, 0.12, 'square'); }
+    click:   ()=>{ resume(); beep(440,0.05,0.08,'square'); },
+    jump:    ()=>{ resume(); beep(520,0.12,0.1,'sine'); },
+    safe:    ()=>{ resume(); beep(660,0.18,0.12,'sine'); },
+    cashout: ()=>{ resume(); beep(660,0.1,0.12,'sine'); setTimeout(()=>beep(880,0.12,0.12,'sine'),90); setTimeout(()=>beep(1100,0.28,0.15,'sine'),200); },
+    bust:    ()=>{ resume(); beep(180,0.5,0.18,'sawtooth'); },
+    error:   ()=>{ resume(); beep(200,0.2,0.1,'square'); }
   };
 })();
 
-// ============================================================
-// 3. GAME STATE
-// ============================================================
+// ═══════════════════════════════════════════════════════════
+// 3. STATE
+// ═══════════════════════════════════════════════════════════
 const State = {
-  phase:       'IDLE',   // IDLE | PLAYING | REVEALING | GAMEOVER
-  balance:     0,
-  bet:         10,
-  tier:        'easy',
-  stepCount:   0,
-  multiplier:  1.00,
-  roadOffset:  0,        // cumulative scroll in px
-
-  // Provably Fair
-  serverSeed:  '',
-  serverSeedHash: '',
-  clientSeed:  '',
-  nonce:       0,
-
-  // Idempotency guard
-  cashOutPending: false
+  phase: 'IDLE', balance: 0, bet: 50, tier: 'easy',
+  stepCount: 0, multiplier: 1.0, cashOutPending: false,
+  chickenLane: 0, // 0 = left sidewalk, 1..N = road lanes, N+1 = right sidewalk
+  serverSeed: '', serverSeedHash: '', clientSeed: '', nonce: 0
 };
 
-// ============================================================
-// 4. DOM REFS — single source of truth
-// ============================================================
+// ═══════════════════════════════════════════════════════════
+// 4. DOM
+// ═══════════════════════════════════════════════════════════
 const DOM = {
-  gameArea:     document.getElementById('gameArea'),
-  walletAmount: document.getElementById('walletAmount'),
-  stepCounter:  document.getElementById('stepCounter'),
-  multDisp:     document.getElementById('multiplierDisplay'),
-  potWin:       document.getElementById('potentialWin'),
-  overlayMsg:   document.getElementById('overlayMsg'),
-  particleLayer:document.getElementById('particleLayer'),
-  roadSurface:  document.getElementById('roadSurface'),
-  chicken:      document.getElementById('chickenSprite'),
-  infoLeft:     document.getElementById('infoLeft'),
-  infoRight:    document.getElementById('infoRight'),
-  tierSelect:   document.getElementById('tierSelect'),
-  betDisplay:   document.getElementById('betDisplay'),
-  btnMin:       document.getElementById('btnMin'),
-  btnMax:       document.getElementById('btnMax'),
-  presetBtns:   document.querySelectorAll('.preset-btn'),
-  btnStep:      document.getElementById('btnStep'),
-  btnCashOut:   document.getElementById('btnCashOut'),
-  cashOutSub:   document.getElementById('cashOutSub'),
-  verifyPanel:  document.getElementById('verifyPanel'),
-  verifyClose:  document.getElementById('verifyClose'),
-  vpServerHash: document.getElementById('vpServerSeedHash'),
-  vpClientSeed: document.getElementById('vpClientSeed'),
-  vpNonce:      document.getElementById('vpNonce'),
-  vpServerSeed: document.getElementById('vpServerSeed')
+  gameArea:      document.getElementById('gameArea'),
+  gameWorld:     document.getElementById('gameWorld'),
+  roadCanvas:    document.getElementById('roadCanvas'),
+  chickenCont:   document.getElementById('chickenContainer'),
+  chickenImg:    document.getElementById('chickenImg'),
+  multRing:      document.getElementById('multRing'),
+  multDisp:      document.getElementById('multiplierDisplay'),
+  potWin:        document.getElementById('potentialWin'),
+  overlayMsg:    document.getElementById('overlayMsg'),
+  particleLayer: document.getElementById('particleLayer'),
+  stepCounter:   document.getElementById('stepCounter'),
+  walletAmount:  document.getElementById('walletAmount'),
+  betDisplay:    document.getElementById('betDisplay'),
+  tierSelect:    document.getElementById('tierSelect'),
+  btnStep:       document.getElementById('btnStep'),
+  btnCashOut:    document.getElementById('btnCashOut'),
+  cashOutSub:    document.getElementById('cashOutSub'),
+  btnMin:        document.getElementById('btnMin'),
+  btnMax:        document.getElementById('btnMax'),
+  presetBtns:    document.querySelectorAll('.preset-btn'),
+  verifyPanel:   document.getElementById('verifyPanel'),
+  verifyClose:   document.getElementById('verifyClose'),
+  vpServerHash:  document.getElementById('vpServerSeedHash'),
+  vpClientSeed:  document.getElementById('vpClientSeed'),
+  vpNonce:       document.getElementById('vpNonce'),
+  vpServerSeed:  document.getElementById('vpServerSeed'),
 };
 
-// ============================================================
-// 5. EXISTING AUTH / WALLET HOOKS
-// ============================================================
+// ═══════════════════════════════════════════════════════════
+// 5. ROAD & LANES
+// ═══════════════════════════════════════════════════════════
+let numLanes = 4;
+let laneXs   = []; // pixel X positions for each lane center
+let sidewalkLeftX  = 0;
+let sidewalkRightX = 0;
 
-let socket = null;
+function initRoad() {
+  const road = DOM.roadCanvas;
+  road.innerHTML = '';
+  // Re-add chicken container
+  road.appendChild(DOM.chickenCont);
 
-// ============================================================
-// 5. EXISTING AUTH / WALLET HOOKS
-// ============================================================
+  const roadW = road.offsetWidth;
+  numLanes = 4;
+  const laneW = roadW / numLanes;
 
-async function initUserSession() {
-  try {
-    const tg = window.Telegram?.WebApp;
-    if (tg) {
-      tg.ready();
-      tg.expand();
-      if (tg.enableClosingConfirmation) tg.enableClosingConfirmation();
+  laneXs = [];
+  for (let i = 0; i < numLanes; i++) {
+    const x = laneW * i + laneW / 2;
+    laneXs.push(x);
+    // Lane divider
+    if (i > 0) {
+      const div = document.createElement('div');
+      div.className = 'lane-line';
+      div.style.left = (laneW * i) + 'px';
+      road.appendChild(div);
     }
+  }
 
-    // Determine environment for socket connection
-    let urlParams = new URLSearchParams(window.location.search);
-    let userId = urlParams.get('userId');
-    
-    // If running in telegram mini app, decode initData
-    if (!userId && tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
-      userId = tg.initDataUnsafe.user.id;
+  // Sidewalk X positions (in gameWorld coordinates) — chicken starts left of road
+  const roadLeft = road.getBoundingClientRect().left - DOM.gameWorld.getBoundingClientRect().left;
+  sidewalkLeftX  = roadLeft - 14; // just left of the road
+  sidewalkRightX = roadLeft + roadW + 14;
+
+  // Spawn background cars
+  spawnAllCars();
+
+  // Set chicken to starting position
+  State.chickenLane = -1; // on left sidewalk
+  positionChicken(-1, false);
+}
+
+function laneXForStep(step) {
+  // step -1 = left sidewalk (before road)
+  // step 0..numLanes-1 = lanes
+  // step numLanes = right sidewalk
+  if (step < 0) {
+    // left sidewalk: put chicken just to the left of lane 0
+    const road = DOM.roadCanvas;
+    return road.getBoundingClientRect().left - DOM.gameWorld.getBoundingClientRect().left - 14;
+  }
+  if (step >= numLanes) {
+    const road = DOM.roadCanvas;
+    return road.getBoundingClientRect().left + road.offsetWidth + DOM.gameWorld.getBoundingClientRect().left - DOM.gameWorld.getBoundingClientRect().left + 14;
+  }
+  // Return lane center within #roadCanvas coordinate space
+  // The chicken's left is relative to gameWorld, so offset by road's left
+  const road = DOM.roadCanvas;
+  const roadLeft = road.getBoundingClientRect().left - DOM.gameWorld.getBoundingClientRect().left;
+  return roadLeft + laneXs[step];
+}
+
+function positionChicken(step, animated = true) {
+  const x = laneXForStep(step);
+  DOM.chickenCont.style.transition = animated
+    ? 'left 0.4s cubic-bezier(0.34,1.56,0.64,1)'
+    : 'none';
+  DOM.chickenCont.style.left = x + 'px';
+}
+
+// ═══════════════════════════════════════════════════════════
+// 6. CAR SPAWNING
+// ═══════════════════════════════════════════════════════════
+const carEls = [];
+
+function spawnAllCars() {
+  // Remove existing
+  carEls.forEach(c => c.remove());
+  carEls.length = 0;
+
+  const road = DOM.roadCanvas;
+  const h = road.offsetHeight;
+
+  for (let lane = 0; lane < numLanes; lane++) {
+    const going = lane % 2 === 0 ? 'going-down' : 'going-up';
+    const count = Math.floor(Math.random() * 2) + 1;
+    for (let c = 0; c < count; c++) {
+      const el = makeCar();
+      el.style.left = laneXs[lane] + 'px';
+      const dur  = 2.4 + Math.random() * 2;
+      const delay = -(Math.random() * dur);
+      el.style.setProperty('--dur',   dur + 's');
+      el.style.setProperty('--delay', delay + 's');
+      el.classList.add(going);
+      el.dataset.lane = lane;
+      road.appendChild(el);
+      carEls.push(el);
     }
-
-    if (!userId) {
-      // For local testing outside Telegram
-      userId = '123456789';
-    }
-
-    socket = io(window.location.origin, {
-      query: { userId }
-    });
-
-    socket.on('connect', () => {
-      console.log('[Socket] Connected to Chicken Road backend');
-    });
-
-    socket.on('balance-updated', (data) => {
-      setBalance(data.newBalance);
-    });
-
-    // In a real flow, we would fetch the initial balance from /api/auth/me here
-    // but since the socket will emit it upon actions, we'll let it sync natively.
-
-  } catch (err) {
-    console.error('[Auth] Failed to init session:', err);
   }
 }
 
-async function walletTransact(amount, type, roundId) {
-  // Obsolete: Wallet transactions are now handled securely on the backend
-  // inside the startRound and cashoutRound socket handlers.
-}
+function makeCar() {
+  const wrap = document.createElement('div');
+  wrap.className = 'car ' + CAR_TYPES[Math.floor(Math.random() * CAR_TYPES.length)];
 
-// ============================================================
-// 6. GAME-SPECIFIC BACKEND HOOKS
-// ============================================================
+  const body = document.createElement('div');
+  body.className = 'car-body';
 
-async function backendStartRound(bet, tier) {
-  return new Promise((resolve, reject) => {
-    const clientSeed = crypto.getRandomValues(new Uint8Array(8)).reduce((s,b) => s + b.toString(16).padStart(2,'0'), '');
-    
-    socket.emit('chickenRoad:start', { bet, tier, clientSeed }, (response) => {
-      if (!response.success) {
-        console.error('[Backend Error]', response.error);
-        reject(response.error);
-        return;
-      }
-      
-      const { roundId, serverSeedHash, clientSeed: resClientSeed, nonce } = response.data;
-      
-      State.serverSeedHash = serverSeedHash;
-      State.clientSeed = resClientSeed;
-      State.nonce = nonce;
-
-      DOM.vpServerHash.textContent = serverSeedHash.substring(0, 32) + '...';
-      DOM.vpClientSeed.textContent = resClientSeed;
-      DOM.vpNonce.textContent = nonce;
-      DOM.vpServerSeed.textContent = '(revealed after round)';
-
-      resolve(roundId);
-    });
-  });
-}
-
-async function backendResolveStep() {
-  return new Promise((resolve, reject) => {
-    socket.emit('chickenRoad:step', { roundId: _roundId }, (response) => {
-      if (!response.success) {
-        console.error('[Backend Error]', response.error);
-        reject(response.error);
-        return;
-      }
-      
-      State.nonce++;
-      DOM.vpNonce.textContent = State.nonce;
-      
-      const { safe, nextMultiplier, serverSeed } = response.data;
-      
-      if (!safe) {
-        State.serverSeed = serverSeed;
-      }
-      
-      resolve({ safe, nextMultiplier });
-    });
-  });
-}
-
-async function backendEndRound(roundId, result, winAmount) {
-  if (result === 'WIN') {
-    return new Promise((resolve, reject) => {
-      socket.emit('chickenRoad:cashout', { roundId }, (response) => {
-        if (!response.success) {
-          console.error('[Backend Error]', response.error);
-          reject(response.error);
-          return;
-        }
-        State.serverSeed = response.data.serverSeed;
-        DOM.vpServerSeed.textContent = State.serverSeed;
-        resolve();
-      });
-    });
-  } else {
-    // If it was a bust, the server already recorded it during the 'step' event.
-    // The serverSeed was returned in the 'step' response.
-    DOM.vpServerSeed.textContent = State.serverSeed;
+  if (wrap.classList.contains('car-police')) {
+    const lb = document.createElement('div');
+    lb.className = 'car-lightbar';
+    body.appendChild(lb);
   }
+
+  const roof = document.createElement('div');
+  roof.className = 'car-roof';
+  body.appendChild(roof);
+
+  const ws = document.createElement('div');
+  ws.className = 'car-windshield';
+  body.appendChild(ws);
+
+  const hl = document.createElement('div');
+  hl.className = 'car-headlights';
+  hl.innerHTML = '<div class="headlight"></div><div class="headlight"></div>';
+  body.appendChild(hl);
+
+  const tl = document.createElement('div');
+  tl.className = 'car-taillights';
+  tl.innerHTML = '<div class="taillight"></div><div class="taillight"></div>';
+  body.appendChild(tl);
+
+  wrap.appendChild(body);
+  return wrap;
 }
 
-// ============================================================
-// 7. ADMIN DASHBOARD HOOKS
-// ============================================================
-function emitEvent(event, data) {
-  // ADMIN DASHBOARD HOOK — pipe to analytics backend
-  console.log(`[ADMIN DASHBOARD HOOK] ${event}`, data);
+// ═══════════════════════════════════════════════════════════
+// 7. CHICKEN ANIMATION
+// ═══════════════════════════════════════════════════════════
+function setChickenAnim(state) {
+  DOM.chickenImg.className = state;
 }
 
-// ============================================================
-// 8. BALANCE & UI UPDATES
-// ============================================================
-function setBalance(amount) {
-  State.balance = Math.max(0, amount);
-  DOM.walletAmount.textContent = State.balance.toFixed(2) + ' ETB';
-  DOM.walletAmount.classList.remove('pop');
-  void DOM.walletAmount.offsetWidth; // force reflow to restart animation
-  DOM.walletAmount.classList.add('pop');
-}
+// ═══════════════════════════════════════════════════════════
+// 8. EFFECTS
+// ═══════════════════════════════════════════════════════════
+function spawnExplosion(x, y) {
+  const exp = document.createElement('div');
+  exp.className = 'explosion';
+  exp.style.left = x + 'px'; exp.style.top = y + 'px';
 
-function updateUI() {
-  const { phase, bet, stepCount, multiplier, balance } = State;
-  const potentialWin = (bet * multiplier).toFixed(2);
+  const ring = document.createElement('div');
+  ring.className = 'exp-ring';
+  ring.style.left = '0'; ring.style.top = '0';
+  exp.appendChild(ring);
 
-  // Bet display
-  DOM.betDisplay.textContent = bet;
+  const core = document.createElement('div');
+  core.className = 'exp-core';
+  core.style.left = '0'; core.style.top = '0';
+  exp.appendChild(core);
 
-  switch (phase) {
-    case 'IDLE':
-      DOM.tierSelect.disabled  = false;
-      DOM.btnMin.disabled      = false;
-      DOM.btnMax.disabled      = false;
-      DOM.presetBtns.forEach(b => b.disabled = false);
-      DOM.btnStep.disabled     = false;
-      DOM.btnStep.textContent  = 'START BET';
-      DOM.btnCashOut.disabled  = true;
-      DOM.cashOutSub.textContent = '';
-      DOM.potWin.classList.remove('visible');
-      DOM.potWin.textContent   = '— ETB';
-      DOM.stepCounter.textContent = 'STEP 0';
-      DOM.infoLeft.textContent = 'Select tier & bet, then START';
-      DOM.infoRight.textContent = '';
-      DOM.multDisp.className   = 'multiplier-display';
-      break;
-
-    case 'PLAYING':
-      DOM.tierSelect.disabled  = true;
-      DOM.btnMin.disabled      = true;
-      DOM.btnMax.disabled      = true;
-      DOM.presetBtns.forEach(b => b.disabled = true);
-      DOM.btnStep.disabled     = false;
-      DOM.btnStep.textContent  = 'NEXT STEP';
-      DOM.btnCashOut.disabled  = stepCount === 0;
-      DOM.cashOutSub.textContent = stepCount > 0 ? `${potentialWin} ETB` : '';
-      DOM.stepCounter.textContent = `STEP ${stepCount}`;
-      DOM.infoLeft.textContent = `Bet: ${bet} ETB`;
-      DOM.infoRight.textContent = stepCount > 0 ? `Win: ${potentialWin} ETB` : '';
-      if (stepCount > 0) {
-        DOM.potWin.textContent = `${potentialWin} ETB`;
-        DOM.potWin.classList.add('visible');
-      }
-      break;
-
-    case 'REVEALING':
-      DOM.btnStep.disabled     = true;
-      DOM.btnCashOut.disabled  = true;
-      DOM.btnMin.disabled      = true;
-      DOM.btnMax.disabled      = true;
-      DOM.presetBtns.forEach(b => b.disabled = true);
-      break;
-
-    case 'GAMEOVER':
-      DOM.btnStep.disabled     = true;
-      DOM.btnCashOut.disabled  = true;
-      DOM.btnMin.disabled      = true;
-      DOM.btnMax.disabled      = true;
-      DOM.presetBtns.forEach(b => b.disabled = true);
-      DOM.tierSelect.disabled  = true;
-      break;
+  for (let i = 0; i < 8; i++) {
+    const s = document.createElement('div');
+    s.className = 'exp-spark';
+    s.style.setProperty('--deg', (i * 45) + 'deg');
+    s.style.left = '0'; s.style.top = '0';
+    exp.appendChild(s);
   }
+
+  DOM.roadCanvas.appendChild(exp);
+  setTimeout(() => exp.remove(), 800);
 }
 
-// ============================================================
-// 9. ROAD VISUALS
-// ============================================================
-function resetRoad() {
-  State.roadOffset = 0;
-  DOM.roadSurface.innerHTML = '';
-  DOM.roadSurface.style.transform = `rotateX(55deg) translateY(30px)`;
-  // Seed a few decorative rows
-  for (let i = 0; i < 4; i++) spawnTileRow(i * 80);
-}
+function spawnSafeEffect(x, y, mult) {
+  // Ring
+  const ring = document.createElement('div');
+  ring.className = 'safe-ring';
+  ring.style.left = x + 'px'; ring.style.top = y + 'px';
+  DOM.roadCanvas.appendChild(ring);
+  setTimeout(() => ring.remove(), 700);
 
-function spawnTileRow(yBottom) {
-  const row = document.createElement('div');
-  row.className = 'row-marker';
-  row.style.bottom = `${yBottom}px`;
-  for (let i = 0; i < 3; i++) {
-    const t = document.createElement('div');
-    t.className = 'tile';
-    row.appendChild(t);
-  }
-  DOM.roadSurface.appendChild(row);
-  requestAnimationFrame(() => row.classList.add('visible'));
-  return row;
-}
-
-function scrollRoad() {
-  State.roadOffset += 85;
-  // Blend road scroll into CSS transform
-  DOM.roadSurface.style.transform =
-    `rotateX(55deg) translateY(${30 - State.roadOffset * 0.4}px)`;
-}
-
-// ============================================================
-// 10. CHICKEN ANIMATION HELPERS
-// ============================================================
-function setChickenState(state) {
-  DOM.chicken.className = `chicken ${state}`;
-}
-
-// ============================================================
-// 11. OVERLAY & PARTICLES
-// ============================================================
-function showOverlay(text, type) {
-  const el = DOM.overlayMsg;
-  el.className = 'overlay-msg'; // reset
-  el.textContent = text;
-  void el.offsetWidth;
-  el.className = `overlay-msg ${type} show`;
-}
-
-function hideOverlay() {
-  DOM.overlayMsg.className = 'overlay-msg';
+  // +multiplier badge
+  const badge = document.createElement('div');
+  badge.className = 'plus-badge';
+  badge.textContent = '+' + mult.toFixed(2) + 'x';
+  badge.style.left = x + 'px'; badge.style.top = y + 'px';
+  DOM.roadCanvas.appendChild(badge);
+  setTimeout(() => badge.remove(), 1000);
 }
 
 function spawnConfetti(x, y, count) {
-  const colors = ['#d4af37','#f5d76e','#2ecc71','#ff7b00','#ffffff','#e74c3c'];
+  const colors = ['#f5c518','#ffe87a','#00e676','#ff9500','#fff','#ff1744'];
   for (let i = 0; i < count; i++) {
     const el = document.createElement('div');
-    el.className = 'confetti-piece';
-    const size   = Math.random() * 8 + 4;
-    const angle  = Math.random() * 360;
-    const dist   = Math.random() * 140 + 60;
-    const dur    = Math.random() * 0.6 + 0.6;
-    const dx     = Math.cos(angle * Math.PI / 180) * dist;
-    const dy     = Math.sin(angle * Math.PI / 180) * dist - 80;
-    el.style.cssText = `
-      left:${x}px; top:${y}px;
-      width:${size}px; height:${size * (Math.random() > 0.5 ? 1 : 2.5)}px;
-      background:${colors[Math.floor(Math.random()*colors.length)]};
-      --cf-end: translate(${dx}px,${dy}px) rotate(${Math.random()*720}deg);
-      animation-duration:${dur}s;
-      border-radius:${Math.random() > 0.5 ? '50%' : '2px'};
-    `;
+    el.className = 'conf';
+    const size = Math.random() * 8 + 4;
+    const angle = Math.random() * 360;
+    const dist  = Math.random() * 130 + 60;
+    const dur   = Math.random() * 0.6 + 0.6;
+    const dx    = Math.cos(angle * Math.PI/180) * dist;
+    const dy    = Math.sin(angle * Math.PI/180) * dist - 80;
+    el.style.cssText = `left:${x}px;top:${y}px;width:${size}px;height:${size*(Math.random()>0.5?1:2.5)}px;background:${colors[Math.floor(Math.random()*colors.length)]};--cf-end:translate(${dx}px,${dy}px) rotate(${Math.random()*720}deg);animation-duration:${dur}s;border-radius:${Math.random()>0.5?'50%':'2px'};`;
     DOM.particleLayer.appendChild(el);
     setTimeout(() => el.remove(), (dur + 0.1) * 1000);
   }
 }
 
-// ============================================================
-// 12. MULTIPLIER COUNTER ANIMATION
-// ============================================================
-function animateMultiplier(from, to, durationMs) {
+// ═══════════════════════════════════════════════════════════
+// 9. OVERLAY
+// ═══════════════════════════════════════════════════════════
+function showOverlay(text, type) {
+  DOM.overlayMsg.className = 'overlay-msg';
+  DOM.overlayMsg.textContent = text;
+  void DOM.overlayMsg.offsetWidth;
+  DOM.overlayMsg.className = `overlay-msg ${type} show`;
+}
+function hideOverlay() { DOM.overlayMsg.className = 'overlay-msg'; }
+
+// ═══════════════════════════════════════════════════════════
+// 10. MULTIPLIER ANIMATION
+// ═══════════════════════════════════════════════════════════
+function animateMultiplier(from, to, ms) {
   const start = performance.now();
   function tick(now) {
-    const t = Math.min((now - start) / durationMs, 1);
-    const ease = 1 - Math.pow(1 - t, 3); // easeOutCubic
-    const val  = from + (to - from) * ease;
+    const t = Math.min((now - start) / ms, 1);
+    const ease = 1 - Math.pow(1 - t, 3);
+    const val = from + (to - from) * ease;
     DOM.multDisp.textContent = val.toFixed(2) + 'x';
     if (t < 1) requestAnimationFrame(tick);
     else DOM.multDisp.textContent = to.toFixed(2) + 'x';
@@ -1068,42 +1043,166 @@ function animateMultiplier(from, to, durationMs) {
   requestAnimationFrame(tick);
 }
 
-// ============================================================
+// ═══════════════════════════════════════════════════════════
+// 11. BALANCE & UI
+// ═══════════════════════════════════════════════════════════
+function setBalance(amount) {
+  State.balance = Math.max(0, amount);
+  DOM.walletAmount.textContent = State.balance.toFixed(2) + ' ETB';
+  DOM.walletAmount.classList.remove('pop');
+  void DOM.walletAmount.offsetWidth;
+  DOM.walletAmount.classList.add('pop');
+}
+
+function updateUI() {
+  const { phase, bet, stepCount, multiplier } = State;
+  const potentialWin = (bet * multiplier).toFixed(2);
+  DOM.betDisplay.textContent = bet;
+
+  const idle = phase === 'IDLE';
+  const playing = phase === 'PLAYING';
+
+  DOM.tierSelect.disabled = !idle;
+  DOM.btnMin.disabled     = !idle;
+  DOM.btnMax.disabled     = !idle;
+  DOM.presetBtns.forEach(b => b.disabled = !idle);
+
+  if (idle) {
+    DOM.btnStep.textContent = 'Play';
+    DOM.btnStep.disabled    = false;
+    DOM.btnCashOut.style.display = 'none';
+    DOM.potWin.classList.remove('visible');
+    DOM.stepCounter.textContent = 'STEP 0';
+    DOM.multRing.className = 'mult-ring';
+    DOM.multDisp.textContent = '1.00x';
+    DOM.multDisp.style.color = 'var(--gold)';
+  } else if (playing) {
+    DOM.btnStep.textContent = 'Step';
+    DOM.btnStep.disabled    = false;
+    DOM.btnCashOut.style.display = stepCount > 0 ? 'flex' : 'none';
+    DOM.btnCashOut.disabled = stepCount === 0;
+    DOM.cashOutSub.textContent = stepCount > 0 ? potentialWin + ' ETB' : '';
+    DOM.stepCounter.textContent = `STEP ${stepCount}`;
+    if (stepCount > 0) {
+      DOM.potWin.textContent = potentialWin + ' ETB';
+      DOM.potWin.classList.add('visible');
+    }
+  } else {
+    DOM.btnStep.disabled    = true;
+    DOM.btnCashOut.disabled = true;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// 12. SOCKET & AUTH (preserved from original)
+// ═══════════════════════════════════════════════════════════
+let socket = null;
+
+async function initUserSession() {
+  try {
+    const tg = window.Telegram?.WebApp;
+    if (tg) { tg.ready(); tg.expand(); if (tg.enableClosingConfirmation) tg.enableClosingConfirmation(); }
+
+    let urlParams = new URLSearchParams(window.location.search);
+    let userId = urlParams.get('userId');
+    if (!userId && tg && tg.initDataUnsafe && tg.initDataUnsafe.user) userId = tg.initDataUnsafe.user.id;
+    if (!userId) userId = '123456789';
+
+    socket = io(window.location.origin, {
+      auth: { userId, initData: tg?.initData || '' },
+      transports: ['websocket','polling']
+    });
+
+    socket.on('connect', () => console.log('[Socket] connected'));
+    socket.on('wallet:balance', d => setBalance(d.balance));
+    socket.on('disconnect', reason => console.log('[Socket] disconnected', reason));
+
+    State.clientSeed = generateHex(16);
+    State.serverSeedHash = await sha256(State.clientSeed + Date.now());
+    DOM.vpClientSeed.textContent = State.clientSeed;
+    DOM.vpServerHash.textContent = State.serverSeedHash;
+  } catch(e) { console.error('[Session Error]', e); }
+}
+
+async function walletTransact(amount, type, ref) {
+  return new Promise((resolve) => {
+    if (!socket) { resolve(); return; }
+    socket.emit('wallet:transact', { amount, type, ref }, (r) => {
+      if (r && r.success) setBalance(r.balance);
+      resolve();
+    });
+  });
+}
+
+async function backendStartRound(bet, tier) {
+  return new Promise((resolve, reject) => {
+    if (!socket) { resolve('test-round-' + Date.now()); return; }
+    socket.emit('chickenRoad:start', { bet, tier, clientSeed: State.clientSeed, serverSeedHash: State.serverSeedHash }, (r) => {
+      if (!r.success) { reject(r.error); return; }
+      resolve(r.data.roundId);
+    });
+  });
+}
+
+async function backendResolveStep() {
+  return new Promise((resolve, reject) => {
+    if (!socket) { resolve({ safe: Math.random() > 0.25, nextMultiplier: State.multiplier * 1.2 }); return; }
+    socket.emit('chickenRoad:step', { roundId: _roundId }, (r) => {
+      if (!r.success) { reject(r.error); return; }
+      State.nonce++;
+      DOM.vpNonce.textContent = State.nonce;
+      const { safe, nextMultiplier, serverSeed } = r.data;
+      if (!safe) State.serverSeed = serverSeed;
+      resolve({ safe, nextMultiplier });
+    });
+  });
+}
+
+async function backendEndRound(roundId, result, winAmount) {
+  if (result === 'WIN') {
+    return new Promise((resolve) => {
+      if (!socket) { resolve(); return; }
+      socket.emit('chickenRoad:cashout', { roundId }, (r) => {
+        if (r.success) { State.serverSeed = r.data.serverSeed; DOM.vpServerSeed.textContent = State.serverSeed; }
+        resolve();
+      });
+    });
+  } else {
+    DOM.vpServerSeed.textContent = State.serverSeed;
+  }
+}
+
+function emitEvent(event, data) { console.log('[GAME]', event, data); }
+
+// ═══════════════════════════════════════════════════════════
 // 13. CORE GAME ACTIONS
-// ============================================================
+// ═══════════════════════════════════════════════════════════
 let _roundId = null;
 
 async function actionStart() {
   if (State.phase !== 'IDLE') return;
-  if (State.balance < State.bet) {
-    haptic('error');
-    AudioMan.error();
-    DOM.walletAmount.style.animation = 'none';
-    void DOM.walletAmount.offsetWidth;
-    DOM.walletAmount.style.animation = '';
-    return;
-  }
+  if (State.balance < State.bet) { haptic('error'); AudioMan.error(); return; }
 
-  haptic('medium');
-  AudioMan.click();
-
-  State.tier        = DOM.tierSelect.value;
-  State.multiplier  = 1.00;
-  State.stepCount   = 0;
-  State.cashOutPending = false;
+  haptic('medium'); AudioMan.click();
+  State.tier = DOM.tierSelect.value;
+  State.multiplier = 1.0; State.stepCount = 0; State.cashOutPending = false;
+  State.chickenLane = -1;
   hideOverlay();
-  resetRoad();
 
-  // EXISTING AUTH/WALLET HOOK — debit bet
+  // Reset chicken to left side
+  positionChicken(-1, false);
+  setChickenAnim('');
+
+  // Reset multiplier display
+  DOM.multRing.className = 'mult-ring';
+  DOM.multDisp.textContent = '1.00x';
+  DOM.multDisp.style.color = 'var(--gold)';
+  DOM.potWin.classList.remove('visible');
+
   await walletTransact(-State.bet, 'BET_DEBIT', null);
-
-  // GAME-SPECIFIC BACKEND HOOK — open round
   _roundId = await backendStartRound(State.bet, State.tier);
 
   State.phase = 'PLAYING';
-  DOM.multDisp.textContent = '1.00x';
-  DOM.multDisp.className   = 'multiplier-display';
-
   emitEvent('ROUND_START', { roundId: _roundId, bet: State.bet, tier: State.tier });
   updateUI();
 }
@@ -1113,94 +1212,91 @@ async function actionStep() {
   State.phase = 'REVEALING';
   updateUI();
 
-  haptic('light');
-  AudioMan.jump();
+  haptic('light'); AudioMan.jump();
 
-  // Immediate visual feedback (<50ms)
-  setChickenState('jump');
-  scrollRoad();
+  // Animate chicken hop
+  setChickenAnim('jump');
 
-  // Tension pacing: ramp delay from 220ms → 580ms as steps increase
-  const tensionMs = Math.min(220 + State.stepCount * 45, 580);
+  // Advance chicken position (visually move ahead)
+  const nextLane = State.chickenLane + 1;
 
-  // GAME-SPECIFIC BACKEND HOOK
+  const tensionMs = Math.min(200 + State.stepCount * 40, 550);
   const result = await backendResolveStep();
+
+  // Move chicken to next lane
+  State.chickenLane = nextLane;
+  positionChicken(nextLane, true);
 
   await sleep(tensionMs);
 
-  const row = spawnTileRow(160); // new row ahead of chicken
-
   if (result.safe) {
-    resolveStepSafe(result.nextMultiplier, row);
+    resolveStepSafe(result.nextMultiplier, nextLane);
   } else {
-    resolveStepBust(row);
+    resolveStepBust(nextLane);
   }
 }
 
-function resolveStepSafe(nextMult, row) {
-  const tiles = row.children;
+function resolveStepSafe(nextMult, lane) {
+  // Show safe effect at chicken position
+  const chickenRect = DOM.chickenCont.getBoundingClientRect();
+  const roadRect    = DOM.roadCanvas.getBoundingClientRect();
+  const cx = chickenRect.left + chickenRect.width/2 - roadRect.left;
+  const cy = chickenRect.top  + chickenRect.height/2 - roadRect.top;
+  spawnSafeEffect(cx, cy, nextMult);
 
-  // Near-miss chance (20%) — show flanking fire tiles for drama
-  const nearMiss = Math.random() > 0.80;
-  if (nearMiss && tiles.length === 3) {
-    tiles[0].innerHTML = '<img src="/src/assets/chicken-road/bomb.png" style="width:80%;" />'; tiles[0].classList.add('fire');
-    tiles[2].innerHTML = '<img src="/src/assets/chicken-road/bomb.png" style="width:80%;" />'; tiles[2].classList.add('fire');
-    setChickenState('stumble');
+  // Near-miss 20%: a car shoots past just behind chicken
+  if (Math.random() > 0.80) {
+    const nearCar = carEls.find(c => parseInt(c.dataset.lane) === lane);
+    if (nearCar) { nearCar.classList.add('hit-animate'); setTimeout(()=>nearCar.classList.remove('hit-animate'),400); }
+    setChickenAnim('stumble');
+    setTimeout(() => setChickenAnim(''), 600);
   } else {
-    setChickenState('idle');
+    setChickenAnim('');
   }
-  tiles[1].innerHTML = '<img src="/src/assets/chicken-road/coin.png" style="width:80%;" />'; tiles[1].classList.add('safe');
 
-  const oldMult      = State.multiplier;
-  State.multiplier   = nextMult;
+  const old = State.multiplier;
+  State.multiplier = nextMult;
   State.stepCount++;
 
-  // Multiplier counter
-  animateMultiplier(oldMult, nextMult, 380);
+  animateMultiplier(old, nextMult, 380);
+  DOM.multRing.className = 'mult-ring glow-green';
   DOM.multDisp.classList.remove('pulse');
   void DOM.multDisp.offsetWidth;
   DOM.multDisp.classList.add('pulse');
+  if (nextMult >= 3) DOM.multDisp.style.color = 'var(--green)';
 
-  // Gold colour at high multipliers
-  if (nextMult >= 3) DOM.multDisp.classList.add('gold');
-
-  haptic('heavy');
-  AudioMan.safe();
-
+  haptic('heavy'); AudioMan.safe();
   emitEvent('STEP_SAFE', { step: State.stepCount, mult: nextMult.toFixed(2) });
-
-  // Big-win hook
-  if (State.bet * nextMult >= State.bet * 5) {
-    emitEvent('BIG_WIN_APPROACHING', { mult: nextMult.toFixed(2) });
-  }
+  if (State.bet * nextMult >= State.bet * 5) emitEvent('BIG_WIN_APPROACHING', { mult: nextMult.toFixed(2) });
 
   State.phase = 'PLAYING';
   updateUI();
 }
 
-function resolveStepBust(row) {
-  const tiles = row.children;
-  tiles[1].innerHTML = '<img src="/src/assets/chicken-road/bomb.png" style="width:80%;" />'; tiles[1].classList.add('fire');
+function resolveStepBust(lane) {
+  // Explosion at chicken position
+  const chickenRect = DOM.chickenCont.getBoundingClientRect();
+  const roadRect    = DOM.roadCanvas.getBoundingClientRect();
+  const cx = chickenRect.left + chickenRect.width/2 - roadRect.left;
+  const cy = chickenRect.top  + chickenRect.height/2 - roadRect.top;
+  spawnExplosion(cx, cy);
+
+  // Hit nearby car
+  const hitCar = carEls.find(c => parseInt(c.dataset.lane) === lane);
+  if (hitCar) { hitCar.classList.add('hit-animate'); }
 
   DOM.gameArea.classList.remove('screen-shake');
   void DOM.gameArea.offsetWidth;
   DOM.gameArea.classList.add('screen-shake');
 
-  setChickenState('burn');
-  DOM.multDisp.className = 'multiplier-display danger';
+  setChickenAnim('burn');
+  DOM.multRing.className = 'mult-ring glow-red';
+  DOM.multDisp.style.color = 'var(--red)';
 
-  haptic('error');
-  AudioMan.bust();
+  haptic('error'); AudioMan.bust();
+  showOverlay('BUSTED! 💥', 'bust');
 
-  showOverlay('BUSTED! 🔥', 'bust');
-
-  emitEvent('ROUND_LOST', {
-    roundId:   _roundId,
-    steps:     State.stepCount,
-    mult:      State.multiplier.toFixed(2),
-    betLost:   State.bet
-  });
-
+  emitEvent('ROUND_LOST', { roundId: _roundId, steps: State.stepCount, mult: State.multiplier.toFixed(2), betLost: State.bet });
   backendEndRound(_roundId, 'LOST', 0);
   DOM.potWin.classList.remove('visible');
 
@@ -1209,146 +1305,131 @@ function resolveStepBust(row) {
 
   setTimeout(() => {
     hideOverlay();
+    setChickenAnim('');
+    positionChicken(-1, false);
+    State.chickenLane = -1;
     State.phase = 'IDLE';
-    State.multiplier = 1.00;
-    DOM.multDisp.textContent = '1.00x';
-    setChickenState('idle');
+    State.multiplier = 1.0;
     updateUI();
-  }, 2400);
+  }, 2600);
 }
 
 async function actionCashOut() {
   if (State.phase !== 'PLAYING') return;
-  if (State.stepCount === 0) return; // must complete at least 1 step
-  if (State.cashOutPending) return;  // idempotency guard
-
+  if (State.stepCount === 0) return;
+  if (State.cashOutPending) return;
   State.cashOutPending = true;
   State.phase = 'REVEALING';
   updateUI();
 
-  haptic('success');
-  AudioMan.cashout();
-
+  haptic('success'); AudioMan.cashout();
   const winAmount = parseFloat((State.bet * State.multiplier).toFixed(2));
 
-  setChickenState('celebrate');
+  setChickenAnim('celebrate');
 
-  // Scale confetti to win size
-  const confettiCount = State.multiplier >= 5 ? 60 : State.multiplier >= 2 ? 35 : 18;
-  const rect = DOM.chicken.getBoundingClientRect();
-  spawnConfetti(rect.left + 21, rect.top + 21, confettiCount);
+  const count = State.multiplier >= 5 ? 65 : State.multiplier >= 2 ? 38 : 20;
+  const r = DOM.chickenCont.getBoundingClientRect();
+  spawnConfetti(r.left + 36, r.top + 36, count);
 
-  showOverlay(`${State.multiplier.toFixed(2)}x  🎉`, 'win');
-  DOM.infoLeft.textContent  = `Won ${winAmount} ETB`;
-  DOM.infoRight.textContent = `at ${State.multiplier.toFixed(2)}x`;
+  showOverlay(`${State.multiplier.toFixed(2)}x 🎉`, 'win');
 
-  // EXISTING AUTH/WALLET HOOK — credit win to shared wallet
   await walletTransact(winAmount, 'WIN_CREDIT', _roundId);
-
-  // GAME-SPECIFIC BACKEND HOOK — finalize round
   await backendEndRound(_roundId, 'WIN', winAmount);
-
   emitEvent('CASH_OUT', { roundId: _roundId, winAmount, mult: State.multiplier.toFixed(2) });
+
+  // Push live win to ticker
+  addTickerWin(winAmount);
 
   setTimeout(() => {
     hideOverlay();
+    setChickenAnim('');
+    positionChicken(-1, false);
+    State.chickenLane = -1;
     State.phase = 'IDLE';
-    State.multiplier = 1.00;
+    State.multiplier = 1.0;
     State.cashOutPending = false;
-    DOM.multDisp.textContent = '1.00x';
-    DOM.multDisp.className   = 'multiplier-display';
-    setChickenState('idle');
     DOM.potWin.classList.remove('visible');
+    DOM.multRing.className = 'mult-ring';
+    DOM.multDisp.style.color = 'var(--gold)';
     updateUI();
   }, 2800);
 }
 
-// ============================================================
-// 14. HELPERS
-// ============================================================
+// ═══════════════════════════════════════════════════════════
+// 14. LIVE TICKER
+// ═══════════════════════════════════════════════════════════
+const NAMES = ['Alex S.','Hana T.','Biruk M.','Liya G.','Yonas K.','Meron B.','Dawit T.','Sara H.'];
+function addTickerWin(amount) {
+  const name = NAMES[Math.floor(Math.random() * NAMES.length)];
+  const ticker = document.getElementById('tickerInner');
+  const item = document.createElement('span');
+  item.className = 'ticker-item';
+  item.innerHTML = `🏆 ${name} <span class="tw">+${amount.toFixed(0)} ETB</span>`;
+  ticker.appendChild(item.cloneNode(true));
+  ticker.appendChild(item.cloneNode(true)); // duplicate for seamless loop
+}
+
+// ═══════════════════════════════════════════════════════════
+// 15. HELPERS
+// ═══════════════════════════════════════════════════════════
 function haptic(type) {
-  try {
-    const hf = window.Telegram?.WebApp?.HapticFeedback;
-    if (!hf) return;
-    if (type === 'success' || type === 'error') hf.notificationOccurred(type);
-    else hf.impactOccurred(type); // 'light','medium','heavy'
-  } catch(e) {}
+  try { const hf = window.Telegram?.WebApp?.HapticFeedback; if (!hf) return; if (type==='success'||type==='error') hf.notificationOccurred(type); else hf.impactOccurred(type); } catch(e) {}
 }
-
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+function generateHex(len) { const a=new Uint8Array(Math.ceil(len/2)); crypto.getRandomValues(a); return Array.from(a).map(b=>b.toString(16).padStart(2,'0')).join('').slice(0,len); }
+async function sha256(msg) { const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(msg)); return Array.from(new Uint8Array(b)).map(b=>b.toString(16).padStart(2,'0')).join(''); }
 
-function generateHex(len) {
-  const arr = new Uint8Array(Math.ceil(len / 2));
-  crypto.getRandomValues(arr);
-  return Array.from(arr).map(b => b.toString(16).padStart(2,'0')).join('').slice(0, len);
-}
-
-async function sha256(message) {
-  const buf  = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(message));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
-}
-
-function hexToBytes(hex) {
-  const bytes = [];
-  for (let i = 0; i < hex.length; i += 2) bytes.push(parseInt(hex.slice(i, i+2), 16));
-  return bytes;
-}
-
-// ============================================================
-// 15. EVENT BINDINGS
-// ============================================================
+// ═══════════════════════════════════════════════════════════
+// 16. EVENT BINDINGS
+// ═══════════════════════════════════════════════════════════
 DOM.btnStep.addEventListener('click', () => {
-  if (State.phase === 'IDLE')    actionStart();
+  if (State.phase === 'IDLE') actionStart();
   else if (State.phase === 'PLAYING') actionStep();
 });
-
 DOM.btnCashOut.addEventListener('click', actionCashOut);
 
 DOM.btnMin.addEventListener('click', () => {
   if (State.phase !== 'IDLE') return;
-  AudioMan.click();
-  State.bet = CONFIG.minBet;
-  updateUI();
+  AudioMan.click(); State.bet = CONFIG.minBet; updateUI();
 });
-
 DOM.btnMax.addEventListener('click', () => {
   if (State.phase !== 'IDLE') return;
-  AudioMan.click();
-  State.bet = CONFIG.maxBet;
-  updateUI();
+  AudioMan.click(); State.bet = CONFIG.maxBet; updateUI();
 });
-
 DOM.presetBtns.forEach(btn => {
   btn.addEventListener('click', () => {
     if (State.phase !== 'IDLE') return;
     AudioMan.click();
     State.bet = parseInt(btn.getAttribute('data-val'), 10);
+    DOM.presetBtns.forEach(b => b.classList.remove('active-preset'));
+    btn.classList.add('active-preset');
     updateUI();
   });
 });
+DOM.tierSelect.addEventListener('change', () => { AudioMan.click(); State.tier = DOM.tierSelect.value; });
 
-DOM.tierSelect.addEventListener('change', () => {
-  AudioMan.click();
-  State.tier = DOM.tierSelect.value;
-});
-
-// Long-press on multiplier to show provably-fair panel
+// Long press multiplier → provably fair
 DOM.multDisp.addEventListener('pointerdown', (() => {
-  let timer;
-  return () => { timer = setTimeout(() => DOM.verifyPanel.classList.add('show'), 700); };
+  let t; return () => { t = setTimeout(() => DOM.verifyPanel.classList.add('show'), 700); };
 })());
 DOM.multDisp.addEventListener('pointerup', () => clearTimeout());
 DOM.verifyClose.addEventListener('click', () => DOM.verifyPanel.classList.remove('show'));
 
-// ============================================================
-// 16. BOOTSTRAP
-// ============================================================
+// ═══════════════════════════════════════════════════════════
+// 17. BOOTSTRAP
+// ═══════════════════════════════════════════════════════════
 window.addEventListener('DOMContentLoaded', () => {
   initUserSession();
-  resetRoad();
-  updateUI();
-  setChickenState('idle');
+  // Wait a tick for layout, then init road
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      initRoad();
+      updateUI();
+    });
+  });
 });
+
+window.addEventListener('resize', () => initRoad());
 </script>
 </body>
 </html>
