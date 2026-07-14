@@ -1409,14 +1409,11 @@ let _userId = null;
 let _balanceLoaded = false;
 
 async function fetchBalance() {
-  if (!_userId) return;
   try {
-    const tg = window.Telegram?.WebApp;
-    const res = await fetch(API_URL + '/api/me', {
-      headers: { 'x-telegram-id': _userId, 'x-init-data': tg?.initData || '' }
-    });
+    const res = await fetch(API_URL + '/api/me', { headers: apiHeaders() });
     if (res.ok) {
       const data = await res.json();
+      if (data.user?.id) _userId = String(data.user.id);
       const main  = parseFloat(data.wallet?.balance  ?? 0);
       const bonus = parseFloat(data.wallet?.bonusBalance ?? 0);
       setBalance((isNaN(main) ? 0 : main) + (isNaN(bonus) ? 0 : bonus));
@@ -1445,7 +1442,7 @@ async function initUserSession() {
       }, 3000);
     }
 
-    socket = io(API_URL, { query: { userId, initData: tg?.initData || '' }, transports: ['websocket','polling'] });
+    socket = io(API_URL, { query: { userId: _userId, initData: tg?.initData || '' }, transports: ['websocket','polling'] });
     socket.on('connect', async () => { await fetchBalance(); });
     socket.on('balance-updated', d => { if (d?.newBalance !== undefined) { setBalance(d.newBalance); _balanceLoaded = true; } });
     socket.on('wallet:balance',  d => { if (d?.balance    !== undefined) { setBalance(d.balance);    _balanceLoaded = true; } });
@@ -1463,11 +1460,14 @@ const API_URL = (window.location.hostname.includes('localhost') || window.locati
   : 'https://api.bunatechhub.net';
 
 function apiHeaders() {
-  return {
+  const token = localStorage.getItem('admin_token');
+  const headers = {
     'Content-Type': 'application/json',
     'x-telegram-id': _userId || '',
-    'x-init-data': window.Telegram?.WebApp?.initData || ''
+    'x-telegram-init-data': window.Telegram?.WebApp?.initData || ''
   };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  return headers;
 }
 
 async function backendStartRound(bet, tier) {
