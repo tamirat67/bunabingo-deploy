@@ -43,7 +43,8 @@ export default function Navbar() {
   if (
     pathname?.startsWith('/admin') ||
     pathname?.startsWith('/agent') ||
-    pathname?.startsWith('/keno')
+    pathname?.startsWith('/keno') ||
+    pathname?.startsWith('/play')
   ) {
     return null;
   }

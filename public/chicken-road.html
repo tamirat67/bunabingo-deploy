@@ -3,35 +3,42 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#0a1628">
-  <meta name="description" content="Chicken Road — Buna Games premium arcade. Guide your chicken safely across busy traffic lanes!">
-  <title>🐔 Chicken Road — Buna Games</title>
+  <meta name="theme-color" content="#13151c">
+  <meta name="description" content="Chicken Road 2 — Buna Games. Guide your chicken across busy lanes, multiply your bet up to 10,000x!">
+  <title>CHICKEN 2 ROAD — Buna Games</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <style>
-    /* ═══════════════════════════════════════════════════════════
+    /* ═══════════════════════════════════════════════
        DESIGN TOKENS
-    ═══════════════════════════════════════════════════════════ */
+    ═══════════════════════════════════════════════ */
     :root {
-      --grass:       #2d5a27;
-      --grass-light: #3a7a32;
-      --sidewalk:    #8a8070;
-      --asphalt:     #1a1a2e;
-      --asphalt-mid: #16213e;
-      --lane-line:   rgba(255,255,255,0.15);
-      --gold:        #f5c518;
-      --gold-glow:   rgba(245,197,24,0.5);
-      --green:       #00e676;
-      --green-glow:  rgba(0,230,118,0.4);
-      --red:         #ff1744;
-      --red-glow:    rgba(255,23,68,0.5);
-      --text:        #ffffff;
-      --text-dim:    rgba(255,255,255,0.55);
-      --panel-bg:    rgba(8,14,30,0.92);
-      --panel-border:rgba(255,255,255,0.08);
-      --radius:      14px;
+      --bg:           #13151c;
+      --header-bg:    #1a1d27;
+      --header-br:    #2a2e3d;
+      --strip-bg:     #0f111a;
+      --road:         #6c6f78;
+      --road-dark:    #5c5f68;
+      --sidewalk:     #9a9da8;
+      --sidewalk-dk:  #7a7d88;
+      --ctrl-bg:      #1a1d27;
+      --ctrl-br:      #2a2e3d;
+      --btn-bg:       #22263a;
+      --btn-br:       #333752;
+      --tab-bg:       #181b28;
+      --tab-active:   #2a2e3d;
+      --green:        #4db851;
+      --green-glow:   rgba(77,184,81,0.5);
+      --gold:         #f5c518;
+      --gold-glow:    rgba(245,197,24,0.5);
+      --red:          #e84040;
+      --red-glow:     rgba(232,64,64,0.5);
+      --orange:       #ff9500;
+      --text:         #ffffff;
+      --text-dim:     rgba(255,255,255,0.5);
+      --radius:       10px;
     }
 
     *, *::before, *::after {
@@ -40,568 +47,793 @@
       font-family: 'Outfit', -apple-system, sans-serif;
     }
     html, body { height: 100%; width: 100%; overflow: hidden; }
-
     body {
-      background: #0a1628;
+      background: var(--bg);
       color: var(--text);
       display: flex;
       flex-direction: column;
       height: 100dvh;
     }
-    .back-btn {
-      color: rgba(255,255,255,0.85); text-decoration: none;
-      display: flex; align-items: center; justify-content: center;
-      background: rgba(255,255,255,0.08);
-      border: 1.5px solid rgba(255,255,255,0.18);
-      border-radius: 50%;
-      width: 36px; height: 36px; flex-shrink: 0;
-      transition: background 0.2s, transform 0.15s;
-    }
-    .back-btn:active { background: rgba(255,255,255,0.20); transform: scale(0.92); }
-    .back-btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
-    .scenery-item {
-      position: absolute; left: 50%; transform: translateX(-50%);
-      font-size: 24px; animation: roadScroll var(--dur) linear forwards;
-      filter: drop-shadow(0 10px 10px rgba(0,0,0,0.6));
-      pointer-events: none; z-index: 5;
-    }
 
-    /* ═══════════════════════════════════════════════════════════
-       LIVE WINS TICKER (top bar)
-    ═══════════════════════════════════════════════════════════ */
-    .live-ticker {
-      background: rgba(0,0,0,0.7);
-      border-bottom: 1px solid var(--panel-border);
-      padding: 6px 12px;
+    /* ═══════════════════════════════════════════════
+       HEADER
+    ═══════════════════════════════════════════════ */
+    header {
       display: flex;
       align-items: center;
       gap: 8px;
-      font-size: 11px;
+      padding: 0 10px;
+      height: 52px;
+      background: var(--header-bg);
+      border-bottom: 1px solid var(--header-br);
+      flex-shrink: 0;
+      z-index: 40;
+    }
+    .back-btn {
+      width: 34px; height: 34px;
+      background: var(--btn-bg);
+      border: 1px solid var(--btn-br);
+      border-radius: 8px;
+      color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      text-decoration: none;
+      flex-shrink: 0;
+      transition: background 0.15s;
+    }
+    .back-btn svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+    .back-btn:active { background: #2d3250; }
+
+    .logo {
+      display: flex; align-items: center;
+      gap: 0;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+    .logo-ch { color: #fff; font-size: 16px; }
+    .logo-num {
+      font-size: 22px;
+      font-weight: 900;
+      color: #e84040;
+      text-shadow: 0 0 14px rgba(232,64,64,0.7), 0 0 28px rgba(232,64,64,0.3);
+      line-height: 1;
+      padding: 0 1px;
+    }
+    .logo-rd { color: #fff; font-size: 16px; }
+
+    .h-spacer { flex: 1; }
+
+    .how-btn {
+      display: flex; align-items: center; gap: 5px;
+      background: var(--btn-bg);
+      border: 1px solid var(--btn-br);
+      border-radius: 20px;
+      color: rgba(255,255,255,0.85);
+      font-size: 12px; font-weight: 700;
+      padding: 7px 13px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s;
+    }
+    .how-btn:active { background: #2d3250; }
+    .how-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    .bal-pill {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--btn-bg);
+      border: 1px solid var(--btn-br);
+      border-radius: 20px;
+      padding: 6px 12px;
+      font-size: 13px; font-weight: 800;
+      min-width: 80px;
+      white-space: nowrap;
+    }
+    .bal-icon {
+      width: 20px; height: 20px;
+      background: linear-gradient(135deg, #f5c518 0%, #d4a006 100%);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 900; color: #000;
+      flex-shrink: 0;
+    }
+    #walletAmount { font-size: 13px; font-weight: 800; }
+    #walletAmount.pop { animation: walletPop 0.3s ease; }
+    @keyframes walletPop { 0%,100%{transform:scale(1)} 50%{transform:scale(1.2)} }
+
+    .hdr-icon {
+      width: 34px; height: 34px;
+      background: var(--btn-bg);
+      border: 1px solid var(--btn-br);
+      border-radius: 8px;
+      color: var(--text);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; cursor: pointer;
+      flex-shrink: 0;
+      transition: background 0.15s;
+    }
+    .hdr-icon:active { background: #2d3250; }
+
+    /* ═══════════════════════════════════════════════
+       LIVE STRIP
+    ═══════════════════════════════════════════════ */
+    .live-strip {
+      background: var(--strip-bg);
+      border-bottom: 1px solid #1c2030;
+      padding: 0 12px;
+      height: 26px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
       flex-shrink: 0;
       overflow: hidden;
-      position: relative;
-      height: 30px;
     }
-    .ticker-label {
-      display: flex; align-items: center; gap: 4px;
-      font-weight: 700; color: var(--green); white-space: nowrap;
-      flex-shrink: 0; font-size: 10px;
+    .live-status {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 10px; color: var(--text-dim);
+      white-space: nowrap; flex-shrink: 0;
     }
-    .live-dot { width:7px;height:7px;background:var(--green);border-radius:50%;animation:livePulse 1s ease-in-out infinite; }
-    .ticker-scroll { flex:1; overflow:hidden; position:relative; }
-    .ticker-inner { display:flex; gap:24px; animation:tickerMove 18s linear infinite; white-space:nowrap; }
-    .ticker-item { color:var(--text-dim); font-size:10px; }
-    .ticker-item .tw { color:var(--gold); font-weight:700; }
-    @keyframes tickerMove { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
-    @keyframes livePulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.7)} }
+    .live-dot {
+      width: 6px; height: 6px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: livePulse 1.3s ease-in-out infinite;
+    }
+    @keyframes livePulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.35;transform:scale(0.6)} }
+    .online-count { color: #fff; font-weight: 700; }
+    .strip-div { width: 1px; height: 12px; background: #2a2e3d; flex-shrink: 0; }
+    .ticker-scroll { flex: 1; overflow: hidden; }
+    .ticker-inner { display: flex; gap: 20px; animation: tickMove 22s linear infinite; white-space: nowrap; }
+    .ticker-item { font-size: 10px; color: var(--text-dim); }
+    .ticker-item .tw { color: var(--green); font-weight: 700; }
+    @keyframes tickMove { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
 
-    /* ═══════════════════════════════════════════════════════════
-       HEADER (balance + logo)
-    ═══════════════════════════════════════════════════════════ */
-    header {
-      display: flex; align-items: center; gap: 10px;
-      padding: 9px 14px;
-      background: linear-gradient(180deg, rgba(5,10,25,0.98) 0%, rgba(10,22,40,0.95) 100%);
-      border-bottom: 1px solid rgba(255,255,255,0.07);
-      backdrop-filter: blur(16px);
-      flex-shrink: 0; z-index: 30;
-    }
-    .logo {
-      flex: 1;
-      display: flex; align-items: center; gap: 7px;
-      font-weight: 900; font-size: 14px; letter-spacing: 0.5px;
-    }
-    .logo-icon { font-size: 22px; line-height: 1; }
-    .logo-text {
-      background: linear-gradient(90deg, #f5c518 0%, #ffe87a 100%);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-      letter-spacing: 1px;
-    }
-    .online-badge {
-      font-size: 10px; background: rgba(0,230,118,0.12); border: 1px solid rgba(0,230,118,0.28);
-      border-radius: 20px; padding: 3px 7px; color: var(--green); font-weight: 700;
-      display: flex; align-items: center; gap: 4px; flex-shrink: 0;
-    }
-    .wallet-pill {
-      background: rgba(245,197,24,0.08);
-      border: 1px solid rgba(245,197,24,0.3);
-      border-radius: 10px; padding: 5px 12px;
-      display: flex; flex-direction: column; align-items: flex-end;
-      flex-shrink: 0; min-width: 90px;
-    }
-    .wallet-label { font-size: 8px; color: var(--text-dim); font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; }
-    .wallet-amount { font-size: 13px; font-weight: 900; color: var(--gold); line-height: 1.2; }
-    .wallet-amount.pop { animation: pop 0.35s ease; }
-    @keyframes pop { 0%{transform:scale(1)} 50%{transform:scale(1.25)} 100%{transform:scale(1)} }
-
-    /* ═══════════════════════════════════════════════════════════
-       MAIN GAME AREA
-    ═══════════════════════════════════════════════════════════ */
+    /* ═══════════════════════════════════════════════
+       GAME AREA
+    ═══════════════════════════════════════════════ */
     #gameArea {
-      flex: 1; position: relative; overflow: hidden; min-height: 0;
+      flex: 1;
+      position: relative;
+      display: flex;
+      overflow: hidden;
+      min-height: 0;
     }
 
-    /* Multiplier HUD — floated top center */
-    .hud-overlay {
-      position: absolute; top: 12px; left: 0; right: 0;
-      display: flex; flex-direction: column; align-items: center;
-      z-index: 20; pointer-events: none; gap: 2px;
-    }
-    .step-badge {
-      background: rgba(0,0,0,0.6); border: 1px solid var(--panel-border);
-      border-radius: 20px; padding: 3px 12px;
-      font-size: 10px; font-weight: 700; letter-spacing: 2px;
-      color: var(--text-dim); text-transform: uppercase;
-    }
-    .mult-ring {
-      width: 100px; height: 100px; border-radius: 50%;
-      background: radial-gradient(circle, rgba(245,197,24,0.15) 0%, rgba(0,0,0,0.8) 70%);
-      border: 2px solid rgba(245,197,24,0.5);
-      box-shadow: 0 0 30px rgba(245,197,24,0.25), inset 0 0 20px rgba(245,197,24,0.1);
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      transition: border-color 0.3s, box-shadow 0.3s;
-    }
-    .mult-ring.glow-green {
-      border-color: var(--green); box-shadow: 0 0 30px var(--green-glow), inset 0 0 20px var(--green-glow);
-    }
-    .mult-ring.glow-red {
-      border-color: var(--red); box-shadow: 0 0 30px var(--red-glow), inset 0 0 20px var(--red-glow);
-    }
-    #multiplierDisplay {
-      font-size: 1.9rem; font-weight: 900; color: var(--gold); line-height: 1;
-      text-shadow: 0 0 20px var(--gold-glow);
-      transition: color 0.3s;
-    }
-    #multiplierDisplay.pulse { animation: multPulse 0.4s ease; }
-    .mult-sub { font-size: 9px; color: var(--text-dim); font-weight: 600; letter-spacing: 1px; }
-    #potentialWin {
-      font-size: 11px; font-weight: 700; color: var(--green);
-      text-shadow: 0 0 10px var(--green-glow); opacity: 0;
-      transition: opacity 0.3s; margin-top: 2px;
-    }
-    #potentialWin.visible { opacity: 1; }
-
-    /* ═══════════════════════════════════════════════════════════
-       GAME WORLD — TOP DOWN
-    ═══════════════════════════════════════════════════════════ */
-    #gameWorld {
-      position: absolute; inset: 0;
-      display: flex; flex-direction: row;
-    }
-
-    /* Grass strip left */
-    .grass-left, .grass-right {
+    /* ─── Sidewalk Panel ─── */
+    .sidewalk-panel {
+      width: 70px;
       flex-shrink: 0;
-      width: 32px;
-      background: linear-gradient(to right, var(--grass) 0%, var(--grass-light) 100%);
-      position: relative; overflow: hidden;
+      background: var(--sidewalk);
+      position: relative;
+      overflow: visible;
+      z-index: 6;
+      border-right: 3px solid #888b96;
     }
-    .grass-right {
-      background: linear-gradient(to left, var(--grass) 0%, var(--grass-light) 100%);
-    }
-    /* Animated grass texture */
-    .grass-left::before, .grass-right::before {
+    /* Stone tile pattern */
+    .sidewalk-panel::before {
       content: '';
       position: absolute; inset: 0;
-      background: repeating-linear-gradient(
-        0deg,
-        rgba(0,0,0,0.1) 0px, transparent 3px,
-        transparent 20px, rgba(0,0,0,0.05) 23px
-      );
-      animation: grassMove 2s linear infinite;
+      background:
+        repeating-linear-gradient(0deg, rgba(0,0,0,0.07) 0px, transparent 1px, transparent 30px, rgba(0,0,0,0.07) 31px),
+        repeating-linear-gradient(90deg, rgba(0,0,0,0.05) 0px, transparent 1px, transparent 35px, rgba(0,0,0,0.05) 36px);
     }
-    @keyframes grassMove { from{background-position:0 0} to{background-position:0 40px} }
-
-    /* Sidewalk */
-    .sidewalk-left, .sidewalk-right {
-      flex-shrink: 0;
-      width: 28px;
-      background: repeating-linear-gradient(
-        0deg,
-        #8a8070 0px, #9a9080 6px,
-        #7a7060 7px, #8a8070 8px
-      );
-      border-right: 2px solid rgba(0,0,0,0.4);
-      animation: sidewalkMove 0.5s linear infinite paused;
+    /* Darker sidewalk edge */
+    .sidewalk-panel::after {
+      content: '';
+      position: absolute; right: 0; top: 0; bottom: 0;
+      width: 8px;
+      background: linear-gradient(to left, rgba(0,0,0,0.15), transparent);
     }
-    .sidewalk-right { border-right: none; border-left: 2px solid rgba(0,0,0,0.4); }
 
-    /* Scenery Items (Trees, Traffic Lights) */
-    .scenery-item {
+    /* Lamp post */
+    .lamp-post {
       position: absolute;
-      top: -100px;
+      top: 15%;
       left: 50%;
       transform: translateX(-50%);
-      animation: sceneryMove var(--dur) linear forwards;
-      z-index: 5;
+      z-index: 8;
+      display: flex; flex-direction: column; align-items: center;
     }
-    .scenery-item img {
-      width: 45px;
-      height: auto;
-      filter: drop-shadow(0 6px 8px rgba(0,0,0,0.7));
+    .lamp-head {
+      width: 28px; height: 11px;
+      background: linear-gradient(180deg, #888a98, #6a6c78);
+      border-radius: 5px 5px 0 0;
+      position: relative;
     }
-    @keyframes sceneryMove {
-      from { top: -100px; }
-      to { top: calc(100% + 100px); }
+    .lamp-head::after {
+      content: '';
+      position: absolute;
+      bottom: -7px; left: 50%;
+      transform: translateX(-50%);
+      width: 9px; height: 7px;
+      background: rgba(255,240,160,0.92);
+      border-radius: 0 0 5px 5px;
+      box-shadow: 0 0 12px rgba(255,240,100,0.85), 0 0 24px rgba(255,240,100,0.4);
+    }
+    .lamp-pole {
+      width: 5px; height: 72px;
+      background: linear-gradient(to right, #777a88, #9a9daa, #777a88);
+      border-radius: 3px;
+    }
+    .lamp-base {
+      width: 16px; height: 6px;
+      background: #666978;
+      border-radius: 3px 3px 0 0;
     }
 
-    /* Road center */
+    /* Tree */
+    .sw-tree {
+      position: absolute;
+      bottom: 20%;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 8;
+      display: flex; flex-direction: column; align-items: center;
+    }
+    .tree-top {
+      width: 44px; height: 48px;
+      background: radial-gradient(ellipse at 38% 28%, #5eaa4c, #2d6a20);
+      border-radius: 50% 50% 44% 44%;
+      box-shadow: inset -5px -6px 10px rgba(0,0,0,0.2), 0 3px 8px rgba(0,0,0,0.3);
+    }
+    .tree-trunk {
+      width: 8px; height: 16px;
+      background: linear-gradient(to right, #6b4226, #8b5a2b, #6b4226);
+      border-radius: 2px;
+    }
+
+    /* ─── Road Canvas ─── */
     #roadCanvas {
       flex: 1;
       position: relative;
-      background: var(--asphalt);
+      background: var(--road);
       overflow: hidden;
     }
-
-    /* Animated road lines */
+    /* Subtle road shading */
     #roadCanvas::before {
       content: '';
       position: absolute; inset: 0;
-      background: repeating-linear-gradient(
-        180deg,
-        transparent 0px,
-        transparent 35px,
-        rgba(255,255,255,0.12) 35px,
-        rgba(255,255,255,0.12) 38px,
-        transparent 38px,
-        transparent 73px
-      );
-      animation: roadScroll 0.8s linear infinite;
-      will-change: transform;
+      background: linear-gradient(180deg,
+        rgba(0,0,0,0.08) 0%, transparent 15%,
+        transparent 85%, rgba(0,0,0,0.1) 100%);
+      pointer-events: none;
+      z-index: 1;
     }
-    @keyframes roadScroll { from{transform:translateY(0)} to{transform:translateY(73px)} }
 
     /* Lane dividers */
-    .lane-line {
-      position: absolute; top: 0; bottom: 0;
-      width: 2px;
+    .lane-div {
+      position: absolute;
+      top: 0; bottom: 0;
+      width: 3px;
+      z-index: 3;
+      pointer-events: none;
       background: repeating-linear-gradient(
         180deg,
-        rgba(255,255,255,0.2) 0px, rgba(255,255,255,0.2) 25px,
-        transparent 25px, transparent 50px
+        rgba(255,255,255,0.4) 0px, rgba(255,255,255,0.4) 18px,
+        transparent 18px, transparent 36px
       );
-      animation: roadScroll 0.8s linear infinite;
+      animation: laneAnim 0.9s linear infinite;
+    }
+    @keyframes laneAnim {
+      from { background-position: 0 0; }
+      to   { background-position: 0 36px; }
     }
 
-    /* ═══════════════════════════════════════════════════════════
-       CHICKEN
-    ═══════════════════════════════════════════════════════════ */
+    /* ─── Multiplier Circles ─── */
+    .lane-mult-circle {
+      position: absolute;
+      width: 82px; height: 82px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 38% 32%, #5d616e, #3c3f4c);
+      border: 3px solid #4a4e5c;
+      box-shadow:
+        inset 0 4px 10px rgba(0,0,0,0.55),
+        inset 0 -2px 5px rgba(255,255,255,0.04),
+        0 5px 14px rgba(0,0,0,0.45);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 4;
+      transform: translate(-50%, -50%);
+      transition: border-color 0.35s, box-shadow 0.35s, background 0.35s;
+      overflow: hidden;
+    }
+    /* Inner grid texture */
+    .lane-mult-circle::before {
+      content: '';
+      position: absolute; inset: 4px;
+      border-radius: 50%;
+      background:
+        repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0px, transparent 1px, transparent 9px, rgba(255,255,255,0.025) 10px),
+        repeating-linear-gradient(90deg, rgba(255,255,255,0.025) 0px, transparent 1px, transparent 9px, rgba(255,255,255,0.025) 10px);
+    }
+    .lane-mult-text {
+      font-size: 15px; font-weight: 900;
+      color: rgba(255,255,255,0.8);
+      text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+      position: relative; z-index: 1;
+      letter-spacing: -0.5px;
+    }
+    /* Active lane (chicken is here) */
+    .lane-mult-circle.active {
+      background: radial-gradient(circle at 38% 32%, #3a7a3a, #1a4d1a);
+      border-color: var(--green);
+      box-shadow:
+        inset 0 4px 10px rgba(0,0,0,0.3),
+        0 0 18px var(--green-glow),
+        0 0 38px rgba(77,184,81,0.25);
+    }
+    .lane-mult-circle.active .lane-mult-text {
+      color: #8fff8f;
+      text-shadow: 0 0 10px rgba(77,184,81,0.9);
+    }
+    /* Busted lane */
+    .lane-mult-circle.bust {
+      border-color: var(--red);
+      box-shadow: 0 0 20px var(--red-glow);
+    }
+
+    /* ─── Chicken ─── */
     #chickenContainer {
       position: absolute;
-      bottom: 40%;
-      left: 0; /* will be set by JS */
-      transform: translateX(-50%);
       z-index: 15;
-      transition: left 0.45s cubic-bezier(0.34,1.56,0.64,1);
-      filter: drop-shadow(0 8px 12px rgba(0,0,0,0.6));
+      transform: translate(-50%, -50%);
+      transition: left 0.42s cubic-bezier(0.34,1.56,0.64,1);
+      filter: drop-shadow(0 10px 14px rgba(0,0,0,0.65));
+      top: 60%;
+      left: 0;
     }
     #chickenImg {
       width: 72px; height: auto;
       transform-origin: bottom center;
       animation: chickenBob 1.8s ease-in-out infinite;
+      mix-blend-mode: multiply;
+      background: transparent;
     }
-    #chickenImg.jump     { animation: chickenHop 0.45s cubic-bezier(0.34,1.56,0.64,1) both; }
-    #chickenImg.stumble  { animation: chickenStumble 0.5s ease both; }
-    #chickenImg.celebrate{ animation: chickenDance 0.6s ease-in-out infinite; }
-    #chickenImg.burn     { animation: chickenBurn 0.2s ease 3 both; filter: brightness(0.3) sepia(1) hue-rotate(-30deg) saturate(8); }
+    #chickenImg.jump      { animation: chickenHop 0.45s cubic-bezier(0.34,1.56,0.64,1) both; }
+    #chickenImg.stumble   { animation: chickenStumble 0.5s ease both; }
+    #chickenImg.celebrate { animation: chickenDance 0.6s ease-in-out infinite; }
+    #chickenImg.burn      { animation: chickenBurn 0.22s ease 3 both; filter: brightness(0.3) sepia(1) hue-rotate(-30deg) saturate(8); }
 
-    @keyframes chickenBob {
-      0%,100%{transform:translateY(0) rotate(-2deg)} 50%{transform:translateY(-6px) rotate(2deg)}
-    }
-    @keyframes chickenHop {
-      0%  {transform:scaleY(0.85) translateY(0)}
-      30% {transform:scaleY(1.15) translateY(-30px) rotate(-8deg)}
-      60% {transform:scaleY(1)    translateY(-40px) rotate(0)}
-      85% {transform:scaleY(0.9)  translateY(0) rotate(6deg)}
-      100%{transform:scaleY(1)    translateY(0) rotate(0)}
-    }
-    @keyframes chickenStumble {
-      0%  {transform:rotate(0)}
-      20% {transform:rotate(-25deg) translateX(-6px)}
-      45% {transform:rotate(18deg) translateX(5px)}
-      70% {transform:rotate(-8deg)}
-      100%{transform:rotate(0)}
-    }
-    @keyframes chickenDance {
-      0%,100%{transform:translateY(0) rotate(-10deg) scale(1.05)}
-      50%    {transform:translateY(-12px) rotate(10deg) scale(1.1)}
-    }
-    @keyframes chickenBurn {
-      0%,100%{transform:translateX(0) rotate(10deg)}
-      50%    {transform:translateX(6px) rotate(-10deg)}
-    }
+    @keyframes chickenBob      { 0%,100%{transform:translateY(0) rotate(-2deg)} 50%{transform:translateY(-7px) rotate(2deg)} }
+    @keyframes chickenHop      { 0%{transform:scaleY(0.85) translateY(0)} 30%{transform:scaleY(1.15) translateY(-32px) rotate(-8deg)} 60%{transform:scaleY(1) translateY(-42px)} 85%{transform:scaleY(0.9) translateY(0) rotate(6deg)} 100%{transform:scaleY(1) translateY(0)} }
+    @keyframes chickenStumble  { 0%{transform:rotate(0)} 20%{transform:rotate(-22deg) translateX(-5px)} 45%{transform:rotate(16deg) translateX(5px)} 70%{transform:rotate(-7deg)} 100%{transform:rotate(0)} }
+    @keyframes chickenDance    { 0%,100%{transform:translateY(0) rotate(-10deg) scale(1.05)} 50%{transform:translateY(-13px) rotate(10deg) scale(1.1)} }
+    @keyframes chickenBurn     { 0%,100%{transform:translateX(0) rotate(10deg)} 50%{transform:translateX(7px) rotate(-10deg)} }
 
-    /* ═══════════════════════════════════════════════════════════
-       CARS
-    ═══════════════════════════════════════════════════════════ */
-    .car {
-      position: absolute;
-      z-index: 10;
-      transform: translateX(-50%);
-      will-change: transform;
-    }
-    .car-sprite {
-      width: 46px; height: auto;
-      transform: rotate(var(--rot, 0deg));
-      filter: drop-shadow(0 6px 8px rgba(0,0,0,0.7));
-    }
-    .car-wide .car-sprite  { width: 54px; }  /* bus / truck wider */
-    .car-slim .car-sprite  { width: 38px; }  /* sports car slimmer */
-    .car.going-down { animation: carDown var(--dur, 2.5s) linear var(--delay, 0s) infinite; }
-    .car.going-up   { animation: carUp var(--dur, 2.5s) linear var(--delay, 0s) infinite; }
-    @keyframes carDown { from { top: -80px; } to { top: calc(100% + 80px); } }
-    @keyframes carUp { from { top: calc(100% + 80px); } to { top: -80px; } }
+    /* ─── Cars ─── */
+    .car { position:absolute; z-index:10; transform:translateX(-50%); will-change:transform; }
+    .car-sprite { width:46px; height:auto; filter:drop-shadow(0 6px 9px rgba(0,0,0,0.7)); mix-blend-mode:multiply; }
+    .car-wide .car-sprite { width:54px; }
+    .car-slim .car-sprite { width:38px; }
+    .car.going-down { animation:carDown var(--dur,2.5s) linear var(--delay,0s) infinite; }
+    .car.going-up   { animation:carUp   var(--dur,2.5s) linear var(--delay,0s) infinite; }
+    @keyframes carDown { from{top:-80px} to{top:calc(100% + 80px)} }
+    @keyframes carUp   { from{top:calc(100% + 80px)} to{top:-80px} }
+    .car.hit-animate { animation:carHit 0.3s ease-out both !important; }
+    @keyframes carHit { 0%{transform:translateX(-50%) rotate(0)} 30%{transform:translateX(-70%) rotate(-12deg)} 70%{transform:translateX(-30%) rotate(15deg)} 100%{transform:translateX(-50%) rotate(8deg)} }
 
-    /* Hit car (triggered by JS) */
-    .car.hit-animate {
-      animation: carHit 0.3s ease-out both !important;
-    }
-    @keyframes carHit {
-      0%  { transform:translateX(-50%) rotate(0) }
-      30% { transform:translateX(-70%) rotate(-12deg) }
-      70% { transform:translateX(-30%) rotate(15deg) }
-      100%{ transform:translateX(-50%) rotate(8deg) }
-    }
+    /* ─── Explosion ─── */
+    .explosion { position:absolute; transform:translate(-50%,-50%); pointer-events:none; z-index:22; }
+    .exp-ring  { position:absolute; border-radius:50%; transform:translate(-50%,-50%); border:3px solid #ff6b35; animation:expRing 0.6s ease-out forwards; }
+    @keyframes expRing { 0%{width:0;height:0;opacity:1} 100%{width:120px;height:120px;opacity:0} }
+    .exp-core  { position:absolute; transform:translate(-50%,-50%); background:radial-gradient(circle,#fff 0%,#ff6 30%,#f60 60%,transparent 80%); width:60px; height:60px; border-radius:50%; animation:expCore 0.5s ease-out forwards; }
+    @keyframes expCore { 0%{opacity:1;transform:translate(-50%,-50%) scale(0.2)} 50%{opacity:1;transform:translate(-50%,-50%) scale(1.2)} 100%{opacity:0;transform:translate(-50%,-50%) scale(1.6)} }
+    .exp-spark { position:absolute; transform-origin:0 0; width:3px; height:30px; background:linear-gradient(to bottom,#ff0,transparent); animation:expSpark 0.5s ease-out forwards; }
+    @keyframes expSpark { 0%{transform:rotate(var(--deg)) scaleY(0);opacity:1} 50%{transform:rotate(var(--deg)) scaleY(1);opacity:1} 100%{transform:rotate(var(--deg)) scaleY(0.5) translateY(-30px);opacity:0} }
 
-    /* ═══════════════════════════════════════════════════════════
-       EXPLOSION
-    ═══════════════════════════════════════════════════════════ */
-    .explosion {
-      position: absolute; transform: translate(-50%,-50%);
-      pointer-events: none; z-index: 20;
-    }
-    .exp-ring {
-      position: absolute;
-      border-radius: 50%;
-      transform: translate(-50%,-50%);
-      border: 3px solid #ff6b35;
-      animation: expRing 0.6s ease-out forwards;
-    }
-    @keyframes expRing {
-      0%   { width:0;height:0;opacity:1; }
-      100% { width:120px;height:120px;opacity:0; }
-    }
-    .exp-core {
-      position: absolute; transform: translate(-50%,-50%);
-      background: radial-gradient(circle,#fff 0%,#ff6 30%,#f60 60%,transparent 80%);
-      width: 60px; height: 60px; border-radius: 50%;
-      animation: expCore 0.5s ease-out forwards;
-    }
-    @keyframes expCore {
-      0%  { opacity:1; transform:translate(-50%,-50%) scale(0.2); }
-      50% { opacity:1; transform:translate(-50%,-50%) scale(1.2); }
-      100%{ opacity:0; transform:translate(-50%,-50%) scale(1.6); }
-    }
-    .exp-spark {
-      position: absolute; transform-origin: 0 0;
-      width: 3px; height: 30px;
-      background: linear-gradient(to bottom,#ff0,transparent);
-      animation: expSpark 0.5s ease-out forwards;
-    }
-    @keyframes expSpark {
-      0%  { transform:rotate(var(--deg)) scaleY(0); opacity:1; }
-      50% { transform:rotate(var(--deg)) scaleY(1); opacity:1; }
-      100%{ transform:rotate(var(--deg)) scaleY(0.5) translateY(-30px); opacity:0; }
-    }
+    /* ─── Safe ring + badge ─── */
+    .safe-ring  { position:absolute; transform:translate(-50%,-50%); border-radius:50%; pointer-events:none; z-index:18; border:3px solid var(--gold); box-shadow:0 0 15px var(--gold-glow); animation:safeRing 0.6s ease-out forwards; }
+    @keyframes safeRing { 0%{width:20px;height:20px;opacity:1} 100%{width:92px;height:92px;opacity:0} }
+    .plus-badge { position:absolute; transform:translate(-50%,-220%); font-size:18px; font-weight:900; color:var(--gold); text-shadow:0 0 10px var(--gold-glow); pointer-events:none; z-index:18; animation:floatUp 0.9s ease-out forwards; }
+    @keyframes floatUp { 0%{opacity:1;transform:translate(-50%,-160%)} 100%{opacity:0;transform:translate(-50%,-310%)} }
 
-    /* ═══════════════════════════════════════════════════════════
-       SAFE STEP EFFECT
-    ═══════════════════════════════════════════════════════════ */
-    .safe-ring {
-      position: absolute; transform: translate(-50%,-50%);
-      border-radius: 50%;
-      pointer-events: none; z-index: 16;
-      border: 3px solid var(--gold);
-      box-shadow: 0 0 15px var(--gold-glow);
-      animation: safeRing 0.6s ease-out forwards;
-    }
-    @keyframes safeRing {
-      0%  { width:20px;height:20px;opacity:1; }
-      100%{ width:90px;height:90px;opacity:0; }
-    }
-    .plus-badge {
-      position: absolute; transform: translate(-50%,-200%);
-      font-size: 18px; font-weight: 900; color: var(--gold);
-      text-shadow: 0 0 10px var(--gold-glow);
-      pointer-events: none; z-index: 16;
-      animation: floatUp 0.9s ease-out forwards;
-    }
-    @keyframes floatUp {
-      0%  { opacity:1; transform:translate(-50%,-150%); }
-      100%{ opacity:0; transform:translate(-50%,-300%); }
-    }
-
-    /* ═══════════════════════════════════════════════════════════
-       CONFETTI
-    ═══════════════════════════════════════════════════════════ */
-    #particleLayer {
-      position: absolute; inset: 0; pointer-events: none; z-index: 25; overflow: hidden;
-    }
+    /* ─── Confetti ─── */
+    #particleLayer { position:absolute; inset:0; pointer-events:none; z-index:26; overflow:hidden; }
     .conf { position:absolute; border-radius:2px; opacity:0; animation:confFall linear forwards; }
-    @keyframes confFall {
-      0%  { opacity:1; }
-      100%{ opacity:0; transform:var(--cf-end); }
-    }
+    @keyframes confFall { 0%{opacity:1} 100%{opacity:0;transform:var(--cf-end)} }
 
-    /* ═══════════════════════════════════════════════════════════
-       OVERLAY MESSAGES
-    ═══════════════════════════════════════════════════════════ */
+    /* ─── Overlay messages ─── */
     #overlayMsg {
-      position: absolute; top: 38%; left: 50%;
-      transform: translate(-50%,-50%) scale(0.8);
-      font-size: 2.4rem; font-weight: 900;
-      text-align: center; z-index: 30;
-      opacity: 0; pointer-events: none; white-space: nowrap;
-      text-shadow: 0 4px 20px rgba(0,0,0,0.9);
+      position:absolute; top:36%; left:50%;
+      transform:translate(-50%,-50%) scale(0.8);
+      font-size:2.3rem; font-weight:900; text-align:center;
+      z-index:30; opacity:0; pointer-events:none; white-space:nowrap;
+      text-shadow:0 4px 22px rgba(0,0,0,0.9);
     }
-    #overlayMsg.win  { color: var(--green); }
-    #overlayMsg.bust { color: var(--red); }
-    #overlayMsg.show { animation: overlayPop 0.5s cubic-bezier(0.175,0.885,0.32,1.275) forwards; }
-    @keyframes overlayPop {
-      0%  {opacity:0;transform:translate(-50%,-50%) scale(0.6)}
-      60% {opacity:1;transform:translate(-50%,-50%) scale(1.1)}
-      100%{opacity:1;transform:translate(-50%,-50%) scale(1)}
-    }
+    #overlayMsg.win  { color:var(--green); }
+    #overlayMsg.bust { color:var(--red); }
+    #overlayMsg.show { animation:overlayPop 0.5s cubic-bezier(0.175,0.885,0.32,1.275) forwards; }
+    @keyframes overlayPop { 0%{opacity:0;transform:translate(-50%,-50%) scale(0.5)} 60%{opacity:1;transform:translate(-50%,-50%) scale(1.08)} 100%{opacity:1;transform:translate(-50%,-50%) scale(1)} }
 
-    /* ═══════════════════════════════════════════════════════════
-       SCREEN SHAKE
-    ═══════════════════════════════════════════════════════════ */
-    .screen-shake { animation: shake 0.4s cubic-bezier(0.36,0.07,0.19,0.97) both; }
-    @keyframes shake {
-      0%,100%{transform:translateX(0) rotate(0)}
-      20%    {transform:translateX(-8px) rotate(-1deg)}
-      40%    {transform:translateX(8px) rotate(1deg)}
-      60%    {transform:translateX(-5px) rotate(-0.5deg)}
-      80%    {transform:translateX(5px) rotate(0.5deg)}
-    }
+    /* ─── Screen shake ─── */
+    .screen-shake { animation:shake 0.4s cubic-bezier(0.36,0.07,0.19,0.97) both; }
+    @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-5px)} 80%{transform:translateX(5px)} }
 
-    /* Keyframes */
-    @keyframes multPulse {
-      0%{transform:scale(1)} 40%{transform:scale(1.3)} 100%{transform:scale(1)}
+    /* ─── NEW FEATURES (Chicken 2 Road Refinements) ─── */
+    /* Active Lane Blue Tooltip */
+    .active-tooltip {
+      position: absolute;
+      bottom: -28px; left: 50%;
+      transform: translateX(-50%) scale(0.9);
+      background: #4466d1;
+      border-radius: 4px;
+      color: #fff;
+      font-size: 13px; font-weight: 800;
+      padding: 3px 8px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.2s, transform 0.2s;
+      white-space: nowrap;
     }
+    .active-tooltip::before {
+      content: '';
+      position: absolute; top: -4px; left: 50%; transform: translateX(-50%);
+      border-left: 5px solid transparent; border-right: 5px solid transparent;
+      border-bottom: 5px solid #4466d1;
+    }
+    .active-tooltip.show { opacity: 1; transform: translateX(-50%) scale(1); }
 
-    /* ═══════════════════════════════════════════════════════════
+    /* $$ Eyes */
+    #chickenImg.dollars { filter: hue-rotate(45deg) saturate(1.5) brightness(1.1); }
+    #chickenImg.dollars::after { content:''; /* Normally we'd swap sprite, simulating here with filter */ }
+
+    /* Gold Coin Transformation */
+    .lane-mult-circle.gold-coin {
+      background: radial-gradient(circle at 35% 30%, #ffd700, #b8860b);
+      border-color: #ffd700;
+      box-shadow: inset 0 2px 5px rgba(255,255,255,0.8), inset 0 -4px 10px rgba(0,0,0,0.4), 0 5px 15px rgba(218,165,32,0.6);
+      animation: coinFlip 0.6s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .lane-mult-circle.gold-coin .lane-mult-text { display: none; }
+    .lane-mult-circle.gold-coin::after {
+      content: '🍗'; /* Simulating the roasted chicken icon */
+      font-size: 38px;
+      filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));
+    }
+    @keyframes coinFlip { 0%{transform:translate(-50%,-50%) scale(1) rotateY(0)} 50%{transform:translate(-50%,-50%) scale(1.1) rotateY(90deg)} 100%{transform:translate(-50%,-50%) scale(1) rotateY(0)} }
+
+    /* WIN Popup */
+    .win-popup {
+      position: absolute;
+      top: 20px; left: 20px;
+      background: #33593a;
+      border-radius: 12px;
+      padding: 10px 18px;
+      border: 1px solid rgba(77,184,81,0.4);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+      z-index: 50;
+      display: flex; flex-direction: column; align-items: center;
+      transform: translateY(-20px); opacity: 0; pointer-events: none;
+      transition: all 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .win-popup.show { transform: translateY(0); opacity: 1; }
+    .win-pill {
+      background: #f5c518; color: #000;
+      font-size: 11px; font-weight: 900;
+      padding: 2px 14px; border-radius: 12px;
+      margin-top: -18px; margin-bottom: 6px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    }
+    .win-amt { color: #fff; font-size: 18px; font-weight: 900; }
+    .win-amt span { font-size: 14px; color: rgba(255,255,255,0.7); }
+
+    /* Road Barriers */
+    .road-barrier {
+      position: absolute;
+      width: 60px; height: 34px;
+      background:
+        repeating-linear-gradient(45deg, #ff9500, #ff9500 10px, #222 10px, #222 20px);
+      border: 2px solid #ff9500;
+      border-radius: 4px;
+      z-index: 5;
+      transform: translateX(-50%);
+      box-shadow: 0 6px 10px rgba(0,0,0,0.6);
+      pointer-events: none;
+    }
+    .road-barrier::before, .road-barrier::after {
+      content: ''; position: absolute; bottom: -10px; width: 6px; height: 12px; background: #888; border-radius: 2px;
+    }
+    .road-barrier::before { left: 4px; }
+    .road-barrier::after { right: 4px; }
+
+    /* Hidden compat elements */
+    #multRing, #stepCounter, #potentialWin, #multiplierDisplay, #tierSelect { display:none !important; }
+
+    /* ═══════════════════════════════════════════════
        CONTROLS PANEL
-    ═══════════════════════════════════════════════════════════ */
+    ═══════════════════════════════════════════════ */
     #controls {
-      background: var(--panel-bg);
-      border-top: 1px solid var(--panel-border);
-      padding: 14px 16px;
-      padding-bottom: max(32px, calc(env(safe-area-inset-bottom) + 32px));
+      background: var(--ctrl-bg);
+      border-top: 1px solid var(--ctrl-br);
+      padding: 10px 12px;
+      padding-bottom: max(12px, calc(env(safe-area-inset-bottom) + 10px));
       flex-shrink: 0;
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      grid-template-rows: auto auto;
+      gap: 8px 10px;
+      align-items: center;
     }
-    .ctrl-inner {
-      max-width: 480px; margin: 0 auto;
-      display: flex; flex-direction: column; gap: 10px;
+
+    /* Left col (bet + presets) */
+    .ctrl-left {
+      grid-column: 1;
+      grid-row: 1 / 3;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
     }
 
     /* Bet row */
-    .bet-row {
-      display: flex; align-items: center;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid var(--panel-border);
-      border-radius: 12px; overflow: hidden;
+    .bet-ctrl {
+      display: flex;
+      align-items: center;
+      background: var(--btn-bg);
+      border: 1px solid var(--btn-br);
+      border-radius: 8px;
+      overflow: hidden;
+      height: 36px;
     }
-    .bet-edge-btn {
-      width: 54px; padding: 12px 0;
-      background: rgba(255,255,255,0.05);
-      border: none; color: var(--text-dim);
-      font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
-      cursor: pointer; transition: all 0.2s;
-      font-family: 'Outfit', sans-serif;
+    .bet-edge {
+      padding: 0 10px; height: 100%;
+      background: transparent; border: none;
+      color: var(--text-dim);
+      font-size: 10px; font-weight: 800; letter-spacing: 0.5px;
+      cursor: pointer; font-family: 'Outfit', sans-serif;
+      transition: color 0.15s;
     }
-    .bet-edge-btn:active { background: rgba(255,255,255,0.12); color: var(--text); }
+    .bet-edge:hover, .bet-edge:active { color: #fff; }
     .bet-center {
-      flex: 1; text-align: center;
-      font-size: 1.3rem; font-weight: 900; color: var(--text);
+      min-width: 42px; text-align: center;
+      font-size: 15px; font-weight: 900;
+      color: #fff;
+      border-left: 1px solid var(--btn-br);
+      border-right: 1px solid var(--btn-br);
+      height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0 6px;
     }
-    .bet-center small { display: block; font-size: 9px; color: var(--text-dim); font-weight: 600; margin-top: -2px; }
 
-    /* Presets */
+    /* Preset coins */
     .preset-row {
-      display: flex; gap: 8px;
+      display: flex; gap: 5px;
     }
     .preset-btn {
-      flex: 1; padding: 10px 4px;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid var(--panel-border);
-      border-radius: 10px;
-      color: var(--text); font-size: 13px; font-weight: 700;
-      cursor: pointer; transition: all 0.15s;
+      display: flex; align-items: center; gap: 4px;
+      background: var(--btn-bg);
+      border: 1px solid var(--btn-br);
+      border-radius: 8px;
+      color: #fff;
+      font-size: 12px; font-weight: 700;
+      padding: 5px 8px; height: 34px;
+      cursor: pointer;
       font-family: 'Outfit', sans-serif;
-      text-align: center;
+      transition: all 0.15s;
+      white-space: nowrap;
     }
-    .preset-btn span { display:block; font-size:8px; color:var(--text-dim); font-weight:600; margin-top:1px; }
-    .preset-btn:active, .preset-btn.active-preset {
-      background: rgba(245,197,24,0.15);
-      border-color: rgba(245,197,24,0.5);
-      color: var(--gold);
-    }
+    .coin { width:17px; height:17px; background:linear-gradient(135deg,#f5c518,#d4a006); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:900; color:#000; flex-shrink:0; }
+    .preset-btn.active-preset { background:rgba(77,184,81,0.15); border-color:rgba(77,184,81,0.5); color:var(--green); }
+    .preset-btn.active-preset .coin { background:linear-gradient(135deg,#4db851,#2e7d32); color:#fff; }
+    .preset-btn:active { background:rgba(77,184,81,0.12); border-color:rgba(77,184,81,0.4); }
 
-    /* Tier select */
-    .tier-select-wrap {
-      position: relative;
+    /* Center col (difficulty) */
+    .ctrl-center {
+      grid-column: 2;
+      grid-row: 1 / 3;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      align-self: stretch;
+      justify-content: center;
     }
-    .tier-select-wrap::after {
-      content: '▾';
-      position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
-      color: var(--text-dim); font-size: 14px; pointer-events: none;
+    .diff-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 9.5px;
+      color: var(--text-dim);
+      font-weight: 600;
+      padding: 0 2px;
     }
-    #tierSelect {
-      width: 100%; padding: 12px 36px 12px 16px;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid var(--panel-border);
-      border-radius: 10px;
-      color: var(--text); font-size: 14px; font-weight: 700;
-      -webkit-appearance: none; appearance: none; outline: none;
-      cursor: pointer; font-family: 'Outfit', sans-serif;
+    .tier-tabs {
+      display: flex;
+      background: var(--tab-bg);
+      border: 1px solid var(--ctrl-br);
+      border-radius: 8px;
+      overflow: hidden;
+      height: 36px;
     }
-    #tierSelect:disabled { opacity: 0.4; }
+    .tier-tab {
+      flex: 1;
+      background: transparent; border: none;
+      color: var(--text-dim);
+      font-size: 11px; font-weight: 700;
+      cursor: pointer;
+      font-family: 'Outfit', sans-serif;
+      transition: all 0.2s;
+    }
+    .tier-tab:hover { color: rgba(255,255,255,0.75); background: rgba(255,255,255,0.04); }
+    .tier-tab.active { background: var(--tab-active); color: #fff; }
+    .tier-tab:disabled { opacity: 0.4; pointer-events: none; }
 
-    /* Action buttons */
-    .action-row { display: flex; gap: 10px; }
+    /* Right col (action buttons — spans both rows) */
+    .ctrl-right {
+      grid-column: 3;
+      grid-row: 1 / 3;
+      display: flex;
+      gap: 10px;
+      align-self: stretch;
+    }
     .play-btn {
-      flex: 1; padding: 17px 0;
-      border: none; border-radius: 14px;
-      font-size: 1.15rem; font-weight: 900;
-      color: #fff; cursor: pointer;
+      background: linear-gradient(180deg, #5cb85c 0%, #449d44 100%);
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 1.1rem; font-weight: 900;
+      padding: 0 22px;
+      min-width: 90px;
+      cursor: pointer;
       font-family: 'Outfit', sans-serif;
       letter-spacing: 0.5px;
-      transition: transform 0.1s, box-shadow 0.2s;
+      box-shadow: 0 4px 16px rgba(77,184,81,0.42);
+      transition: transform 0.1s, box-shadow 0.2s, opacity 0.2s;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      flex: 1;
     }
     .play-btn:active { transform: scale(0.96); }
-    .play-btn:disabled { opacity: 0.4; pointer-events: none; filter: grayscale(0.7); }
-    #btnStep {
-      background: linear-gradient(180deg, #00e676 0%, #00b050 100%);
-      box-shadow: 0 6px 20px rgba(0,230,118,0.35);
-    }
+    .play-btn:disabled { opacity: 0.4; pointer-events: none; filter: grayscale(0.6); }
+
+    /* Yellow Cash Out Button */
     #btnCashOut {
-      background: linear-gradient(180deg, #ff9500 0%, #d47700 100%);
-      box-shadow: 0 6px 20px rgba(255,149,0,0.35);
+      background: linear-gradient(180deg, #ffd13b 0%, #e0b014 100%);
+      box-shadow: 0 4px 16px rgba(255,209,59,0.42);
+      color: #000;
       display: none;
     }
+    #btnCashOut small { color: rgba(0,0,0,0.8); }
 
-    /* ═══════════════════════════════════════════════════════════
-       PROVABLY FAIR PANEL
-    ═══════════════════════════════════════════════════════════ */
+    /* Provably Fair */
     #verifyPanel {
       position: absolute; bottom: 0; left: 0; right: 0;
-      background: #050d1e; border-top: 1px solid var(--panel-border);
+      background: #060e20; border-top: 1px solid var(--ctrl-br);
       padding: 14px 16px; font-size: 10px; color: var(--text-dim);
-      display: none; z-index: 50; word-break: break-all; line-height: 1.8;
+      display: none; z-index: 60; word-break: break-all; line-height: 1.8;
     }
     #verifyPanel.show { display: block; }
     #verifyPanel strong { color: var(--gold); }
     #verifyClose { float: right; cursor: pointer; font-size: 14px; color: var(--red); }
+
+    /* ═══════════════════════════════════════════════
+       HOW TO PLAY MODAL  (Amharic)
+    ═══════════════════════════════════════════════ */
+    .modal-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.82);
+      backdrop-filter: blur(6px);
+      z-index: 100;
+      display: none;
+      align-items: center; justify-content: center;
+      padding: 16px;
+    }
+    .modal-backdrop.show { display: flex; }
+    .modal-box {
+      background: #5a5d65;
+      border-radius: 14px;
+      max-width: 420px; width: 100%;
+      max-height: 88dvh;
+      display: flex; flex-direction: column;
+      animation: modalIn 0.28s cubic-bezier(0.34,1.56,0.64,1);
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+    }
+    @keyframes modalIn { from{opacity:0;transform:scale(0.88) translateY(16px)} to{opacity:1;transform:scale(1) translateY(0)} }
+
+    /* Header bar */
+    .modal-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 20px 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.12);
+      flex-shrink: 0;
+    }
+    .modal-title {
+      font-size: 18px; font-weight: 800;
+      color: #fff; letter-spacing: 0.2px;
+    }
+    .modal-x {
+      width: 30px; height: 30px;
+      background: rgba(255,255,255,0.1);
+      border: none; border-radius: 50%;
+      color: #fff; font-size: 16px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; flex-shrink: 0;
+      transition: background 0.15s;
+    }
+    .modal-x:active { background: rgba(255,255,255,0.22); }
+
+    /* Scrollable body */
+    .modal-body {
+      padding: 16px 20px 20px;
+      overflow-y: auto;
+      flex: 1;
+    }
+    .modal-body::-webkit-scrollbar { width: 4px; }
+    .modal-body::-webkit-scrollbar-track { background: transparent; }
+    .modal-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+
+    /* Numbered items */
+    .modal-item {
+      display: flex; gap: 16px;
+      margin-bottom: 16px;
+    }
+    .modal-item:last-child { margin-bottom: 0; }
+    .m-num {
+      font-size: 16px; font-weight: 900; color: #fff;
+      min-width: 24px; padding-top: 1px;
+      flex-shrink: 0;
+    }
+    .m-txt {
+      font-size: 14px; font-weight: 600;
+      color: #fff; line-height: 1.55;
+    }
+    .m-txt p { margin-bottom: 8px; }
+    .m-txt p:last-child { margin-bottom: 0; }
+    /* Sub-bullets */
+    .m-sub {
+      padding-left: 4px;
+      margin-top: 6px;
+    }
+    .m-sub-item {
+      display: flex; gap: 8px; align-items: baseline;
+      font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.9);
+      margin-bottom: 5px;
+    }
+    .m-sub-item:last-child { margin-bottom: 0; }
+    .m-bull { color: rgba(255,255,255,0.7); flex-shrink: 0; }
+    .m-sub-label { color: #fff; font-weight: 700; }
+
+    /* Max win badge */
+    .max-win-badge {
+      position: absolute;
+      top: 8px; right: 8px;
+      background: linear-gradient(135deg, rgba(245,197,24,0.15), rgba(245,197,24,0.05));
+      border: 1px solid rgba(245,197,24,0.35);
+      border-radius: 20px;
+      padding: 3px 10px;
+      font-size: 9px; font-weight: 800;
+      color: var(--gold);
+      letter-spacing: 0.5px;
+      pointer-events: none;
+      z-index: 5;
+    }
   </style>
 </head>
 <body>
 
-  <!-- Live wins ticker -->
-  <div class="live-ticker">
-    <div class="ticker-label"><span class="live-dot"></span> Live Wins</div>
+  <!-- ── HEADER ── -->
+  <header>
+    <a href="/" class="back-btn" id="backBtn" title="Back to Lobby">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    </a>
+    <div class="logo">
+      <span class="logo-ch">CHICKEN&nbsp;</span><span class="logo-num">2</span><span class="logo-rd">&nbsp;ROAD</span>
+    </div>
+    <div class="h-spacer"></div>
+    <button class="how-btn" id="howToBtn">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      How to play?
+    </button>
+    <div class="bal-pill">
+      <span id="walletAmount">— ETB</span>
+      <div class="bal-icon">$</div>
+    </div>
+    <button class="hdr-icon" id="fullscreenBtn" title="Fullscreen">⤢</button>
+    <button class="hdr-icon" title="Menu">☰</button>
+  </header>
+
+  <!-- ── LIVE WINS STRIP ── -->
+  <div class="live-strip">
+    <div class="live-status">
+      Live wins:&nbsp;<span class="live-dot"></span>&nbsp;Online:&nbsp;<span class="online-count" id="onlineCount">11646</span>
+    </div>
+    <div class="strip-div"></div>
     <div class="ticker-scroll">
       <div class="ticker-inner" id="tickerInner">
         <span class="ticker-item">🏆 Abebe W. <span class="tw">+248 ETB</span></span>
@@ -620,101 +852,179 @@
     </div>
   </div>
 
-  <!-- Header -->
-  <header>
-    <a href="/" class="back-btn" id="backBtn" title="Back to Lobby">
-      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
-    </a>
-    <div class="logo">
-      <span class="logo-icon">🐔</span>
-      <span class="logo-text">CHICKEN ROAD</span>
-    </div>
-    <!-- Removed online badge to fix wallet duplication confusion -->
-    <div class="wallet-pill">
-      <span class="wallet-label">BALANCE</span>
-      <span class="wallet-amount" id="walletAmount">— ETB</span>
-    </div>
-  </header>
-
-  <!-- Main Game Area -->
+  <!-- ── GAME AREA ── -->
   <div id="gameArea">
 
-    <!-- HUD -->
-    <div class="hud-overlay">
-      <div class="step-badge" id="stepCounter">STEP 0</div>
-      <div class="mult-ring" id="multRing">
-        <div id="multiplierDisplay">1.00x</div>
-        <div class="mult-sub">MULTIPLIER</div>
+    <!-- Left sidewalk panel -->
+    <div class="sidewalk-panel">
+      <div class="lamp-post">
+        <div class="lamp-head"></div>
+        <div class="lamp-pole"></div>
+        <div class="lamp-base"></div>
       </div>
-      <div id="potentialWin">— ETB</div>
+      <div class="sw-tree">
+        <div class="tree-top"></div>
+        <div class="tree-trunk"></div>
+      </div>
     </div>
 
-    <!-- Overlay messages -->
-    <div id="overlayMsg"></div>
-
-    <!-- Particles -->
-    <div id="particleLayer"></div>
-
-    <!-- Game World -->
-    <div id="gameWorld">
-      <div class="grass-left"></div>
-      <div class="sidewalk-left"></div>
-      <div id="roadCanvas">
-        <!-- Cars injected by JS -->
-      </div>
-      <div class="sidewalk-right"></div>
-      <div class="grass-right"></div>
+    <!-- Road -->
+    <div id="roadCanvas">
+      <!-- Max win badge -->
+      <div class="max-win-badge">⭐ MAX WIN 10,000x</div>
       
-      <!-- Chicken (Moved out of roadCanvas to avoid clipping when off-road) -->
-      <div id="chickenContainer">
-        <img id="chickenImg" src="/src/assets/chicken-road/chicken.png" alt="Chicken" />
+      <!-- WIN Popup -->
+      <div class="win-popup" id="winPopup">
+        <div class="win-pill">WIN!</div>
+        <div class="win-amt" id="winAmtDisp">0.00 <span>ETB</span></div>
       </div>
+
+      <!-- Static Road Barriers -->
+      <div class="road-barrier" style="left: 60px; top: 120px;"></div>
+      <div class="road-barrier" style="left: 60px; top: 320px;"></div>
+
+      <!-- Overlay -->
+      <div id="overlayMsg"></div>
+      <!-- Particles -->
+      <div id="particleLayer"></div>
     </div>
 
+    <!-- Chicken (positioned by JS relative to gameArea) -->
+    <div id="chickenContainer">
+      <img id="chickenImg" src="/src/assets/chicken-road/chicken.png" alt="Chicken" />
+      <div class="active-tooltip" id="chickenTooltip">1.00x</div>
+    </div>
+
+    <!-- Hidden JS compat elements -->
+    <div id="multRing"><div id="multiplierDisplay">1.00x</div></div>
+    <div id="stepCounter">STEP 0</div>
+    <div id="potentialWin"></div>
+    <select id="tierSelect">
+      <option value="easy">Easy</option>
+      <option value="medium">Medium</option>
+      <option value="hard">Hard</option>
+      <option value="extreme">Hardcore</option>
+    </select>
   </div>
 
-  <!-- Controls -->
+  <!-- ── CONTROLS ── -->
   <div id="controls">
-    <div class="ctrl-inner">
 
-      <!-- Bet row -->
-      <div class="bet-row">
-        <button class="bet-edge-btn" id="btnMin">MIN</button>
-        <div class="bet-center">
-          <span id="betDisplay">50</span>
-          <small>ETB BET</small>
-        </div>
-        <button class="bet-edge-btn" id="btnMax">MAX</button>
+    <!-- Left: Bet + Presets -->
+    <div class="ctrl-left">
+      <div class="bet-ctrl">
+        <button class="bet-edge" id="btnMin">MIN</button>
+        <div class="bet-center"><span id="betDisplay">50</span></div>
+        <button class="bet-edge" id="btnMax">MAX</button>
       </div>
-
-      <!-- Presets -->
       <div class="preset-row">
-        <button class="preset-btn" data-val="30">30<span>ETB</span></button>
-        <button class="preset-btn" data-val="50">50<span>ETB</span></button>
-        <button class="preset-btn" data-val="150">150<span>ETB</span></button>
-        <button class="preset-btn" data-val="300">300<span>ETB</span></button>
+        <button class="preset-btn" data-val="30"><div class="coin">$</div>2</button>
+        <button class="preset-btn" data-val="50"><div class="coin">$</div>3</button>
+        <button class="preset-btn" data-val="150"><div class="coin">$</div>8</button>
+        <button class="preset-btn" data-val="300"><div class="coin">$</div>20</button>
+      </div>
+    </div>
+
+    <!-- Center: Difficulty -->
+    <div class="ctrl-center">
+      <div class="diff-labels">
+        <span>Difficulty</span>
+        <span>Chance of being shot down</span>
+      </div>
+      <div class="tier-tabs">
+        <button class="tier-tab active" data-tier="easy">Easy</button>
+        <button class="tier-tab" data-tier="medium">Medium</button>
+        <button class="tier-tab" data-tier="hard">Hard</button>
+        <button class="tier-tab" data-tier="extreme">Hardcore</button>
+      </div>
+    </div>
+
+    <!-- Right: Play / CashOut -->
+    <div class="ctrl-right">
+      <button class="play-btn" id="btnCashOut" style="display:none">
+        CASH OUT<br>
+        <small id="cashOutSub" style="font-size:10.5px;font-weight:700;opacity:0.8"></small>
+      </button>
+      <button class="play-btn" id="btnStep">Play</button>
+    </div>
+
+  </div>
+
+  <!-- ── HOW TO PLAY MODAL (Amharic) ── -->
+  <div class="modal-backdrop" id="howToModal">
+    <div class="modal-box">
+
+      <!-- Header -->
+      <div class="modal-header">
+        <div class="modal-title">How to play?</div>
+        <button class="modal-x" id="howToClose">✕</button>
       </div>
 
-      <!-- Tier -->
-      <div class="tier-select-wrap">
-        <select id="tierSelect">
-          <option value="easy">Easy</option>
-          <option value="medium">Medium</option>
-          <option value="hard">Hard</option>
-          <option value="extreme">Extreme</option>
-        </select>
-      </div>
+      <!-- Body -->
+      <div class="modal-body">
 
-      <!-- Actions -->
-      <div class="action-row">
-        <button class="play-btn" id="btnStep">Play</button>
-        <button class="play-btn" id="btnCashOut">Cash Out<br><small id="cashOutSub" style="font-size:11px;font-weight:600;opacity:0.85"></small></button>
-      </div>
+        <!-- 1 -->
+        <div class="modal-item">
+          <div class="m-num">1.</div>
+          <div class="m-txt">Specify the amount of your bet.</div>
+        </div>
 
+        <!-- 2 -->
+        <div class="modal-item">
+          <div class="m-num">2.</div>
+          <div class="m-txt">
+            <p>Choose a difficulty level in a game. The number of road lines and the chance to be hit car hard varies depending on the level of difficulty.</p>
+            <p>There are 4 difficulty levels in the game:</p>
+            <div class="m-sub">
+              <div class="m-sub-item">
+                <span class="m-bull">•</span>
+                <span><span class="m-sub-label">Easy</span> – there are 30 lines at this level.</span>
+              </div>
+              <div class="m-sub-item">
+                <span class="m-bull">•</span>
+                <span><span class="m-sub-label">Medium</span> – there are 25 lines at this level.</span>
+              </div>
+              <div class="m-sub-item">
+                <span class="m-bull">•</span>
+                <span><span class="m-sub-label">Hard</span> – there are 22 lines at this level.</span>
+              </div>
+              <div class="m-sub-item">
+                <span class="m-bull">•</span>
+                <span><span class="m-sub-label">Hardcore</span> – at the level of 18 lines.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3 -->
+        <div class="modal-item">
+          <div class="m-num">3.</div>
+          <div class="m-txt">Press "Play" button.</div>
+        </div>
+
+        <!-- 4 -->
+        <div class="modal-item">
+          <div class="m-num">4.</div>
+          <div class="m-txt">Your goal is to step as many road lines as possible without getting hit by a car. You can withdraw your winnings at any stage of the game.</div>
+        </div>
+
+        <!-- 5 -->
+        <div class="modal-item">
+          <div class="m-num">5.</div>
+          <div class="m-txt">In the menu, there is an option to enable "Space" to spin &amp; go, it will allow you to move forward, use the "Space" key.</div>
+        </div>
+
+        <!-- 6 -->
+        <div class="modal-item">
+          <div class="m-num">6.</div>
+          <div class="m-txt">Malfunction voids all pays and plays.</div>
+        </div>
+
+      </div><!-- /modal-body -->
     </div>
   </div>
 
-  <!-- Provably Fair -->
+  <!-- ── PROVABLY FAIR ── -->
   <div id="verifyPanel">
     <span id="verifyClose">✕</span>
     <strong>Provably Fair Verification</strong><br>
@@ -727,40 +1037,36 @@
 <script>
 'use strict';
 
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 // 1. CONFIG
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 const CONFIG = {
   minBet: 10, maxBet: 5000, betStep: 10,
   tiers: {
-    easy:    { successRate: 0.95, houseEdge: 0.96, label: 'Easy' },
-    medium:  { successRate: 0.90, houseEdge: 0.95, label: 'Medium' },
-    hard:    { successRate: 0.85, houseEdge: 0.94, label: 'Hard' },
-    extreme: { successRate: 0.65, houseEdge: 0.75, label: 'Extreme' }
+    easy:    { successRate: 0.95, houseEdge: 0.96, label: 'Easy',     multPerStep: 1.02 },
+    medium:  { successRate: 0.90, houseEdge: 0.95, label: 'Medium',   multPerStep: 1.06 },
+    hard:    { successRate: 0.85, houseEdge: 0.94, label: 'Hard',     multPerStep: 1.12 },
+    extreme: { successRate: 0.65, houseEdge: 0.75, label: 'Hardcore', multPerStep: 1.25 }
   }
 };
 
-// Car types — all 8 varieties with image filenames and angle offsets to face UP natively
 const CAR_TYPES = [
-  // All images: front at TOP, back at BOTTOM
-  // going-up  = rotate 0°   (front faces up  = correct)
-  // going-down = rotate 180° (front faces down = correct)
-  { key: 'taxi',      file: 'car-taxi.png',      size: 'normal', speed: 'fast',   angleOffset: 0 },
-  { key: 'police',    file: 'car-police.png',    size: 'normal', speed: 'fast',   angleOffset: 0 },
-  { key: 'red',       file: 'car-red.png',       size: 'slim',   speed: 'fast',   angleOffset: 0 },
-  { key: 'sports',    file: 'car-sports.png',    size: 'slim',   speed: 'fast',   angleOffset: 0 },
-  { key: 'suv',       file: 'car-suv.png',       size: 'normal', speed: 'normal', angleOffset: 0 },
-  { key: 'bus',       file: 'car-bus.png',       size: 'wide',   speed: 'slow',   angleOffset: 0 },
-  { key: 'ambulance', file: 'car-ambulance.png', size: 'normal', speed: 'fast',   angleOffset: 0 },
-  { key: 'truck',     file: 'car-truck.png',     size: 'wide',   speed: 'slow',   angleOffset: 0 },
+  { key:'taxi',      file:'car-taxi.png',      size:'normal', speed:'fast',   angleOffset:0 },
+  { key:'police',    file:'car-police.png',    size:'normal', speed:'fast',   angleOffset:0 },
+  { key:'red',       file:'car-red.png',       size:'slim',   speed:'fast',   angleOffset:0 },
+  { key:'sports',    file:'car-sports.png',    size:'slim',   speed:'fast',   angleOffset:0 },
+  { key:'suv',       file:'car-suv.png',       size:'normal', speed:'normal', angleOffset:0 },
+  { key:'bus',       file:'car-bus.png',       size:'wide',   speed:'slow',   angleOffset:0 },
+  { key:'ambulance', file:'car-ambulance.png', size:'normal', speed:'fast',   angleOffset:0 },
+  { key:'truck',     file:'car-truck.png',     size:'wide',   speed:'slow',   angleOffset:0 },
 ];
 
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 // 2. AUDIO
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 const AudioMan = (function() {
   const ctx = window.AudioContext ? new AudioContext() : (window.webkitAudioContext ? new webkitAudioContext() : null);
-  function beep(freq,dur,vol,type){ if(!ctx)return; try{ const o=ctx.createOscillator(),g=ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.frequency.value=freq; o.type=type||'sine'; g.gain.setValueAtTime(vol||0.12,ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur); o.start(ctx.currentTime); o.stop(ctx.currentTime+dur); }catch(e){} }
+  function beep(f,d,v,t){ if(!ctx)return; try{ const o=ctx.createOscillator(),g=ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.frequency.value=f; o.type=t||'sine'; g.gain.setValueAtTime(v||0.12,ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+d); o.start(ctx.currentTime); o.stop(ctx.currentTime+d); }catch(e){} }
   function resume(){ if(ctx&&ctx.state==='suspended')ctx.resume(); }
   return {
     click:   ()=>{ resume(); beep(440,0.05,0.08,'square'); },
@@ -772,25 +1078,27 @@ const AudioMan = (function() {
   };
 })();
 
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 // 3. STATE
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 const State = {
   phase: 'IDLE', balance: 0, bet: 50, tier: 'easy',
   stepCount: 0, multiplier: 1.0, cashOutPending: false,
-  chickenLane: 0, // 0 = left sidewalk, 1..N = road lanes, N+1 = right sidewalk
+  chickenLane: -1,
   serverSeed: '', serverSeedHash: '', clientSeed: '', nonce: 0
 };
 
-// ═══════════════════════════════════════════════════════════
-// 4. DOM
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
+// 4. DOM REFS
+// ═══════════════════════════════════════════════
 const DOM = {
   gameArea:      document.getElementById('gameArea'),
-  gameWorld:     document.getElementById('gameWorld'),
   roadCanvas:    document.getElementById('roadCanvas'),
   chickenCont:   document.getElementById('chickenContainer'),
   chickenImg:    document.getElementById('chickenImg'),
+  chickenTooltip:document.getElementById('chickenTooltip'),
+  winPopup:      document.getElementById('winPopup'),
+  winAmtDisp:    document.getElementById('winAmtDisp'),
   multRing:      document.getElementById('multRing'),
   multDisp:      document.getElementById('multiplierDisplay'),
   potWin:        document.getElementById('potentialWin'),
@@ -814,90 +1122,120 @@ const DOM = {
   vpServerSeed:  document.getElementById('vpServerSeed'),
 };
 
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 // 5. ROAD & LANES
-// ═══════════════════════════════════════════════════════════
-let numLanes = 4;
-let laneXs   = []; // pixel X positions for each lane center
-let sidewalkLeftX  = 0;
-let sidewalkRightX = 0;
+// ═══════════════════════════════════════════════
+let numLanes = 5;
+let laneXs   = [];            // X centers of each lane (within roadCanvas)
+let laneMultCircles = [];     // lane circle DOM elements
+let currentLaneMults = [];    // expected multipliers per lane
+
+function computeLaneMults() {
+  const tier = CONFIG.tiers[State.tier] || CONFIG.tiers.easy;
+  const mults = [];
+  let m = 1.0;
+  for (let i = 0; i < numLanes; i++) {
+    m = parseFloat((m * (tier.multPerStep + Math.random() * 0.008)).toFixed(2));
+    mults.push(m);
+  }
+  return mults;
+}
 
 function initRoad() {
   const road = DOM.roadCanvas;
-  road.innerHTML = '';
-  // Re-add chicken container to gameWorld, not road, to avoid clipping!
-  DOM.gameWorld.appendChild(DOM.chickenCont);
+  // Clear dynamic children (keep overlay, particles, badges, popups, barriers)
+  Array.from(road.children).forEach(c => {
+    if (!['overlayMsg','particleLayer','winPopup'].includes(c.id) && 
+        !c.classList.contains('max-win-badge') &&
+        !c.classList.contains('road-barrier')) {
+      c.remove();
+    }
+  });
+  laneMultCircles = [];
+  carEls.length   = 0;
 
   const roadW = road.offsetWidth;
-  numLanes = 4;
-  const laneW = roadW / numLanes;
+  const roadH = road.offsetHeight;
+  numLanes     = 5;
+  const laneW  = roadW / numLanes;
 
   laneXs = [];
+  currentLaneMults = computeLaneMults();
+
   for (let i = 0; i < numLanes; i++) {
     const x = laneW * i + laneW / 2;
     laneXs.push(x);
-    // Lane divider
+
+    // Dashed lane divider (except before lane 0)
     if (i > 0) {
       const div = document.createElement('div');
-      div.className = 'lane-line';
+      div.className = 'lane-div';
       div.style.left = (laneW * i) + 'px';
       road.appendChild(div);
     }
+
+    // Multiplier circle — vertically centered at 62% down
+    const circle = document.createElement('div');
+    circle.className = 'lane-mult-circle';
+    circle.style.left = x + 'px';
+    circle.style.top  = Math.round(roadH * 0.62) + 'px';
+    circle.dataset.lane = i;
+    const txt = document.createElement('div');
+    txt.className = 'lane-mult-text';
+    txt.textContent = currentLaneMults[i].toFixed(2) + 'x';
+    circle.appendChild(txt);
+    road.appendChild(circle);
+    laneMultCircles[i] = circle;
   }
 
-  // Sidewalk X positions (in gameWorld coordinates) — chicken starts left of road
-  const roadLeft = road.getBoundingClientRect().left - DOM.gameWorld.getBoundingClientRect().left;
-  sidewalkLeftX  = roadLeft - 14; // just left of the road
-  sidewalkRightX = roadLeft + roadW + 14;
-
-  // Spawn background cars
   spawnAllCars();
 
-  // Set chicken to starting position
-  State.chickenLane = -1; // on left sidewalk
+  // Reset chicken to left sidewalk
+  State.chickenLane = -1;
   positionChicken(-1, false);
 }
 
-function laneXForStep(step) {
-  // step -1 = left sidewalk (before road)
-  // step 0..numLanes-1 = lanes
-  // step numLanes = right sidewalk
-  if (step < 0) {
-    // left sidewalk: put chicken just to the left of lane 0
-    const road = DOM.roadCanvas;
-    return road.getBoundingClientRect().left - DOM.gameWorld.getBoundingClientRect().left - 14;
-  }
-  if (step >= numLanes) {
-    const road = DOM.roadCanvas;
-    return road.getBoundingClientRect().left + road.offsetWidth + DOM.gameWorld.getBoundingClientRect().left - DOM.gameWorld.getBoundingClientRect().left + 14;
-  }
-  // Return lane center within #roadCanvas coordinate space
-  // The chicken's left is relative to gameWorld, so offset by road's left
-  const road = DOM.roadCanvas;
-  const roadLeft = road.getBoundingClientRect().left - DOM.gameWorld.getBoundingClientRect().left;
-  return roadLeft + laneXs[step];
+function updateLaneCircles() {
+  laneMultCircles.forEach((c, i) => {
+    if (!c) return;
+    const txt = c.querySelector('.lane-mult-text');
+    c.classList.remove('active', 'bust');
+    if (i === State.chickenLane) c.classList.add('active');
+    if (txt && currentLaneMults[i] !== undefined) {
+      txt.textContent = currentLaneMults[i].toFixed(2) + 'x';
+    }
+  });
+}
+
+function sidewalkW() {
+  const sw = document.querySelector('.sidewalk-panel');
+  return sw ? sw.offsetWidth : 70;
+}
+
+function laneXInGameArea(step) {
+  const sw = sidewalkW();
+  if (step < 0) return sw * 0.5;           // center of sidewalk
+  if (step >= numLanes) return sw + DOM.roadCanvas.offsetWidth + 20;
+  return sw + laneXs[step];
 }
 
 function positionChicken(step, animated = true) {
-  const x = laneXForStep(step);
+  const x = laneXInGameArea(step);
   DOM.chickenCont.style.transition = animated
-    ? 'left 0.4s cubic-bezier(0.34,1.56,0.64,1)'
+    ? 'left 0.42s cubic-bezier(0.34,1.56,0.64,1)'
     : 'none';
   DOM.chickenCont.style.left = x + 'px';
 }
 
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 // 6. CAR SPAWNING
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 const carEls = [];
 
 function spawnAllCars() {
-  // Remove existing
   carEls.forEach(c => c.remove());
   carEls.length = 0;
-
   const road = DOM.roadCanvas;
-
   for (let lane = 0; lane < numLanes; lane++) {
     const going = lane % 2 === 0 ? 'going-down' : 'going-up';
     const count = Math.floor(Math.random() * 2) + 1;
@@ -922,69 +1260,46 @@ function makeCar(going) {
   wrap.className = 'car';
   if (type.size === 'wide') wrap.classList.add('car-wide');
   if (type.size === 'slim') wrap.classList.add('car-slim');
-
-  // Calculate rotation based on lane direction and image's native orientation
-  const rot = (going === 'going-up' ? 0 : 180) + type.angleOffset;
-  wrap.style.setProperty('--rot', rot + 'deg');
-
-  // Speed variation: slow cars take longer, fast cars are quick
+  // No rotation — all car sprites are designed top-down pointing straight
   const baseSpeed = type.speed === 'slow' ? 3.5 : type.speed === 'fast' ? 1.8 : 2.5;
-
   const img = document.createElement('img');
   img.src = '/src/assets/chicken-road/' + type.file;
   img.className = 'car-sprite';
   img.alt = type.key;
   wrap.appendChild(img);
-
   return { el: wrap, baseSpeed };
 }
 
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 // 7. CHICKEN ANIMATION
-// ═══════════════════════════════════════════════════════════
-function setChickenAnim(state) {
-  DOM.chickenImg.className = state;
+// ═══════════════════════════════════════════════
+function setChickenAnim(state) { DOM.chickenImg.className = state; }
+
+// ═══════════════════════════════════════════════
+// 8. EFFECTS
+// ═══════════════════════════════════════════════
+function roadCoords(absX, absY) {
+  const r = DOM.roadCanvas.getBoundingClientRect();
+  return [absX - r.left, absY - r.top];
 }
 
-// ═══════════════════════════════════════════════════════════
-// 8. EFFECTS
-// ═══════════════════════════════════════════════════════════
 function spawnExplosion(x, y) {
   const exp = document.createElement('div');
   exp.className = 'explosion';
   exp.style.left = x + 'px'; exp.style.top = y + 'px';
-
-  const ring = document.createElement('div');
-  ring.className = 'exp-ring';
-  ring.style.left = '0'; ring.style.top = '0';
-  exp.appendChild(ring);
-
-  const core = document.createElement('div');
-  core.className = 'exp-core';
-  core.style.left = '0'; core.style.top = '0';
-  exp.appendChild(core);
-
-  for (let i = 0; i < 8; i++) {
-    const s = document.createElement('div');
-    s.className = 'exp-spark';
-    s.style.setProperty('--deg', (i * 45) + 'deg');
-    s.style.left = '0'; s.style.top = '0';
-    exp.appendChild(s);
-  }
-
+  const ring = document.createElement('div'); ring.className = 'exp-ring'; ring.style.left = '0'; ring.style.top = '0'; exp.appendChild(ring);
+  const core = document.createElement('div'); core.className = 'exp-core'; core.style.left = '0'; core.style.top = '0'; exp.appendChild(core);
+  for (let i = 0; i < 8; i++) { const s = document.createElement('div'); s.className = 'exp-spark'; s.style.setProperty('--deg',(i*45)+'deg'); s.style.left='0'; s.style.top='0'; exp.appendChild(s); }
   DOM.roadCanvas.appendChild(exp);
   setTimeout(() => exp.remove(), 800);
 }
 
 function spawnSafeEffect(x, y, mult) {
-  // Ring
   const ring = document.createElement('div');
   ring.className = 'safe-ring';
   ring.style.left = x + 'px'; ring.style.top = y + 'px';
   DOM.roadCanvas.appendChild(ring);
   setTimeout(() => ring.remove(), 700);
-
-  // +multiplier badge
   const badge = document.createElement('div');
   badge.className = 'plus-badge';
   badge.textContent = '+' + mult.toFixed(2) + 'x';
@@ -994,7 +1309,7 @@ function spawnSafeEffect(x, y, mult) {
 }
 
 function spawnConfetti(x, y, count) {
-  const colors = ['#f5c518','#ffe87a','#00e676','#ff9500','#fff','#ff1744'];
+  const colors = ['#f5c518','#ffe87a','#4db851','#ff9500','#fff','#ff1744'];
   for (let i = 0; i < count; i++) {
     const el = document.createElement('div');
     el.className = 'conf';
@@ -1010,20 +1325,20 @@ function spawnConfetti(x, y, count) {
   }
 }
 
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 // 9. OVERLAY
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 function showOverlay(text, type) {
-  DOM.overlayMsg.className = 'overlay-msg';
+  DOM.overlayMsg.className = '';
   DOM.overlayMsg.textContent = text;
   void DOM.overlayMsg.offsetWidth;
-  DOM.overlayMsg.className = `overlay-msg ${type} show`;
+  DOM.overlayMsg.className = `${type} show`;
 }
-function hideOverlay() { DOM.overlayMsg.className = 'overlay-msg'; }
+function hideOverlay() { DOM.overlayMsg.className = ''; }
 
-// ═══════════════════════════════════════════════════════════
-// 10. MULTIPLIER ANIMATION
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
+// 10. MULTIPLIER ANIM
+// ═══════════════════════════════════════════════
 function animateMultiplier(from, to, ms) {
   const start = performance.now();
   function tick(now) {
@@ -1037,9 +1352,9 @@ function animateMultiplier(from, to, ms) {
   requestAnimationFrame(tick);
 }
 
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 // 11. BALANCE & UI
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 function setBalance(amount) {
   State.balance = Math.max(0, amount);
   DOM.walletAmount.textContent = State.balance.toFixed(2) + ' ETB';
@@ -1050,90 +1365,49 @@ function setBalance(amount) {
 
 function updateUI() {
   const { phase, bet, stepCount, multiplier } = State;
-  const potentialWin = (bet * multiplier).toFixed(2);
+  const potWin = (bet * multiplier).toFixed(2);
   DOM.betDisplay.textContent = bet;
 
-  const idle = phase === 'IDLE';
+  const idle    = phase === 'IDLE';
   const playing = phase === 'PLAYING';
 
-  DOM.tierSelect.disabled = !idle;
-  DOM.btnMin.disabled     = !idle;
-  DOM.btnMax.disabled     = !idle;
+  DOM.btnMin.disabled  = !idle;
+  DOM.btnMax.disabled  = !idle;
   DOM.presetBtns.forEach(b => b.disabled = !idle);
+  document.querySelectorAll('.tier-tab').forEach(t => { t.disabled = !idle; });
 
   if (idle) {
     DOM.btnStep.textContent = 'Play';
+    DOM.btnStep.style.display = 'flex';
     DOM.btnStep.disabled    = false;
     DOM.btnCashOut.style.display = 'none';
-    DOM.potWin.classList.remove('visible');
     DOM.stepCounter.textContent = 'STEP 0';
-    DOM.multRing.className = 'mult-ring';
     DOM.multDisp.textContent = '1.00x';
-    DOM.multDisp.style.color = 'var(--gold)';
+    updateLaneCircles();
   } else if (playing) {
     DOM.btnStep.textContent = 'Step';
+    DOM.btnStep.style.display = 'flex';
     DOM.btnStep.disabled    = false;
-    DOM.btnCashOut.style.display = stepCount > 0 ? 'flex' : 'none';
-    DOM.btnCashOut.disabled = stepCount === 0;
-    DOM.cashOutSub.textContent = stepCount > 0 ? potentialWin + ' ETB' : '';
+    const showCash = stepCount > 0;
+    DOM.btnCashOut.style.display = showCash ? 'flex' : 'none';
+    DOM.btnCashOut.disabled = !showCash;
+    DOM.btnStep.style.display = showCash ? 'none' : 'flex';
+    DOM.cashOutSub.textContent = showCash ? potWin + ' ETB' : '';
     DOM.stepCounter.textContent = `STEP ${stepCount}`;
-    if (stepCount > 0) {
-      DOM.potWin.textContent = potentialWin + ' ETB';
-      DOM.potWin.classList.add('visible');
-    }
+    updateLaneCircles();
   } else {
     DOM.btnStep.disabled    = true;
     DOM.btnCashOut.disabled = true;
   }
 }
 
-// ═══════════════════════════════════════════════════════════
-// 12. SOCKET & AUTH (preserved from original)
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
+// 12. SOCKET & SESSION
+// ═══════════════════════════════════════════════
 let socket = null;
-let _userId = null;  // resolved user ID for REST calls
-let _balanceLoaded = false;  // guard: don't reject play before balance arrives
+let _userId = null;
+let _balanceLoaded = false;
 
-function spawnScenery() {
-  const dur = 3;
-  const leftGrass = document.querySelector('.grass-left');
-  const rightGrass = document.querySelector('.grass-right');
-  
-  setInterval(() => {
-    // Spawn left scenery
-    if (Math.random() > 0.4 && leftGrass) {
-      const t = document.createElement('div');
-      t.className = 'scenery-item';
-      t.style.setProperty('--dur', dur + 's');
-      
-      const img = document.createElement('img');
-      img.src = Math.random() > 0.8 
-        ? '/src/assets/chicken-road/traffic-light.png' 
-        : '/src/assets/chicken-road/tree.png';
-      t.appendChild(img);
-      
-      leftGrass.appendChild(t);
-      setTimeout(() => t.remove(), dur * 1000);
-    }
-    // Spawn right scenery
-    if (Math.random() > 0.4 && rightGrass) {
-      const t = document.createElement('div');
-      t.className = 'scenery-item';
-      t.style.setProperty('--dur', dur + 's');
-      
-      const img = document.createElement('img');
-      img.src = Math.random() > 0.8 
-        ? '/src/assets/chicken-road/traffic-light.png' 
-        : '/src/assets/chicken-road/tree.png';
-      t.appendChild(img);
-      
-      rightGrass.appendChild(t);
-      setTimeout(() => t.remove(), dur * 1000);
-    }
-  }, 1200);
-}
-
-// Fetch balance from REST API (called on load + auto-retry)
 async function fetchBalance() {
   if (!_userId) return;
   try {
@@ -1147,7 +1421,6 @@ async function fetchBalance() {
       const bonus = parseFloat(data.wallet?.bonusBalance ?? 0);
       setBalance((isNaN(main) ? 0 : main) + (isNaN(bonus) ? 0 : bonus));
       _balanceLoaded = true;
-      console.log('[Wallet] balance loaded:', State.balance);
     }
   } catch(e) { console.warn('[Wallet] fetch failed', e); }
 }
@@ -1157,40 +1430,26 @@ async function initUserSession() {
     const tg = window.Telegram?.WebApp;
     if (tg) { tg.ready(); tg.expand(); if (tg.enableClosingConfirmation) tg.enableClosingConfirmation(); }
 
-    let urlParams = new URLSearchParams(window.location.search);
+    const urlParams = new URLSearchParams(window.location.search);
     let userId = urlParams.get('userId');
-    if (!userId && tg && tg.initDataUnsafe && tg.initDataUnsafe.user) userId = tg.initDataUnsafe.user.id;
+    if (!userId && tg?.initDataUnsafe?.user) userId = tg.initDataUnsafe.user.id;
     if (!userId) userId = '123456789';
     _userId = String(userId);
 
-    // ── 1. Fetch balance IMMEDIATELY via REST (no waiting for socket) ──
     await fetchBalance();
 
-    // ── 2. Auto-retry balance every 3s until loaded ──
     if (!_balanceLoaded) {
-      const retryTimer = setInterval(async () => {
-        if (_balanceLoaded) { clearInterval(retryTimer); return; }
+      const t = setInterval(async () => {
+        if (_balanceLoaded) { clearInterval(t); return; }
         await fetchBalance();
       }, 3000);
     }
 
-    // ── 3. Connect socket for real-time updates ──
-    socket = io(API_URL, {
-      query: { userId, initData: tg?.initData || '' },
-      transports: ['websocket','polling']
-    });
-
-    socket.on('connect', async () => {
-      console.log('[Socket] connected');
-      // Re-fetch balance on reconnect to sync any changes
-      await fetchBalance();
-    });
-    // Real-time balance push events
-    socket.on('balance-updated', d => {
-      if (d && d.newBalance !== undefined) setBalance(d.newBalance);
-    });
-    socket.on('wallet:balance', d => { if (d && d.balance !== undefined) setBalance(d.balance); });
-    socket.on('disconnect', reason => console.log('[Socket] disconnected', reason));
+    socket = io(API_URL, { query: { userId, initData: tg?.initData || '' }, transports: ['websocket','polling'] });
+    socket.on('connect', async () => { await fetchBalance(); });
+    socket.on('balance-updated', d => { if (d?.newBalance !== undefined) { setBalance(d.newBalance); _balanceLoaded = true; } });
+    socket.on('wallet:balance',  d => { if (d?.balance    !== undefined) { setBalance(d.balance);    _balanceLoaded = true; } });
+    socket.on('disconnect', r => console.log('[Socket] disconnected', r));
 
     State.clientSeed = generateHex(16);
     State.serverSeedHash = await sha256(State.clientSeed + Date.now());
@@ -1199,54 +1458,39 @@ async function initUserSession() {
   } catch(e) { console.error('[Session Error]', e); }
 }
 
-// ─── REST helper ─────────────────────────────────────────────
-const API_URL = window.location.hostname.includes('localhost') || window.location.hostname === '127.0.0.1' 
-  ? 'http://localhost:5000' 
+const API_URL = (window.location.hostname.includes('localhost') || window.location.hostname === '127.0.0.1')
+  ? 'http://localhost:5000'
   : 'https://api.bunatechhub.net';
 
-const tgObj = () => window.Telegram?.WebApp;
 function apiHeaders() {
   return {
     'Content-Type': 'application/json',
     'x-telegram-id': _userId || '',
-    'x-init-data': tgObj()?.initData || ''
+    'x-init-data': window.Telegram?.WebApp?.initData || ''
   };
 }
 
-async function walletTransact(amount, type, ref) {
-  // Balance debit/credit is handled server-side by /start and /cashout
-  // This is now a no-op client-side; balance gets updated via 'balance-updated' socket event
-  return Promise.resolve();
-}
-
 async function backendStartRound(bet, tier) {
-  if (!_userId || _userId === '123456789') {
-    // Offline/demo mode
-    return 'demo-round-' + Date.now();
-  }
+  if (!_userId || _userId === '123456789') return 'demo-round-' + Date.now();
   const res = await fetch(API_URL + '/api/chicken-road/start', {
-    method: 'POST',
-    headers: apiHeaders(),
+    method: 'POST', headers: apiHeaders(),
     body: JSON.stringify({ bet, tier, clientSeed: State.clientSeed })
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Failed to start round');
-  // Update balance immediately from server response
   if (data.newBalance !== undefined) setBalance(data.newBalance);
   return data.roundId;
 }
 
 async function backendResolveStep() {
   if (!_userId || _userId === '123456789' || !_roundId || _roundId.startsWith('demo-')) {
-    // Demo mode
     const tierCfg = CONFIG.tiers[State.tier] || CONFIG.tiers.easy;
     const safe = Math.random() < tierCfg.successRate;
     const nextMult = parseFloat((State.multiplier * (1 + 0.15 + Math.random() * 0.25)).toFixed(2));
     return { safe, nextMultiplier: nextMult };
   }
   const res = await fetch(API_URL + '/api/chicken-road/step', {
-    method: 'POST',
-    headers: apiHeaders(),
+    method: 'POST', headers: apiHeaders(),
     body: JSON.stringify({ roundId: _roundId })
   });
   const data = await res.json();
@@ -1264,13 +1508,12 @@ async function backendEndRound(roundId, result, winAmount) {
   }
   if (result === 'WIN') {
     const res = await fetch(API_URL + '/api/chicken-road/cashout', {
-      method: 'POST',
-      headers: apiHeaders(),
+      method: 'POST', headers: apiHeaders(),
       body: JSON.stringify({ roundId })
     });
     const data = await res.json();
     if (res.ok) {
-      if (data.serverSeed) { State.serverSeed = data.serverSeed; DOM.vpServerSeed.textContent = State.serverSeed; }
+      if (data.serverSeed)      { State.serverSeed = data.serverSeed; DOM.vpServerSeed.textContent = State.serverSeed; }
       if (data.newBalance !== undefined) setBalance(data.newBalance);
     }
   } else {
@@ -1278,17 +1521,16 @@ async function backendEndRound(roundId, result, winAmount) {
   }
 }
 
-function emitEvent(event, data) { console.log('[GAME]', event, data); }
+function emitEvent(ev, d) { console.log('[GAME]', ev, d); }
 
-// ═══════════════════════════════════════════════════════════
-// 13. CORE GAME ACTIONS
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
+// 13. GAME ACTIONS
+// ═══════════════════════════════════════════════
 let _roundId = null;
 
 async function actionStart() {
   if (State.phase !== 'IDLE') return;
 
-  // If balance not loaded yet, silently try to load (no error sound)
   if (!_balanceLoaded) {
     DOM.walletAmount.textContent = 'Syncing...';
     await fetchBalance();
@@ -1312,17 +1554,17 @@ async function actionStart() {
   State.chickenLane = -1;
   hideOverlay();
 
-  // Reset chicken to left side
   positionChicken(-1, false);
   setChickenAnim('');
-
-  // Reset multiplier display
-  DOM.multRing.className = 'mult-ring';
+  DOM.chickenImg.classList.remove('dollars');
+  DOM.winPopup.classList.remove('show');
+  DOM.chickenTooltip.classList.remove('show');
   DOM.multDisp.textContent = '1.00x';
-  DOM.multDisp.style.color = 'var(--gold)';
-  DOM.potWin.classList.remove('visible');
 
-  await walletTransact(-State.bet, 'BET_DEBIT', null);
+  // Fresh lane multipliers for this round
+  currentLaneMults = computeLaneMults();
+  laneMultCircles.forEach(c => { if(c) c.classList.remove('active','bust','gold-coin'); });
+  updateLaneCircles();
 
   try {
     _roundId = await backendStartRound(State.bet, State.tier);
@@ -1346,17 +1588,13 @@ async function actionStep() {
   updateUI();
 
   haptic('light'); AudioMan.jump();
-
-  // Animate chicken hop
   setChickenAnim('jump');
+  DOM.chickenTooltip.classList.remove('show');
 
-  // Advance chicken position (visually move ahead)
   const nextLane = State.chickenLane + 1;
-
   const tensionMs = Math.min(200 + State.stepCount * 40, 550);
   const result = await backendResolveStep();
 
-  // Move chicken to next lane
   State.chickenLane = nextLane;
   positionChicken(nextLane, true);
 
@@ -1370,14 +1608,13 @@ async function actionStep() {
 }
 
 function resolveStepSafe(nextMult, lane) {
-  // Show safe effect at chicken position
-  const chickenRect = DOM.chickenCont.getBoundingClientRect();
-  const roadRect    = DOM.roadCanvas.getBoundingClientRect();
-  const cx = chickenRect.left + chickenRect.width/2 - roadRect.left;
-  const cy = chickenRect.top  + chickenRect.height/2 - roadRect.top;
+  const cr = DOM.chickenCont.getBoundingClientRect();
+  const rr = DOM.roadCanvas.getBoundingClientRect();
+  const cx = cr.left + cr.width/2 - rr.left;
+  const cy = cr.top  + cr.height/2 - rr.top;
   spawnSafeEffect(cx, cy, nextMult);
 
-  // Near-miss 20%: a car shoots past just behind chicken
+  // Near-miss 20%
   if (Math.random() > 0.80) {
     const nearCar = carEls.find(c => parseInt(c.dataset.lane) === lane);
     if (nearCar) { nearCar.classList.add('hit-animate'); setTimeout(()=>nearCar.classList.remove('hit-animate'),400); }
@@ -1391,47 +1628,42 @@ function resolveStepSafe(nextMult, lane) {
   State.multiplier = nextMult;
   State.stepCount++;
 
-  animateMultiplier(old, nextMult, 380);
-  DOM.multRing.className = 'mult-ring glow-green';
-  DOM.multDisp.classList.remove('pulse');
-  void DOM.multDisp.offsetWidth;
-  DOM.multDisp.classList.add('pulse');
-  if (nextMult >= 3) DOM.multDisp.style.color = 'var(--green)';
+  // Update lane circle text to reflect actual achieved multiplier
+  if (currentLaneMults[lane] !== undefined) currentLaneMults[lane] = nextMult;
 
+  animateMultiplier(old, nextMult, 380);
   haptic('heavy'); AudioMan.safe();
   emitEvent('STEP_SAFE', { step: State.stepCount, mult: nextMult.toFixed(2) });
-  if (State.bet * nextMult >= State.bet * 5) emitEvent('BIG_WIN_APPROACHING', { mult: nextMult.toFixed(2) });
+  
+  DOM.chickenTooltip.textContent = nextMult.toFixed(2) + 'x';
+  DOM.chickenTooltip.classList.add('show');
 
   State.phase = 'PLAYING';
   updateUI();
 }
 
 function resolveStepBust(lane) {
-  // Explosion at chicken position
-  const chickenRect = DOM.chickenCont.getBoundingClientRect();
-  const roadRect    = DOM.roadCanvas.getBoundingClientRect();
-  const cx = chickenRect.left + chickenRect.width/2 - roadRect.left;
-  const cy = chickenRect.top  + chickenRect.height/2 - roadRect.top;
+  const cr = DOM.chickenCont.getBoundingClientRect();
+  const rr = DOM.roadCanvas.getBoundingClientRect();
+  const cx = cr.left + cr.width/2 - rr.left;
+  const cy = cr.top  + cr.height/2 - rr.top;
   spawnExplosion(cx, cy);
 
-  // Hit nearby car
   const hitCar = carEls.find(c => parseInt(c.dataset.lane) === lane);
-  if (hitCar) { hitCar.classList.add('hit-animate'); }
+  if (hitCar) hitCar.classList.add('hit-animate');
 
   DOM.gameArea.classList.remove('screen-shake');
   void DOM.gameArea.offsetWidth;
   DOM.gameArea.classList.add('screen-shake');
 
   setChickenAnim('burn');
-  DOM.multRing.className = 'mult-ring glow-red';
-  DOM.multDisp.style.color = 'var(--red)';
+  if (laneMultCircles[lane]) laneMultCircles[lane].classList.add('bust');
 
   haptic('error'); AudioMan.bust();
   showOverlay('BUSTED! 💥', 'bust');
 
-  emitEvent('ROUND_LOST', { roundId: _roundId, steps: State.stepCount, mult: State.multiplier.toFixed(2), betLost: State.bet });
+  emitEvent('ROUND_LOST', { roundId: _roundId, steps: State.stepCount });
   backendEndRound(_roundId, 'LOST', 0);
-  DOM.potWin.classList.remove('visible');
 
   State.phase = 'GAMEOVER';
   updateUI();
@@ -1439,18 +1671,20 @@ function resolveStepBust(lane) {
   setTimeout(() => {
     hideOverlay();
     setChickenAnim('');
+    DOM.chickenTooltip.classList.remove('show');
     positionChicken(-1, false);
     State.chickenLane = -1;
     State.phase = 'IDLE';
     State.multiplier = 1.0;
+    currentLaneMults = computeLaneMults();
+    laneMultCircles.forEach(c => { if(c) c.classList.remove('active','bust','gold-coin'); });
+    updateLaneCircles();
     updateUI();
   }, 2600);
 }
 
 async function actionCashOut() {
-  if (State.phase !== 'PLAYING') return;
-  if (State.stepCount === 0) return;
-  if (State.cashOutPending) return;
+  if (State.phase !== 'PLAYING' || State.stepCount === 0 || State.cashOutPending) return;
   State.cashOutPending = true;
   State.phase = 'REVEALING';
   updateUI();
@@ -1459,52 +1693,72 @@ async function actionCashOut() {
   const winAmount = parseFloat((State.bet * State.multiplier).toFixed(2));
 
   setChickenAnim('celebrate');
+  DOM.chickenImg.classList.add('dollars');
+  DOM.chickenTooltip.classList.remove('show');
+  
+  // Transform safely passed lanes to gold coins
+  for (let i = 0; i <= State.chickenLane; i++) {
+    if (laneMultCircles[i]) laneMultCircles[i].classList.add('gold-coin');
+  }
 
   const count = State.multiplier >= 5 ? 65 : State.multiplier >= 2 ? 38 : 20;
-  const r = DOM.chickenCont.getBoundingClientRect();
-  spawnConfetti(r.left + 36, r.top + 36, count);
+  const cr = DOM.chickenCont.getBoundingClientRect();
+  const rr = DOM.roadCanvas.getBoundingClientRect();
+  spawnConfetti(cr.left + 36 - rr.left, cr.top + 36 - rr.top, count);
 
+  // Show WIN popup
+  DOM.winAmtDisp.innerHTML = `${winAmount.toFixed(2)} <span>ETB</span>`;
+  DOM.winPopup.classList.add('show');
   showOverlay(`${State.multiplier.toFixed(2)}x 🎉`, 'win');
 
-  await walletTransact(winAmount, 'WIN_CREDIT', _roundId);
   await backendEndRound(_roundId, 'WIN', winAmount);
   emitEvent('CASH_OUT', { roundId: _roundId, winAmount, mult: State.multiplier.toFixed(2) });
-
-  // Push live win to ticker
   addTickerWin(winAmount);
 
   setTimeout(() => {
     hideOverlay();
     setChickenAnim('');
+    DOM.chickenImg.classList.remove('dollars');
+    DOM.winPopup.classList.remove('show');
     positionChicken(-1, false);
     State.chickenLane = -1;
     State.phase = 'IDLE';
     State.multiplier = 1.0;
     State.cashOutPending = false;
-    DOM.potWin.classList.remove('visible');
-    DOM.multRing.className = 'mult-ring';
-    DOM.multDisp.style.color = 'var(--gold)';
+    currentLaneMults = computeLaneMults();
+    laneMultCircles.forEach(c => { if(c) c.classList.remove('active','bust','gold-coin'); });
     updateUI();
   }, 2800);
 }
 
-// ═══════════════════════════════════════════════════════════
-// 14. LIVE TICKER
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
+// 14. TICKER
+// ═══════════════════════════════════════════════
 const NAMES = ['Alex S.','Hana T.','Biruk M.','Liya G.','Yonas K.','Meron B.','Dawit T.','Sara H.'];
 function addTickerWin(amount) {
   const name = NAMES[Math.floor(Math.random() * NAMES.length)];
   const ticker = document.getElementById('tickerInner');
-  const item = document.createElement('span');
+  const item   = document.createElement('span');
   item.className = 'ticker-item';
   item.innerHTML = `🏆 ${name} <span class="tw">+${amount.toFixed(0)} ETB</span>`;
   ticker.appendChild(item.cloneNode(true));
-  ticker.appendChild(item.cloneNode(true)); // duplicate for seamless loop
+  ticker.appendChild(item.cloneNode(true));
 }
 
-// ═══════════════════════════════════════════════════════════
+// Animate online count
+(function() {
+  let base = 11646;
+  setInterval(() => {
+    base += Math.floor(Math.random() * 18) - 7;
+    base  = Math.max(11000, Math.min(13500, base));
+    const el = document.getElementById('onlineCount');
+    if (el) el.textContent = base.toLocaleString();
+  }, 5000);
+})();
+
+// ═══════════════════════════════════════════════
 // 15. HELPERS
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 function haptic(type) {
   try { const hf = window.Telegram?.WebApp?.HapticFeedback; if (!hf) return; if (type==='success'||type==='error') hf.notificationOccurred(type); else hf.impactOccurred(type); } catch(e) {}
 }
@@ -1512,23 +1766,18 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 function generateHex(len) { const a=new Uint8Array(Math.ceil(len/2)); crypto.getRandomValues(a); return Array.from(a).map(b=>b.toString(16).padStart(2,'0')).join('').slice(0,len); }
 async function sha256(msg) { const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(msg)); return Array.from(new Uint8Array(b)).map(b=>b.toString(16).padStart(2,'0')).join(''); }
 
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 // 16. EVENT BINDINGS
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 DOM.btnStep.addEventListener('click', () => {
-  if (State.phase === 'IDLE') actionStart();
+  if (State.phase === 'IDLE')    actionStart();
   else if (State.phase === 'PLAYING') actionStep();
 });
 DOM.btnCashOut.addEventListener('click', actionCashOut);
 
-DOM.btnMin.addEventListener('click', () => {
-  if (State.phase !== 'IDLE') return;
-  AudioMan.click(); State.bet = CONFIG.minBet; updateUI();
-});
-DOM.btnMax.addEventListener('click', () => {
-  if (State.phase !== 'IDLE') return;
-  AudioMan.click(); State.bet = CONFIG.maxBet; updateUI();
-});
+DOM.btnMin.addEventListener('click', () => { if (State.phase !== 'IDLE') return; AudioMan.click(); State.bet = CONFIG.minBet; updateUI(); });
+DOM.btnMax.addEventListener('click', () => { if (State.phase !== 'IDLE') return; AudioMan.click(); State.bet = CONFIG.maxBet; updateUI(); });
+
 DOM.presetBtns.forEach(btn => {
   btn.addEventListener('click', () => {
     if (State.phase !== 'IDLE') return;
@@ -1539,29 +1788,49 @@ DOM.presetBtns.forEach(btn => {
     updateUI();
   });
 });
-DOM.tierSelect.addEventListener('change', () => { AudioMan.click(); State.tier = DOM.tierSelect.value; });
 
-// Long press multiplier → provably fair
-DOM.multDisp.addEventListener('pointerdown', (() => {
-  let t; return () => { t = setTimeout(() => DOM.verifyPanel.classList.add('show'), 700); };
-})());
-DOM.multDisp.addEventListener('pointerup', () => clearTimeout());
-DOM.verifyClose.addEventListener('click', () => DOM.verifyPanel.classList.remove('show'));
+// Tier tabs
+document.querySelectorAll('.tier-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    if (State.phase !== 'IDLE') return;
+    AudioMan.click();
+    document.querySelectorAll('.tier-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    State.tier = tab.dataset.tier;
+    DOM.tierSelect.value = State.tier;
+    currentLaneMults = computeLaneMults();
+    updateLaneCircles();
+  });
+});
 
-// ═══════════════════════════════════════════════════════════
+// How to play modal
+document.getElementById('howToBtn').addEventListener('click', () => document.getElementById('howToModal').classList.add('show'));
+document.getElementById('howToClose').addEventListener('click', () => document.getElementById('howToModal').classList.remove('show'));
+
+// Fullscreen
+document.getElementById('fullscreenBtn').addEventListener('click', () => {
+  if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+  else document.exitFullscreen?.();
+});
+
+// Provably Fair — long press multiplier text
+let _lpTimer;
+DOM.multDisp.addEventListener('pointerdown', () => { _lpTimer = setTimeout(() => DOM.verifyPanel.classList.add('show'), 700); });
+DOM.multDisp.addEventListener('pointerup',   () => clearTimeout(_lpTimer));
+DOM.verifyClose.addEventListener('click',    () => DOM.verifyPanel.classList.remove('show'));
+
+// ═══════════════════════════════════════════════
 // 17. BOOTSTRAP
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 window.addEventListener('DOMContentLoaded', () => {
-  initRoad();
-  spawnScenery();
-  initUserSession();
-  // Wait a tick for layout, then init road
+  // Two rAF passes to ensure layout is ready
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       initRoad();
       updateUI();
     });
   });
+  initUserSession();
 });
 
 window.addEventListener('resize', () => initRoad());
