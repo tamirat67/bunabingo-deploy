@@ -738,14 +738,17 @@ const CONFIG = {
 
 // Car types — all 8 varieties with image filenames and angle offsets to face UP natively
 const CAR_TYPES = [
+  // All images: front at TOP, back at BOTTOM
+  // going-up  = rotate 0°   (front faces up  = correct)
+  // going-down = rotate 180° (front faces down = correct)
   { key: 'taxi',      file: 'car-taxi.png',      size: 'normal', speed: 'fast',   angleOffset: 0 },
   { key: 'police',    file: 'car-police.png',    size: 'normal', speed: 'fast',   angleOffset: 0 },
   { key: 'red',       file: 'car-red.png',       size: 'slim',   speed: 'fast',   angleOffset: 0 },
   { key: 'sports',    file: 'car-sports.png',    size: 'slim',   speed: 'fast',   angleOffset: 0 },
-  { key: 'suv',       file: 'car-suv.png',       size: 'normal', speed: 'normal', angleOffset: -90 },
-  { key: 'bus',       file: 'car-bus.png',       size: 'wide',   speed: 'slow',   angleOffset: -90 },
-  { key: 'ambulance', file: 'car-ambulance.png', size: 'normal', speed: 'fast',   angleOffset: -90 },
-  { key: 'truck',     file: 'car-truck.png',     size: 'wide',   speed: 'slow',   angleOffset: -90 },
+  { key: 'suv',       file: 'car-suv.png',       size: 'normal', speed: 'normal', angleOffset: 0 },
+  { key: 'bus',       file: 'car-bus.png',       size: 'wide',   speed: 'slow',   angleOffset: 0 },
+  { key: 'ambulance', file: 'car-ambulance.png', size: 'normal', speed: 'fast',   angleOffset: 0 },
+  { key: 'truck',     file: 'car-truck.png',     size: 'wide',   speed: 'slow',   angleOffset: 0 },
 ];
 
 // ═══════════════════════════════════════════════════════════
