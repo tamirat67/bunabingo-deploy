@@ -174,10 +174,9 @@
       height: 300%;
       position: absolute;
       bottom: 0;
-      background: linear-gradient(to bottom, #151515 0%, #050505 100%);
-      border-left:  4px solid var(--accent-gold);
-      border-right: 4px solid var(--accent-gold);
-      box-shadow: 0 0 25px rgba(212,175,55,0.4), inset 0 0 40px rgba(212,175,55,0.15);
+      background: linear-gradient(to bottom, #2d2d2d 0%, #1a1a1a 100%);
+      border-left:  4px solid rgba(255,255,255,0.15);
+      border-right: 4px solid rgba(255,255,255,0.15);
       transform-origin: bottom center;
       transform: rotateX(55deg) translateY(30px);
       transition: transform 0.45s cubic-bezier(0.2,0.8,0.2,1);
@@ -192,12 +191,11 @@
       top: 0; bottom: 0;
       width: 4px;
       background: repeating-linear-gradient(to bottom,
-        rgba(255,255,255,0.4) 0px,
-        rgba(255,255,255,0.4) 40px,
-        transparent 40px,
-        transparent 80px
+        rgba(255,255,255,0.3) 0px,
+        rgba(255,255,255,0.3) 30px,
+        transparent 30px,
+        transparent 60px
       );
-      box-shadow: 0 0 8px rgba(255,255,255,0.3);
     }
 
     /* ── TILE ROWS ── */
@@ -214,64 +212,144 @@
     .row-marker.visible { opacity: 1; }
 
     .tile {
-      width: 66px;
-      height: 66px;
-      border-radius: 12px;
-      background: rgba(0,0,0,0.4);
-      border: 1px solid rgba(255,255,255,0.1);
+      width: 62px;
+      height: 38px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.09);
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.2s;
-    }
-    .tile:hover {
-      background: rgba(255,255,255,0.1);
-      cursor: pointer;
+      font-size: 18px;
+      transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
     }
     .tile.safe {
-      background: rgba(212,175,55,0.15);
-      border-color: var(--accent-gold);
-      box-shadow: 0 0 20px rgba(212,175,55,0.5), inset 0 0 15px rgba(212,175,55,0.2);
+      background: rgba(46,204,113,0.18);
+      border-color: var(--safe-green);
+      box-shadow: 0 0 12px rgba(46,204,113,0.35);
     }
     .tile.fire {
-      background: rgba(231,76,60,0.15);
+      background: rgba(231,76,60,0.18);
       border-color: var(--danger-red);
-      box-shadow: 0 0 20px rgba(231,76,60,0.5), inset 0 0 15px rgba(231,76,60,0.2);
+      box-shadow: 0 0 12px rgba(231,76,60,0.4);
     }
 
-    /* ── CHICKEN SPRITE (Premium Image) ── */
+    /* ── CHICKEN SPRITE (pure CSS) ── */
     .chicken-wrapper {
       position: absolute;
       bottom: 18%;
       left: 50%;
       transform: translateX(-50%);
-      width: 100px;
-      height: 100px;
+      width: 56px;
+      height: 64px;
       z-index: 15;
       display: flex;
       align-items: flex-end;
       justify-content: center;
     }
 
-    .premium-chicken {
-      width: 100px;
-      height: auto;
+    .chicken {
+      position: relative;
+      width: 42px;
+      height: 42px;
       transform-origin: bottom center;
-      transition: filter 0.3s ease;
-      filter: drop-shadow(0 10px 10px rgba(0,0,0,0.5));
     }
+
+    /* Body */
+    .chicken .c-body {
+      position: absolute;
+      bottom: 0; left: 0;
+      width: 42px; height: 38px;
+      background: radial-gradient(circle at 35% 35%, #f7d32f, #e6b800);
+      border-radius: 50% 50% 40% 40% / 60% 60% 40% 40%;
+      box-shadow: inset -4px -4px 8px rgba(0,0,0,0.25), 0 4px 10px rgba(0,0,0,0.5);
+    }
+    /* Head */
+    .chicken .c-head {
+      position: absolute;
+      top: -14px; right: 4px;
+      width: 22px; height: 22px;
+      background: radial-gradient(circle at 40% 40%, #f7d32f, #e6b800);
+      border-radius: 50%;
+      box-shadow: inset -2px -2px 5px rgba(0,0,0,0.15);
+    }
+    /* Eye */
+    .chicken .c-eye {
+      position: absolute;
+      top: -7px; right: 8px;
+      width: 6px; height: 6px;
+      background: #1a1a1a;
+      border-radius: 50%;
+      box-shadow: inset 1px 1px 1px rgba(255,255,255,0.3);
+    }
+    /* Beak */
+    .chicken .c-beak {
+      position: absolute;
+      top: -5px; right: 1px;
+      width: 0; height: 0;
+      border-top: 4px solid transparent;
+      border-bottom: 4px solid transparent;
+      border-left: 9px solid #d35400;
+    }
+    /* Wing */
+    .chicken .c-wing {
+      position: absolute;
+      bottom: 12px; left: 2px;
+      width: 18px; height: 12px;
+      background: #e6a800;
+      border-radius: 50% 30% 50% 30%;
+      transform-origin: right center;
+      transition: transform 0.15s ease;
+    }
+    /* Legs */
+    .chicken .c-legs {
+      position: absolute;
+      bottom: -8px; left: 9px;
+      width: 24px; height: 10px;
+      display: flex;
+      gap: 6px;
+    }
+    .chicken .c-leg {
+      width: 5px; height: 10px;
+      background: #d35400;
+      border-radius: 2px;
+    }
+    /* Comb */
+    .chicken .c-comb {
+      position: absolute;
+      top: -22px; right: 10px;
+      width: 6px; height: 9px;
+      background: #e74c3c;
+      border-radius: 3px 3px 0 0;
+    }
+    .chicken .c-comb::before, .chicken .c-comb::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      width: 5px; height: 7px;
+      background: #e74c3c;
+      border-radius: 3px 3px 0 0;
+    }
+    .chicken .c-comb::before { left: -6px; height: 6px; }
+    .chicken .c-comb::after  { right: -6px; height: 6px; }
 
     /* Chicken Animation States */
-    .premium-chicken.idle       { animation: idleBob 2.2s ease-in-out infinite; }
-    .premium-chicken.jump       { animation: chickenJump 0.45s cubic-bezier(0.33,1,0.68,1) forwards; }
-    .premium-chicken.stumble    { animation: chickenStumble 0.55s ease both; }
-    .premium-chicken.celebrate  { animation: victoryDance 0.9s ease-in-out infinite; }
-    .premium-chicken.burn       { 
-      animation: burnShake 0.2s ease 2; 
-      filter: brightness(0.2) sepia(1) hue-rotate(-50deg) saturate(5) drop-shadow(0 0 10px red); 
-    }
+    .chicken.idle .c-body  { animation: idleBob 2.2s ease-in-out infinite; }
+    .chicken.idle .c-head  { animation: idleBob 2.2s ease-in-out infinite 0.1s; }
 
+    .chicken.jump          { animation: chickenJump 0.45s cubic-bezier(0.33,1,0.68,1) forwards; }
+    .chicken.jump .c-wing  { animation: wingFlap 0.45s ease-in-out; }
 
+    .chicken.stumble       { animation: chickenStumble 0.55s ease both; }
+
+    .chicken.burn .c-body  { background: #4a3000; filter: brightness(0.5) saturate(0); }
+    .chicken.burn .c-head  { background: #4a3000; filter: brightness(0.5) saturate(0); }
+    .chicken.burn .c-eye   { background: #e74c3c; width: 7px; height: 3px; border-radius: 1px; top: -5px; }
+    .chicken.burn .c-comb  { background: #555; }
+    .chicken.burn          { animation: burnShake 0.2s ease 2; }
+
+    .chicken.celebrate     { animation: victoryDance 0.9s ease-in-out infinite; }
+    .chicken.celebrate .c-wing { animation: wingFlap 0.45s ease-in-out infinite; }
 
     /* ============================================================
        OVERLAY MESSAGES (WIN / BUST banners)
@@ -313,128 +391,142 @@
     }
 
     /* ============================================================
-       PREMIUM CONTROLS FOOTER
+       CONTROLS FOOTER
     ============================================================ */
-    .controls.premium-glass {
-      background: rgba(18, 18, 18, 0.85);
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
-      padding: 16px 16px 85px;
-      flex-shrink: 0;
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      z-index: 20;
-      border-radius: 24px 24px 0 0;
-      box-shadow: 0 -8px 30px rgba(0,0,0,0.5);
-    }
-    
-    .control-grid {
+    .controls {
+      background: var(--bg-panel);
+      border-top: 1px solid var(--border-dim);
+      padding: 12px 14px 85px; /* Added padding to clear bottom navbar */
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      max-width: 500px;
-      margin: 0 auto;
-      background: rgba(30, 30, 30, 0.6);
-      padding: 16px;
-      border-radius: 16px;
-      border: 1px solid rgba(255,255,255,0.05);
+      gap: 10px;
+      flex-shrink: 0;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      z-index: 20;
     }
 
-    /* Bet Input Row */
-    .bet-input-row {
+    /* Info bar */
+    .info-bar {
       display: flex;
-      align-items: center;
       justify-content: space-between;
-      background: #2a2a2a;
-      border-radius: 12px;
-      padding: 4px;
+      align-items: center;
+      font-size: 11px;
+      color: var(--text-muted);
+      padding: 0 2px;
     }
-    .bet-btn-small {
-      background: #3a3a3a;
-      border: none;
-      color: #aaa;
-      font-size: 0.8rem;
-      font-weight: 700;
-      padding: 10px 16px;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background 0.2s, color 0.2s;
-    }
-    .bet-btn-small:active { background: #4a4a4a; color: #fff; }
-    .bet-display-box {
-      flex: 1;
-      text-align: center;
-      font-size: 1.2rem;
-      font-weight: 800;
-      color: #fff;
+    .info-bar span { font-weight: 700; color: var(--text-main); }
+
+    /* Config row */
+    .config-row {
+      display: flex;
+      gap: 10px;
     }
 
-    /* Preset Row */
-    .preset-row {
-      display: flex;
-      gap: 8px;
-    }
-    .preset-btn {
-      flex: 1;
-      background: #2a2a2a;
-      border: 1px solid #3a3a3a;
-      color: #fff;
-      font-size: 0.9rem;
-      font-weight: 700;
-      padding: 12px 0;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .preset-btn:active { background: #3a3a3a; border-color: #555; }
-    .preset-btn .curr { font-size: 0.65rem; color: #888; }
-
-    /* Tier Row */
-    .tier-row {
-      display: flex;
-    }
     .tier-select {
-      flex: 1;
-      background: #2a2a2a;
-      border: 1px solid #3a3a3a;
-      color: #fff;
-      font-size: 0.95rem;
+      flex: 1.2;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border-dim);
+      border-radius: var(--radius-md);
+      color: var(--text-main);
+      font-size: 0.85rem;
       font-weight: 700;
-      padding: 14px 16px;
-      border-radius: 8px;
+      padding: 10px 8px;
       outline: none;
       -webkit-appearance: none;
       appearance: none;
+      text-align: center;
       cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    .tier-select:focus { border-color: var(--accent-gold); }
+    .tier-select:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .bet-control {
+      flex: 1;
+      display: flex;
+      align-items: stretch;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border-dim);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+
+    .bet-adj-btn {
+      width: 40px;
+      background: rgba(255,255,255,0.08);
+      border: none;
+      color: var(--text-main);
+      font-size: 1.3rem;
+      font-weight: 700;
+      line-height: 1;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .bet-adj-btn:active { background: rgba(255,255,255,0.18); transform: scale(0.92); }
+    .bet-adj-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    .bet-display {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      line-height: 1.1;
+    }
+    .bet-label { font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+    .bet-amount-text {
+      font-weight: 800;
+      font-size: 1rem;
+      color: var(--text-gold);
     }
 
     /* Action buttons */
     .action-row {
       display: flex;
-      margin-top: 4px;
+      gap: 10px;
+      height: 56px;
     }
+
     .game-btn {
       flex: 1;
       border: none;
-      border-radius: 12px;
-      font-size: 1.2rem;
+      border-radius: var(--radius-md);
+      font-size: 1rem;
       font-weight: 900;
       text-transform: uppercase;
-      padding: 18px 0;
+      letter-spacing: 1px;
       color: #fff;
       cursor: pointer;
-      transition: transform 0.1s, filter 0.2s;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1px;
+      transition: transform 0.1s, filter 0.2s, opacity 0.2s;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+      -webkit-tap-highlight-color: transparent;
     }
-    .game-btn:active { transform: scale(0.96); }
-    .game-btn:disabled { opacity: 0.5; filter: grayscale(1); pointer-events: none; }
-    
+    .game-btn:active { transform: scale(0.94); }
+    .game-btn:disabled { opacity: 0.45; filter: grayscale(0.8); pointer-events: none; }
+    .game-btn .btn-sub { font-size: 0.65rem; opacity: 0.85; font-weight: 600; letter-spacing: 0; text-transform: none; }
+
     .btn-step {
-      background: linear-gradient(180deg, #4cd964 0%, #2ecc71 100%);
-      text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      background: linear-gradient(175deg, #f5a623 0%, #d35400 100%);
+      border-top: 2px solid #f7c25e;
+      box-shadow: 0 4px 0 #7a2f00, 0 6px 16px rgba(211,84,0,0.4);
     }
+    .btn-step:active { box-shadow: 0 2px 0 #7a2f00, 0 3px 8px rgba(211,84,0,0.4); }
+
     .btn-cashout {
-      background: linear-gradient(180deg, #ff9500 0%, #e67e22 100%);
+      background: linear-gradient(175deg, #2ecc71 0%, #1a8a4a 100%);
+      border-top: 2px solid #52e891;
+      box-shadow: 0 4px 0 #0d4d28, 0 6px 16px rgba(46,204,113,0.3);
     }
+    .btn-cashout:active { box-shadow: 0 2px 0 #0d4d28; }
 
     /* ============================================================
        SEED VERIFY PANEL (provably fair UI)
@@ -573,7 +665,20 @@
 
     <!-- Chicken -->
     <div class="chicken-wrapper">
-      <img id="chickenSprite" src="/src/assets/chicken-road/chicken.png" class="premium-chicken idle" alt="Chicken" />
+      <div class="chicken idle" id="chickenSprite">
+        <div class="c-comb"></div>
+        <div class="c-head">
+          <div class="c-eye"></div>
+          <div class="c-beak"></div>
+        </div>
+        <div class="c-body">
+          <div class="c-wing"></div>
+        </div>
+        <div class="c-legs">
+          <div class="c-leg"></div>
+          <div class="c-leg"></div>
+        </div>
+      </div>
     </div>
 
   </main>
@@ -581,42 +686,39 @@
   <!-- ========================================================
        CONTROLS FOOTER
   ======================================================== -->
-  <div class="controls premium-glass">
-    <div class="control-grid">
-      <!-- Row 1: Min, Display, Max -->
-      <div class="bet-input-row">
-        <button class="bet-btn-small" id="btnMin">MIN</button>
-        <div class="bet-display-box">
-          <span id="betDisplay" class="bet-val">10</span>
+  <div class="controls">
+    <!-- Info: bet / potential win -->
+    <div class="info-bar">
+      <span id="infoLeft">Select tier &amp; bet, then START</span>
+      <span id="infoRight"></span>
+    </div>
+
+    <!-- Tier + Bet -->
+    <div class="config-row">
+      <select class="tier-select" id="tierSelect">
+        <option value="easy">🟢 Easy  — 5% fail</option>
+        <option value="medium">🟡 Medium — 10% fail</option>
+        <option value="hard">🔴 Hard  — 15% fail</option>
+        <option value="extreme">💀 Extreme — 35% fail</option>
+      </select>
+
+      <div class="bet-control">
+        <button class="bet-adj-btn" id="btnBetDown">−</button>
+        <div class="bet-display">
+          <span class="bet-label">Bet (ETB)</span>
+          <span class="bet-amount-text" id="betDisplay">10</span>
         </div>
-        <button class="bet-btn-small" id="btnMax">MAX</button>
+        <button class="bet-adj-btn" id="btnBetUp">+</button>
       </div>
-      
-      <!-- Row 2: Presets -->
-      <div class="preset-row">
-        <button class="preset-btn" data-val="30">30 <span class="curr">ETB</span></button>
-        <button class="preset-btn" data-val="50">50 <span class="curr">ETB</span></button>
-        <button class="preset-btn" data-val="150">150 <span class="curr">ETB</span></button>
-        <button class="preset-btn" data-val="300">300 <span class="curr">ETB</span></button>
-      </div>
-      
-      <!-- Row 3: Dropdown -->
-      <div class="tier-row">
-        <select class="tier-select" id="tierSelect">
-          <option value="easy">Easy</option>
-          <option value="medium">Medium</option>
-          <option value="hard">Hard</option>
-          <option value="extreme">Extreme</option>
-        </select>
-      </div>
-      
-      <!-- Row 4: Play button -->
-      <div class="action-row">
-        <button class="game-btn btn-step" id="btnStep">Play</button>
-        <button class="game-btn btn-cashout" id="btnCashOut" style="display:none;" disabled>
-          Cash Out <span class="btn-sub" id="cashOutSub"></span>
-        </button>
-      </div>
+    </div>
+
+    <!-- Main action buttons -->
+    <div class="action-row">
+      <button class="game-btn btn-step" id="btnStep">START BET</button>
+      <button class="game-btn btn-cashout" id="btnCashOut" disabled>
+        CASH OUT
+        <span class="btn-sub" id="cashOutSub"></span>
+      </button>
     </div>
   </div>
 
@@ -746,9 +848,8 @@ const DOM = {
   infoRight:    document.getElementById('infoRight'),
   tierSelect:   document.getElementById('tierSelect'),
   betDisplay:   document.getElementById('betDisplay'),
-  btnMin:       document.getElementById('btnMin'),
-  btnMax:       document.getElementById('btnMax'),
-  presetBtns:   document.querySelectorAll('.preset-btn'),
+  btnBetDown:   document.getElementById('btnBetDown'),
+  btnBetUp:     document.getElementById('btnBetUp'),
   btnStep:      document.getElementById('btnStep'),
   btnCashOut:   document.getElementById('btnCashOut'),
   cashOutSub:   document.getElementById('cashOutSub'),
@@ -922,9 +1023,8 @@ function updateUI() {
   switch (phase) {
     case 'IDLE':
       DOM.tierSelect.disabled  = false;
-      DOM.btnMin.disabled      = false;
-      DOM.btnMax.disabled      = false;
-      DOM.presetBtns.forEach(b => b.disabled = false);
+      DOM.btnBetDown.disabled  = false;
+      DOM.btnBetUp.disabled    = false;
       DOM.btnStep.disabled     = false;
       DOM.btnStep.textContent  = 'START BET';
       DOM.btnCashOut.disabled  = true;
@@ -939,9 +1039,8 @@ function updateUI() {
 
     case 'PLAYING':
       DOM.tierSelect.disabled  = true;
-      DOM.btnMin.disabled      = true;
-      DOM.btnMax.disabled      = true;
-      DOM.presetBtns.forEach(b => b.disabled = true);
+      DOM.btnBetDown.disabled  = true;
+      DOM.btnBetUp.disabled    = true;
       DOM.btnStep.disabled     = false;
       DOM.btnStep.textContent  = 'NEXT STEP';
       DOM.btnCashOut.disabled  = stepCount === 0;
@@ -958,17 +1057,15 @@ function updateUI() {
     case 'REVEALING':
       DOM.btnStep.disabled     = true;
       DOM.btnCashOut.disabled  = true;
-      DOM.btnMin.disabled      = true;
-      DOM.btnMax.disabled      = true;
-      DOM.presetBtns.forEach(b => b.disabled = true);
+      DOM.btnBetDown.disabled  = true;
+      DOM.btnBetUp.disabled    = true;
       break;
 
     case 'GAMEOVER':
       DOM.btnStep.disabled     = true;
       DOM.btnCashOut.disabled  = true;
-      DOM.btnMin.disabled      = true;
-      DOM.btnMax.disabled      = true;
-      DOM.presetBtns.forEach(b => b.disabled = true);
+      DOM.btnBetDown.disabled  = true;
+      DOM.btnBetUp.disabled    = true;
       DOM.tierSelect.disabled  = true;
       break;
   }
@@ -1143,13 +1240,13 @@ function resolveStepSafe(nextMult, row) {
   // Near-miss chance (20%) — show flanking fire tiles for drama
   const nearMiss = Math.random() > 0.80;
   if (nearMiss && tiles.length === 3) {
-    tiles[0].innerHTML = '<img src="/src/assets/chicken-road/bomb.png" style="width:80%;" />'; tiles[0].classList.add('fire');
-    tiles[2].innerHTML = '<img src="/src/assets/chicken-road/bomb.png" style="width:80%;" />'; tiles[2].classList.add('fire');
+    tiles[0].innerHTML = '🔥'; tiles[0].classList.add('fire');
+    tiles[2].innerHTML = '🔥'; tiles[2].classList.add('fire');
     setChickenState('stumble');
   } else {
     setChickenState('idle');
   }
-  tiles[1].innerHTML = '<img src="/src/assets/chicken-road/coin.png" style="width:80%;" />'; tiles[1].classList.add('safe');
+  tiles[1].innerHTML = '✅'; tiles[1].classList.add('safe');
 
   const oldMult      = State.multiplier;
   State.multiplier   = nextMult;
@@ -1180,7 +1277,7 @@ function resolveStepSafe(nextMult, row) {
 
 function resolveStepBust(row) {
   const tiles = row.children;
-  tiles[1].innerHTML = '<img src="/src/assets/chicken-road/bomb.png" style="width:80%;" />'; tiles[1].classList.add('fire');
+  tiles[1].innerHTML = '🔥'; tiles[1].classList.add('fire');
 
   DOM.gameArea.classList.remove('screen-shake');
   void DOM.gameArea.offsetWidth;
@@ -1304,27 +1401,22 @@ DOM.btnStep.addEventListener('click', () => {
 
 DOM.btnCashOut.addEventListener('click', actionCashOut);
 
-DOM.btnMin.addEventListener('click', () => {
+DOM.btnBetUp.addEventListener('click', () => {
   if (State.phase !== 'IDLE') return;
   AudioMan.click();
-  State.bet = CONFIG.minBet;
-  updateUI();
-});
-
-DOM.btnMax.addEventListener('click', () => {
-  if (State.phase !== 'IDLE') return;
-  AudioMan.click();
-  State.bet = CONFIG.maxBet;
-  updateUI();
-});
-
-DOM.presetBtns.forEach(btn => {
-  btn.addEventListener('click', () => {
-    if (State.phase !== 'IDLE') return;
-    AudioMan.click();
-    State.bet = parseInt(btn.getAttribute('data-val'), 10);
+  if (State.bet + CONFIG.betStep <= CONFIG.maxBet) {
+    State.bet += CONFIG.betStep;
     updateUI();
-  });
+  }
+});
+
+DOM.btnBetDown.addEventListener('click', () => {
+  if (State.phase !== 'IDLE') return;
+  AudioMan.click();
+  if (State.bet - CONFIG.betStep >= CONFIG.minBet) {
+    State.bet -= CONFIG.betStep;
+    updateUI();
+  }
 });
 
 DOM.tierSelect.addEventListener('change', () => {
