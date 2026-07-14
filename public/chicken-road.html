@@ -48,6 +48,22 @@
       flex-direction: column;
       height: 100dvh;
     }
+    .back-btn {
+      color: rgba(255,255,255,0.75); text-decoration: none;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(255,255,255,0.1); border-radius: 50%;
+      width: 34px; height: 34px; flex-shrink: 0;
+      font-size: 18px; font-weight: 700;
+      transition: background 0.2s, color 0.2s;
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+    .back-btn:active { background: rgba(255,255,255,0.22); color: #fff; }
+    .scenery-item {
+      position: absolute; left: 50%; transform: translateX(-50%);
+      font-size: 24px; animation: roadScroll var(--dur) linear forwards;
+      filter: drop-shadow(0 10px 10px rgba(0,0,0,0.6));
+      pointer-events: none; z-index: 5;
+    }
 
     /* ═══════════════════════════════════════════════════════════
        LIVE WINS TICKER (top bar)
@@ -82,30 +98,38 @@
        HEADER (balance + logo)
     ═══════════════════════════════════════════════════════════ */
     header {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 10px 16px;
-      background: rgba(0,0,0,0.5);
-      border-bottom: 1px solid var(--panel-border);
-      backdrop-filter: blur(10px);
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 14px;
+      background: linear-gradient(180deg, rgba(5,10,25,0.98) 0%, rgba(10,22,40,0.95) 100%);
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      backdrop-filter: blur(16px);
       flex-shrink: 0; z-index: 30;
     }
     .logo {
-      display: flex; align-items: center; gap: 8px;
-      font-weight: 900; font-size: 15px; letter-spacing: 0.5px;
+      flex: 1;
+      display: flex; align-items: center; gap: 7px;
+      font-weight: 900; font-size: 14px; letter-spacing: 0.5px;
     }
-    .logo-icon { font-size: 20px; }
-    .logo-text { background: linear-gradient(90deg,#f5c518,#ffe87a); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    .logo-icon { font-size: 22px; line-height: 1; }
+    .logo-text {
+      background: linear-gradient(90deg, #f5c518 0%, #ffe87a 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      letter-spacing: 1px;
+    }
     .online-badge {
-      font-size: 10px; background: rgba(0,230,118,0.15); border: 1px solid rgba(0,230,118,0.3);
-      border-radius: 20px; padding: 3px 8px; color: var(--green); font-weight: 700;
-      display: flex; align-items: center; gap: 4px;
+      font-size: 10px; background: rgba(0,230,118,0.12); border: 1px solid rgba(0,230,118,0.28);
+      border-radius: 20px; padding: 3px 7px; color: var(--green); font-weight: 700;
+      display: flex; align-items: center; gap: 4px; flex-shrink: 0;
     }
     .wallet-pill {
-      background: rgba(255,255,255,0.06); border: 1px solid rgba(245,197,24,0.3);
-      border-radius: 20px; padding: 6px 14px; display: flex; flex-direction: column; align-items: flex-end;
+      background: rgba(245,197,24,0.08);
+      border: 1px solid rgba(245,197,24,0.3);
+      border-radius: 10px; padding: 5px 12px;
+      display: flex; flex-direction: column; align-items: flex-end;
+      flex-shrink: 0; min-width: 90px;
     }
-    .wallet-label { font-size: 9px; color: var(--text-dim); font-weight: 600; letter-spacing: 1px; }
-    .wallet-amount { font-size: 14px; font-weight: 800; color: var(--gold); }
+    .wallet-label { font-size: 8px; color: var(--text-dim); font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; }
+    .wallet-amount { font-size: 13px; font-weight: 900; color: var(--gold); line-height: 1.2; }
     .wallet-amount.pop { animation: pop 0.35s ease; }
     @keyframes pop { 0%{transform:scale(1)} 50%{transform:scale(1.25)} 100%{transform:scale(1)} }
 
@@ -292,74 +316,20 @@
     ═══════════════════════════════════════════════════════════ */
     .car {
       position: absolute;
-      width: 42px;
-      border-radius: 8px;
       z-index: 10;
       transform: translateX(-50%);
       will-change: transform;
     }
-    /* Car body via CSS */
-    .car-body {
-      width: 100%; height: 64px;
-      border-radius: 10px 10px 8px 8px;
-      position: relative;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+    .car-sprite {
+      width: 46px; height: auto;
+      transform: rotate(180deg);
+      filter: drop-shadow(0 10px 10px rgba(0,0,0,0.6));
     }
-    .car-roof {
-      position: absolute;
-      top: 12px; left: 8px; right: 8px; height: 24px;
-      border-radius: 6px; opacity: 0.7;
-    }
-    .car-windshield {
-      position: absolute;
-      top: 14px; left: 9px; right: 9px; height: 18px;
-      background: rgba(150,220,255,0.5); border-radius: 4px;
-    }
-    .car-headlights {
-      position: absolute; top: 4px; left: 4px; right: 4px;
-      display: flex; justify-content: space-between;
-    }
-    .headlight {
-      width: 10px; height: 6px;
-      background: rgba(255,255,200,0.9); border-radius: 3px;
-      box-shadow: 0 0 8px rgba(255,255,180,0.8);
-    }
-    .car-taillights {
-      position: absolute; bottom: 4px; left: 4px; right: 4px;
-      display: flex; justify-content: space-between;
-    }
-    .taillight {
-      width: 10px; height: 5px;
-      background: rgba(255,80,80,0.9); border-radius: 2px;
-      box-shadow: 0 0 6px rgba(255,60,60,0.7);
-    }
-    /* Car colors */
-    .car-taxi   .car-body { background: linear-gradient(180deg, #f5c518 0%, #d4a806 100%); }
-    .car-police .car-body { background: linear-gradient(180deg, #3a4a6b 0%, #2a3a5b 100%); }
-    .car-red    .car-body { background: linear-gradient(180deg, #e53935 0%, #b71c1c 100%); }
-    .car-white  .car-body { background: linear-gradient(180deg, #f5f5f5 0%, #ddd 100%); }
-    .car-silver .car-body { background: linear-gradient(180deg, #b0bec5 0%, #78909c 100%); }
-    .car-police .car-lightbar {
-      position: absolute; top: 0; left: 10px; right: 10px; height: 5px;
-      border-radius: 3px; overflow: hidden;
-      animation: policeFlash 0.4s linear infinite;
-    }
-    @keyframes policeFlash {
-      0%,49%{ background:linear-gradient(90deg,#f44 50%,#44f 50%) }
-      50%,100%{ background:linear-gradient(90deg,#44f 50%,#f44 50%) }
-    }
-
-    /* Car lane animation */
-    .car.going-down  { animation: carDown  var(--dur, 2.5s) linear var(--delay,0s) infinite; }
-    .car.going-up    { animation: carUp    var(--dur, 2.5s) linear var(--delay,0s) infinite; }
-    @keyframes carDown {
-      from { top: -80px; }
-      to   { top: calc(100% + 80px); }
-    }
-    @keyframes carUp {
-      from { top: calc(100% + 80px); }
-      to   { top: -80px; }
-    }
+    .car.going-up .car-sprite { transform: rotate(0deg); }
+    .car.going-down { animation: carDown var(--dur, 2.5s) linear var(--delay, 0s) infinite; }
+    .car.going-up   { animation: carUp var(--dur, 2.5s) linear var(--delay, 0s) infinite; }
+    @keyframes carDown { from { top: -80px; } to { top: calc(100% + 80px); } }
+    @keyframes carUp { from { top: calc(100% + 80px); } to { top: -80px; } }
 
     /* Hit car (triggered by JS) */
     .car.hit-animate {
@@ -496,7 +466,7 @@
       background: var(--panel-bg);
       border-top: 1px solid var(--panel-border);
       padding: 14px 16px;
-      padding-bottom: max(80px, calc(env(safe-area-inset-bottom) + 80px));
+      padding-bottom: max(16px, calc(env(safe-area-inset-bottom) + 16px));
       flex-shrink: 0;
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
@@ -631,14 +601,15 @@
 
   <!-- Header -->
   <header>
+    <a href="/" class="back-btn" id="backBtn" title="Back to Lobby">&#8592;</a>
     <div class="logo">
       <span class="logo-icon">🐔</span>
       <span class="logo-text">CHICKEN ROAD</span>
     </div>
-    <div class="online-badge"><span class="live-dot" style="width:5px;height:5px;"></span> <span id="onlineCount">11,170</span></div>
+    <div class="online-badge"><span class="live-dot" style="width:5px;height:5px;"></span>&nbsp;<span id="onlineCount">11,170</span></div>
     <div class="wallet-pill">
       <span class="wallet-label">BALANCE</span>
-      <span class="wallet-amount" id="walletAmount">0.00 ETB</span>
+      <span class="wallet-amount" id="walletAmount">— ETB</span>
     </div>
   </header>
 
@@ -746,7 +717,7 @@ const CONFIG = {
 };
 
 // Car types
-const CAR_TYPES = ['car-taxi','car-police','car-red','car-white','car-silver'];
+const CAR_TYPES = ['taxi','police','red'];
 
 // ═══════════════════════════════════════════════════════════
 // 2. AUDIO
@@ -912,36 +883,14 @@ function spawnAllCars() {
 
 function makeCar() {
   const wrap = document.createElement('div');
-  wrap.className = 'car ' + CAR_TYPES[Math.floor(Math.random() * CAR_TYPES.length)];
-
-  const body = document.createElement('div');
-  body.className = 'car-body';
-
-  if (wrap.classList.contains('car-police')) {
-    const lb = document.createElement('div');
-    lb.className = 'car-lightbar';
-    body.appendChild(lb);
-  }
-
-  const roof = document.createElement('div');
-  roof.className = 'car-roof';
-  body.appendChild(roof);
-
-  const ws = document.createElement('div');
-  ws.className = 'car-windshield';
-  body.appendChild(ws);
-
-  const hl = document.createElement('div');
-  hl.className = 'car-headlights';
-  hl.innerHTML = '<div class="headlight"></div><div class="headlight"></div>';
-  body.appendChild(hl);
-
-  const tl = document.createElement('div');
-  tl.className = 'car-taillights';
-  tl.innerHTML = '<div class="taillight"></div><div class="taillight"></div>';
-  body.appendChild(tl);
-
-  wrap.appendChild(body);
+  const type = CAR_TYPES[Math.floor(Math.random() * CAR_TYPES.length)];
+  wrap.className = 'car';
+  
+  const img = document.createElement('img');
+  img.src = '/src/assets/chicken-road/car-' + type + '.png';
+  img.className = 'car-sprite';
+  wrap.appendChild(img);
+  
   return wrap;
 }
 
@@ -1098,6 +1047,31 @@ function updateUI() {
 // ═══════════════════════════════════════════════════════════
 let socket = null;
 
+function spawnScenery() {
+  const dur = 3;
+  const leftGrass = document.querySelector('.grass-left');
+  const rightGrass = document.querySelector('.grass-right');
+  
+  setInterval(() => {
+    if (Math.random() > 0.4 && leftGrass) {
+      const t = document.createElement('div');
+      t.className = 'scenery-item';
+      t.textContent = Math.random() > 0.8 ? '🚥' : '🌲';
+      t.style.setProperty('--dur', dur + 's');
+      leftGrass.appendChild(t);
+      setTimeout(() => t.remove(), dur * 1000);
+    }
+    if (Math.random() > 0.4 && rightGrass) {
+      const t = document.createElement('div');
+      t.className = 'scenery-item';
+      t.textContent = Math.random() > 0.8 ? '🚥' : '🌲';
+      t.style.setProperty('--dur', dur + 's');
+      rightGrass.appendChild(t);
+      setTimeout(() => t.remove(), dur * 1000);
+    }
+  }, 1200);
+}
+
 async function initUserSession() {
   try {
     const tg = window.Telegram?.WebApp;
@@ -1113,8 +1087,27 @@ async function initUserSession() {
       transports: ['websocket','polling']
     });
 
-    socket.on('connect', () => console.log('[Socket] connected'));
-    socket.on('wallet:balance', d => setBalance(d.balance));
+    socket.on('connect', async () => {
+      console.log('[Socket] connected');
+      // Fetch current balance via REST on connect
+      try {
+        const res = await fetch('/api/me', {
+          headers: { 'x-telegram-id': userId, 'x-init-data': tg?.initData || '' }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const main  = parseFloat(data.wallet?.balance ?? 0);
+          const bonus = parseFloat(data.wallet?.bonusBalance ?? 0);
+          setBalance((isNaN(main) ? 0 : main) + (isNaN(bonus) ? 0 : bonus));
+        }
+      } catch(e) { console.warn('[Wallet] fetch failed', e); }
+    });
+    // Backend emits 'balance-updated' with { newBalance }
+    socket.on('balance-updated', d => {
+      if (d && d.newBalance !== undefined) setBalance(d.newBalance);
+    });
+    // Legacy event name fallback
+    socket.on('wallet:balance', d => { if (d && d.balance !== undefined) setBalance(d.balance); });
     socket.on('disconnect', reason => console.log('[Socket] disconnected', reason));
 
     State.clientSeed = generateHex(16);
@@ -1419,6 +1412,8 @@ DOM.verifyClose.addEventListener('click', () => DOM.verifyPanel.classList.remove
 // 17. BOOTSTRAP
 // ═══════════════════════════════════════════════════════════
 window.addEventListener('DOMContentLoaded', () => {
+  initRoad();
+  spawnScenery();
   initUserSession();
   // Wait a tick for layout, then init road
   requestAnimationFrame(() => {
