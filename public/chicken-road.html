@@ -49,15 +49,16 @@
       height: 100dvh;
     }
     .back-btn {
-      color: rgba(255,255,255,0.75); text-decoration: none;
+      color: rgba(255,255,255,0.85); text-decoration: none;
       display: flex; align-items: center; justify-content: center;
-      background: rgba(255,255,255,0.1); border-radius: 50%;
-      width: 34px; height: 34px; flex-shrink: 0;
-      font-size: 18px; font-weight: 700;
-      transition: background 0.2s, color 0.2s;
-      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.08);
+      border: 1.5px solid rgba(255,255,255,0.18);
+      border-radius: 50%;
+      width: 36px; height: 36px; flex-shrink: 0;
+      transition: background 0.2s, transform 0.15s;
     }
-    .back-btn:active { background: rgba(255,255,255,0.22); color: #fff; }
+    .back-btn:active { background: rgba(255,255,255,0.20); transform: scale(0.92); }
+    .back-btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
     .scenery-item {
       position: absolute; left: 50%; transform: translateX(-50%);
       font-size: 24px; animation: roadScroll var(--dur) linear forwards;
@@ -621,7 +622,9 @@
 
   <!-- Header -->
   <header>
-    <a href="/" class="back-btn" id="backBtn" title="Back to Lobby">&#8592;</a>
+    <a href="/" class="back-btn" id="backBtn" title="Back to Lobby">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    </a>
     <div class="logo">
       <span class="logo-icon">🐔</span>
       <span class="logo-text">CHICKEN ROAD</span>
@@ -1129,21 +1132,48 @@ function spawnScenery() {
   }, 1200);
 }
 
+// Fetch balance from REST API (called on load + auto-retry)
+async function fetchBalance() {
+  if (!_userId) return;
+  try {
+    const tg = window.Telegram?.WebApp;
+    const res = await fetch(API_URL + '/api/me', {
+      headers: { 'x-telegram-id': _userId, 'x-init-data': tg?.initData || '' }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const main  = parseFloat(data.wallet?.balance  ?? 0);
+      const bonus = parseFloat(data.wallet?.bonusBalance ?? 0);
+      setBalance((isNaN(main) ? 0 : main) + (isNaN(bonus) ? 0 : bonus));
+      _balanceLoaded = true;
+      console.log('[Wallet] balance loaded:', State.balance);
+    }
+  } catch(e) { console.warn('[Wallet] fetch failed', e); }
+}
+
 async function initUserSession() {
   try {
     const tg = window.Telegram?.WebApp;
     if (tg) { tg.ready(); tg.expand(); if (tg.enableClosingConfirmation) tg.enableClosingConfirmation(); }
 
-    const API_URL = window.location.hostname.includes('localhost') || window.location.hostname === '127.0.0.1' 
-      ? 'http://localhost:5000' 
-      : 'https://api.bunatechhub.net';
-
     let urlParams = new URLSearchParams(window.location.search);
     let userId = urlParams.get('userId');
     if (!userId && tg && tg.initDataUnsafe && tg.initDataUnsafe.user) userId = tg.initDataUnsafe.user.id;
     if (!userId) userId = '123456789';
-    _userId = String(userId);  // store for REST calls
+    _userId = String(userId);
 
+    // ── 1. Fetch balance IMMEDIATELY via REST (no waiting for socket) ──
+    await fetchBalance();
+
+    // ── 2. Auto-retry balance every 3s until loaded ──
+    if (!_balanceLoaded) {
+      const retryTimer = setInterval(async () => {
+        if (_balanceLoaded) { clearInterval(retryTimer); return; }
+        await fetchBalance();
+      }, 3000);
+    }
+
+    // ── 3. Connect socket for real-time updates ──
     socket = io(API_URL, {
       query: { userId, initData: tg?.initData || '' },
       transports: ['websocket','polling']
@@ -1151,25 +1181,13 @@ async function initUserSession() {
 
     socket.on('connect', async () => {
       console.log('[Socket] connected');
-      // Fetch current balance via REST on connect
-      try {
-        const res = await fetch(API_URL + '/api/me', {
-          headers: { 'x-telegram-id': _userId, 'x-init-data': tg?.initData || '' }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          const main  = parseFloat(data.wallet?.balance ?? 0);
-          const bonus = parseFloat(data.wallet?.bonusBalance ?? 0);
-          setBalance((isNaN(main) ? 0 : main) + (isNaN(bonus) ? 0 : bonus));
-          _balanceLoaded = true;
-        }
-      } catch(e) { console.warn('[Wallet] fetch failed', e); }
+      // Re-fetch balance on reconnect to sync any changes
+      await fetchBalance();
     });
-    // Backend emits 'balance-updated' with { newBalance }
+    // Real-time balance push events
     socket.on('balance-updated', d => {
       if (d && d.newBalance !== undefined) setBalance(d.newBalance);
     });
-    // Legacy event name fallback
     socket.on('wallet:balance', d => { if (d && d.balance !== undefined) setBalance(d.balance); });
     socket.on('disconnect', reason => console.log('[Socket] disconnected', reason));
 
@@ -1269,24 +1287,15 @@ let _roundId = null;
 async function actionStart() {
   if (State.phase !== 'IDLE') return;
 
-  // If balance not loaded yet, try to reload it first
+  // If balance not loaded yet, silently try to load (no error sound)
   if (!_balanceLoaded) {
-    haptic('error'); AudioMan.error();
-    DOM.walletAmount.textContent = 'Loading...';
-    try {
-      const tg = window.Telegram?.WebApp;
-      const res = await fetch(API_URL + '/api/me', {
-        headers: { 'x-telegram-id': _userId || '', 'x-init-data': tg?.initData || '' }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const main  = parseFloat(data.wallet?.balance ?? 0);
-        const bonus = parseFloat(data.wallet?.bonusBalance ?? 0);
-        setBalance((isNaN(main) ? 0 : main) + (isNaN(bonus) ? 0 : bonus));
-        _balanceLoaded = true;
-      }
-    } catch(e) {}
-    if (!_balanceLoaded) return;
+    DOM.walletAmount.textContent = 'Syncing...';
+    await fetchBalance();
+    if (!_balanceLoaded) {
+      showOverlay('Connect to play ❌', 'bust');
+      setTimeout(hideOverlay, 2000);
+      return;
+    }
   }
 
   if (State.balance < State.bet) {
