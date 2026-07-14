@@ -322,10 +322,9 @@
     }
     .car-sprite {
       width: 46px; height: auto;
-      transform: rotate(180deg);
+      transform: rotate(var(--rot, 0deg));
       filter: drop-shadow(0 6px 8px rgba(0,0,0,0.7));
     }
-    .car.going-up .car-sprite { transform: rotate(0deg); }
     .car-wide .car-sprite  { width: 54px; }  /* bus / truck wider */
     .car-slim .car-sprite  { width: 38px; }  /* sports car slimmer */
     .car.going-down { animation: carDown var(--dur, 2.5s) linear var(--delay, 0s) infinite; }
@@ -468,7 +467,7 @@
       background: var(--panel-bg);
       border-top: 1px solid var(--panel-border);
       padding: 14px 16px;
-      padding-bottom: max(16px, calc(env(safe-area-inset-bottom) + 16px));
+      padding-bottom: max(32px, calc(env(safe-area-inset-bottom) + 32px));
       flex-shrink: 0;
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
@@ -718,16 +717,16 @@ const CONFIG = {
   }
 };
 
-// Car types — all 8 varieties with image filenames
+// Car types — all 8 varieties with image filenames and angle offsets to face UP natively
 const CAR_TYPES = [
-  { key: 'taxi',      file: 'car-taxi.png',      size: 'normal', speed: 'fast'   },
-  { key: 'police',    file: 'car-police.png',    size: 'normal', speed: 'fast'   },
-  { key: 'red',       file: 'car-red.png',       size: 'slim',   speed: 'fast'   },
-  { key: 'sports',    file: 'car-sports.png',    size: 'slim',   speed: 'fast'   },
-  { key: 'suv',       file: 'car-suv.png',       size: 'normal', speed: 'normal' },
-  { key: 'bus',       file: 'car-bus.png',       size: 'wide',   speed: 'slow'   },
-  { key: 'ambulance', file: 'car-ambulance.png', size: 'normal', speed: 'fast'   },
-  { key: 'truck',     file: 'car-truck.png',     size: 'wide',   speed: 'slow'   },
+  { key: 'taxi',      file: 'car-taxi.png',      size: 'normal', speed: 'fast',   angleOffset: 0 },
+  { key: 'police',    file: 'car-police.png',    size: 'normal', speed: 'fast',   angleOffset: 0 },
+  { key: 'red',       file: 'car-red.png',       size: 'slim',   speed: 'fast',   angleOffset: 0 },
+  { key: 'sports',    file: 'car-sports.png',    size: 'slim',   speed: 'fast',   angleOffset: 0 },
+  { key: 'suv',       file: 'car-suv.png',       size: 'normal', speed: 'normal', angleOffset: -90 },
+  { key: 'bus',       file: 'car-bus.png',       size: 'wide',   speed: 'slow',   angleOffset: -90 },
+  { key: 'ambulance', file: 'car-ambulance.png', size: 'normal', speed: 'fast',   angleOffset: -90 },
+  { key: 'truck',     file: 'car-truck.png',     size: 'wide',   speed: 'slow',   angleOffset: -90 },
 ];
 
 // ═══════════════════════════════════════════════════════════
@@ -877,7 +876,7 @@ function spawnAllCars() {
     const going = lane % 2 === 0 ? 'going-down' : 'going-up';
     const count = Math.floor(Math.random() * 2) + 1;
     for (let c = 0; c < count; c++) {
-      const { el, baseSpeed } = makeCar();
+      const { el, baseSpeed } = makeCar(going);
       el.style.left = laneXs[lane] + 'px';
       const dur   = baseSpeed + Math.random() * 1.5;
       const delay = -(Math.random() * dur);
@@ -891,12 +890,16 @@ function spawnAllCars() {
   }
 }
 
-function makeCar() {
+function makeCar(going) {
   const wrap = document.createElement('div');
   const type = CAR_TYPES[Math.floor(Math.random() * CAR_TYPES.length)];
   wrap.className = 'car';
   if (type.size === 'wide') wrap.classList.add('car-wide');
   if (type.size === 'slim') wrap.classList.add('car-slim');
+
+  // Calculate rotation based on lane direction and image's native orientation
+  const rot = (going === 'going-up' ? 0 : 180) + type.angleOffset;
+  wrap.style.setProperty('--rot', rot + 'deg');
 
   // Speed variation: slow cars take longer, fast cars are quick
   const baseSpeed = type.speed === 'slow' ? 3.5 : type.speed === 'fast' ? 1.8 : 2.5;

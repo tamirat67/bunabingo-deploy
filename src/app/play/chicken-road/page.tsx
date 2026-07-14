@@ -25,6 +25,7 @@ export default function ChickenRoadPage() {
 
   return (
     <div style={{ width: '100%', height: '100vh', overflow: 'hidden', background: '#1e100b' }}>
+      <style>{`.bottom-navbar { display: none !important; }`}</style>
       <iframe 
         src="/chicken-road.html" 
         style={{
