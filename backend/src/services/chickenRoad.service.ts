@@ -94,6 +94,10 @@ export async function startRound(userId: string, betAmount: number, tier: TierKe
 
   // Transaction: deduct bet and create game record
   return await prisma.$transaction(async (tx) => {
+    // ATOMIC LOCK: Lock the wallet row FOR UPDATE to prevent concurrent balance draining
+    const [lockedWallet] = await tx.$queryRaw<any[]>`SELECT * FROM wallets WHERE user_id = ${userId}::uuid FOR UPDATE`;
+    if (!lockedWallet) throw new Error('Failed to acquire secure wallet lock');
+
     const wallet = await tx.wallet.findUnique({ where: { userId } });
     if (!wallet) throw new Error('Wallet not found');
 

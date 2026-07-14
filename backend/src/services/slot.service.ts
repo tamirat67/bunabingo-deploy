@@ -455,8 +455,8 @@ export async function gamble(
         },
       });
       logger.info(`[SlotGamble] LOSS: deducted ${deduct} from userId=${userId}, balance ${curBal} → ${safeBal}`);
-    } else if (!isLast) {
-      // Mid-sequence win: credit the extra amount
+    } else {
+      // Mid-sequence win OR final-round win: credit the extra amount
       const extra  = new Decimal(currentPayout.toFixed(4));
       const newBal = curBal.add(extra);
       await tx.wallet.update({
