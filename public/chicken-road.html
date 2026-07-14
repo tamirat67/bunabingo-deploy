@@ -1109,7 +1109,7 @@ async function initUserSession() {
     if (!userId) userId = '123456789';
 
     socket = io(window.location.origin, {
-      auth: { userId, initData: tg?.initData || '' },
+      query: { userId, initData: tg?.initData || '' },
       transports: ['websocket','polling']
     });
 
