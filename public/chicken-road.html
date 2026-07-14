@@ -803,6 +803,60 @@
       pointer-events: none;
       z-index: 5;
     }
+    /* ═══════════════════════════════════════════════
+       MOBILE RESPONSIVENESS
+    ═══════════════════════════════════════════════ */
+    @media (max-width: 650px) {
+      #controls {
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto auto;
+        gap: 10px;
+        padding: 10px;
+        padding-bottom: max(12px, calc(env(safe-area-inset-bottom) + 10px));
+      }
+      .ctrl-left {
+        grid-column: 1 / 3;
+        grid-row: 1;
+        flex-direction: row;
+        justify-content: space-between;
+      }
+      .bet-ctrl { flex: 0.8; height: 38px; }
+      .bet-center { flex: 1; display: flex; justify-content: center; }
+      .preset-row { flex: 1.2; justify-content: space-between; height: 38px; }
+      .preset-btn { flex: 1; justify-content: center; height: 100%; }
+      .ctrl-center {
+        grid-column: 1;
+        grid-row: 2;
+        gap: 3px;
+      }
+      .tier-tabs { height: 46px; }
+      .tier-tab { font-size: 10.5px; }
+      .ctrl-right {
+        grid-column: 2;
+        grid-row: 2;
+        height: 100%;
+      }
+      .play-btn { font-size: 1.15rem; min-width: auto; }
+      
+      header { padding: 0 6px; }
+      .logo-ch, .logo-rd { font-size: 13px; }
+      .logo-num { font-size: 19px; }
+      .how-btn { padding: 8px; font-size: 0; gap: 0; border-radius: 50%; width: 34px; height: 34px; justify-content: center; }
+      .how-btn svg { width: 18px; height: 18px; margin: 0; }
+    }
+
+    @media (max-width: 380px) {
+      /* Extra small screens (e.g. iPhone SE) */
+      #controls {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .ctrl-left { width: 100%; gap: 8px; }
+      .preset-row { gap: 4px; }
+      .ctrl-center { width: 100%; }
+      .ctrl-right { width: 100%; height: 50px; }
+    }
   </style>
 </head>
 <body>
