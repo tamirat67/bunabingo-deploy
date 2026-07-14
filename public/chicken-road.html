@@ -1131,13 +1131,17 @@ async function initUserSession() {
     const tg = window.Telegram?.WebApp;
     if (tg) { tg.ready(); tg.expand(); if (tg.enableClosingConfirmation) tg.enableClosingConfirmation(); }
 
+    const API_URL = window.location.hostname.includes('localhost') || window.location.hostname === '127.0.0.1' 
+      ? 'http://localhost:5000' 
+      : 'https://api.bunatechhub.net';
+
     let urlParams = new URLSearchParams(window.location.search);
     let userId = urlParams.get('userId');
     if (!userId && tg && tg.initDataUnsafe && tg.initDataUnsafe.user) userId = tg.initDataUnsafe.user.id;
     if (!userId) userId = '123456789';
     _userId = String(userId);  // store for REST calls
 
-    socket = io(window.location.origin, {
+    socket = io(API_URL, {
       query: { userId, initData: tg?.initData || '' },
       transports: ['websocket','polling']
     });
@@ -1146,7 +1150,7 @@ async function initUserSession() {
       console.log('[Socket] connected');
       // Fetch current balance via REST on connect
       try {
-        const res = await fetch('/api/me', {
+        const res = await fetch(API_URL + '/api/me', {
           headers: { 'x-telegram-id': _userId, 'x-init-data': tg?.initData || '' }
         });
         if (res.ok) {
@@ -1174,6 +1178,10 @@ async function initUserSession() {
 }
 
 // ─── REST helper ─────────────────────────────────────────────
+const API_URL = window.location.hostname.includes('localhost') || window.location.hostname === '127.0.0.1' 
+  ? 'http://localhost:5000' 
+  : 'https://api.bunatechhub.net';
+
 const tgObj = () => window.Telegram?.WebApp;
 function apiHeaders() {
   return {
@@ -1194,7 +1202,7 @@ async function backendStartRound(bet, tier) {
     // Offline/demo mode
     return 'demo-round-' + Date.now();
   }
-  const res = await fetch('/api/chicken-road/start', {
+  const res = await fetch(API_URL + '/api/chicken-road/start', {
     method: 'POST',
     headers: apiHeaders(),
     body: JSON.stringify({ bet, tier, clientSeed: State.clientSeed })
@@ -1214,7 +1222,7 @@ async function backendResolveStep() {
     const nextMult = parseFloat((State.multiplier * (1 + 0.15 + Math.random() * 0.25)).toFixed(2));
     return { safe, nextMultiplier: nextMult };
   }
-  const res = await fetch('/api/chicken-road/step', {
+  const res = await fetch(API_URL + '/api/chicken-road/step', {
     method: 'POST',
     headers: apiHeaders(),
     body: JSON.stringify({ roundId: _roundId })
@@ -1233,7 +1241,7 @@ async function backendEndRound(roundId, result, winAmount) {
     return;
   }
   if (result === 'WIN') {
-    const res = await fetch('/api/chicken-road/cashout', {
+    const res = await fetch(API_URL + '/api/chicken-road/cashout', {
       method: 'POST',
       headers: apiHeaders(),
       body: JSON.stringify({ roundId })
@@ -1264,7 +1272,7 @@ async function actionStart() {
     DOM.walletAmount.textContent = 'Loading...';
     try {
       const tg = window.Telegram?.WebApp;
-      const res = await fetch('/api/me', {
+      const res = await fetch(API_URL + '/api/me', {
         headers: { 'x-telegram-id': _userId || '', 'x-init-data': tg?.initData || '' }
       });
       if (res.ok) {
