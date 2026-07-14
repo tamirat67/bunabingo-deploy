@@ -28,6 +28,7 @@ import { SocketProvider } from '../context/SocketContext';
 import SecurityGuard from '../components/SecurityGuard';
 import { Outfit } from 'next/font/google';
 import ErrorBoundary from '../components/ErrorBoundary';
+import MobileRepaintGuard from '../components/MobileRepaintGuard';
 
 const outfit = Outfit({ subsets: ['latin'], weight: ['400', '500', '700', '800', '900'] });
 
@@ -155,9 +156,10 @@ export default function RootLayout({
         `}} />
 
         <SocketProvider>
+          <MobileRepaintGuard />
           <ThemeProvider>
             <Suspense fallback={
-              <div style={{ minHeight: '100vh', minHeight: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0F172A' }}>
+              <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0F172A' }}>
                 <div className="animate-spin" style={{ width: '40px', height: '40px', border: '3px solid #D4AF37', borderTopColor: 'transparent', borderRadius: '50%', marginBottom: '16px' }}></div>
                 <div style={{ color: '#D4AF37', fontWeight: '900', fontSize: '12px', letterSpacing: '2px' }}>LOADING...</div>
               </div>
