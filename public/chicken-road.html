@@ -1098,10 +1098,10 @@
 const CONFIG = {
   minBet: 10, maxBet: 200, betStep: 10,
   tiers: {
-    easy:    { successRate: 0.95, houseEdge: 0.96, label: 'Easy',     multPerStep: 1.02 },
-    medium:  { successRate: 0.90, houseEdge: 0.95, label: 'Medium',   multPerStep: 1.06 },
-    hard:    { successRate: 0.85, houseEdge: 0.94, label: 'Hard',     multPerStep: 1.12 },
-    extreme: { successRate: 0.65, houseEdge: 0.75, label: 'Hardcore', multPerStep: 1.25 }
+    easy:    { successRate: 0.75, houseEdge: 0.96, label: 'Easy',     multPerStep: 1.28 },
+    medium:  { successRate: 0.65, houseEdge: 0.95, label: 'Medium',   multPerStep: 1.46 },
+    hard:    { successRate: 0.55, houseEdge: 0.94, label: 'Hard',     multPerStep: 1.71 },
+    extreme: { successRate: 0.45, houseEdge: 0.75, label: 'Hardcore', multPerStep: 1.67 }
   }
 };
 
@@ -1653,11 +1653,34 @@ async function actionStep() {
   State.chickenLane = nextLane;
   positionChicken(nextLane, true);
 
-  await sleep(tensionMs);
-
   if (result.safe) {
+    await sleep(tensionMs);
     resolveStepSafe(result.nextMultiplier, nextLane);
   } else {
+    // Wait for actual car collision for better crashing flow
+    await new Promise(resolve => {
+      const chickenRect = DOM.chickenCont.getBoundingClientRect();
+      const startTime = Date.now();
+      
+      function check() {
+        if (State.phase !== 'REVEALING') return resolve();
+        if (Date.now() - startTime > 1500) return resolve(); // Failsafe 1.5s
+        
+        const carsInLane = carEls.filter(c => parseInt(c.dataset.lane) === nextLane);
+        let hit = false;
+        for (let c of carsInLane) {
+          const r = c.getBoundingClientRect();
+          if (r.top < chickenRect.bottom - 15 && r.bottom > chickenRect.top + 15 &&
+              r.left < chickenRect.right - 15 && r.right > chickenRect.left + 15) {
+            hit = true;
+            break;
+          }
+        }
+        if (hit) resolve();
+        else requestAnimationFrame(check);
+      }
+      check();
+    });
     resolveStepBust(nextLane);
   }
 }
