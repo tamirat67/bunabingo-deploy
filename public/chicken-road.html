@@ -661,13 +661,14 @@
       <div class="sidewalk-left"></div>
       <div id="roadCanvas">
         <!-- Cars injected by JS -->
-        <!-- Chicken -->
-        <div id="chickenContainer">
-          <img id="chickenImg" src="/src/assets/chicken-road/chicken.png" alt="Chicken" />
-        </div>
       </div>
       <div class="sidewalk-right"></div>
       <div class="grass-right"></div>
+      
+      <!-- Chicken (Moved out of roadCanvas to avoid clipping when off-road) -->
+      <div id="chickenContainer">
+        <img id="chickenImg" src="/src/assets/chicken-road/chicken.png" alt="Chicken" />
+      </div>
     </div>
 
   </div>
@@ -824,8 +825,8 @@ let sidewalkRightX = 0;
 function initRoad() {
   const road = DOM.roadCanvas;
   road.innerHTML = '';
-  // Re-add chicken container
-  road.appendChild(DOM.chickenCont);
+  // Re-add chicken container to gameWorld, not road, to avoid clipping!
+  DOM.gameWorld.appendChild(DOM.chickenCont);
 
   const roadW = road.offsetWidth;
   numLanes = 4;
