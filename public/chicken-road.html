@@ -6,8 +6,11 @@
   <meta name="theme-color" content="#13151c">
   <meta name="description" content="Chicken Road 2 — Buna Games. Guide your chicken across busy lanes, multiply your bet up to 10,000x!">
   <title>CHICKEN 2 ROAD — Buna Games</title>
+  <!-- Google Fonts — loaded async to avoid blocking render on Telegram mini-apps -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet"></noscript>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <style>
@@ -384,7 +387,6 @@
       width: 72px; height: auto;
       transform-origin: bottom center;
       animation: chickenBob 1.8s ease-in-out infinite;
-      scale: -1 1;
       background: transparent;
     }
     #chickenImg.jump      { animation: chickenHop 0.45s cubic-bezier(0.34,1.56,0.64,1) both; }
@@ -392,11 +394,11 @@
     #chickenImg.celebrate { animation: chickenDance 0.6s ease-in-out infinite; }
     #chickenImg.burn      { animation: chickenBurn 0.22s ease 3 both; filter: brightness(0.3) sepia(1) hue-rotate(-30deg) saturate(8); }
 
-    @keyframes chickenBob      { 0%,100%{transform:translateY(0) rotate(-2deg)} 50%{transform:translateY(-7px) rotate(2deg)} }
-    @keyframes chickenHop      { 0%{transform:scaleY(0.85) translateY(0)} 30%{transform:scaleY(1.15) translateY(-32px) rotate(-8deg)} 60%{transform:scaleY(1) translateY(-42px)} 85%{transform:scaleY(0.9) translateY(0) rotate(6deg)} 100%{transform:scaleY(1) translateY(0)} }
-    @keyframes chickenStumble  { 0%{transform:rotate(0)} 20%{transform:rotate(-22deg) translateX(-5px)} 45%{transform:rotate(16deg) translateX(5px)} 70%{transform:rotate(-7deg)} 100%{transform:rotate(0)} }
-    @keyframes chickenDance    { 0%,100%{transform:translateY(0) rotate(-10deg) scale(1.05)} 50%{transform:translateY(-13px) rotate(10deg) scale(1.1)} }
-    @keyframes chickenBurn     { 0%,100%{transform:translateX(0) rotate(10deg)} 50%{transform:translateX(7px) rotate(-10deg)} }
+    @keyframes chickenBob      { 0%,100%{transform:scaleX(-1) translateY(0) rotate(-2deg)} 50%{transform:scaleX(-1) translateY(-7px) rotate(2deg)} }
+    @keyframes chickenHop      { 0%{transform:scaleX(-1) scaleY(0.85) translateY(0)} 30%{transform:scaleX(-1) scaleY(1.15) translateY(-32px) rotate(-8deg)} 60%{transform:scaleX(-1) scaleY(1) translateY(-42px)} 85%{transform:scaleX(-1) scaleY(0.9) translateY(0) rotate(6deg)} 100%{transform:scaleX(-1) scaleY(1) translateY(0)} }
+    @keyframes chickenStumble  { 0%{transform:scaleX(-1) rotate(0)} 20%{transform:scaleX(-1) rotate(-22deg) translateX(-5px)} 45%{transform:scaleX(-1) rotate(16deg) translateX(5px)} 70%{transform:scaleX(-1) rotate(-7deg)} 100%{transform:scaleX(-1) rotate(0)} }
+    @keyframes chickenDance    { 0%,100%{transform:scaleX(-1) translateY(0) rotate(-10deg) scale(1.05)} 50%{transform:scaleX(-1) translateY(-13px) rotate(10deg) scale(1.1)} }
+    @keyframes chickenBurn     { 0%,100%{transform:scaleX(-1) translateX(0) rotate(10deg)} 50%{transform:scaleX(-1) translateX(7px) rotate(-10deg)} }
 
     /* ─── Cars ─── */
     .car { position:absolute; z-index:10; transform:translateX(-50%); will-change:transform; }
