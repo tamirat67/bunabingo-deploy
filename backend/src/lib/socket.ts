@@ -388,3 +388,58 @@ export function initKenoSocketHandlers(ioServer: SocketServer, drawEngine: any) 
   });
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+//  CHICKEN ROAD SOCKET NAMESPACE
+// ═══════════════════════════════════════════════════════════════════════════
+
+export function initChickenRoadSocketHandlers(ioServer: SocketServer) {
+  ioServer.on('connection', (socket) => {
+    socket.on('chickenRoad:start', async (data: { bet: number; tier: string; clientSeed?: string }, callback) => {
+      try {
+        const userId = socket.handshake.query.userId as string;
+        if (!userId) throw new Error('Unauthorized');
+
+        const { startRound } = await import('../services/chickenRoad.service');
+        const result = await startRound(userId, data.bet, data.tier as any, data.clientSeed);
+        
+        // Notify of balance change
+        ioServer.to(`user_${userId}`).emit('balance-updated', { newBalance: result.newBalance });
+        
+        callback({ success: true, data: result });
+      } catch (err: any) {
+        callback({ success: false, error: err.message });
+      }
+    });
+
+    socket.on('chickenRoad:step', async (data: { roundId: string }, callback) => {
+      try {
+        const userId = socket.handshake.query.userId as string;
+        if (!userId) throw new Error('Unauthorized');
+
+        const { resolveStep } = await import('../services/chickenRoad.service');
+        const result = await resolveStep(userId, data.roundId);
+        callback({ success: true, data: result });
+      } catch (err: any) {
+        callback({ success: false, error: err.message });
+      }
+    });
+
+    socket.on('chickenRoad:cashout', async (data: { roundId: string }, callback) => {
+      try {
+        const userId = socket.handshake.query.userId as string;
+        if (!userId) throw new Error('Unauthorized');
+
+        const { cashoutRound } = await import('../services/chickenRoad.service');
+        const result = await cashoutRound(userId, data.roundId);
+        
+        // Notify of balance change
+        ioServer.to(`user_${userId}`).emit('balance-updated', { newBalance: result.newBalance });
+        
+        callback({ success: true, data: result });
+      } catch (err: any) {
+        callback({ success: false, error: err.message });
+      }
+    });
+  });
+}
+

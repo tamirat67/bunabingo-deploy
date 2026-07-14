@@ -61,9 +61,11 @@ function runUpload(req: Request, res: Response, middleware: any): Promise<void> 
 
 import authRouter from './auth';
 import weeklyBlastRouter from './weeklyBlast';
+import chickenRoadRouter from './chickenRoad';
 
 // ─── PUBLIC Routes (no auth needed) ──────────────────────────
 router.use('/auth', authRouter);
+router.use('/chicken-road', chickenRoadRouter);
 
 router.get('/rooms', async (_req: Request, res: Response) => {
   try {
@@ -3477,7 +3479,7 @@ router.get('/admin/house-settings', adminMiddleware, async (req: any, res) => {
     let settings = await prisma.houseSettings.findUnique({ where: { id: 1 } });
     if (!settings) {
       settings = await prisma.houseSettings.create({
-        data: { id: 1, forceHouseWin: true, rouletteFix: true, bingoWinRate: 100 }
+        data: { id: 1, forceHouseWin: true, rouletteFix: true, bingoWinRate: 100, chickenRoadMode: 1 }
       });
     }
     res.json(settings);
@@ -3489,7 +3491,7 @@ router.get('/admin/house-settings', adminMiddleware, async (req: any, res) => {
 
 router.post('/admin/house-settings', adminMiddleware, async (req: any, res) => {
   try {
-    const { forceHouseWin, rouletteFix, bingoWinRate, slotGambleWinChance, slotBaseWinChance } = req.body;
+    const { forceHouseWin, rouletteFix, bingoWinRate, slotGambleWinChance, slotBaseWinChance, chickenRoadMode } = req.body;
     const settings = await prisma.houseSettings.upsert({
       where: { id: 1 },
       update: {
@@ -3498,6 +3500,7 @@ router.post('/admin/house-settings', adminMiddleware, async (req: any, res) => {
         bingoWinRate: Number(bingoWinRate) || 100,
         slotGambleWinChance: Number(slotGambleWinChance) || 5,
         slotBaseWinChance: Number(slotBaseWinChance) || 1,
+        chickenRoadMode: Number(chickenRoadMode) === 2 ? 2 : 1,
       },
       create: {
         id: 1,
@@ -3506,6 +3509,7 @@ router.post('/admin/house-settings', adminMiddleware, async (req: any, res) => {
         bingoWinRate: Number(bingoWinRate) || 100,
         slotGambleWinChance: Number(slotGambleWinChance) || 5,
         slotBaseWinChance: Number(slotBaseWinChance) || 1,
+        chickenRoadMode: Number(chickenRoadMode) === 2 ? 2 : 1,
       }
     });
 
@@ -3513,7 +3517,7 @@ router.post('/admin/house-settings', adminMiddleware, async (req: any, res) => {
       data: {
         adminId: req.user!.id,
         action: 'UPDATE_HOUSE_SETTINGS',
-        details: { forceHouseWin, rouletteFix, bingoWinRate, slotGambleWinChance, slotBaseWinChance }
+        details: { forceHouseWin, rouletteFix, bingoWinRate, slotGambleWinChance, slotBaseWinChance, chickenRoadMode }
       }
     });
 

@@ -87,7 +87,7 @@ export default function SettingsPage() {
   const [removeImage, setRemoveImage] = useState<boolean>(false);
 
   // ─── House Win Rate Protection ───
-  const [houseProtection, setHouseProtection] = useState({ forceHouseWin: true, rouletteFix: true, bingoWinRate: 10, slotGambleWinChance: 5, slotBaseWinChance: 1 });
+  const [houseProtection, setHouseProtection] = useState({ forceHouseWin: true, rouletteFix: true, bingoWinRate: 10, slotGambleWinChance: 5, slotBaseWinChance: 1, chickenRoadMode: 1 });
   const [savingProtection, setSavingProtection] = useState(false);
   const [protectionSaved, setProtectionSaved] = useState(false);
 
@@ -96,7 +96,7 @@ export default function SettingsPage() {
     fetchSettings();
     fetchPromotions();
     api.get('/admin/house-settings')
-      .then(r => setHouseProtection({ forceHouseWin: r.data.forceHouseWin, rouletteFix: r.data.rouletteFix, bingoWinRate: r.data.bingoWinRate ?? 9, slotGambleWinChance: r.data.slotGambleWinChance ?? 5, slotBaseWinChance: r.data.slotBaseWinChance ?? 1 }))
+      .then(r => setHouseProtection({ forceHouseWin: r.data.forceHouseWin, rouletteFix: r.data.rouletteFix, bingoWinRate: r.data.bingoWinRate ?? 9, slotGambleWinChance: r.data.slotGambleWinChance ?? 5, slotBaseWinChance: r.data.slotBaseWinChance ?? 1, chickenRoadMode: r.data.chickenRoadMode ?? 1 }))
       .catch(e => console.error('Failed to load house settings:', e));
   }, []);
 
@@ -668,6 +668,84 @@ export default function SettingsPage() {
                 </div>
               </div>
 
+            </div>
+
+            {/* ── Chicken Road Phase Toggle ── */}
+            <div style={{ background: 'white', borderRadius: '24px', padding: '28px', border: '1px solid #f5f5f4', marginBottom: '24px' }}>
+              <h2 style={{ fontSize: '18px', fontWeight: '800', color: '#3d2b1f', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                🐔 Chicken Road — Game Mode
+              </h2>
+              <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '20px', lineHeight: '1.6' }}>
+                Switch between conservative (safe for company) and player-friendly mode. Changes take effect immediately — no server restart needed.
+              </p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                {/* Phase 1 Card */}
+                <div
+                  onClick={() => setHouseProtection(s => ({ ...s, chickenRoadMode: 1 }))}
+                  style={{
+                    border: `2px solid ${houseProtection.chickenRoadMode === 1 ? '#16a34a' : '#e5e7eb'}`,
+                    borderRadius: '16px',
+                    padding: '20px',
+                    cursor: 'pointer',
+                    background: houseProtection.chickenRoadMode === 1 ? '#f0fdf4' : '#fafafa',
+                    transition: 'all 0.2s',
+                    position: 'relative',
+                  }}
+                >
+                  {houseProtection.chickenRoadMode === 1 && (
+                    <div style={{ position: 'absolute', top: '12px', right: '12px', background: '#16a34a', color: 'white', borderRadius: '999px', fontSize: '10px', fontWeight: '800', padding: '2px 10px' }}>
+                      ✅ ACTIVE
+                    </div>
+                  )}
+                  <div style={{ fontSize: '24px', marginBottom: '8px' }}>🛡️</div>
+                  <div style={{ fontWeight: '800', fontSize: '15px', color: '#15803d', marginBottom: '6px' }}>Phase 1 — Safe Launch</div>
+                  <div style={{ fontSize: '12px', color: '#374151', lineHeight: '1.6' }}>
+                    <strong>Company-protected.</strong> Higher bust rate, lower payouts.
+                  </div>
+                  <div style={{ marginTop: '12px', fontSize: '11px', color: '#6b7280', lineHeight: '1.8' }}>
+                    🟢 Easy: 75 safe / 25 bust<br/>
+                    🟡 Medium: 65 safe / 35 bust<br/>
+                    🟠 Hard: 55 safe / 45 bust<br/>
+                    🔴 Extreme: 45 safe / 55 bust
+                  </div>
+                </div>
+
+                {/* Phase 2 Card */}
+                <div
+                  onClick={() => setHouseProtection(s => ({ ...s, chickenRoadMode: 2 }))}
+                  style={{
+                    border: `2px solid ${houseProtection.chickenRoadMode === 2 ? '#d4af37' : '#e5e7eb'}`,
+                    borderRadius: '16px',
+                    padding: '20px',
+                    cursor: 'pointer',
+                    background: houseProtection.chickenRoadMode === 2 ? '#fffbeb' : '#fafafa',
+                    transition: 'all 0.2s',
+                    position: 'relative',
+                  }}
+                >
+                  {houseProtection.chickenRoadMode === 2 && (
+                    <div style={{ position: 'absolute', top: '12px', right: '12px', background: '#d4af37', color: 'white', borderRadius: '999px', fontSize: '10px', fontWeight: '800', padding: '2px 10px' }}>
+                      ✅ ACTIVE
+                    </div>
+                  )}
+                  <div style={{ fontSize: '24px', marginBottom: '8px' }}>🎮</div>
+                  <div style={{ fontWeight: '800', fontSize: '15px', color: '#92400e', marginBottom: '6px' }}>Phase 2 — Player Friendly</div>
+                  <div style={{ fontSize: '12px', color: '#374151', lineHeight: '1.6' }}>
+                    <strong>Grow your player base.</strong> Higher survival, bigger wins.
+                  </div>
+                  <div style={{ marginTop: '12px', fontSize: '11px', color: '#6b7280', lineHeight: '1.8' }}>
+                    🟢 Easy: 95 safe / 5 bust<br/>
+                    🟡 Medium: 90 safe / 10 bust<br/>
+                    🟠 Hard: 85 safe / 15 bust<br/>
+                    🔴 Extreme: 65 safe / 35 bust
+                  </div>
+                </div>
+              </div>
+
+              <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '14px', textAlign: 'center' }}>
+                Click a card to select it, then press <strong>Save Win Rate Settings</strong> above to apply.
+              </p>
             </div>
 
             {/* Game Room Pricing */}

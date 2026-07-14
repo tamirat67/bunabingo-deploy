@@ -73,11 +73,13 @@ async function main() {
   
   // ─── HTTP Server & Socket.io ─────────────────────────────
   const { createServer } = await import('http');
-  const { initSocket, initAviatorSocketHandlers, getIO } = await import('./lib/socket');
+  const { initSocket, initAviatorSocketHandlers, initChickenRoadSocketHandlers, getIO } = await import('./lib/socket');
   const httpServer = createServer(app);
   initSocket(httpServer);
   // ─── Aviator Socket Handlers (additive — isolated from Bingo) ────────────
   initAviatorSocketHandlers(getIO());
+  // ─── Chicken Road Socket Handlers ────────────
+  initChickenRoadSocketHandlers(getIO());
 
   httpServer.listen(port, host, () => {
     logger.info(`🚀 API server running on ${host}:${port} (HTTP + Socket.io)`);

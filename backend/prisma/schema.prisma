@@ -82,6 +82,7 @@ model User {
   kenoRgLimits         KenoRgLimit[]
   weeklyRewardParticipants WeeklyRewardParticipant[]
   slotSpins            SlotSpin[]
+  chickenRoadGames     ChickenRoadGame[]
 
   @@map("users")
 }
@@ -362,6 +363,7 @@ model HouseSettings {
   bingoWinRate    Int      @default(100)
   slotGambleWinChance Int  @default(5)
   slotBaseWinChance   Int  @default(1)
+  chickenRoadMode Int      @default(1) @map("chicken_road_mode") // 1 = Phase 1 Safe, 2 = Phase 2 Player-Friendly
   updatedAt       DateTime @updatedAt
 
   @@map("house_settings")
@@ -598,4 +600,30 @@ model SlotSpin {
   @@index([userId])
   @@index([createdAt])
   @@map("slot_spins")
+}
+
+// ============================================================
+// Chicken Road Models
+// ============================================================
+
+model ChickenRoadGame {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String   @db.Uuid @map("user_id")
+  betAmount        Decimal  @db.Decimal(20, 4) @map("bet_amount")
+  tier             String   
+  status           String   @default("PLAYING") // PLAYING, WON, BUST
+  steps            Int      @default(0)
+  multiplier       Decimal  @default(1.0) @db.Decimal(20, 4)
+  winAmount        Decimal  @default(0) @db.Decimal(20, 4) @map("win_amount")
+  serverSeed       String   @map("server_seed")
+  serverSeedHash   String   @map("server_seed_hash")
+  clientSeed       String   @map("client_seed")
+  nonce            Int      @default(0)
+  createdAt        DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  user             User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("chicken_road_games")
 }

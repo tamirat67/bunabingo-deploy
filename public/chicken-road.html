@@ -1,0 +1,1446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#1e100b">
+  <meta name="description" content="Chicken Road — Buna Games crash/risk arcade. Advance your chicken step by step and cash out before hitting fire!">
+  <title>🐔 Chicken Road — Buna Games</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <style>
+    /* ============================================================
+       DESIGN TOKENS — match Buna Games coffee-gold palette
+    ============================================================ */
+    :root {
+      --bg-deep:      #0d0600;
+      --bg-coffee:    #1e100b;
+      --bg-panel:     rgba(0,0,0,0.55);
+      --accent-gold:  #d4af37;
+      --accent-amber: #f39c12;
+      --accent-orange:#ff7b00;
+      --safe-green:   #2ecc71;
+      --danger-red:   #e74c3c;
+      --text-main:    #ffffff;
+      --text-muted:   #a0928a;
+      --text-gold:    #f5e6be;
+      --border-dim:   rgba(255,255,255,0.07);
+      --border-gold:  rgba(212,175,55,0.35);
+      --radius-md:    12px;
+      --radius-pill:  999px;
+    }
+
+    /* ============================================================
+       RESET & BASE
+    ============================================================ */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0; padding: 0;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      height: 100%; width: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: radial-gradient(ellipse at 50% -10%, #3a1a08 0%, var(--bg-coffee) 40%, var(--bg-deep) 100%);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      height: 100dvh; /* dynamic viewport height — avoids mobile browser chrome issues */
+    }
+
+    /* ============================================================
+       HEADER
+    ============================================================ */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border-dim);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      z-index: 20;
+      flex-shrink: 0;
+    }
+
+    .brand-title {
+      font-size: 1.05rem;
+      font-weight: 900;
+      font-style: italic;
+      letter-spacing: 1.5px;
+      background: linear-gradient(90deg, var(--accent-gold) 0%, #ffe87a 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .wallet-box {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(0,0,0,0.5);
+      padding: 6px 14px;
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--border-gold);
+      box-shadow: inset 0 1px 4px rgba(0,0,0,0.6);
+    }
+
+    .wallet-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+    .wallet-amount {
+      font-weight: 800;
+      font-size: 14px;
+      color: var(--text-gold);
+      transition: color 0.2s, transform 0.2s;
+    }
+    .wallet-amount.pop {
+      animation: balancePop 0.35s cubic-bezier(0.175,0.885,0.32,1.275);
+    }
+
+    /* ============================================================
+       MAIN GAME AREA
+    ============================================================ */
+    main {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      min-height: 0; /* allow flex shrink */
+    }
+
+    /* ── HUD (top overlay) ── */
+    .hud {
+      position: absolute;
+      top: 14px;
+      left: 0; right: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      z-index: 10;
+      pointer-events: none;
+      gap: 2px;
+    }
+
+    .step-counter {
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    .multiplier-display {
+      font-size: 3.4rem;
+      font-weight: 900;
+      line-height: 1;
+      color: var(--text-main);
+      text-shadow: 0 3px 12px rgba(0,0,0,0.8), 0 0 30px rgba(212,175,55,0.2);
+      letter-spacing: -1px;
+    }
+    .multiplier-display.gold { color: var(--accent-gold); }
+    .multiplier-display.danger { color: var(--danger-red); }
+    .multiplier-display.pulse {
+      animation: multPulse 0.45s cubic-bezier(0.175,0.885,0.32,1.275);
+    }
+
+    .potential-win {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--accent-gold);
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    .potential-win.visible { opacity: 1; transform: translateY(0); }
+
+    /* ── ROAD (pseudo-3D perspective) ── */
+    .road-container {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 68%;
+      perspective: 400px;
+      perspective-origin: 50% 0%;
+      display: flex;
+      justify-content: center;
+    }
+
+    .road-surface {
+      width: 290px;
+      height: 300%;
+      position: absolute;
+      bottom: 0;
+      background: linear-gradient(to bottom, #2d2d2d 0%, #1a1a1a 100%);
+      border-left:  4px solid rgba(255,255,255,0.15);
+      border-right: 4px solid rgba(255,255,255,0.15);
+      transform-origin: bottom center;
+      transform: rotateX(55deg) translateY(30px);
+      transition: transform 0.45s cubic-bezier(0.2,0.8,0.2,1);
+      will-change: transform;
+    }
+
+    /* Dashed centre line markings */
+    .road-surface::before {
+      content: '';
+      position: absolute;
+      left: calc(50% - 2px);
+      top: 0; bottom: 0;
+      width: 4px;
+      background: repeating-linear-gradient(to bottom,
+        rgba(255,255,255,0.3) 0px,
+        rgba(255,255,255,0.3) 30px,
+        transparent 30px,
+        transparent 60px
+      );
+    }
+
+    /* ── TILE ROWS ── */
+    .row-marker {
+      position: absolute;
+      width: 100%;
+      height: 54px;
+      display: flex;
+      justify-content: space-evenly;
+      align-items: center;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .row-marker.visible { opacity: 1; }
+
+    .tile {
+      width: 62px;
+      height: 38px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.09);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+    }
+    .tile.safe {
+      background: rgba(46,204,113,0.18);
+      border-color: var(--safe-green);
+      box-shadow: 0 0 12px rgba(46,204,113,0.35);
+    }
+    .tile.fire {
+      background: rgba(231,76,60,0.18);
+      border-color: var(--danger-red);
+      box-shadow: 0 0 12px rgba(231,76,60,0.4);
+    }
+
+    /* ── CHICKEN SPRITE (pure CSS) ── */
+    .chicken-wrapper {
+      position: absolute;
+      bottom: 18%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 56px;
+      height: 64px;
+      z-index: 15;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .chicken {
+      position: relative;
+      width: 42px;
+      height: 42px;
+      transform-origin: bottom center;
+    }
+
+    /* Body */
+    .chicken .c-body {
+      position: absolute;
+      bottom: 0; left: 0;
+      width: 42px; height: 38px;
+      background: radial-gradient(circle at 35% 35%, #f7d32f, #e6b800);
+      border-radius: 50% 50% 40% 40% / 60% 60% 40% 40%;
+      box-shadow: inset -4px -4px 8px rgba(0,0,0,0.25), 0 4px 10px rgba(0,0,0,0.5);
+    }
+    /* Head */
+    .chicken .c-head {
+      position: absolute;
+      top: -14px; right: 4px;
+      width: 22px; height: 22px;
+      background: radial-gradient(circle at 40% 40%, #f7d32f, #e6b800);
+      border-radius: 50%;
+      box-shadow: inset -2px -2px 5px rgba(0,0,0,0.15);
+    }
+    /* Eye */
+    .chicken .c-eye {
+      position: absolute;
+      top: -7px; right: 8px;
+      width: 6px; height: 6px;
+      background: #1a1a1a;
+      border-radius: 50%;
+      box-shadow: inset 1px 1px 1px rgba(255,255,255,0.3);
+    }
+    /* Beak */
+    .chicken .c-beak {
+      position: absolute;
+      top: -5px; right: 1px;
+      width: 0; height: 0;
+      border-top: 4px solid transparent;
+      border-bottom: 4px solid transparent;
+      border-left: 9px solid #d35400;
+    }
+    /* Wing */
+    .chicken .c-wing {
+      position: absolute;
+      bottom: 12px; left: 2px;
+      width: 18px; height: 12px;
+      background: #e6a800;
+      border-radius: 50% 30% 50% 30%;
+      transform-origin: right center;
+      transition: transform 0.15s ease;
+    }
+    /* Legs */
+    .chicken .c-legs {
+      position: absolute;
+      bottom: -8px; left: 9px;
+      width: 24px; height: 10px;
+      display: flex;
+      gap: 6px;
+    }
+    .chicken .c-leg {
+      width: 5px; height: 10px;
+      background: #d35400;
+      border-radius: 2px;
+    }
+    /* Comb */
+    .chicken .c-comb {
+      position: absolute;
+      top: -22px; right: 10px;
+      width: 6px; height: 9px;
+      background: #e74c3c;
+      border-radius: 3px 3px 0 0;
+    }
+    .chicken .c-comb::before, .chicken .c-comb::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      width: 5px; height: 7px;
+      background: #e74c3c;
+      border-radius: 3px 3px 0 0;
+    }
+    .chicken .c-comb::before { left: -6px; height: 6px; }
+    .chicken .c-comb::after  { right: -6px; height: 6px; }
+
+    /* Chicken Animation States */
+    .chicken.idle .c-body  { animation: idleBob 2.2s ease-in-out infinite; }
+    .chicken.idle .c-head  { animation: idleBob 2.2s ease-in-out infinite 0.1s; }
+
+    .chicken.jump          { animation: chickenJump 0.45s cubic-bezier(0.33,1,0.68,1) forwards; }
+    .chicken.jump .c-wing  { animation: wingFlap 0.45s ease-in-out; }
+
+    .chicken.stumble       { animation: chickenStumble 0.55s ease both; }
+
+    .chicken.burn .c-body  { background: #4a3000; filter: brightness(0.5) saturate(0); }
+    .chicken.burn .c-head  { background: #4a3000; filter: brightness(0.5) saturate(0); }
+    .chicken.burn .c-eye   { background: #e74c3c; width: 7px; height: 3px; border-radius: 1px; top: -5px; }
+    .chicken.burn .c-comb  { background: #555; }
+    .chicken.burn          { animation: burnShake 0.2s ease 2; }
+
+    .chicken.celebrate     { animation: victoryDance 0.9s ease-in-out infinite; }
+    .chicken.celebrate .c-wing { animation: wingFlap 0.45s ease-in-out infinite; }
+
+    /* ============================================================
+       OVERLAY MESSAGES (WIN / BUST banners)
+    ============================================================ */
+    .overlay-msg {
+      position: absolute;
+      top: 38%; left: 50%;
+      transform: translate(-50%, -50%) scale(0.8);
+      font-size: 2.6rem;
+      font-weight: 900;
+      letter-spacing: 2px;
+      text-align: center;
+      text-shadow: 0 4px 20px rgba(0,0,0,0.9);
+      z-index: 30;
+      opacity: 0;
+      pointer-events: none;
+      white-space: nowrap;
+      transition: none;
+    }
+    .overlay-msg.win  { color: var(--safe-green); }
+    .overlay-msg.bust { color: var(--danger-red); }
+    .overlay-msg.show { animation: overlayPop 0.5s cubic-bezier(0.175,0.885,0.32,1.275) forwards; }
+
+    /* ============================================================
+       CONFETTI PARTICLES
+    ============================================================ */
+    .particle-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 25;
+      overflow: hidden;
+    }
+    .confetti-piece {
+      position: absolute;
+      border-radius: 2px;
+      opacity: 0;
+      animation: confettiFall linear forwards;
+    }
+
+    /* ============================================================
+       CONTROLS FOOTER
+    ============================================================ */
+    .controls {
+      background: var(--bg-panel);
+      border-top: 1px solid var(--border-dim);
+      padding: 12px 14px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      flex-shrink: 0;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      z-index: 20;
+    }
+
+    /* Info bar */
+    .info-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: var(--text-muted);
+      padding: 0 2px;
+    }
+    .info-bar span { font-weight: 700; color: var(--text-main); }
+
+    /* Config row */
+    .config-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .tier-select {
+      flex: 1.2;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border-dim);
+      border-radius: var(--radius-md);
+      color: var(--text-main);
+      font-size: 0.85rem;
+      font-weight: 700;
+      padding: 10px 8px;
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    .tier-select:focus { border-color: var(--accent-gold); }
+    .tier-select:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .bet-control {
+      flex: 1;
+      display: flex;
+      align-items: stretch;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border-dim);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+
+    .bet-adj-btn {
+      width: 40px;
+      background: rgba(255,255,255,0.08);
+      border: none;
+      color: var(--text-main);
+      font-size: 1.3rem;
+      font-weight: 700;
+      line-height: 1;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .bet-adj-btn:active { background: rgba(255,255,255,0.18); transform: scale(0.92); }
+    .bet-adj-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    .bet-display {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      line-height: 1.1;
+    }
+    .bet-label { font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+    .bet-amount-text {
+      font-weight: 800;
+      font-size: 1rem;
+      color: var(--text-gold);
+    }
+
+    /* Action buttons */
+    .action-row {
+      display: flex;
+      gap: 10px;
+      height: 56px;
+    }
+
+    .game-btn {
+      flex: 1;
+      border: none;
+      border-radius: var(--radius-md);
+      font-size: 1rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1px;
+      transition: transform 0.1s, filter 0.2s, opacity 0.2s;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .game-btn:active { transform: scale(0.94); }
+    .game-btn:disabled { opacity: 0.45; filter: grayscale(0.8); pointer-events: none; }
+    .game-btn .btn-sub { font-size: 0.65rem; opacity: 0.85; font-weight: 600; letter-spacing: 0; text-transform: none; }
+
+    .btn-step {
+      background: linear-gradient(175deg, #f5a623 0%, #d35400 100%);
+      border-top: 2px solid #f7c25e;
+      box-shadow: 0 4px 0 #7a2f00, 0 6px 16px rgba(211,84,0,0.4);
+    }
+    .btn-step:active { box-shadow: 0 2px 0 #7a2f00, 0 3px 8px rgba(211,84,0,0.4); }
+
+    .btn-cashout {
+      background: linear-gradient(175deg, #2ecc71 0%, #1a8a4a 100%);
+      border-top: 2px solid #52e891;
+      box-shadow: 0 4px 0 #0d4d28, 0 6px 16px rgba(46,204,113,0.3);
+    }
+    .btn-cashout:active { box-shadow: 0 2px 0 #0d4d28; }
+
+    /* ============================================================
+       SEED VERIFY PANEL (provably fair UI)
+    ============================================================ */
+    .verify-panel {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      background: #111;
+      border-top: 1px solid var(--border-dim);
+      padding: 12px 16px;
+      font-size: 10px;
+      color: var(--text-muted);
+      display: none;
+      z-index: 50;
+      word-break: break-all;
+      line-height: 1.7;
+    }
+    .verify-panel.show { display: block; }
+    .verify-panel strong { color: var(--accent-gold); }
+    .verify-close { float: right; cursor: pointer; font-size: 14px; color: var(--danger-red); }
+
+    /* ============================================================
+       KEYFRAMES
+    ============================================================ */
+    @keyframes idleBob {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(-5px); }
+    }
+
+    @keyframes chickenJump {
+      0%   { transform: scale(1,1) translateY(0); }
+      20%  { transform: scale(1.15,0.85) translateY(0); }   /* squash */
+      45%  { transform: scale(0.85,1.2)  translateY(-42px); } /* stretch up */
+      65%  { transform: scale(1,1)       translateY(-46px); } /* apex */
+      85%  { transform: scale(1.1,0.9)   translateY(0); }   /* land squash */
+      100% { transform: scale(1,1)       translateY(0); }
+    }
+
+    @keyframes wingFlap {
+      0%,100% { transform: rotate(0deg); }
+      30%     { transform: rotate(-35deg) scaleY(1.2); }
+      60%     { transform: rotate(20deg); }
+    }
+
+    @keyframes chickenStumble {
+      0%   { transform: rotate(0)    translateX(0); }
+      20%  { transform: rotate(-22deg) translateX(-8px); }
+      45%  { transform: rotate(14deg)  translateX(6px); }
+      70%  { transform: rotate(-6deg)  translateX(-2px); }
+      100% { transform: rotate(0)    translateX(0); }
+    }
+
+    @keyframes burnShake {
+      0%,100% { transform: translateX(0) rotate(12deg); }
+      50%     { transform: translateX(5px) rotate(18deg); }
+    }
+
+    @keyframes victoryDance {
+      0%,100% { transform: translateY(0) rotate(0deg) scale(1); }
+      25%     { transform: translateY(-18px) rotate(-14deg) scale(1.1); }
+      50%     { transform: translateY(0) rotate(0deg) scale(1); }
+      75%     { transform: translateY(-18px) rotate(14deg) scale(1.1); }
+    }
+
+    @keyframes multPulse {
+      0%   { transform: scale(1); }
+      50%  { transform: scale(1.18); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes balancePop {
+      0%   { transform: scale(1); }
+      50%  { transform: scale(1.28); color: var(--safe-green); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes overlayPop {
+      0%   { opacity: 0; transform: translate(-50%,-50%) scale(0.7); }
+      60%  { opacity: 1; transform: translate(-50%,-50%) scale(1.08); }
+      100% { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+    }
+
+    @keyframes screenShake {
+      0%,100% { transform: translateX(0); }
+      20%     { transform: translateX(-6px); }
+      40%     { transform: translateX(6px); }
+      60%     { transform: translateX(-4px); }
+      80%     { transform: translateX(4px); }
+    }
+
+    @keyframes confettiFall {
+      0%   { opacity: 1; }
+      100% { opacity: 0; transform: var(--cf-end); }
+    }
+
+    .screen-shake { animation: screenShake 0.35s cubic-bezier(0.36,0.07,0.19,0.97) both; }
+  </style>
+</head>
+<body>
+
+  <!-- ========================================================
+       HEADER
+  ======================================================== -->
+  <header>
+    <div class="brand-title">🐔 CHICKEN ROAD</div>
+    <div class="wallet-box">
+      <div>
+        <div class="wallet-label">Balance</div>
+        <div class="wallet-amount" id="walletAmount">0.00 ETB</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========================================================
+       MAIN GAME AREA
+  ======================================================== -->
+  <main id="gameArea">
+
+    <!-- HUD -->
+    <div class="hud">
+      <div class="step-counter" id="stepCounter">STEP 0</div>
+      <div class="multiplier-display" id="multiplierDisplay">1.00x</div>
+      <div class="potential-win" id="potentialWin">— ETB</div>
+    </div>
+
+    <!-- WIN / BUST overlay -->
+    <div class="overlay-msg" id="overlayMsg"></div>
+
+    <!-- Particle / confetti layer -->
+    <div class="particle-layer" id="particleLayer"></div>
+
+    <!-- Road -->
+    <div class="road-container">
+      <div class="road-surface" id="roadSurface"></div>
+    </div>
+
+    <!-- Chicken -->
+    <div class="chicken-wrapper">
+      <div class="chicken idle" id="chickenSprite">
+        <div class="c-comb"></div>
+        <div class="c-head">
+          <div class="c-eye"></div>
+          <div class="c-beak"></div>
+        </div>
+        <div class="c-body">
+          <div class="c-wing"></div>
+        </div>
+        <div class="c-legs">
+          <div class="c-leg"></div>
+          <div class="c-leg"></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ========================================================
+       CONTROLS FOOTER
+  ======================================================== -->
+  <div class="controls">
+    <!-- Info: bet / potential win -->
+    <div class="info-bar">
+      <span id="infoLeft">Select tier &amp; bet, then START</span>
+      <span id="infoRight"></span>
+    </div>
+
+    <!-- Tier + Bet -->
+    <div class="config-row">
+      <select class="tier-select" id="tierSelect">
+        <option value="easy">🟢 Easy  — 5% fail</option>
+        <option value="medium">🟡 Medium — 10% fail</option>
+        <option value="hard">🔴 Hard  — 15% fail</option>
+        <option value="extreme">💀 Extreme — 35% fail</option>
+      </select>
+
+      <div class="bet-control">
+        <button class="bet-adj-btn" id="btnBetDown">−</button>
+        <div class="bet-display">
+          <span class="bet-label">Bet (ETB)</span>
+          <span class="bet-amount-text" id="betDisplay">10</span>
+        </div>
+        <button class="bet-adj-btn" id="btnBetUp">+</button>
+      </div>
+    </div>
+
+    <!-- Main action buttons -->
+    <div class="action-row">
+      <button class="game-btn btn-step" id="btnStep">START BET</button>
+      <button class="game-btn btn-cashout" id="btnCashOut" disabled>
+        CASH OUT
+        <span class="btn-sub" id="cashOutSub"></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       PROVABLY FAIR SEED PANEL
+  ======================================================== -->
+  <div class="verify-panel" id="verifyPanel">
+    <span class="verify-close" id="verifyClose">✕</span>
+    <strong>Provably Fair Verification</strong><br>
+    Server Seed Hash: <span id="vpServerSeedHash">—</span><br>
+    Client Seed: <span id="vpClientSeed">—</span><br>
+    Nonce: <span id="vpNonce">—</span><br>
+    Server Seed (revealed on round end): <span id="vpServerSeed">—</span>
+  </div>
+
+<!-- ========================================================
+     GAME SCRIPT
+======================================================== -->
+<script>
+'use strict';
+
+// ============================================================
+// 1. CONFIGURATION
+// ============================================================
+//
+//   successRate = probability the chicken survives one step
+//   houseEdge   = RTP factor (player receives this fraction of fair payout)
+//                 Company keeps (1 - houseEdge) per step.
+//
+//   Multiplier per step = (1 / successRate) * houseEdge
+//   This MUST be > 1.0, which requires houseEdge > successRate.
+//
+//   Easy:    (1/0.95) * 0.96 = 1.011x — company keeps 4%
+//   Medium:  (1/0.90) * 0.95 = 1.056x — company keeps 5%
+//   Hard:    (1/0.85) * 0.94 = 1.106x — company keeps 6%
+//   Extreme: (1/0.65) * 0.75 = 1.154x — company keeps 25% ← highest advantage
+//
+const CONFIG = {
+  minBet:  10,
+  maxBet:  5000,
+  betStep: 10,
+  tiers: {
+    easy:    { successRate: 0.95, houseEdge: 0.96, label: 'Easy' },
+    medium:  { successRate: 0.90, houseEdge: 0.95, label: 'Medium' },
+    hard:    { successRate: 0.85, houseEdge: 0.94, label: 'Hard' },
+    extreme: { successRate: 0.65, houseEdge: 0.75, label: 'Extreme' }
+  }
+};
+
+// ============================================================
+// 2. AUDIO MANAGER — placeholder tones
+// ============================================================
+const AudioMan = (function() {
+  const ctx = window.AudioContext
+    ? new AudioContext()
+    : (window.webkitAudioContext ? new webkitAudioContext() : null);
+
+  function beep(freq, dur, vol, type) {
+    if (!ctx) return;
+    try {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = freq;
+      osc.type = type || 'sine';
+      gain.gain.setValueAtTime(vol || 0.15, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + dur);
+    } catch(e) {}
+  }
+
+  function resume() { if (ctx && ctx.state === 'suspended') ctx.resume(); }
+
+  return {
+    click:    () => { resume(); beep(440, 0.05, 0.10, 'square'); },
+    jump:     () => { resume(); beep(520, 0.12, 0.12, 'sine'); },
+    safe:     () => { resume(); beep(660, 0.18, 0.15, 'sine'); },
+    cashout:  () => {
+      resume();
+      beep(660, 0.1, 0.15, 'sine');
+      setTimeout(() => beep(880, 0.15, 0.15, 'sine'), 100);
+      setTimeout(() => beep(1100, 0.3, 0.2, 'sine'), 220);
+    },
+    bust:     () => { resume(); beep(180, 0.4, 0.18, 'sawtooth'); },
+    error:    () => { resume(); beep(200, 0.2, 0.12, 'square'); }
+  };
+})();
+
+// ============================================================
+// 3. GAME STATE
+// ============================================================
+const State = {
+  phase:       'IDLE',   // IDLE | PLAYING | REVEALING | GAMEOVER
+  balance:     0,
+  bet:         10,
+  tier:        'easy',
+  stepCount:   0,
+  multiplier:  1.00,
+  roadOffset:  0,        // cumulative scroll in px
+
+  // Provably Fair
+  serverSeed:  '',
+  serverSeedHash: '',
+  clientSeed:  '',
+  nonce:       0,
+
+  // Idempotency guard
+  cashOutPending: false
+};
+
+// ============================================================
+// 4. DOM REFS — single source of truth
+// ============================================================
+const DOM = {
+  gameArea:     document.getElementById('gameArea'),
+  walletAmount: document.getElementById('walletAmount'),
+  stepCounter:  document.getElementById('stepCounter'),
+  multDisp:     document.getElementById('multiplierDisplay'),
+  potWin:       document.getElementById('potentialWin'),
+  overlayMsg:   document.getElementById('overlayMsg'),
+  particleLayer:document.getElementById('particleLayer'),
+  roadSurface:  document.getElementById('roadSurface'),
+  chicken:      document.getElementById('chickenSprite'),
+  infoLeft:     document.getElementById('infoLeft'),
+  infoRight:    document.getElementById('infoRight'),
+  tierSelect:   document.getElementById('tierSelect'),
+  betDisplay:   document.getElementById('betDisplay'),
+  btnBetDown:   document.getElementById('btnBetDown'),
+  btnBetUp:     document.getElementById('btnBetUp'),
+  btnStep:      document.getElementById('btnStep'),
+  btnCashOut:   document.getElementById('btnCashOut'),
+  cashOutSub:   document.getElementById('cashOutSub'),
+  verifyPanel:  document.getElementById('verifyPanel'),
+  verifyClose:  document.getElementById('verifyClose'),
+  vpServerHash: document.getElementById('vpServerSeedHash'),
+  vpClientSeed: document.getElementById('vpClientSeed'),
+  vpNonce:      document.getElementById('vpNonce'),
+  vpServerSeed: document.getElementById('vpServerSeed')
+};
+
+// ============================================================
+// 5. EXISTING AUTH / WALLET HOOKS
+// ============================================================
+
+let socket = null;
+
+// ============================================================
+// 5. EXISTING AUTH / WALLET HOOKS
+// ============================================================
+
+async function initUserSession() {
+  try {
+    const tg = window.Telegram?.WebApp;
+    if (tg) {
+      tg.ready();
+      tg.expand();
+      if (tg.enableClosingConfirmation) tg.enableClosingConfirmation();
+    }
+
+    // Determine environment for socket connection
+    let urlParams = new URLSearchParams(window.location.search);
+    let userId = urlParams.get('userId');
+    
+    // If running in telegram mini app, decode initData
+    if (!userId && tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+      userId = tg.initDataUnsafe.user.id;
+    }
+
+    if (!userId) {
+      // For local testing outside Telegram
+      userId = '123456789';
+    }
+
+    socket = io(window.location.origin, {
+      query: { userId }
+    });
+
+    socket.on('connect', () => {
+      console.log('[Socket] Connected to Chicken Road backend');
+    });
+
+    socket.on('balance-updated', (data) => {
+      setBalance(data.newBalance);
+    });
+
+    // In a real flow, we would fetch the initial balance from /api/auth/me here
+    // but since the socket will emit it upon actions, we'll let it sync natively.
+
+  } catch (err) {
+    console.error('[Auth] Failed to init session:', err);
+  }
+}
+
+async function walletTransact(amount, type, roundId) {
+  // Obsolete: Wallet transactions are now handled securely on the backend
+  // inside the startRound and cashoutRound socket handlers.
+}
+
+// ============================================================
+// 6. GAME-SPECIFIC BACKEND HOOKS
+// ============================================================
+
+async function backendStartRound(bet, tier) {
+  return new Promise((resolve, reject) => {
+    const clientSeed = crypto.getRandomValues(new Uint8Array(8)).reduce((s,b) => s + b.toString(16).padStart(2,'0'), '');
+    
+    socket.emit('chickenRoad:start', { bet, tier, clientSeed }, (response) => {
+      if (!response.success) {
+        console.error('[Backend Error]', response.error);
+        reject(response.error);
+        return;
+      }
+      
+      const { roundId, serverSeedHash, clientSeed: resClientSeed, nonce } = response.data;
+      
+      State.serverSeedHash = serverSeedHash;
+      State.clientSeed = resClientSeed;
+      State.nonce = nonce;
+
+      DOM.vpServerHash.textContent = serverSeedHash.substring(0, 32) + '...';
+      DOM.vpClientSeed.textContent = resClientSeed;
+      DOM.vpNonce.textContent = nonce;
+      DOM.vpServerSeed.textContent = '(revealed after round)';
+
+      resolve(roundId);
+    });
+  });
+}
+
+async function backendResolveStep() {
+  return new Promise((resolve, reject) => {
+    socket.emit('chickenRoad:step', { roundId: _roundId }, (response) => {
+      if (!response.success) {
+        console.error('[Backend Error]', response.error);
+        reject(response.error);
+        return;
+      }
+      
+      State.nonce++;
+      DOM.vpNonce.textContent = State.nonce;
+      
+      const { safe, nextMultiplier, serverSeed } = response.data;
+      
+      if (!safe) {
+        State.serverSeed = serverSeed;
+      }
+      
+      resolve({ safe, nextMultiplier });
+    });
+  });
+}
+
+async function backendEndRound(roundId, result, winAmount) {
+  if (result === 'WIN') {
+    return new Promise((resolve, reject) => {
+      socket.emit('chickenRoad:cashout', { roundId }, (response) => {
+        if (!response.success) {
+          console.error('[Backend Error]', response.error);
+          reject(response.error);
+          return;
+        }
+        State.serverSeed = response.data.serverSeed;
+        DOM.vpServerSeed.textContent = State.serverSeed;
+        resolve();
+      });
+    });
+  } else {
+    // If it was a bust, the server already recorded it during the 'step' event.
+    // The serverSeed was returned in the 'step' response.
+    DOM.vpServerSeed.textContent = State.serverSeed;
+  }
+}
+
+// ============================================================
+// 7. ADMIN DASHBOARD HOOKS
+// ============================================================
+function emitEvent(event, data) {
+  // ADMIN DASHBOARD HOOK — pipe to analytics backend
+  console.log(`[ADMIN DASHBOARD HOOK] ${event}`, data);
+}
+
+// ============================================================
+// 8. BALANCE & UI UPDATES
+// ============================================================
+function setBalance(amount) {
+  State.balance = Math.max(0, amount);
+  DOM.walletAmount.textContent = State.balance.toFixed(2) + ' ETB';
+  DOM.walletAmount.classList.remove('pop');
+  void DOM.walletAmount.offsetWidth; // force reflow to restart animation
+  DOM.walletAmount.classList.add('pop');
+}
+
+function updateUI() {
+  const { phase, bet, stepCount, multiplier, balance } = State;
+  const potentialWin = (bet * multiplier).toFixed(2);
+
+  // Bet display
+  DOM.betDisplay.textContent = bet;
+
+  switch (phase) {
+    case 'IDLE':
+      DOM.tierSelect.disabled  = false;
+      DOM.btnBetDown.disabled  = false;
+      DOM.btnBetUp.disabled    = false;
+      DOM.btnStep.disabled     = false;
+      DOM.btnStep.textContent  = 'START BET';
+      DOM.btnCashOut.disabled  = true;
+      DOM.cashOutSub.textContent = '';
+      DOM.potWin.classList.remove('visible');
+      DOM.potWin.textContent   = '— ETB';
+      DOM.stepCounter.textContent = 'STEP 0';
+      DOM.infoLeft.textContent = 'Select tier & bet, then START';
+      DOM.infoRight.textContent = '';
+      DOM.multDisp.className   = 'multiplier-display';
+      break;
+
+    case 'PLAYING':
+      DOM.tierSelect.disabled  = true;
+      DOM.btnBetDown.disabled  = true;
+      DOM.btnBetUp.disabled    = true;
+      DOM.btnStep.disabled     = false;
+      DOM.btnStep.textContent  = 'NEXT STEP';
+      DOM.btnCashOut.disabled  = stepCount === 0;
+      DOM.cashOutSub.textContent = stepCount > 0 ? `${potentialWin} ETB` : '';
+      DOM.stepCounter.textContent = `STEP ${stepCount}`;
+      DOM.infoLeft.textContent = `Bet: ${bet} ETB`;
+      DOM.infoRight.textContent = stepCount > 0 ? `Win: ${potentialWin} ETB` : '';
+      if (stepCount > 0) {
+        DOM.potWin.textContent = `${potentialWin} ETB`;
+        DOM.potWin.classList.add('visible');
+      }
+      break;
+
+    case 'REVEALING':
+      DOM.btnStep.disabled     = true;
+      DOM.btnCashOut.disabled  = true;
+      DOM.btnBetDown.disabled  = true;
+      DOM.btnBetUp.disabled    = true;
+      break;
+
+    case 'GAMEOVER':
+      DOM.btnStep.disabled     = true;
+      DOM.btnCashOut.disabled  = true;
+      DOM.btnBetDown.disabled  = true;
+      DOM.btnBetUp.disabled    = true;
+      DOM.tierSelect.disabled  = true;
+      break;
+  }
+}
+
+// ============================================================
+// 9. ROAD VISUALS
+// ============================================================
+function resetRoad() {
+  State.roadOffset = 0;
+  DOM.roadSurface.innerHTML = '';
+  DOM.roadSurface.style.transform = `rotateX(55deg) translateY(30px)`;
+  // Seed a few decorative rows
+  for (let i = 0; i < 4; i++) spawnTileRow(i * 80);
+}
+
+function spawnTileRow(yBottom) {
+  const row = document.createElement('div');
+  row.className = 'row-marker';
+  row.style.bottom = `${yBottom}px`;
+  for (let i = 0; i < 3; i++) {
+    const t = document.createElement('div');
+    t.className = 'tile';
+    row.appendChild(t);
+  }
+  DOM.roadSurface.appendChild(row);
+  requestAnimationFrame(() => row.classList.add('visible'));
+  return row;
+}
+
+function scrollRoad() {
+  State.roadOffset += 85;
+  // Blend road scroll into CSS transform
+  DOM.roadSurface.style.transform =
+    `rotateX(55deg) translateY(${30 - State.roadOffset * 0.4}px)`;
+}
+
+// ============================================================
+// 10. CHICKEN ANIMATION HELPERS
+// ============================================================
+function setChickenState(state) {
+  DOM.chicken.className = `chicken ${state}`;
+}
+
+// ============================================================
+// 11. OVERLAY & PARTICLES
+// ============================================================
+function showOverlay(text, type) {
+  const el = DOM.overlayMsg;
+  el.className = 'overlay-msg'; // reset
+  el.textContent = text;
+  void el.offsetWidth;
+  el.className = `overlay-msg ${type} show`;
+}
+
+function hideOverlay() {
+  DOM.overlayMsg.className = 'overlay-msg';
+}
+
+function spawnConfetti(x, y, count) {
+  const colors = ['#d4af37','#f5d76e','#2ecc71','#ff7b00','#ffffff','#e74c3c'];
+  for (let i = 0; i < count; i++) {
+    const el = document.createElement('div');
+    el.className = 'confetti-piece';
+    const size   = Math.random() * 8 + 4;
+    const angle  = Math.random() * 360;
+    const dist   = Math.random() * 140 + 60;
+    const dur    = Math.random() * 0.6 + 0.6;
+    const dx     = Math.cos(angle * Math.PI / 180) * dist;
+    const dy     = Math.sin(angle * Math.PI / 180) * dist - 80;
+    el.style.cssText = `
+      left:${x}px; top:${y}px;
+      width:${size}px; height:${size * (Math.random() > 0.5 ? 1 : 2.5)}px;
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+      --cf-end: translate(${dx}px,${dy}px) rotate(${Math.random()*720}deg);
+      animation-duration:${dur}s;
+      border-radius:${Math.random() > 0.5 ? '50%' : '2px'};
+    `;
+    DOM.particleLayer.appendChild(el);
+    setTimeout(() => el.remove(), (dur + 0.1) * 1000);
+  }
+}
+
+// ============================================================
+// 12. MULTIPLIER COUNTER ANIMATION
+// ============================================================
+function animateMultiplier(from, to, durationMs) {
+  const start = performance.now();
+  function tick(now) {
+    const t = Math.min((now - start) / durationMs, 1);
+    const ease = 1 - Math.pow(1 - t, 3); // easeOutCubic
+    const val  = from + (to - from) * ease;
+    DOM.multDisp.textContent = val.toFixed(2) + 'x';
+    if (t < 1) requestAnimationFrame(tick);
+    else DOM.multDisp.textContent = to.toFixed(2) + 'x';
+  }
+  requestAnimationFrame(tick);
+}
+
+// ============================================================
+// 13. CORE GAME ACTIONS
+// ============================================================
+let _roundId = null;
+
+async function actionStart() {
+  if (State.phase !== 'IDLE') return;
+  if (State.balance < State.bet) {
+    haptic('error');
+    AudioMan.error();
+    DOM.walletAmount.style.animation = 'none';
+    void DOM.walletAmount.offsetWidth;
+    DOM.walletAmount.style.animation = '';
+    return;
+  }
+
+  haptic('medium');
+  AudioMan.click();
+
+  State.tier        = DOM.tierSelect.value;
+  State.multiplier  = 1.00;
+  State.stepCount   = 0;
+  State.cashOutPending = false;
+  hideOverlay();
+  resetRoad();
+
+  // EXISTING AUTH/WALLET HOOK — debit bet
+  await walletTransact(-State.bet, 'BET_DEBIT', null);
+
+  // GAME-SPECIFIC BACKEND HOOK — open round
+  _roundId = await backendStartRound(State.bet, State.tier);
+
+  State.phase = 'PLAYING';
+  DOM.multDisp.textContent = '1.00x';
+  DOM.multDisp.className   = 'multiplier-display';
+
+  emitEvent('ROUND_START', { roundId: _roundId, bet: State.bet, tier: State.tier });
+  updateUI();
+}
+
+async function actionStep() {
+  if (State.phase !== 'PLAYING') return;
+  State.phase = 'REVEALING';
+  updateUI();
+
+  haptic('light');
+  AudioMan.jump();
+
+  // Immediate visual feedback (<50ms)
+  setChickenState('jump');
+  scrollRoad();
+
+  // Tension pacing: ramp delay from 220ms → 580ms as steps increase
+  const tensionMs = Math.min(220 + State.stepCount * 45, 580);
+
+  // GAME-SPECIFIC BACKEND HOOK
+  const result = await backendResolveStep();
+
+  await sleep(tensionMs);
+
+  const row = spawnTileRow(160); // new row ahead of chicken
+
+  if (result.safe) {
+    resolveStepSafe(result.nextMultiplier, row);
+  } else {
+    resolveStepBust(row);
+  }
+}
+
+function resolveStepSafe(nextMult, row) {
+  const tiles = row.children;
+
+  // Near-miss chance (20%) — show flanking fire tiles for drama
+  const nearMiss = Math.random() > 0.80;
+  if (nearMiss && tiles.length === 3) {
+    tiles[0].innerHTML = '🔥'; tiles[0].classList.add('fire');
+    tiles[2].innerHTML = '🔥'; tiles[2].classList.add('fire');
+    setChickenState('stumble');
+  } else {
+    setChickenState('idle');
+  }
+  tiles[1].innerHTML = '✅'; tiles[1].classList.add('safe');
+
+  const oldMult      = State.multiplier;
+  State.multiplier   = nextMult;
+  State.stepCount++;
+
+  // Multiplier counter
+  animateMultiplier(oldMult, nextMult, 380);
+  DOM.multDisp.classList.remove('pulse');
+  void DOM.multDisp.offsetWidth;
+  DOM.multDisp.classList.add('pulse');
+
+  // Gold colour at high multipliers
+  if (nextMult >= 3) DOM.multDisp.classList.add('gold');
+
+  haptic('heavy');
+  AudioMan.safe();
+
+  emitEvent('STEP_SAFE', { step: State.stepCount, mult: nextMult.toFixed(2) });
+
+  // Big-win hook
+  if (State.bet * nextMult >= State.bet * 5) {
+    emitEvent('BIG_WIN_APPROACHING', { mult: nextMult.toFixed(2) });
+  }
+
+  State.phase = 'PLAYING';
+  updateUI();
+}
+
+function resolveStepBust(row) {
+  const tiles = row.children;
+  tiles[1].innerHTML = '🔥'; tiles[1].classList.add('fire');
+
+  DOM.gameArea.classList.remove('screen-shake');
+  void DOM.gameArea.offsetWidth;
+  DOM.gameArea.classList.add('screen-shake');
+
+  setChickenState('burn');
+  DOM.multDisp.className = 'multiplier-display danger';
+
+  haptic('error');
+  AudioMan.bust();
+
+  showOverlay('BUSTED! 🔥', 'bust');
+
+  emitEvent('ROUND_LOST', {
+    roundId:   _roundId,
+    steps:     State.stepCount,
+    mult:      State.multiplier.toFixed(2),
+    betLost:   State.bet
+  });
+
+  backendEndRound(_roundId, 'LOST', 0);
+  DOM.potWin.classList.remove('visible');
+
+  State.phase = 'GAMEOVER';
+  updateUI();
+
+  setTimeout(() => {
+    hideOverlay();
+    State.phase = 'IDLE';
+    State.multiplier = 1.00;
+    DOM.multDisp.textContent = '1.00x';
+    setChickenState('idle');
+    updateUI();
+  }, 2400);
+}
+
+async function actionCashOut() {
+  if (State.phase !== 'PLAYING') return;
+  if (State.stepCount === 0) return; // must complete at least 1 step
+  if (State.cashOutPending) return;  // idempotency guard
+
+  State.cashOutPending = true;
+  State.phase = 'REVEALING';
+  updateUI();
+
+  haptic('success');
+  AudioMan.cashout();
+
+  const winAmount = parseFloat((State.bet * State.multiplier).toFixed(2));
+
+  setChickenState('celebrate');
+
+  // Scale confetti to win size
+  const confettiCount = State.multiplier >= 5 ? 60 : State.multiplier >= 2 ? 35 : 18;
+  const rect = DOM.chicken.getBoundingClientRect();
+  spawnConfetti(rect.left + 21, rect.top + 21, confettiCount);
+
+  showOverlay(`${State.multiplier.toFixed(2)}x  🎉`, 'win');
+  DOM.infoLeft.textContent  = `Won ${winAmount} ETB`;
+  DOM.infoRight.textContent = `at ${State.multiplier.toFixed(2)}x`;
+
+  // EXISTING AUTH/WALLET HOOK — credit win to shared wallet
+  await walletTransact(winAmount, 'WIN_CREDIT', _roundId);
+
+  // GAME-SPECIFIC BACKEND HOOK — finalize round
+  await backendEndRound(_roundId, 'WIN', winAmount);
+
+  emitEvent('CASH_OUT', { roundId: _roundId, winAmount, mult: State.multiplier.toFixed(2) });
+
+  setTimeout(() => {
+    hideOverlay();
+    State.phase = 'IDLE';
+    State.multiplier = 1.00;
+    State.cashOutPending = false;
+    DOM.multDisp.textContent = '1.00x';
+    DOM.multDisp.className   = 'multiplier-display';
+    setChickenState('idle');
+    DOM.potWin.classList.remove('visible');
+    updateUI();
+  }, 2800);
+}
+
+// ============================================================
+// 14. HELPERS
+// ============================================================
+function haptic(type) {
+  try {
+    const hf = window.Telegram?.WebApp?.HapticFeedback;
+    if (!hf) return;
+    if (type === 'success' || type === 'error') hf.notificationOccurred(type);
+    else hf.impactOccurred(type); // 'light','medium','heavy'
+  } catch(e) {}
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function generateHex(len) {
+  const arr = new Uint8Array(Math.ceil(len / 2));
+  crypto.getRandomValues(arr);
+  return Array.from(arr).map(b => b.toString(16).padStart(2,'0')).join('').slice(0, len);
+}
+
+async function sha256(message) {
+  const buf  = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(message));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+function hexToBytes(hex) {
+  const bytes = [];
+  for (let i = 0; i < hex.length; i += 2) bytes.push(parseInt(hex.slice(i, i+2), 16));
+  return bytes;
+}
+
+// ============================================================
+// 15. EVENT BINDINGS
+// ============================================================
+DOM.btnStep.addEventListener('click', () => {
+  if (State.phase === 'IDLE')    actionStart();
+  else if (State.phase === 'PLAYING') actionStep();
+});
+
+DOM.btnCashOut.addEventListener('click', actionCashOut);
+
+DOM.btnBetUp.addEventListener('click', () => {
+  if (State.phase !== 'IDLE') return;
+  AudioMan.click();
+  if (State.bet + CONFIG.betStep <= CONFIG.maxBet) {
+    State.bet += CONFIG.betStep;
+    updateUI();
+  }
+});
+
+DOM.btnBetDown.addEventListener('click', () => {
+  if (State.phase !== 'IDLE') return;
+  AudioMan.click();
+  if (State.bet - CONFIG.betStep >= CONFIG.minBet) {
+    State.bet -= CONFIG.betStep;
+    updateUI();
+  }
+});
+
+DOM.tierSelect.addEventListener('change', () => {
+  AudioMan.click();
+  State.tier = DOM.tierSelect.value;
+});
+
+// Long-press on multiplier to show provably-fair panel
+DOM.multDisp.addEventListener('pointerdown', (() => {
+  let timer;
+  return () => { timer = setTimeout(() => DOM.verifyPanel.classList.add('show'), 700); };
+})());
+DOM.multDisp.addEventListener('pointerup', () => clearTimeout());
+DOM.verifyClose.addEventListener('click', () => DOM.verifyPanel.classList.remove('show'));
+
+// ============================================================
+// 16. BOOTSTRAP
+// ============================================================
+window.addEventListener('DOMContentLoaded', () => {
+  initUserSession();
+  resetRoad();
+  updateUI();
+  setChickenState('idle');
+});
+</script>
+</body>
+</html>

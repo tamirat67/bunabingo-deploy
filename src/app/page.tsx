@@ -569,8 +569,58 @@ export default function LobbyPage() {
           </div>
         </div>
 
-
-
+        {/* ── CHICKEN ROAD CARD ── */}
+        <div style={{ padding: '0 15px', marginBottom: '16px' }}>
+          <div
+            onClick={() => router.push('/play/chicken-road')}
+            style={{
+              background: 'linear-gradient(135deg, #1a0a06 0%, #2d1200 60%, #1a0a00 100%)',
+              borderRadius: '12px',
+              padding: '14px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              cursor: 'pointer',
+              border: '1px solid rgba(212,175,55,0.35)',
+              boxShadow: '0 4px 20px rgba(212,175,55,0.12)',
+              position: 'relative',
+              overflow: 'hidden',
+            }}
+          >
+            {/* Gold top accent line */}
+            <div style={{
+              position: 'absolute', top: 0, left: 0, right: 0, height: '2px',
+              background: 'linear-gradient(90deg, transparent, #d4af37, #ff7b00, #d4af37, transparent)',
+              boxShadow: '0 0 8px rgba(212,175,55,0.6)',
+            }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              {/* Chicken icon */}
+              <div style={{
+                width: '44px', height: '44px', borderRadius: '50%',
+                background: 'rgba(212,175,55,0.15)', border: '1px solid rgba(212,175,55,0.4)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '26px',
+                boxShadow: 'inset 0 0 10px rgba(212,175,55,0.1)',
+              }}>
+                🐔
+              </div>
+              <div>
+                <div style={{ fontWeight: '900', fontSize: '15px', color: '#d4af37', letterSpacing: '0.5px' }}>
+                  CHICKEN ROAD
+                </div>
+                <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.55)', fontWeight: '700' }}>
+                  Risk & Reward — Cash out before the fire!
+                </div>
+              </div>
+            </div>
+            <div style={{
+              background: 'linear-gradient(180deg, #d4af37, #a07c10)',
+              color: '#1a0a06', fontSize: '12px', fontWeight: '900',
+              padding: '8px 14px', borderRadius: '8px',
+              boxShadow: '0 3px 0 #6b5210, 0 4px 10px rgba(212,175,55,0.35)',
+            }}>RUN 🐔</div>
+          </div>
+        </div>
 
       <JackpotSplash
         show={showJackpot}

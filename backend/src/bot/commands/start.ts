@@ -215,6 +215,9 @@ export async function handleStart(ctx: Context) {
           Markup.button.webApp('Fast Keno 🎱', `${config.bot.miniAppUrl}/keno`),
           Markup.button.callback('7️⃣🍒🍋 Multi Hot 5', 'cmd_play_slot'),
         ],
+        [
+          Markup.button.callback('🐔 Chicken Road', 'cmd_play_chicken_road'),
+        ],
 
         // ── Row 3: Account ───────────────────────────────────────────────────
         [
@@ -255,6 +258,9 @@ export async function handleStart(ctx: Context) {
           [
             Markup.button.webApp('Fast Keno 🎱', `${config.bot.miniAppUrl}/keno`),
             Markup.button.callback('7️⃣🍒🍋 Multi Hot 5', 'cmd_play_slot'),
+          ],
+          [
+            Markup.button.callback('🐔 Chicken Road', 'cmd_play_chicken_road'),
           ],
 
           [

@@ -23,6 +23,7 @@ export async function handlePlayBingoMenu(ctx: Context) {
       ],
       [
         Markup.button.callback('7️⃣🍒🍋 Multi Hot 5', 'cmd_play_slot'),
+        Markup.button.callback('🐔 Chicken Road', 'cmd_play_chicken_road'),
       ],
       // ── Row 4: VIP Room ───────────────────────────────────────────────────────
       [
