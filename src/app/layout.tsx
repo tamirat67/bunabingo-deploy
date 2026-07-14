@@ -60,10 +60,23 @@ export default function RootLayout({
             2. Calls Telegram expand() to prevent viewport collapse
             3. Handles resume-from-background (Android GPU context loss)
             4. Watchdog: detects white screen and forces repaint every 10s
+            5. ChunkLoadError Catcher: Hard reloads if old cached HTML requests deleted JS
         ────────────────────────────────────────────────────────────────────── */}
         <script dangerouslySetInnerHTML={{ __html: `
           (function() {
             try {
+              // Catch ChunkLoadErrors globally (when server deploys new build but client has old HTML)
+              window.addEventListener('error', function(e) {
+                if (e.message && e.message.match(/chunk/i)) {
+                  window.location.reload(true);
+                }
+              }, true);
+              window.addEventListener('unhandledrejection', function(e) {
+                if (e.reason && e.reason.message && e.reason.message.match(/chunk/i)) {
+                  window.location.reload(true);
+                }
+              });
+
               // 1. Force dark background immediately — before React
               var BG = '#0F172A';
               document.documentElement.style.backgroundColor = BG;
