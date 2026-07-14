@@ -968,14 +968,15 @@
     <div class="ctrl-left">
       <div class="bet-ctrl">
         <button class="bet-edge" id="btnMin">MIN</button>
-        <div class="bet-center"><span id="betDisplay">50</span></div>
+        <div class="bet-center"><span id="betDisplay">10</span></div>
         <button class="bet-edge" id="btnMax">MAX</button>
       </div>
       <div class="preset-row">
-        <button class="preset-btn" data-val="30"><div class="coin">$</div>2</button>
-        <button class="preset-btn" data-val="50"><div class="coin">$</div>3</button>
-        <button class="preset-btn" data-val="150"><div class="coin">$</div>8</button>
-        <button class="preset-btn" data-val="300"><div class="coin">$</div>20</button>
+        <button class="preset-btn" data-val="10"><div class="coin">$</div>10</button>
+        <button class="preset-btn" data-val="20"><div class="coin">$</div>20</button>
+        <button class="preset-btn" data-val="50"><div class="coin">$</div>50</button>
+        <button class="preset-btn" data-val="100"><div class="coin">$</div>100</button>
+        <button class="preset-btn" data-val="200"><div class="coin">$</div>200</button>
       </div>
     </div>
 
@@ -1010,7 +1011,7 @@
 
       <!-- Header -->
       <div class="modal-header">
-        <div class="modal-title">How to play?</div>
+        <div class="modal-title">እንዴት እንደሚጫወቱ?</div>
         <button class="modal-x" id="howToClose">✕</button>
       </div>
 
@@ -1020,31 +1021,31 @@
         <!-- 1 -->
         <div class="modal-item">
           <div class="m-num">1.</div>
-          <div class="m-txt">Specify the amount of your bet.</div>
+          <div class="m-txt">የውርርድዎን መጠን ያስገቡ።</div>
         </div>
 
         <!-- 2 -->
         <div class="modal-item">
           <div class="m-num">2.</div>
           <div class="m-txt">
-            <p>Choose a difficulty level in a game. The number of road lines and the chance to be hit car hard varies depending on the level of difficulty.</p>
-            <p>There are 4 difficulty levels in the game:</p>
+            <p>በጨዋታው ውስጥ የክብደት ደረጃን ይምረጡ። የክብደት ደረጃው ሲጨምር የትራፊክ መስመሮች እና በመኪና የመገጨት እድል ይለያያል።</p>
+            <p>በጨዋታው ውስጥ 4 የክብደት ደረጃዎች አሉ፡</p>
             <div class="m-sub">
               <div class="m-sub-item">
                 <span class="m-bull">•</span>
-                <span><span class="m-sub-label">Easy</span> – there are 30 lines at this level.</span>
+                <span><span class="m-sub-label">ቀላል (Easy)</span> – በዚህ ደረጃ 30 መስመሮች አሉ።</span>
               </div>
               <div class="m-sub-item">
                 <span class="m-bull">•</span>
-                <span><span class="m-sub-label">Medium</span> – there are 25 lines at this level.</span>
+                <span><span class="m-sub-label">መካከለኛ (Medium)</span> – በዚህ ደረጃ 25 መስመሮች አሉ።</span>
               </div>
               <div class="m-sub-item">
                 <span class="m-bull">•</span>
-                <span><span class="m-sub-label">Hard</span> – there are 22 lines at this level.</span>
+                <span><span class="m-sub-label">ከባድ (Hard)</span> – በዚህ ደረጃ 22 መስመሮች አሉ።</span>
               </div>
               <div class="m-sub-item">
                 <span class="m-bull">•</span>
-                <span><span class="m-sub-label">Hardcore</span> – at the level of 18 lines.</span>
+                <span><span class="m-sub-label">በጣም ከባድ (Hardcore)</span> – በዚህ ደረጃ 18 መስመሮች አሉ።</span>
               </div>
             </div>
           </div>
@@ -1053,25 +1054,25 @@
         <!-- 3 -->
         <div class="modal-item">
           <div class="m-num">3.</div>
-          <div class="m-txt">Press "Play" button.</div>
+          <div class="m-txt">"Play" ቁልፍን ይጫኑ።</div>
         </div>
 
         <!-- 4 -->
         <div class="modal-item">
           <div class="m-num">4.</div>
-          <div class="m-txt">Your goal is to step as many road lines as possible without getting hit by a car. You can withdraw your winnings at any stage of the game.</div>
+          <div class="m-txt">አላማዎ በመኪና ሳይገጩ በተቻለ መጠን ብዙ የትራፊክ መስመሮችን ማቋረጥ ነው። በጨዋታው በማንኛውም ደረጃ ያሸነፉትን ገንዘብ ማውጣት (Cash Out) ይችላሉ።</div>
         </div>
 
         <!-- 5 -->
         <div class="modal-item">
           <div class="m-num">5.</div>
-          <div class="m-txt">In the menu, there is an option to enable "Space" to spin &amp; go, it will allow you to move forward, use the "Space" key.</div>
+          <div class="m-txt">በምናሌው ውስጥ የ"Space" ቁልፍን በመጠቀም ወደፊት ለመራመድ የሚያስችል አማራጭ አለ።</div>
         </div>
 
         <!-- 6 -->
         <div class="modal-item">
           <div class="m-num">6.</div>
-          <div class="m-txt">Malfunction voids all pays and plays.</div>
+          <div class="m-txt">ማንኛውም የቴክኒክ ችግር ሲያጋጥም ክፍያዎች እና ጨዋታዎች ተቀባይነት አይኖራቸውም።</div>
         </div>
 
       </div><!-- /modal-body -->
@@ -1095,7 +1096,7 @@
 // 1. CONFIG
 // ═══════════════════════════════════════════════
 const CONFIG = {
-  minBet: 10, maxBet: 5000, betStep: 10,
+  minBet: 10, maxBet: 200, betStep: 10,
   tiers: {
     easy:    { successRate: 0.95, houseEdge: 0.96, label: 'Easy',     multPerStep: 1.02 },
     medium:  { successRate: 0.90, houseEdge: 0.95, label: 'Medium',   multPerStep: 1.06 },
@@ -1136,7 +1137,7 @@ const AudioMan = (function() {
 // 3. STATE
 // ═══════════════════════════════════════════════
 const State = {
-  phase: 'IDLE', balance: 0, bet: 50, tier: 'easy',
+  phase: 'IDLE', balance: 0, bet: 10, tier: 'easy',
   stepCount: 0, multiplier: 1.0, cashOutPending: false,
   chickenLane: -1,
   serverSeed: '', serverSeedHash: '', clientSeed: '', nonce: 0
