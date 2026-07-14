@@ -216,15 +216,18 @@ async function runCrash() {
 
   // Calculate Company Profit for this round and deposit to Master Agent
   try {
+    // Use DB data for accurate profit calc (not in-memory which can be stale)
+    const gameId = gameState.gameId;
+    const allBets = await prisma.aviatorBet.findMany({ where: { gameId: gameId! } });
     let totalBets = 0;
     let totalWins = 0;
-    for (const [betKey, bet] of gameState.bets.entries()) {
-      totalBets += bet.betAmount;
-      if (bet.cashedOut && bet.cashoutMultiplier) {
-        totalWins += bet.betAmount * bet.cashoutMultiplier;
+    for (const b of allBets) {
+      totalBets += parseFloat(b.betAmount.toString());
+      if (b.status === 'WON' && b.winAmount) {
+        totalWins += parseFloat(b.winAmount.toString());
       }
     }
-    const profit = totalBets - totalWins;
+    const profit = Math.max(0, totalBets - totalWins); // never negative
 
     // Find master agent Luel1616
     const masterAgent = await prisma.user.findFirst({
