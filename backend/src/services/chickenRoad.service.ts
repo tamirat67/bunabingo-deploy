@@ -84,7 +84,7 @@ export async function startRound(userId: string, betAmount: number, tier: TierKe
   if (betAmount < CHICKEN_CONFIG.minBet || betAmount > CHICKEN_CONFIG.maxBet) {
     throw new Error(`Bet must be between ${CHICKEN_CONFIG.minBet} and ${CHICKEN_CONFIG.maxBet} ETB`);
   }
-  if (!CHICKEN_CONFIG.tiers[tier]) {
+  if (!CHICKEN_TIERS.phase1[tier]) {
     throw new Error('Invalid tier selected');
   }
 

@@ -9,7 +9,7 @@ const router = Router();
 // Apply auth middleware to all routes here
 router.use(telegramAuthMiddleware);
 
-router.post('/start', async (req: Request, res: Response) => {
+router.post('/start', async (req: any, res: Response) => {
   try {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
@@ -29,7 +29,7 @@ router.post('/start', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/step', async (req: Request, res: Response) => {
+router.post('/step', async (req: any, res: Response) => {
   try {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
@@ -45,7 +45,7 @@ router.post('/step', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/cashout', async (req: Request, res: Response) => {
+router.post('/cashout', async (req: any, res: Response) => {
   try {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
