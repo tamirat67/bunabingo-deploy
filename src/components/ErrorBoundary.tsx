@@ -32,7 +32,7 @@ export default class ErrorBoundary extends Component<Props, State> {
       this.setState(prev => {
         if (prev.countdown <= 1) {
           clearInterval(this._countdownTimer!);
-          return prev;
+          return { countdown: 0 };
         }
         return { countdown: prev.countdown - 1 };
       });
