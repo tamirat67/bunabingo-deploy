@@ -401,8 +401,8 @@
     @keyframes chickenBurn     { 0%,100%{transform:scaleX(-1) translateX(0) rotate(10deg)} 50%{transform:scaleX(-1) translateX(7px) rotate(-10deg)} }
 
     /* ─── Cars ─── */
-    .car { position:absolute; z-index:10; transform:translateX(-50%); will-change:transform; }
-    .car-sprite { width:46px; height:auto; filter:drop-shadow(0 6px 9px rgba(0,0,0,0.7)); mix-blend-mode:multiply; }
+    .car { position:absolute; z-index:10; transform:translateX(-50%); }
+    .car-sprite { width:46px; height:auto; filter:drop-shadow(0 6px 9px rgba(0,0,0,0.7)); }
     .car-wide .car-sprite { width:54px; }
     .car-slim .car-sprite { width:38px; }
     .car.going-down { animation:carDown var(--dur,2.5s) linear var(--delay,0s) infinite; }

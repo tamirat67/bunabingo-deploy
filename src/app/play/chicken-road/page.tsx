@@ -24,15 +24,17 @@ export default function ChickenRoadPage() {
   }, [router]);
 
   return (
-    <div style={{ width: '100%', height: '100vh', overflow: 'hidden', background: '#1e100b' }}>
-      <style>{`.bottom-navbar { display: none !important; }`}</style>
+    <div style={{ width: '100%', height: '100vh', overflow: 'hidden', background: '#13151c', backgroundColor: '#13151c' }}>
+      <style>{`.bottom-navbar { display: none !important; } html,body{background:#13151c!important;}`}</style>
       <iframe 
         src="/chicken-road.html" 
         style={{
           width: '100%',
           height: '100%',
           border: 'none',
-          display: 'block'
+          display: 'block',
+          background: '#13151c',
+          backgroundColor: '#13151c',
         }}
         title="Chicken Road Game"
         allow="fullscreen"

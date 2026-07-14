@@ -33,11 +33,18 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Force dark background on html AND body — prevents white flash on Telegram/Android */
+html {
+  background-color: #0F172A !important;
+  height: 100%;
+}
+
 body {
-  background-color: var(--navy-bg);
+  background-color: var(--navy-bg) !important;
   color: var(--text);
   font-size: 16px;
   min-height: 100vh;
+  min-height: 100dvh;
   padding-bottom: 90px;
   overflow-x: hidden;
   -webkit-text-size-adjust: 100%;
