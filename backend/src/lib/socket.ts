@@ -17,6 +17,24 @@ export function initSocket(server: HttpServer) {
     if (userId) {
       socket.join(`user_${userId}`);
       logger.info(`[Socket] User ${userId} connected and joined private room.`);
+
+      // Auto-emit wallet balance to the user
+      setTimeout(async () => {
+        try {
+          const { getOrCreateWallet } = await import('../services/wallet.service');
+          const { default: prisma } = await import('./prisma');
+          let dbUserId = userId;
+          if (/^\d+$/.test(userId)) {
+             const user = await prisma.user.findUnique({ where: { telegramId: BigInt(userId) }, select: { id: true } });
+             if (user) dbUserId = user.id;
+          }
+          const wallet = await getOrCreateWallet(dbUserId);
+          const bal = parseFloat(wallet.balance.toString()) + parseFloat(wallet.bonusBalance.toString());
+          socket.emit('wallet:balance', { balance: bal });
+        } catch (e) {
+          logger.warn(`[Socket] Failed to auto-emit balance for ${userId}:`, e);
+        }
+      }, 500);
     }
 
   socket.on('join-game', async (gameOrRoom: string) => {
