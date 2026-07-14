@@ -225,6 +225,25 @@
     }
     .sidewalk-right { border-right: none; border-left: 2px solid rgba(0,0,0,0.4); }
 
+    /* Scenery Items (Trees, Traffic Lights) */
+    .scenery-item {
+      position: absolute;
+      top: -100px;
+      left: 50%;
+      transform: translateX(-50%);
+      animation: sceneryMove var(--dur) linear forwards;
+      z-index: 5;
+    }
+    .scenery-item img {
+      width: 45px;
+      height: auto;
+      filter: drop-shadow(0 6px 8px rgba(0,0,0,0.7));
+    }
+    @keyframes sceneryMove {
+      from { top: -100px; }
+      to { top: calc(100% + 100px); }
+    }
+
     /* Road center */
     #roadCanvas {
       flex: 1;
@@ -607,7 +626,7 @@
       <span class="logo-icon">🐔</span>
       <span class="logo-text">CHICKEN ROAD</span>
     </div>
-    <div class="online-badge"><span class="live-dot" style="width:5px;height:5px;"></span>&nbsp;<span id="onlineCount">11,170</span></div>
+    <!-- Removed online badge to fix wallet duplication confusion -->
     <div class="wallet-pill">
       <span class="wallet-label">BALANCE</span>
       <span class="wallet-amount" id="walletAmount">— ETB</span>
@@ -1074,19 +1093,33 @@ function spawnScenery() {
   const rightGrass = document.querySelector('.grass-right');
   
   setInterval(() => {
+    // Spawn left scenery
     if (Math.random() > 0.4 && leftGrass) {
       const t = document.createElement('div');
       t.className = 'scenery-item';
-      t.textContent = Math.random() > 0.8 ? '🚥' : '🌲';
       t.style.setProperty('--dur', dur + 's');
+      
+      const img = document.createElement('img');
+      img.src = Math.random() > 0.8 
+        ? '/src/assets/chicken-road/traffic-light.png' 
+        : '/src/assets/chicken-road/tree.png';
+      t.appendChild(img);
+      
       leftGrass.appendChild(t);
       setTimeout(() => t.remove(), dur * 1000);
     }
+    // Spawn right scenery
     if (Math.random() > 0.4 && rightGrass) {
       const t = document.createElement('div');
       t.className = 'scenery-item';
-      t.textContent = Math.random() > 0.8 ? '🚥' : '🌲';
       t.style.setProperty('--dur', dur + 's');
+      
+      const img = document.createElement('img');
+      img.src = Math.random() > 0.8 
+        ? '/src/assets/chicken-road/traffic-light.png' 
+        : '/src/assets/chicken-road/tree.png';
+      t.appendChild(img);
+      
       rightGrass.appendChild(t);
       setTimeout(() => t.remove(), dur * 1000);
     }
