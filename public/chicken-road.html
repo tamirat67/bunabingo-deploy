@@ -1601,6 +1601,13 @@ async function actionStart() {
 
 async function actionStep() {
   if (State.phase !== 'PLAYING') return;
+
+  // Already on last lane — force cashout instead of stepping into void
+  if (State.chickenLane >= numLanes - 1) {
+    actionCashOut();
+    return;
+  }
+
   State.phase = 'REVEALING';
   updateUI();
 
@@ -1630,6 +1637,15 @@ async function actionStep() {
     
     await sleep(tensionMs);
     resolveStepSafe(result.nextMultiplier, nextLane);
+
+    // Auto-cashout when chicken clears the final lane
+    if (nextLane >= numLanes - 1) {
+      await sleep(700);
+      showOverlay('ROAD CLEARED! 🏆', 'win');
+      await sleep(900);
+      hideOverlay();
+      actionCashOut();
+    }
   } else {
     // Wait for actual car collision for better crashing flow
     await new Promise(resolve => {
