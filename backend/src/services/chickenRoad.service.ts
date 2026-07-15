@@ -17,10 +17,10 @@ export const CHICKEN_TIERS = {
   // ── PHASE 1: SAFE LAUNCH (company-protected) ────────────────
   // Toggled ON from admin settings panel. Use for first deploy.
   phase1: {
-    easy:    { successRate: 0.70, houseEdge: 0.85 }, // 30% bust — ~15% edge (payout 1.21x)
-    medium:  { successRate: 0.60, houseEdge: 0.80 }, // 40% bust — ~20% edge (payout 1.33x)
-    hard:    { successRate: 0.50, houseEdge: 0.75 }, // 50% bust — ~25% edge (payout 1.50x)
-    extreme: { successRate: 0.40, houseEdge: 0.60 }, // 60% bust — ~40% edge (payout 1.50x)
+    easy:    { successRate: 0.65, houseEdge: 0.70 }, // 35% bust — 30% edge (payout 1.07x)
+    medium:  { successRate: 0.55, houseEdge: 0.70 }, // 45% bust — 30% edge (payout 1.27x)
+    hard:    { successRate: 0.45, houseEdge: 0.70 }, // 55% bust — 30% edge (payout 1.55x)
+    extreme: { successRate: 0.35, houseEdge: 0.70 }, // 65% bust — 30% edge (payout 2.00x)
   },
   // ── PHASE 2: PLAYER-FRIENDLY (restore when ready) ──────────
   // Switch to this once your player base grows via admin settings.
