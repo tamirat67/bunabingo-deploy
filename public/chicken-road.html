@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en" style="background-color:#13151c;background:#13151c">
 <head>
   <meta charset="UTF-8">
@@ -542,6 +542,145 @@
     .win-amt { color: #fff; font-size: 18px; font-weight: 900; }
     .win-amt span { font-size: 14px; color: rgba(255,255,255,0.7); }
 
+    /* ═══ ROAD CLEARED MODAL ═══ */
+    #roadClearedModal {
+      position: fixed;
+      inset: 0;
+      z-index: 999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    #roadClearedModal.show {
+      opacity: 1;
+      pointer-events: all;
+    }
+    .rc-card {
+      background: linear-gradient(160deg, #1a2a18 0%, #0f1a0f 100%);
+      border: 2px solid rgba(77,184,81,0.6);
+      border-radius: 24px;
+      padding: 32px 28px 28px;
+      max-width: 320px;
+      width: 88%;
+      text-align: center;
+      box-shadow:
+        0 0 0 1px rgba(77,184,81,0.15),
+        0 0 60px rgba(77,184,81,0.25),
+        0 32px 64px rgba(0,0,0,0.7);
+      transform: scale(0.8) translateY(30px);
+      transition: transform 0.5s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s ease;
+      opacity: 0;
+      position: relative;
+      overflow: hidden;
+    }
+    #roadClearedModal.show .rc-card {
+      transform: scale(1) translateY(0);
+      opacity: 1;
+    }
+    /* Glowing top border */
+    .rc-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 10%; right: 10%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #4db851, #ffe87a, #4db851, transparent);
+      border-radius: 2px;
+      animation: rcGlow 2s ease-in-out infinite;
+    }
+    @keyframes rcGlow { 0%,100%{opacity:0.6} 50%{opacity:1; box-shadow:0 0 12px #4db851;} }
+    /* Trophy emoji bounce */
+    .rc-trophy {
+      font-size: 64px;
+      display: block;
+      animation: trophyBounce 0.7s cubic-bezier(0.34,1.56,0.64,1) 0.2s both;
+      filter: drop-shadow(0 0 20px rgba(255,215,0,0.7));
+      margin-bottom: 4px;
+    }
+    @keyframes trophyBounce { 0%{transform:scale(0) rotate(-20deg)} 60%{transform:scale(1.15) rotate(5deg)} 100%{transform:scale(1) rotate(0)} }
+    .rc-stars {
+      font-size: 20px;
+      letter-spacing: 6px;
+      margin-bottom: 10px;
+      animation: starsFade 0.5s ease 0.6s both;
+    }
+    @keyframes starsFade { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+    .rc-title {
+      font-size: 26px; font-weight: 900;
+      color: #fff;
+      letter-spacing: 1px;
+      margin-bottom: 4px;
+      animation: starsFade 0.5s ease 0.4s both;
+    }
+    .rc-subtitle {
+      font-size: 12px; font-weight: 600;
+      color: rgba(255,255,255,0.5);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 20px;
+      animation: starsFade 0.5s ease 0.5s both;
+    }
+    .rc-payout-box {
+      background: rgba(77,184,81,0.12);
+      border: 1px solid rgba(77,184,81,0.35);
+      border-radius: 16px;
+      padding: 16px 20px;
+      margin-bottom: 20px;
+      animation: starsFade 0.5s ease 0.65s both;
+    }
+    .rc-mult {
+      font-size: 40px; font-weight: 900;
+      color: #ffe87a;
+      text-shadow: 0 0 20px rgba(255,232,122,0.6);
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .rc-win-label { font-size: 10px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1.5px; }
+    .rc-win-amount {
+      font-size: 28px; font-weight: 900;
+      color: #fff;
+      margin-top: 6px;
+    }
+    .rc-win-amount span { font-size: 14px; color: rgba(255,255,255,0.5); }
+    .rc-lanes {
+      display: flex; justify-content: center; gap: 6px;
+      margin-bottom: 20px;
+      animation: starsFade 0.5s ease 0.75s both;
+    }
+    .rc-lane-dot {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: rgba(77,184,81,0.2);
+      border: 2px solid rgba(77,184,81,0.5);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+      animation: laneDotPop 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
+    }
+    .rc-lane-dot:nth-child(1){animation-delay:0.7s}
+    .rc-lane-dot:nth-child(2){animation-delay:0.8s}
+    .rc-lane-dot:nth-child(3){animation-delay:0.9s}
+    .rc-lane-dot:nth-child(4){animation-delay:1.0s}
+    .rc-lane-dot:nth-child(5){animation-delay:1.1s}
+    @keyframes laneDotPop { 0%{transform:scale(0);background:rgba(77,184,81,0.05)} 60%{transform:scale(1.2);background:rgba(77,184,81,0.4)} 100%{transform:scale(1)} }
+    .rc-btn {
+      width: 100%;
+      background: linear-gradient(180deg, #3cd157 0%, #2cb645 100%);
+      border: none; border-radius: 14px;
+      color: #fff; font-size: 17px; font-weight: 900;
+      padding: 15px;
+      cursor: pointer;
+      font-family: 'Outfit', sans-serif;
+      letter-spacing: 0.5px;
+      box-shadow: 0 6px 20px rgba(77,184,81,0.5);
+      animation: starsFade 0.5s ease 1.1s both;
+      transition: transform 0.1s, box-shadow 0.15s;
+    }
+    .rc-btn:active { transform: scale(0.97); box-shadow: 0 3px 10px rgba(77,184,81,0.3); }
+
     /* Road Barriers */
     .road-barrier {
       position: absolute;
@@ -911,6 +1050,30 @@
       <div id="overlayMsg"></div>
       <!-- Particles -->
       <div id="particleLayer"></div>
+    </div>
+
+    <!-- ROAD CLEARED MODAL -->
+    <div id="roadClearedModal">
+      <div class="rc-card">
+        <span class="rc-trophy">🏆</span>
+        <div class="rc-stars">⭐⭐⭐⭐⭐</div>
+        <div class="rc-title">ROAD CLEARED!</div>
+        <div class="rc-subtitle">You crossed all 5 lanes</div>
+        <div class="rc-payout-box">
+          <div class="rc-win-label">Multiplier Achieved</div>
+          <div class="rc-mult" id="rcMult">—</div>
+          <div class="rc-win-label" style="margin-top:10px">You Win</div>
+          <div class="rc-win-amount" id="rcAmount">— <span>ETB</span></div>
+        </div>
+        <div class="rc-lanes">
+          <div class="rc-lane-dot">✔️</div>
+          <div class="rc-lane-dot">✔️</div>
+          <div class="rc-lane-dot">✔️</div>
+          <div class="rc-lane-dot">✔️</div>
+          <div class="rc-lane-dot">✔️</div>
+        </div>
+        <button class="rc-btn" id="rcCloseBtn">🎉 Collect Winnings</button>
+      </div>
     </div>
 
     <!-- Chicken (positioned by JS relative to gameArea) -->
@@ -1641,10 +1804,7 @@ async function actionStep() {
     // Auto-cashout when chicken clears the final lane
     if (nextLane >= numLanes - 1) {
       await sleep(700);
-      showOverlay('ROAD CLEARED! 🏆', 'win');
-      await sleep(900);
-      hideOverlay();
-      actionCashOut();
+      showRoadClearedModal();
     }
   } else {
     // Wait for actual car collision for better crashing flow
@@ -1872,6 +2032,27 @@ if(DOM.tierSelectVis) {
   });
 }
 
+
+// --- Road Cleared Modal ---
+function showRoadClearedModal() {
+  const modal  = document.getElementById('roadClearedModal');
+  const multEl = document.getElementById('rcMult');
+  const amtEl  = document.getElementById('rcAmount');
+  const winAmt = parseFloat((State.bet * State.multiplier).toFixed(2));
+  if (multEl) multEl.textContent = State.multiplier.toFixed(2) + 'x';
+  if (amtEl)  amtEl.innerHTML    = winAmt.toFixed(2) + ' <span>ETB</span>';
+  const pw = window.innerWidth, ph = window.innerHeight;
+  spawnConfetti(pw * 0.2, ph * 0.05, 55);
+  spawnConfetti(pw * 0.8, ph * 0.05, 55);
+  spawnConfetti(pw * 0.5, ph * 0.02, 45);
+  haptic('success');
+  if (modal) modal.classList.add('show');
+}
+document.getElementById('rcCloseBtn').addEventListener('click', () => {
+  const modal = document.getElementById('roadClearedModal');
+  if (modal) modal.classList.remove('show');
+  actionCashOut();
+});
 // How to play modal
 document.getElementById('howToBtn').addEventListener('click', () => document.getElementById('howToModal').classList.add('show'));
 document.getElementById('howToClose').addEventListener('click', () => document.getElementById('howToModal').classList.remove('show'));
@@ -1906,3 +2087,4 @@ window.addEventListener('resize', () => initRoad());
 </script>
 </body>
 </html>
+
