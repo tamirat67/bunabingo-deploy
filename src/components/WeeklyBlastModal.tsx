@@ -53,19 +53,13 @@ export default function WeeklyBlastModal({ onClose, onRewardClaimed }: WeeklyBla
 
   useEffect(() => {
     const calculateTime = () => {
-      const now = new Date();
-      let target: Date;
-
-      if (targetDate) {
-        target = targetDate;
-      } else {
-        // Default: next Saturday at 09:00 EAT
-        target = new Date();
-        target.setUTCHours(6, 0, 0, 0);
-        const daysUntilSaturday = (6 - target.getUTCDay() + 7) % 7;
-        target.setUTCDate(target.getUTCDate() + daysUntilSaturday);
-        if (now >= target) target.setUTCDate(target.getUTCDate() + 7);
+      if (!targetDate) {
+        setTimeLeft(null);
+        return;
       }
+
+      const now = new Date();
+      let target: Date = targetDate;
 
       const diff = target.getTime() - now.getTime();
       if (diff <= 0) {
