@@ -29,6 +29,7 @@ import SecurityGuard from '../components/SecurityGuard';
 import { Outfit } from 'next/font/google';
 import ErrorBoundary from '../components/ErrorBoundary';
 import MobileRepaintGuard from '../components/MobileRepaintGuard';
+import ErudaProvider from '../components/ErudaProvider';
 
 const outfit = Outfit({ subsets: ['latin'], weight: ['400', '500', '700', '800', '900'] });
 
@@ -52,7 +53,8 @@ export default function RootLayout({
         `}} />
       </head>
       <body className={outfit.className} style={{ backgroundColor: '#0F172A', margin: 0, padding: 0 }}>
-        <Script src="/telegram-web-app.js" strategy="beforeInteractive" />
+        <Script src="https://telegram.org/js/telegram-web-app.js" strategy="beforeInteractive" />
+        <ErudaProvider />
 
         {/* ── PERMANENT WHITE SCREEN FIX ──────────────────────────────────────
             Runs synchronously BEFORE React hydrates.
