@@ -205,14 +205,27 @@ function DashboardContent() {
 
   const chartOptions = {
     backgroundColor: "transparent",
-    pieHole: 0.65,
+    pieHole: 0.7,
     is3D: false,
-    legend: { position: "right" as const, textStyle: { color: "rgba(255,255,255,0.75)", fontSize: 10, bold: true } },
-    chartArea: { width: "100%", height: "85%" },
-    colors: ["#d4af37", "#93c5fd", "#fbbf24"],
-    pieSliceBorderColor: "rgba(61,43,31,0.5)",
+    legend: { 
+      position: "right" as const, 
+      textStyle: { color: "rgba(255,255,255,0.9)", fontSize: 11, bold: true, fontName: 'Inter' } 
+    },
+    chartArea: { width: "95%", height: "85%" },
+    colors: ["#d4af37", "#60a5fa", "#fbbf24"],
+    pieSliceBorderColor: "transparent",
     pieSliceText: "none",
-    tooltip: { textStyle: { color: "#3d2b1f" } },
+    tooltip: { textStyle: { color: "#3d2b1f", fontName: 'Inter', fontSize: 13 }, showColorCode: true },
+    animation: {
+      startup: true,
+      duration: 1200,
+      easing: 'out',
+    },
+    slices: {
+      0: { offset: 0.05 }, // Explode Company Revenue
+      1: { offset: 0.02 }, // Slightly explode Agent Revenue
+      2: { offset: 0.02 }, // Slightly explode Player Winnings
+    }
   };
 
   return (
