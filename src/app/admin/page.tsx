@@ -8,7 +8,7 @@ import {
   FiCreditCard, FiPlay, FiInfo, FiChevronDown, FiArrowRight, FiDownload, FiUpload
 } from 'react-icons/fi';
 import api from '@/lib/api';
-import { Chart } from "react-google-charts";
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 function DashboardContent() {
   const [stats, setStats] = useState<any>(null);
@@ -197,35 +197,52 @@ function DashboardContent() {
   const totalBreakdownServiceFee = breakdownData.reduce((acc: number, item: any) => acc + item.serviceFee, 0);
 
   const chartData = [
-    ["Category", "Amount"],
-    ["Company Revenue", realCompanyRevenue],
-    ["Agent Revenue", realAgentRevenue],
-    ["Player Winnings", realPlayerWinnings],
-  ];
+    { name: "Company Revenue", value: realCompanyRevenue, color: "#d4af37" },
+    { name: "Agent Revenue", value: realAgentRevenue, color: "#60a5fa" },
+    { name: "Player Winnings", value: realPlayerWinnings, color: "#fbbf24" },
+  ].filter(item => item.value > 0);
 
-  const chartOptions = {
-    backgroundColor: "transparent",
-    pieHole: 0.7,
-    is3D: false,
-    legend: { 
-      position: "right" as const, 
-      textStyle: { color: "rgba(255,255,255,0.9)", fontSize: 11, bold: true, fontName: 'Inter' } 
-    },
-    chartArea: { width: "95%", height: "85%" },
-    colors: ["#d4af37", "#60a5fa", "#fbbf24"],
-    pieSliceBorderColor: "transparent",
-    pieSliceText: "none",
-    tooltip: { textStyle: { color: "#3d2b1f", fontName: 'Inter', fontSize: 13 }, showColorCode: true },
-    animation: {
-      startup: true,
-      duration: 1200,
-      easing: 'out',
-    },
-    slices: {
-      0: { offset: 0.05 }, // Explode Company Revenue
-      1: { offset: 0.02 }, // Slightly explode Agent Revenue
-      2: { offset: 0.02 }, // Slightly explode Player Winnings
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <div style={{
+          background: 'rgba(26, 10, 0, 0.85)',
+          border: `1px solid ${data.color}40`,
+          padding: '12px 16px',
+          borderRadius: '16px',
+          boxShadow: `0 8px 32px ${data.color}30`,
+          backdropFilter: 'blur(12px)',
+        }}>
+          <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>
+            {data.name}
+          </div>
+          <div style={{ color: data.color, fontSize: '18px', fontWeight: 900 }}>
+            {data.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span style={{ fontSize: '12px', opacity: 0.8 }}>ETB</span>
+          </div>
+        </div>
+      );
     }
+    return null;
+  };
+
+  const CustomLegend = ({ payload }: any) => {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingLeft: '16px' }}>
+        {payload.map((entry: any, index: number) => (
+          <div key={`item-${index}`} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ 
+              width: '12px', height: '12px', borderRadius: '4px', 
+              background: entry.payload.color,
+              boxShadow: `0 0 10px ${entry.payload.color}80` 
+            }} />
+            <div style={{ color: 'rgba(255,255,255,0.85)', fontSize: '12px', fontWeight: 700, letterSpacing: '0.5px' }}>
+              {entry.payload.name}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   };
 
   return (
@@ -579,14 +596,30 @@ function DashboardContent() {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', alignItems: 'center' }}>
             {/* Chart Section */}
             {(realCompanyRevenue > 0 || realAgentRevenue > 0 || realPlayerWinnings > 0) && (
-              <div style={{ flex: '1 1 250px', minWidth: '250px', maxWidth: '300px', height: '220px' }}>
-                <Chart
-                  chartType="PieChart"
-                  width="100%"
-                  height="100%"
-                  data={chartData}
-                  options={chartOptions}
-                />
+              <div style={{ flex: '1 1 300px', minWidth: '300px', maxWidth: '380px', height: '240px' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={chartData}
+                      cx="45%"
+                      cy="50%"
+                      innerRadius={65}
+                      outerRadius={95}
+                      paddingAngle={6}
+                      dataKey="value"
+                      stroke="none"
+                      cornerRadius={10}
+                      animationDuration={1500}
+                      animationEasing="ease-out"
+                    >
+                      {chartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} style={{ filter: `drop-shadow(0px 4px 12px ${entry.color}50)` }} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
+                    <Legend content={<CustomLegend />} verticalAlign="middle" align="right" layout="vertical" />
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
             )}
 
