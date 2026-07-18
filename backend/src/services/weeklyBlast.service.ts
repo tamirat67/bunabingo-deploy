@@ -148,8 +148,8 @@ export const WeeklyBlastService = {
           data: {
             userId,
             type: 'WEEKLY_BLAST_REWARD',
-            amount: 5,
-            balanceBefore: Number(wallet.balance) - 5,
+            amount: 500,
+            balanceBefore: Number(wallet.balance) - 500,
             balanceAfter: wallet.balance,
             status: 'completed',
             description: 'ሳምንታዊ ሽልማት ፍንዳታ (Weekly Reward Blast) Win',
@@ -173,7 +173,7 @@ export const WeeklyBlastService = {
 
       return {
         isWinner,
-        amount: isWinner ? 5 : 0,
+        amount: isWinner ? 500 : 0,
         totalWinners: activeEvent.totalWinners + (isWinner ? 1 : 0),
       };
     });
