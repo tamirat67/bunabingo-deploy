@@ -56,4 +56,20 @@ router.get('/leaderboard', async (req: any, res: any) => {
   }
 });
 
+// Admin: Distribute rewards and close the current event
+router.post('/distribute-rewards', async (req: any, res: any) => {
+  try {
+    const admin = req.user;
+    if (!admin || (!admin.isAdmin && admin.role !== 'ADMIN')) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    const result = await WeeklyBlastService.distributeRewards(admin.id);
+    res.json(result);
+  } catch (error: any) {
+    console.error('Error distributing weekly blast rewards:', error);
+    res.status(500).json({ error: error.message || 'Failed to distribute rewards' });
+  }
+});
+
 export default router;
+

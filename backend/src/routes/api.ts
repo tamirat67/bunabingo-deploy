@@ -3145,7 +3145,11 @@ staffRouter.get('/settings', restrictToAdmin, async (_req, res) => {
       bonusPercent,
       bonusMinDeposit,
       bonusExpiry,
-      houseBotEnabled
+      houseBotEnabled,
+      blastEventName,
+      blastBannerText,
+      blastRewardTiers,
+      blastTargetDate,
     ] = await Promise.all([
       getSystemSetting('COMPANY_COMMISSION_RATE'),
       getSystemSetting('AGENT_PROFIT_RATE'),
@@ -3154,6 +3158,10 @@ staffRouter.get('/settings', restrictToAdmin, async (_req, res) => {
       getSystemSetting('BONUS_MIN_DEPOSIT'),
       getSystemSetting('BONUS_EXPIRY'),
       getSystemSetting('HOUSE_BOT_ENABLED'),
+      getSystemSetting('BLAST_EVENT_NAME'),
+      getSystemSetting('BLAST_BANNER_TEXT'),
+      getSystemSetting('BLAST_REWARD_TIERS'),
+      getSystemSetting('BLAST_TARGET_DATE'),
     ]);
     res.json({
       COMPANY_COMMISSION_RATE: companyCommissionRate || '12.5',
@@ -3163,6 +3171,10 @@ staffRouter.get('/settings', restrictToAdmin, async (_req, res) => {
       BONUS_MIN_DEPOSIT: bonusMinDeposit || '50',
       BONUS_EXPIRY: bonusExpiry || '',
       HOUSE_BOT_ENABLED: houseBotEnabled !== 'false', // Defaults to true
+      BLAST_EVENT_NAME: blastEventName || '🎊 መልካም አዲስ ዓመት ከBuna Bingo!',
+      BLAST_BANNER_TEXT: blastBannerText || '',
+      BLAST_REWARD_TIERS: blastRewardTiers || JSON.stringify([5000, 3500, 2500, 1500, 1500, 1200, 1200, 1200, 1200, 1200]),
+      BLAST_TARGET_DATE: blastTargetDate || '',
     });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch settings' });
@@ -3179,6 +3191,10 @@ staffRouter.put('/settings', restrictToAdmin, async (req, res) => {
     'BONUS_MIN_DEPOSIT',
     'BONUS_EXPIRY',
     'HOUSE_BOT_ENABLED',
+    'BLAST_EVENT_NAME',
+    'BLAST_BANNER_TEXT',
+    'BLAST_REWARD_TIERS',
+    'BLAST_TARGET_DATE',
   ];
   try {
     for (const key of allowed) {

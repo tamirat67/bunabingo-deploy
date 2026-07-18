@@ -10,6 +10,10 @@ const DEFAULT_SETTINGS: Record<string, string> = {
   BONUS_ACTIVE: 'true',
   BONUS_PERCENT: '100',
   BONUS_MIN_DEPOSIT: '50',
+  BLAST_EVENT_NAME: '🎊 መልካም አዲስ ዓመት ከBuna Bingo!',
+  BLAST_BANNER_TEXT: '🏆 20,000 ብር የአዲስ ዓመት ሽልማት\n🎯 ምርጥ 10 አፈጻጸም ያሳዩ ተወዳዳሪዎች ይሸለማሉ!\n💥 የበለጠ ይጫወቱ • የተሻለ አፈጻጸም ያሳዩ • ትልቅ ሽልማት ያሸንፉ!',
+  BLAST_REWARD_TIERS: JSON.stringify([5000, 3500, 2500, 1500, 1500, 1200, 1200, 1200, 1200, 1200]),
+  BLAST_TARGET_DATE: '',
 };
 
 /**
@@ -107,6 +111,37 @@ export async function isDepositBonusEligible(amount: number): Promise<{ active: 
   const percent = await getDepositBonusPercent();
   return { active: true, percentage: percent };
 }
+
+// ─── Weekly Blast Event Settings ───
+
+export async function getBlastEventName(): Promise<string> {
+  return await getSystemSetting('BLAST_EVENT_NAME');
+}
+
+export async function getBlastBannerText(): Promise<string> {
+  return await getSystemSetting('BLAST_BANNER_TEXT');
+}
+
+export async function getBlastRewardTiers(): Promise<number[]> {
+  const val = await getSystemSetting('BLAST_REWARD_TIERS');
+  try {
+    const parsed = JSON.parse(val);
+    if (Array.isArray(parsed) && parsed.every(n => typeof n === 'number')) {
+      return parsed;
+    }
+  } catch (e) {
+    logger.error('Failed to parse BLAST_REWARD_TIERS', e);
+  }
+  return [5000, 3500, 2500, 1500, 1500, 1200, 1200, 1200, 1200, 1200];
+}
+
+export async function getBlastTargetDate(): Promise<Date | null> {
+  const val = await getSystemSetting('BLAST_TARGET_DATE');
+  if (!val) return null;
+  const date = new Date(val);
+  return isNaN(date.getTime()) ? null : date;
+}
+
 
 
 /**

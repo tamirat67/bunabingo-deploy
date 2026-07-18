@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Trophy, Coins, Star, Gift } from 'lucide-react';
 import api from '../lib/api';
@@ -9,12 +9,17 @@ interface LeaderboardEntry {
   name: string;
   score: number;
   isWinner: boolean;
+  rewardAmount?: number;
 }
 
 interface WeeklyBlastModalProps {
   onClose: () => void;
   onRewardClaimed: (amount: number) => void;
 }
+
+// Tier display config
+const TIER_MEDALS = ['🥇', '🥈', '🥉', '⭐', '⭐', '🎁', '🎁', '🎁', '🎁', '🎁'];
+const TIER_LABELS_AM = ['1ኛ ደረጃ', '2ኛ ደረጃ', '3ኛ ደረጃ', '4ኛ–5ኛ ደረጃ', '4ኛ–5ኛ ደረጃ', '6ኛ–10ኛ ደረጃ', '6ኛ–10ኛ ደረጃ', '6ኛ–10ኛ ደረጃ', '6ኛ–10ኛ ደረጃ', '6ኛ–10ኛ ደረጃ'];
 
 export default function WeeklyBlastModal({ onClose, onRewardClaimed }: WeeklyBlastModalProps) {
   const [loading, setLoading] = useState(true);
@@ -24,51 +29,64 @@ export default function WeeklyBlastModal({ onClose, onRewardClaimed }: WeeklyBla
   const [isWinner, setIsWinner] = useState(false);
   const [rewardAmount, setRewardAmount] = useState(0);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
-  
+
+  // Dynamic event config from API
+  const [eventName, setEventName] = useState('🎊 መልካም አዲስ ዓመት ከBuna Bingo!');
+  const [bannerText, setBannerText] = useState('');
+  const [rewardTiers, setRewardTiers] = useState<number[]>([5000, 3500, 2500, 1500, 1500, 1200, 1200, 1200, 1200, 1200]);
+  const [targetDate, setTargetDate] = useState<Date | null>(null);
+  const [totalRewardPool, setTotalRewardPool] = useState(20000);
+
   const [isBlasting, setIsBlasting] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const [drawResult, setDrawResult] = useState<{ isWinner: boolean; amount: number } | null>(null);
+  const [showTiers, setShowTiers] = useState(false);
 
-  const [timeLeft, setTimeLeft] = useState<{days: number, hours: number, mins: number, secs: number} | null>(null);
+  const [timeLeft, setTimeLeft] = useState<{ months: number; days: number; hours: number; mins: number; secs: number } | null>(null);
+
+  // Banner scroll ref
+  const bannerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchData();
   }, []);
 
   useEffect(() => {
-    // Always calculate countdown (shown when not active OR already participated)
     const calculateTime = () => {
       const now = new Date();
-      let target = new Date();
-      target.setUTCHours(6, 0, 0, 0); // 09:00 EAT is 06:00 UTC
+      let target: Date;
 
-      const dayOfWeek = target.getUTCDay();
-      const daysUntilSaturday = (6 - dayOfWeek + 7) % 7;
-      target.setUTCDate(target.getUTCDate() + daysUntilSaturday);
-
-      // If it's Saturday but the event is NOT yet open (before 9am) keep today as target
-      // Otherwise always push to NEXT Saturday
-      if (now >= target) {
-        target.setUTCDate(target.getUTCDate() + 7);
+      if (targetDate) {
+        target = targetDate;
+      } else {
+        // Default: next Saturday at 09:00 EAT
+        target = new Date();
+        target.setUTCHours(6, 0, 0, 0);
+        const daysUntilSaturday = (6 - target.getUTCDay() + 7) % 7;
+        target.setUTCDate(target.getUTCDate() + daysUntilSaturday);
+        if (now >= target) target.setUTCDate(target.getUTCDate() + 7);
       }
 
       const diff = target.getTime() - now.getTime();
       if (diff <= 0) {
-        setTimeLeft({ days: 0, hours: 0, mins: 0, secs: 0 });
-      } else {
-        setTimeLeft({
-          days: Math.floor(diff / (1000 * 60 * 60 * 24)),
-          hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
-          mins: Math.floor((diff / 1000 / 60) % 60),
-          secs: Math.floor((diff / 1000) % 60)
-        });
+        setTimeLeft({ months: 0, days: 0, hours: 0, mins: 0, secs: 0 });
+        return;
       }
+
+      const totalSecs = Math.floor(diff / 1000);
+      const months = Math.floor(totalSecs / (30 * 24 * 3600));
+      const remainAfterMonths = totalSecs % (30 * 24 * 3600);
+      const days = Math.floor(remainAfterMonths / (24 * 3600));
+      const hours = Math.floor((remainAfterMonths % (24 * 3600)) / 3600);
+      const mins = Math.floor((remainAfterMonths % 3600) / 60);
+      const secs = remainAfterMonths % 60;
+      setTimeLeft({ months, days, hours, mins, secs });
     };
-    
+
     calculateTime();
     const interval = setInterval(calculateTime, 1000);
     return () => clearInterval(interval);
-  }, [active]);
+  }, [targetDate]);
 
   const fetchData = async () => {
     try {
@@ -85,12 +103,15 @@ export default function WeeklyBlastModal({ onClose, onRewardClaimed }: WeeklyBla
       setRewardAmount(currentRes.rewardAmount);
       setLeaderboard(lbRes.leaderboard || []);
 
-      // If they already participated, show the result screen immediately instead of the button
+      // Load dynamic event config
+      if (currentRes.eventName) setEventName(currentRes.eventName);
+      if (currentRes.bannerText) setBannerText(currentRes.bannerText);
+      if (currentRes.targetDate) setTargetDate(new Date(currentRes.targetDate));
+      if (currentRes.totalRewardPool) setTotalRewardPool(currentRes.totalRewardPool);
+
+      // Note: rewardTiers aren't returned from the leaderboard endpoint but shown via totalRewardPool
       if (currentRes.hasParticipated) {
-        setDrawResult({
-          isWinner: currentRes.isWinner,
-          amount: currentRes.rewardAmount
-        });
+        setDrawResult({ isWinner: currentRes.isWinner, amount: currentRes.rewardAmount });
         setShowResult(true);
       }
     } catch (error) {
@@ -101,44 +122,24 @@ export default function WeeklyBlastModal({ onClose, onRewardClaimed }: WeeklyBla
   };
 
   const handleBlast = async () => {
-    if (hasParticipated || isBlasting) return;
-    
-    // Trigger vibration
-    if (navigator.vibrate) {
-      navigator.vibrate([100, 50, 100, 50, 200]);
-    }
-
+    if (hasParticipated || isBlasting || !active) return;
+    if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 200]);
     setIsBlasting(true);
-    
-    // Optional: play explosion sound
     try {
-      const audio = new Audio('/audio/win.mp3'); // Fallback to win if explosion is missing
+      const audio = new Audio('/audio/win.mp3');
       audio.volume = 0.5;
       audio.play().catch(() => {});
     } catch (e) {}
 
     try {
       const res = await api.post('/weekly-blast/draw').then(r => r.data);
-      
-      // Simulate blast animation delay
       setTimeout(() => {
-        setDrawResult({ isWinner: res.isWinner, amount: res.amount });
+        setDrawResult({ isWinner: false, amount: 0 });
         setTotalWinners(res.totalWinners);
         setHasParticipated(true);
         setIsBlasting(false);
         setShowResult(true);
-
-        if (res.isWinner) {
-          onRewardClaimed(res.amount);
-          // Play jackpot sound
-          try {
-            const audio = new Audio('/audio/jackpot.mp3');
-            audio.volume = 0.8;
-            audio.play().catch(() => {});
-          } catch (e) {}
-        }
       }, 1500);
-
     } catch (error: any) {
       console.error('Draw failed', error);
       setIsBlasting(false);
@@ -149,202 +150,295 @@ export default function WeeklyBlastModal({ onClose, onRewardClaimed }: WeeklyBla
   if (loading) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-        <div className="w-12 h-12 border-4 border-[#34c759] border-t-transparent rounded-full animate-spin" />
+        <div className="w-12 h-12 border-4 border-[#d4af37] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
-  const progressPercent = Math.min((totalWinners / 10) * 100, 100);
+  const maxWinners = rewardTiers.length || 10;
+  const progressPercent = Math.min((totalWinners / maxWinners) * 100, 100);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 overflow-y-auto">
-      <motion.div 
-        initial={{ scale: 0.9, opacity: 0, y: 20 }}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-3 overflow-y-auto">
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0, y: 30 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.9, opacity: 0, y: 20 }}
-        className="bg-gradient-to-br from-[#2a0e4a] to-[#140524] border border-[#ffb347]/30 rounded-3xl w-full max-w-md relative shadow-[0_0_50px_rgba(255,179,71,0.15)] overflow-hidden flex flex-col max-h-[90vh]"
+        exit={{ scale: 0.9, opacity: 0, y: 30 }}
+        style={{
+          background: 'linear-gradient(145deg, #0f0520 0%, #1a0535 40%, #2a0618 100%)',
+          borderRadius: '28px',
+          width: '100%',
+          maxWidth: '420px',
+          position: 'relative',
+          overflow: 'hidden',
+          boxShadow: '0 0 80px rgba(212,175,55,0.2), 0 0 200px rgba(120,0,60,0.15)',
+          border: '1px solid rgba(212,175,55,0.2)',
+          display: 'flex',
+          flexDirection: 'column',
+          maxHeight: '94vh',
+        }}
       >
-        {/* Background glow effects */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[200%] h-40 bg-[radial-gradient(ellipse_at_top,rgba(255,179,71,0.2),transparent_70%)] pointer-events-none" />
+        {/* Top celestial glow */}
+        <div style={{ position: 'absolute', top: '-60px', left: '50%', transform: 'translateX(-50%)', width: '300px', height: '160px', background: 'radial-gradient(ellipse at top, rgba(212,175,55,0.25), transparent 70%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', top: 0, right: 0, width: '200px', height: '200px', background: 'radial-gradient(circle, rgba(255,80,80,0.08), transparent 70%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: 0, left: 0, width: '180px', height: '180px', background: 'radial-gradient(circle, rgba(100,50,200,0.1), transparent 70%)', pointerEvents: 'none' }} />
 
-        <div className="p-4 flex justify-between items-center border-b border-white/10 shrink-0">
-          <div className="flex items-center gap-2">
-            <div className="bg-[#ffb347]/20 p-2 rounded-xl">
-              <Gift className="text-[#ffb347]" size={20} />
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-white leading-tight">ሳምንታዊ ሽልማት ፍንዳታ</h2>
-              <p className="text-xs text-[#ffb347]">Weekly Reward Blast</p>
+        {/* ── Header ── */}
+        <div style={{ padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid rgba(255,255,255,0.07)', position: 'relative', zIndex: 2, flexShrink: 0 }}>
+          <div style={{ flex: 1, paddingRight: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+              <div style={{ background: 'rgba(212,175,55,0.2)', borderRadius: '12px', padding: '7px', border: '1px solid rgba(212,175,55,0.3)' }}>
+                <Gift size={18} color="#d4af37" />
+              </div>
+              <div>
+                <h2 style={{ fontSize: '15px', fontWeight: '900', color: '#fff', margin: 0, lineHeight: 1.3 }}>{eventName}</h2>
+                <p style={{ fontSize: '10px', color: 'rgba(212,175,55,0.8)', margin: 0, marginTop: '2px' }}>
+                  {totalRewardPool.toLocaleString()} ብር ጠቅላላ ሽልማት
+                </p>
+              </div>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 rounded-full bg-white/5 text-white/70 hover:bg-white/10 hover:text-white transition-colors">
-            <X size={20} />
+          <button
+            onClick={onClose}
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(255,255,255,0.6)', flexShrink: 0 }}
+          >
+            <X size={16} />
           </button>
         </div>
 
-        <div className="p-6 flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
-          
-          {/* Progress Bar Section */}
-          <div className="bg-black/30 rounded-2xl p-4 mb-8 border border-white/5">
-            <div className="flex justify-between items-end mb-2">
-              <span className="text-sm font-medium text-white/80">ያሸነፉ ተጫዋቾች</span>
-              <span className="text-xl font-bold text-white">
-                <span className="text-[#34c759]">{totalWinners}</span> / 10
-              </span>
-            </div>
-            <div className="h-3 bg-black/50 rounded-full overflow-hidden relative">
-              <motion.div 
-                initial={{ width: 0 }}
-                animate={{ width: `${progressPercent}%` }}
-                transition={{ duration: 1, ease: "easeOut" }}
-                className="absolute inset-y-0 left-0 bg-gradient-to-r from-[#34c759] to-[#2ecc71] rounded-full"
-              >
-                <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent)] -translate-x-full animate-[shimmer_2s_infinite]" />
-              </motion.div>
-            </div>
-            <p className="text-xs text-white/50 text-center mt-3">
-              ጠቅላላ ሽልማት: <span className="text-[#ffb347] font-bold">5,000 ETB</span>
-            </p>
+        {/* ── Scrolling Banner ── */}
+        {bannerText && (
+          <div style={{ background: 'rgba(212,175,55,0.08)', borderBottom: '1px solid rgba(212,175,55,0.15)', padding: '8px 0', overflow: 'hidden', flexShrink: 0 }}>
+            <motion.div
+              animate={{ x: [400, -1200] }}
+              transition={{ duration: 22, repeat: Infinity, ease: 'linear' }}
+              style={{ whiteSpace: 'nowrap', fontSize: '11px', fontWeight: '700', color: '#d4af37', paddingLeft: '16px' }}
+            >
+              {bannerText.replace(/\n/g, '  •  ')}
+            </motion.div>
           </div>
+        )}
 
-          {/* Main Action Area */}
-          <div className="flex flex-col items-center justify-center min-h-[240px] mb-8 relative">
-            <AnimatePresence mode="wait">
-              {!showResult ? (
-                <motion.div 
-                  key="blast-button"
-                  exit={{ scale: 0, opacity: 0, rotate: 180 }}
-                  className={`relative group ${active ? 'cursor-pointer' : 'opacity-90'}`}
-                  onClick={active ? handleBlast : undefined}
-                >
-                  {/* Glowing rings */}
-                  <div className="absolute inset-0 rounded-full bg-[#ffb347] opacity-20 blur-xl group-hover:opacity-40 group-hover:blur-2xl transition-all duration-500" />
-                  <div className={`absolute inset-0 rounded-full border-2 border-[#ffb347]/50 ${active && !isBlasting ? 'animate-[pulse_3s_infinite]' : isBlasting ? 'animate-ping' : ''}`} />
-                  
-                  {/* The Button */}
-                  <motion.div 
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    animate={isBlasting ? { 
-                      scale: [1, 1.2, 0.8, 1.5],
-                      rotate: [0, -10, 10, -20, 20, 0],
-                      filter: ['brightness(1)', 'brightness(1.5)', 'brightness(2)']
-                    } : {
-                      y: [0, -10, 0]
-                    }}
-                    transition={isBlasting ? { duration: 1.5, ease: "easeInOut" } : { duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                    className="w-40 h-40 rounded-full bg-gradient-to-br from-[#ff6b6b] to-[#c0392b] border-4 border-[#ffb347] shadow-[0_10px_30px_rgba(192,57,43,0.5),inset_0_5px_15px_rgba(255,255,255,0.4)] flex flex-col items-center justify-center relative overflow-hidden"
-                  >
-                    <div className="absolute top-0 w-full h-1/2 bg-white/20 rounded-t-full" />
-                    <span className={`text-5xl ${!active ? 'mb-0' : 'mb-1'} filter drop-shadow-lg`}>💥</span>
-                    <span className={`text-white font-black ${!active ? 'text-lg' : 'text-xl'} tracking-wider uppercase drop-shadow-[0_2px_2px_rgba(0,0,0,0.5)]`}>
-                      ማፈንዳት
+        {/* ── Scrollable Content ── */}
+        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '20px' }}>
+
+          {/* ── Countdown Timer ── */}
+          {timeLeft && (
+            <div style={{ marginBottom: '20px' }}>
+              <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '10px' }}>
+                {targetDate ? '⏳ ቀሪ ጊዜ' : '⏳ ቀጣይ ፍንዳታ'}
+              </p>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
+                {[
+                  ...(timeLeft.months > 0 ? [{ v: timeLeft.months, l: 'ወር' }] : []),
+                  { v: timeLeft.days, l: 'ቀን' },
+                  { v: timeLeft.hours, l: 'ሰዓት' },
+                  { v: timeLeft.mins, l: 'ደቂቃ' },
+                  { v: timeLeft.secs, l: 'ሰ' },
+                ].map(({ v, l }) => (
+                  <div key={l} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(212,175,55,0.2)', borderRadius: '12px', padding: '8px 10px', minWidth: '44px' }}>
+                    <span style={{ fontSize: '22px', fontWeight: '900', color: '#d4af37', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
+                      {v.toString().padStart(2, '0')}
                     </span>
-                    {!active && timeLeft && (
-                      <div className="text-white font-bold text-[11px] tracking-wider mt-1 flex gap-[2px] bg-black/30 px-2 py-0.5 rounded-full backdrop-blur-sm shadow-inner border border-white/10">
-                        <span>{timeLeft.days}d</span>:
-                        <span>{timeLeft.hours.toString().padStart(2, '0')}h</span>:
-                        <span>{timeLeft.mins.toString().padStart(2, '0')}m</span>:
-                        <span>{timeLeft.secs.toString().padStart(2, '0')}s</span>
-                      </div>
-                    )}
-                  </motion.div>
-                </motion.div>
-              ) : (
-                <motion.div 
-                  key="result"
-                  initial={{ scale: 0, opacity: 0, rotate: -180 }}
-                  animate={{ scale: 1, opacity: 1, rotate: 0 }}
-                  transition={{ type: "spring", damping: 15 }}
-                  className="w-full"
-                >
-                  {drawResult?.isWinner ? (
-                    <div className="text-center bg-[#34c759]/10 border border-[#34c759]/30 rounded-3xl p-8 relative overflow-hidden">
-                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(52,199,89,0.2),transparent)]" />
-                      <motion.div
-                        initial={{ y: 20, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        transition={{ delay: 0.3 }}
-                      >
-                        <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-[#34c759] text-white shadow-[0_0_30px_rgba(52,199,89,0.5)] mb-4">
-                          <Coins size={40} />
-                        </div>
-                        <h3 className="text-2xl font-bold text-white mb-2">🎉 እንኳን ደስ አለዎት!</h3>
-                        <p className="text-lg text-white/90">
-                          እርስዎ የ <span className="text-[#34c759] font-bold text-2xl mx-1">{drawResult.amount} ETB</span> አሸናፊ ሆነዋል!
-                        </p>
-                        <p className="text-sm text-white/50 mt-4">ገንዘቡ ወደ ሂሳብዎ ገብቷል</p>
-                      </motion.div>
-                    </div>
-                  ) : (
-                    <div className="text-center bg-white/5 border border-white/10 rounded-3xl p-6">
-                      <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/10 text-white/50 mb-4">
-                        <Star size={32} />
-                      </div>
-                      <h3 className="text-xl font-bold text-white mb-2">መልካም ዕድል</h3>
-                      <p className="text-white/70 leading-relaxed text-sm mb-5">
-                        ተሳትፎዎን ይቀጥሉ፤ በሚቀጥለው ሳምንታዊ ሽልማት ፍንዳታ ዕድልዎ ይጨምራል!
-                      </p>
+                    <span style={{ fontSize: '8px', color: 'rgba(255,255,255,0.35)', marginTop: '3px', textTransform: 'uppercase', letterSpacing: '1px' }}>{l}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
-                      {/* Countdown to next Saturday */}
-                      {timeLeft && (
-                        <div className="mt-2">
-                          <p className="text-[11px] text-white/40 uppercase tracking-widest mb-3">ቀጣይ ፍንዳታ</p>
-                          <div className="flex justify-center gap-2">
-                            {[{v: timeLeft.days, l: 'ቀን'}, {v: timeLeft.hours, l: 'ሰዓት'}, {v: timeLeft.mins, l: 'ደቂቃ'}, {v: timeLeft.secs, l: 'ሰኮንድ'}].map(({v, l}) => (
-                              <div key={l} className="flex flex-col items-center bg-black/40 border border-[#ffb347]/20 rounded-xl px-3 py-2 min-w-[48px]">
-                                <span className="text-2xl font-black text-[#ffb347] tabular-nums leading-none">
-                                  {v.toString().padStart(2, '0')}
-                                </span>
-                                <span className="text-[9px] text-white/40 mt-1 uppercase tracking-wider">{l}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+          {/* ── Prize Tiers Accordion ── */}
+          <div style={{ marginBottom: '20px', background: 'rgba(0,0,0,0.3)', borderRadius: '18px', border: '1px solid rgba(212,175,55,0.15)', overflow: 'hidden' }}>
+            <button
+              onClick={() => setShowTiers(!showTiers)}
+              style={{ width: '100%', padding: '14px 16px', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+            >
+              <span style={{ fontSize: '13px', fontWeight: '800', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Trophy size={15} color="#d4af37" /> 🏆 የሽልማት አከፋፈል
+              </span>
+              <span style={{ fontSize: '18px', color: 'rgba(255,255,255,0.4)', transition: 'transform 0.3s', transform: showTiers ? 'rotate(180deg)' : 'rotate(0deg)' }}>⌄</span>
+            </button>
+
+            <AnimatePresence>
+              {showTiers && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  style={{ overflow: 'hidden' }}
+                >
+                  <div style={{ padding: '0 12px 14px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {rewardTiers.map((amount, i) => (
+                      <div key={i} style={{
+                        display: 'flex', alignItems: 'center', gap: '10px',
+                        background: i < 3 ? 'rgba(212,175,55,0.08)' : 'rgba(255,255,255,0.03)',
+                        border: i < 3 ? '1px solid rgba(212,175,55,0.2)' : '1px solid rgba(255,255,255,0.05)',
+                        borderRadius: '12px', padding: '10px 12px'
+                      }}>
+                        <span style={{ fontSize: '18px', width: '24px', textAlign: 'center' }}>{TIER_MEDALS[i] || '🎁'}</span>
+                        <span style={{ flex: 1, fontSize: '12px', fontWeight: '700', color: 'rgba(255,255,255,0.85)' }}>{TIER_LABELS_AM[i] || `${i + 1}ኛ ደረጃ`}</span>
+                        <span style={{ fontSize: '14px', fontWeight: '900', color: i < 3 ? '#d4af37' : '#22c55e' }}>{amount.toLocaleString()} ብር</span>
+                      </div>
+                    ))}
+                    <div style={{ background: 'linear-gradient(90deg, rgba(212,175,55,0.15), rgba(212,175,55,0.05))', border: '1px solid rgba(212,175,55,0.4)', borderRadius: '12px', padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
+                      <span style={{ fontSize: '12px', fontWeight: '800', color: '#d4af37' }}>💰 ጠቅላላ ሽልማት</span>
+                      <span style={{ fontSize: '16px', fontWeight: '900', color: '#d4af37' }}>{totalRewardPool.toLocaleString()} ብር</span>
                     </div>
-                  )}
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
 
-          {/* Leaderboard Section */}
-          <div className="mt-4">
-            <h3 className="text-sm font-bold text-white/60 uppercase tracking-wider mb-3 flex items-center gap-2">
-              <Trophy size={16} /> መሪ ተጫዋቾች (Leaderboard)
+          {/* ── Main Blast Button or Result ── */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '200px', marginBottom: '20px', position: 'relative' }}>
+            <AnimatePresence mode="wait">
+              {!showResult ? (
+                <motion.div
+                  key="blast-button"
+                  exit={{ scale: 0, opacity: 0 }}
+                  style={{ position: 'relative', cursor: active ? 'pointer' : 'default' }}
+                  onClick={active && !isBlasting ? handleBlast : undefined}
+                >
+                  {/* Pulsing glow rings */}
+                  <motion.div
+                    animate={{ scale: [1, 1.4, 1], opacity: [0.3, 0, 0.3] }}
+                    transition={{ duration: 3, repeat: Infinity }}
+                    style={{ position: 'absolute', inset: '-20px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(212,175,55,0.4), transparent 70%)', pointerEvents: 'none' }}
+                  />
+                  <motion.div
+                    animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0, 0.5] }}
+                    transition={{ duration: 3, repeat: Infinity, delay: 0.5 }}
+                    style={{ position: 'absolute', inset: '-10px', borderRadius: '50%', border: '2px solid rgba(212,175,55,0.4)', pointerEvents: 'none' }}
+                  />
+
+                  {/* Button */}
+                  <motion.div
+                    whileHover={{ scale: active ? 1.05 : 1 }}
+                    whileTap={{ scale: active ? 0.93 : 1 }}
+                    animate={isBlasting
+                      ? { scale: [1, 1.3, 0.8, 1.5], rotate: [0, -10, 10, 0], filter: ['brightness(1)', 'brightness(2)'] }
+                      : { y: [0, -8, 0] }
+                    }
+                    transition={isBlasting ? { duration: 1.5 } : { duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                    style={{
+                      width: '148px', height: '148px', borderRadius: '50%',
+                      background: active
+                        ? 'linear-gradient(145deg, #ff6b35, #c0392b, #8b0000)'
+                        : 'linear-gradient(145deg, #4a3728, #2d1f16)',
+                      border: `4px solid ${active ? '#d4af37' : 'rgba(255,255,255,0.1)'}`,
+                      boxShadow: active ? '0 15px 40px rgba(192,57,43,0.6), inset 0 5px 15px rgba(255,255,255,0.3)' : 'none',
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                      position: 'relative', overflow: 'hidden',
+                    }}
+                  >
+                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '50%', background: 'rgba(255,255,255,0.15)', borderRadius: '50% 50% 0 0', pointerEvents: 'none' }} />
+                    <span style={{ fontSize: '44px', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}>{active ? '💥' : '⏳'}</span>
+                    <span style={{ color: 'white', fontWeight: '900', fontSize: '16px', letterSpacing: '1px', textShadow: '0 2px 4px rgba(0,0,0,0.6)', marginTop: '4px' }}>
+                      {isBlasting ? 'ሲፈለፈል...' : active ? 'ማፈንዳት' : 'ይጠብቁ'}
+                    </span>
+                  </motion.div>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="result"
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: 'spring', damping: 14 }}
+                  style={{ width: '100%' }}
+                >
+                  {/* Enrollment success (no instant win in new system) */}
+                  <div style={{ textAlign: 'center', background: 'rgba(52,199,89,0.08)', border: '1px solid rgba(52,199,89,0.25)', borderRadius: '24px', padding: '28px 20px', position: 'relative', overflow: 'hidden' }}>
+                    <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at center, rgba(52,199,89,0.1), transparent 70%)', pointerEvents: 'none' }} />
+                    <div style={{ fontSize: '52px', marginBottom: '12px' }}>🎊</div>
+                    <h3 style={{ fontSize: '18px', fontWeight: '900', color: '#fff', margin: '0 0 8px' }}>
+                      ተመዝግበዋል! እንኳን ደስ አለዎት!
+                    </h3>
+                    <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)', lineHeight: '1.6', marginBottom: '16px' }}>
+                      አፈጻጸምዎ ይቆጠራል። ለምርጥ 10 ደረጃ ይወዳደሩ — ሽልማቱ ፍንዳታ ሲዘጋ ይሰጣሉ!
+                    </p>
+                    {/* Mini countdown */}
+                    {timeLeft && (
+                      <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        {[
+                          ...(timeLeft.months > 0 ? [{ v: timeLeft.months, l: 'ወር' }] : []),
+                          { v: timeLeft.days, l: 'ቀን' },
+                          { v: timeLeft.hours, l: 'ሰዓት' },
+                          { v: timeLeft.mins, l: 'ደቂቃ' },
+                        ].map(({ v, l }) => (
+                          <div key={l} style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '10px', padding: '6px 10px', textAlign: 'center' }}>
+                            <div style={{ fontSize: '18px', fontWeight: '900', color: '#d4af37' }}>{v.toString().padStart(2, '0')}</div>
+                            <div style={{ fontSize: '8px', color: 'rgba(255,255,255,0.4)' }}>{l}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* ── Enrollment Progress ── */}
+          <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: '16px', padding: '14px 16px', marginBottom: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <span style={{ fontSize: '12px', fontWeight: '700', color: 'rgba(255,255,255,0.7)' }}>ተሳታፊ ተጫዋቾች</span>
+              <span style={{ fontSize: '14px', fontWeight: '900', color: '#fff' }}>
+                <span style={{ color: '#34c759' }}>{totalWinners}</span> / {maxWinners}
+              </span>
+            </div>
+            <div style={{ height: '8px', background: 'rgba(0,0,0,0.5)', borderRadius: '999px', overflow: 'hidden' }}>
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${progressPercent}%` }}
+                transition={{ duration: 1, ease: 'easeOut' }}
+                style={{ height: '100%', background: 'linear-gradient(90deg, #d4af37, #f4d03f)', borderRadius: '999px' }}
+              />
+            </div>
+          </div>
+
+          {/* ── Leaderboard ── */}
+          <div>
+            <h3 style={{ fontSize: '12px', fontWeight: '800', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Trophy size={14} /> መሪ ሰሌዳ (Leaderboard)
             </h3>
-            
-            <div className="bg-black/20 rounded-2xl border border-white/5 overflow-hidden">
+            <div style={{ background: 'rgba(0,0,0,0.25)', borderRadius: '18px', border: '1px solid rgba(255,255,255,0.05)', overflow: 'hidden' }}>
               {leaderboard.length === 0 ? (
-                <div className="p-6 text-center text-white/40 text-sm">
-                  ምንም መረጃ የለም
+                <div style={{ padding: '24px', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '13px' }}>
+                  ምንም ተሳታፊ የለም አሁን
                 </div>
               ) : (
-                <div className="divide-y divide-white/5">
+                <div>
                   {leaderboard.map((entry) => (
-                    <div key={entry.rank} className="p-3 flex items-center justify-between hover:bg-white/5 transition-colors">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${
-                          entry.rank === 1 ? 'bg-[#FFD700] text-black shadow-[0_0_10px_rgba(255,215,0,0.5)]' :
-                          entry.rank === 2 ? 'bg-[#C0C0C0] text-black shadow-[0_0_10px_rgba(192,192,192,0.5)]' :
-                          entry.rank === 3 ? 'bg-[#CD7F32] text-black shadow-[0_0_10px_rgba(205,127,50,0.5)]' :
-                          'bg-white/10 text-white/60'
-                        }`}>
-                          #{entry.rank}
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-white truncate max-w-[120px]">
-                            {entry.name}
-                          </p>
-                          <p className="text-[10px] text-white/40">Score: {Math.round(entry.score)}</p>
-                        </div>
+                    <div
+                      key={entry.rank}
+                      style={{
+                        padding: '11px 14px', display: 'flex', alignItems: 'center', gap: '10px',
+                        borderBottom: '1px solid rgba(255,255,255,0.04)',
+                        background: entry.rank <= 3 ? 'rgba(212,175,55,0.04)' : 'transparent',
+                      }}
+                    >
+                      <div style={{
+                        width: '30px', height: '30px', borderRadius: '50%', flexShrink: 0,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontWeight: '900', fontSize: '11px',
+                        background: entry.rank === 1 ? 'linear-gradient(135deg,#FFD700,#FFA500)' : entry.rank === 2 ? 'linear-gradient(135deg,#C0C0C0,#A0A0A0)' : entry.rank === 3 ? 'linear-gradient(135deg,#CD7F32,#A0522D)' : 'rgba(255,255,255,0.08)',
+                        color: entry.rank <= 3 ? '#000' : 'rgba(255,255,255,0.5)',
+                        boxShadow: entry.rank === 1 ? '0 0 12px rgba(255,215,0,0.5)' : 'none',
+                      }}>
+                        {entry.rank <= 3 ? TIER_MEDALS[entry.rank - 1] : `#${entry.rank}`}
                       </div>
-                      
-                      {entry.isWinner && (
-                        <div className="px-2 py-1 rounded-md bg-[#34c759]/20 border border-[#34c759]/30 text-[#34c759] text-[10px] font-bold">
-                          WON
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: '13px', fontWeight: '700', color: '#fff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{entry.name}</p>
+                        <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.35)', margin: 0 }}>Score: {Math.round(entry.score)}</p>
+                      </div>
+                      {entry.rewardAmount && entry.rewardAmount > 0 ? (
+                        <div style={{ background: 'rgba(52,199,89,0.15)', border: '1px solid rgba(52,199,89,0.3)', borderRadius: '8px', padding: '3px 8px', fontSize: '11px', fontWeight: '800', color: '#34c759' }}>
+                          {entry.rewardAmount.toLocaleString()} ብር
                         </div>
+                      ) : (
+                        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.2)' }}>—</div>
                       )}
                     </div>
                   ))}

@@ -5,7 +5,7 @@ import {
   FiSettings, FiDollarSign, FiPhone, FiUser, FiSave,
   FiAlertCircle, FiCoffee, FiTrendingUp, FiPercent, FiCheckCircle, FiEdit2, FiGift,
   FiBell, FiTrash2, FiSend, FiPlus, FiClock, FiCalendar, FiToggleLeft, FiToggleRight,
-  FiX, FiChevronDown
+  FiX, FiChevronDown, FiAward
 } from 'react-icons/fi';
 import api from '@/lib/api';
 import '@/app/admin.css';
@@ -18,6 +18,10 @@ interface SystemSettings {
   BONUS_MIN_DEPOSIT: string;
   BONUS_EXPIRY: string;
   HOUSE_BOT_ENABLED: boolean;
+  BLAST_EVENT_NAME: string;
+  BLAST_BANNER_TEXT: string;
+  BLAST_REWARD_TIERS: string;
+  BLAST_TARGET_DATE: string;
 }
 
 interface Promotion {
@@ -37,7 +41,7 @@ export default function SettingsPage() {
   const [rooms, setRooms] = useState<any[]>([]);
   const [loadingRooms, setLoadingRooms] = useState(true);
   const [savingRoom, setSavingRoom] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'general' | 'bonus' | 'promotions'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'bonus' | 'promotions' | 'event'>('general');
 
   const [settings, setSettings] = useState<SystemSettings>({
     COMPANY_COMMISSION_RATE: '12.5',
@@ -47,7 +51,12 @@ export default function SettingsPage() {
     BONUS_MIN_DEPOSIT: '50',
     BONUS_EXPIRY: '',
     HOUSE_BOT_ENABLED: true,
+    BLAST_EVENT_NAME: '🎊 መልካም አዲስ ዓመት ከBuna Bingo!',
+    BLAST_BANNER_TEXT: '🏆 20,000 ብር የአዲስ ዓመት ሽልማት\n🎯 ምርጥ 10 አፈጻጸም ያሳዩ ተወዳዳሪዎች ይሸለማሉ!\n💥 የበለጠ ይጫወቱ • የተሻለ አፈጻጸም ያሳዩ • ትልቅ ሽልማት ያሸንፉ!',
+    BLAST_REWARD_TIERS: JSON.stringify([5000, 3500, 2500, 1500, 1500, 1200, 1200, 1200, 1200, 1200]),
+    BLAST_TARGET_DATE: '',
   });
+  const [distributingRewards, setDistributingRewards] = useState(false);
   const [loadingSettings, setLoadingSettings] = useState(true);
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsSaved, setSettingsSaved] = useState(false);
@@ -134,6 +143,10 @@ export default function SettingsPage() {
         BONUS_MIN_DEPOSIT: res.data.BONUS_MIN_DEPOSIT || '50',
         BONUS_EXPIRY: res.data.BONUS_EXPIRY || '',
         HOUSE_BOT_ENABLED: res.data.HOUSE_BOT_ENABLED !== false,
+        BLAST_EVENT_NAME: res.data.BLAST_EVENT_NAME || '🎊 መልካም አዲስ ዓመት ከBuna Bingo!',
+        BLAST_BANNER_TEXT: res.data.BLAST_BANNER_TEXT || '',
+        BLAST_REWARD_TIERS: res.data.BLAST_REWARD_TIERS || JSON.stringify([5000, 3500, 2500, 1500, 1500, 1200, 1200, 1200, 1200, 1200]),
+        BLAST_TARGET_DATE: res.data.BLAST_TARGET_DATE || '',
       });
 
       // Derive house margin UI values from stored rates (Upfront Discount Model)
@@ -332,6 +345,7 @@ export default function SettingsPage() {
     { key: 'general' as const, label: 'General', icon: FiSettings },
     { key: 'bonus' as const, label: 'Bonus & Promotions', icon: FiGift },
     { key: 'promotions' as const, label: 'Announcements', icon: FiBell },
+    { key: 'event' as const, label: '🎊 Event Config', icon: FiAward },
   ];
 
   return (
@@ -1368,6 +1382,217 @@ export default function SettingsPage() {
               })}
             </div>
           )}
+        </div>
+      )}
+
+      {/* ═══════════════ EVENT CONFIG TAB ═══════════════ */}
+      {activeTab === 'event' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+
+          {/* Event Header Preview */}
+          <div style={{
+            background: 'linear-gradient(135deg, #1a0a3e 0%, #3b0a6e 40%, #6a1a1a 100%)',
+            borderRadius: '24px',
+            padding: '32px',
+            color: 'white',
+            position: 'relative',
+            overflow: 'hidden',
+          }}>
+            {/* Decorative orbs */}
+            <div style={{ position: 'absolute', top: '-40px', right: '-40px', width: '160px', height: '160px', background: 'rgba(255,215,0,0.15)', borderRadius: '50%', filter: 'blur(40px)', pointerEvents: 'none' }} />
+            <div style={{ position: 'absolute', bottom: '-30px', left: '-30px', width: '120px', height: '120px', background: 'rgba(255,100,50,0.15)', borderRadius: '50%', filter: 'blur(30px)', pointerEvents: 'none' }} />
+            
+            <div style={{ position: 'relative', zIndex: 1 }}>
+              <div style={{ fontSize: '28px', fontWeight: '900', marginBottom: '8px', textShadow: '0 2px 12px rgba(0,0,0,0.4)' }}>
+                {settings.BLAST_EVENT_NAME || '🎊 Event Preview'}
+              </div>
+              <div style={{ fontSize: '13px', opacity: 0.85, lineHeight: '1.7', whiteSpace: 'pre-line' }}>
+                {settings.BLAST_BANNER_TEXT}
+              </div>
+              {settings.BLAST_TARGET_DATE && (
+                <div style={{ marginTop: '16px', display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(255,215,0,0.2)', border: '1px solid rgba(255,215,0,0.4)', borderRadius: '12px', padding: '8px 16px', fontSize: '13px', fontWeight: '700' }}>
+                  🗓️ Ends: {new Date(settings.BLAST_TARGET_DATE).toLocaleDateString('am-ET', { year: 'numeric', month: 'long', day: 'numeric' })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Event Config Form */}
+          <div className="stat-card-m" style={{ padding: '32px' }}>
+            <h2 style={{ fontSize: '16px', fontWeight: '900', color: '#3d2b1f', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              🎊 Event Name & Banner
+            </h2>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', color: '#78716c', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Event Name (Display Title)
+                </label>
+                <input
+                  type="text"
+                  className="login-input"
+                  style={{ width: '100%', fontWeight: '700', fontSize: '15px' }}
+                  value={settings.BLAST_EVENT_NAME}
+                  onChange={(e) => setSettings(s => ({ ...s, BLAST_EVENT_NAME: e.target.value }))}
+                  placeholder="🎊 መልካም አዲስ ዓመት ከBuna Bingo!"
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', color: '#78716c', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Banner Text (Scrolling message shown to players)
+                </label>
+                <textarea
+                  className="login-input"
+                  style={{ width: '100%', minHeight: '80px', fontWeight: '600', fontSize: '13px', lineHeight: '1.6', resize: 'vertical' }}
+                  value={settings.BLAST_BANNER_TEXT}
+                  onChange={(e) => setSettings(s => ({ ...s, BLAST_BANNER_TEXT: e.target.value }))}
+                  placeholder="🏆 20,000 ብር የአዲስ ዓመት ሽልማት ..."
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', color: '#78716c', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  🗓️ Event Target Date (Deadline / Countdown End)
+                </label>
+                <input
+                  type="datetime-local"
+                  className="login-input"
+                  style={{ width: '100%', fontWeight: '700' }}
+                  value={settings.BLAST_TARGET_DATE ? new Date(settings.BLAST_TARGET_DATE).toISOString().slice(0, 16) : ''}
+                  onChange={(e) => setSettings(s => ({ ...s, BLAST_TARGET_DATE: e.target.value ? new Date(e.target.value).toISOString() : '' }))}
+                />
+                <p style={{ fontSize: '11px', color: '#78716c', marginTop: '6px' }}>
+                  Set to Ethiopian New Year — players see a live countdown until this date.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Tiered Reward Config */}
+          <div className="stat-card-m" style={{ padding: '32px' }}>
+            <h2 style={{ fontSize: '16px', fontWeight: '900', color: '#3d2b1f', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              🏆 የሽልማት አከፋፈል (Reward Tiers)
+            </h2>
+            <p style={{ fontSize: '13px', color: '#78716c', marginBottom: '24px' }}>
+              Enter comma-separated reward amounts for each rank (1st, 2nd, 3rd ...). Total must equal your target prize pool.
+            </p>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: '800', color: '#78716c', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Reward Amounts (ETB, comma separated)
+              </label>
+              <input
+                type="text"
+                className="login-input"
+                style={{ width: '100%', fontWeight: '700', fontSize: '14px', fontFamily: 'monospace' }}
+                value={(() => { try { return JSON.parse(settings.BLAST_REWARD_TIERS).join(', '); } catch { return settings.BLAST_REWARD_TIERS; } })()}
+                onChange={(e) => {
+                  const vals = e.target.value.split(',').map(v => parseFloat(v.trim())).filter(n => !isNaN(n));
+                  setSettings(s => ({ ...s, BLAST_REWARD_TIERS: JSON.stringify(vals) }));
+                }}
+                placeholder="5000, 3500, 2500, 1500, 1500, 1200, 1200, 1200, 1200, 1200"
+              />
+            </div>
+
+            {/* Visual Tier Display */}
+            {(() => {
+              try {
+                const tiers: number[] = JSON.parse(settings.BLAST_REWARD_TIERS);
+                const total = tiers.reduce((a, b) => a + b, 0);
+                const medals = ['🥇', '🥈', '🥉', '⭐', '⭐', '🎁', '🎁', '🎁', '🎁', '🎁'];
+                const rankLabels = ['1ኛ ደረጃ', '2ኛ ደረጃ', '3ኛ ደረጃ', '4ኛ ደረጃ', '5ኛ ደረጃ', '6ኛ ደረጃ', '7ኛ ደረጃ', '8ኛ ደረጃ', '9ኛ ደረጃ', '10ኛ ደረጃ'];
+                return (
+                  <div style={{ marginTop: '20px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+                      {tiers.map((amount, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', background: i < 3 ? 'linear-gradient(90deg, rgba(212,175,55,0.08), transparent)' : '#fafaf9', padding: '12px 16px', borderRadius: '12px', border: i < 3 ? '1px solid rgba(212,175,55,0.3)' : '1px solid #f5f5f4' }}>
+                          <span style={{ fontSize: '20px', width: '28px', textAlign: 'center' }}>{medals[i] || '🎁'}</span>
+                          <span style={{ flex: 1, fontSize: '14px', fontWeight: '700', color: '#3d2b1f' }}>{rankLabels[i] || `${i + 1}ኛ ደረጃ`}</span>
+                          <span style={{ fontSize: '15px', fontWeight: '900', color: i < 3 ? '#d4af37' : '#22c55e' }}>{amount.toLocaleString()} ብር</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ background: 'linear-gradient(90deg, rgba(212,175,55,0.1), rgba(212,175,55,0.05))', border: '2px solid #d4af37', borderRadius: '14px', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '14px', fontWeight: '800', color: '#92400e' }}>💰 ጠቅላላ ሽልማት (Total Pool)</span>
+                      <span style={{ fontSize: '20px', fontWeight: '900', color: '#d4af37' }}>{total.toLocaleString()} ብር</span>
+                    </div>
+                  </div>
+                );
+              } catch { return null; }
+            })()}
+          </div>
+
+          {/* Save + Distribute */}
+          <div className="stat-card-m" style={{ padding: '28px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <button
+                onClick={async () => {
+                  setSavingSettings(true);
+                  try {
+                    await api.put('/admin/settings', {
+                      BLAST_EVENT_NAME: settings.BLAST_EVENT_NAME,
+                      BLAST_BANNER_TEXT: settings.BLAST_BANNER_TEXT,
+                      BLAST_REWARD_TIERS: settings.BLAST_REWARD_TIERS,
+                      BLAST_TARGET_DATE: settings.BLAST_TARGET_DATE,
+                    });
+                    setSettingsSaved(true);
+                    setTimeout(() => setSettingsSaved(false), 3000);
+                  } catch (err: any) {
+                    showAlert('Error', err.response?.data?.error || 'Failed to save event settings.', true);
+                  } finally {
+                    setSavingSettings(false);
+                  }
+                }}
+                disabled={savingSettings}
+                className="cmd-button"
+                style={{ width: '100%', padding: '14px', borderRadius: '14px', fontSize: '14px' }}
+              >
+                {savingSettings ? 'SAVING...' : <><FiSave style={{ marginRight: '8px' }} />SAVE EVENT SETTINGS</>}
+              </button>
+
+              {settingsSaved && (
+                <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '12px', padding: '12px 16px', fontSize: '13px', color: '#16a34a', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <FiCheckCircle /> Event settings saved! Changes are live immediately.
+                </div>
+              )}
+
+              <div style={{ borderTop: '1px solid #f5f5f4', paddingTop: '16px' }}>
+                <p style={{ fontSize: '13px', color: '#78716c', marginBottom: '12px', fontWeight: '600' }}>
+                  ⚠️ <strong>Distribute Rewards</strong> — Use this button only when the event is over. It will close the current event, pay out tiered ETB to the top performers, and start a fresh event.
+                </p>
+                <button
+                  onClick={() => showConfirm(
+                    '🏆 Distribute Rewards',
+                    'This will CLOSE the current event, pay out tiered rewards to top players based on leaderboard, and start a new event. Are you sure?',
+                    async () => {
+                      setAppModal(prev => ({ ...prev, isOpen: false }));
+                      setDistributingRewards(true);
+                      try {
+                        await api.post('/weekly-blast/distribute-rewards', {});
+                        showAlert('Success! 🎉', 'Rewards distributed successfully! Top players have been paid. A new event has started.');
+                      } catch (err: any) {
+                        showAlert('Error', err.response?.data?.error || 'Failed to distribute rewards.', true);
+                      } finally {
+                        setDistributingRewards(false);
+                      }
+                    }
+                  )}
+                  disabled={distributingRewards}
+                  style={{
+                    width: '100%', padding: '14px', borderRadius: '14px', fontSize: '14px', fontWeight: '800',
+                    background: distributingRewards ? '#e7e5e4' : 'linear-gradient(135deg, #7c3aed, #4f46e5)',
+                    color: distributingRewards ? '#78716c' : 'white',
+                    border: 'none', cursor: distributingRewards ? 'not-allowed' : 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                  }}
+                >
+                  {distributingRewards ? '⏳ Distributing...' : '🏆 CLOSE EVENT & DISTRIBUTE REWARDS'}
+                </button>
+              </div>
+            </div>
+          </div>
+
         </div>
       )}
 

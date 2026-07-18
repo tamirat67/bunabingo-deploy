@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
+import { getBlastEventName, getBlastBannerText, getBlastRewardTiers, getBlastTargetDate } from './settings.service';
 import winston from 'winston';
 
 const prisma = new PrismaClient();
@@ -32,10 +33,22 @@ export const WeeklyBlastService = {
       },
     });
 
+    const eventName = await getBlastEventName();
+    const bannerText = await getBlastBannerText();
+    const rewardTiers = await getBlastRewardTiers();
+    const targetDate = await getBlastTargetDate();
+
+    // Sum total reward pool from tiers
+    const totalRewardPool = rewardTiers.reduce((a, b) => a + b, 0);
+
     return {
       active: true,
       eventId: activeEvent.id,
-      totalWinners: activeEvent.totalWinners,
+      eventName,
+      bannerText,
+      totalWinners: rewardTiers.length,
+      totalRewardPool,
+      targetDate: targetDate ? targetDate.toISOString() : null,
       hasParticipated: !!participant,
       isWinner: participant?.isWinner || false,
       rewardAmount: participant?.rewardAmount || 0,
@@ -111,70 +124,27 @@ export const WeeklyBlastService = {
         throw new Error('User has already participated in this event');
       }
 
-      // 3. Calculate score & probability
-      const { depositScore, performanceScore, totalWeight } = await this.calculateScore(userId);
+      // 3. Calculate score
+      const { depositScore, performanceScore } = await this.calculateScore(userId);
       
-      // We want to combine random chance + engagement.
-      // Base probability: 5% chance. Weight increases it slightly.
-      // Max probability cap at 50% to ensure it's still random.
-      let probability = 0.05 + (totalWeight * 0.001); 
-      if (probability > 0.5) probability = 0.5;
-
-      const randomVal = Math.random();
-      const isWinner = randomVal < probability && activeEvent.totalWinners < 10;
-
-      // 4. Create participant record
+      // 4. Create participant record (Enrollment)
       const participant = await tx.weeklyRewardParticipant.create({
         data: {
           eventId: activeEvent.id,
           userId,
-          isWinner,
-          rewardAmount: isWinner ? 500 : 0,
+          isWinner: false,
+          rewardAmount: 0,
           depositScore,
           performanceScore,
         },
       });
 
-      // 5. Handle win logic
-      if (isWinner) {
-        // Update wallet
-        const wallet = await tx.wallet.update({
-          where: { userId },
-          data: { balance: { increment: 500 } },
-        });
-
-        // Log transaction
-        await tx.transaction.create({
-          data: {
-            userId,
-            type: 'WEEKLY_BLAST_REWARD',
-            amount: 500,
-            balanceBefore: Number(wallet.balance) - 500,
-            balanceAfter: wallet.balance,
-            status: 'completed',
-            description: 'ሳምንታዊ ሽልማት ፍንዳታ (Weekly Reward Blast) Win',
-          },
-        });
-
-        // Increment event total winners
-        const updatedEvent = await tx.weeklyRewardEvent.update({
-          where: { id: activeEvent.id },
-          data: { totalWinners: { increment: 1 } },
-        });
-
-        // If 10 winners reached, close event (Disabled for today's 24h special)
-        // if (updatedEvent.totalWinners >= 10) {
-        //   await tx.weeklyRewardEvent.update({
-        //     where: { id: activeEvent.id },
-        //     data: { status: 'CLOSED', closedAt: new Date() },
-        //   });
-        // }
-      }
+      // No instant wins anymore. They wait for leaderboard distribution.
 
       return {
-        isWinner,
-        amount: isWinner ? 500 : 0,
-        totalWinners: activeEvent.totalWinners + (isWinner ? 1 : 0),
+        isWinner: false,
+        amount: 0,
+        totalWinners: activeEvent.totalWinners, // this might be unused by frontend now
       };
     });
   },
@@ -206,23 +176,108 @@ export const WeeklyBlastService = {
         : p.user.username || p.user.telegramUsername || 'Anonymous';
         
       return {
+        userId: p.userId,
         name,
         score: Number(p.performanceScore) + (Number(p.depositScore) / 10),
-        isWinner: p.isWinner
+        isWinner: p.isWinner,
+        rewardAmount: Number(p.rewardAmount) || 0
       };
     });
 
-    // Sort by winners first, then calculated score descending
-    enriched.sort((a, b) => {
-      if (a.isWinner && !b.isWinner) return -1;
-      if (!a.isWinner && b.isWinner) return 1;
-      return b.score - a.score;
-    });
+    // Sort by calculated score descending
+    enriched.sort((a, b) => b.score - a.score);
 
-    // Return top 10 with assigned ranks
-    return enriched.slice(0, 10).map((p, index) => ({
+    // Return top 15 with assigned ranks so they can see themselves if they are close
+    return enriched.slice(0, 15).map((p, index) => ({
       ...p,
       rank: index + 1
     }));
+  },
+
+  /**
+   * Admin triggered endpoint to close the event and distribute tiered rewards.
+   */
+  async distributeRewards(adminId: string) {
+    const activeEvent = await prisma.weeklyRewardEvent.findFirst({
+      where: { status: 'OPEN' },
+      orderBy: { startedAt: 'desc' },
+    });
+
+    if (!activeEvent) {
+      throw new Error('No active event found');
+    }
+
+    const leaderboard = await this.getLeaderboard();
+    const rewardTiers = await getBlastRewardTiers();
+    const eventName = await getBlastEventName();
+
+    await prisma.$transaction(async (tx) => {
+      let winnersCount = 0;
+      
+      // Distribute rewards to top players based on reward tiers array
+      for (let i = 0; i < Math.min(leaderboard.length, rewardTiers.length); i++) {
+        const player = leaderboard[i];
+        const rewardAmount = rewardTiers[i];
+        
+        if (rewardAmount > 0) {
+          // Update Participant record
+          await tx.weeklyRewardParticipant.updateMany({
+            where: { eventId: activeEvent.id, userId: player.userId },
+            data: { isWinner: true, rewardAmount },
+          });
+
+          // Update Wallet
+          const wallet = await tx.wallet.update({
+            where: { userId: player.userId },
+            data: { balance: { increment: rewardAmount } },
+          });
+
+          // Log Transaction
+          await tx.transaction.create({
+            data: {
+              userId: player.userId,
+              type: 'WEEKLY_BLAST_REWARD',
+              amount: rewardAmount,
+              balanceBefore: Number(wallet.balance) - rewardAmount,
+              balanceAfter: wallet.balance,
+              status: 'completed',
+              description: `${eventName} (Rank ${player.rank}) Win`,
+            },
+          });
+          
+          winnersCount++;
+        }
+      }
+
+      // Close the event
+      await tx.weeklyRewardEvent.update({
+        where: { id: activeEvent.id },
+        data: { 
+          status: 'CLOSED', 
+          closedAt: new Date(),
+          totalWinners: winnersCount
+        },
+      });
+
+      // Log admin action
+      await tx.adminLog.create({
+        data: {
+          adminId,
+          targetUserId: adminId, // self target
+          action: 'DISTRIBUTE_EVENT_REWARDS',
+          details: { eventId: activeEvent.id, winnersCount, eventName },
+        }
+      });
+      
+      // Auto-create next event
+      await tx.weeklyRewardEvent.create({
+        data: {
+          status: 'OPEN',
+          totalWinners: 0,
+        },
+      });
+    });
+
+    return { success: true };
   }
 };
