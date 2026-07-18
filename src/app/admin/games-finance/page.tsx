@@ -99,7 +99,7 @@ export default function GamesFinancePage() {
                 <div style={{ color: 'var(--cmd-tan)', fontSize: '12px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '1px' }}>Total Volume</div>
                 <FiActivity color="var(--cmd-tan)" />
               </div>
-              <div style={{ fontSize: '28px', fontWeight: '900', marginTop: '12px', color: 'white' }}>
+              <div style={{ fontSize: '28px', fontWeight: '900', marginTop: '12px', color: 'var(--cmd-text)' }}>
                 {fmt(data.stats?.totalVolume)} <span style={{ fontSize: '12px', color: '#888' }}>ETB</span>
               </div>
             </div>
@@ -109,7 +109,7 @@ export default function GamesFinancePage() {
                 <div style={{ color: '#f87171', fontSize: '12px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '1px' }}>Total Payouts</div>
                 <FiDollarSign color="#f87171" />
               </div>
-              <div style={{ fontSize: '28px', fontWeight: '900', marginTop: '12px', color: 'white' }}>
+              <div style={{ fontSize: '28px', fontWeight: '900', marginTop: '12px', color: 'var(--cmd-text)' }}>
                 {fmt(data.stats?.totalPayout)} <span style={{ fontSize: '12px', color: '#888' }}>ETB</span>
               </div>
             </div>
@@ -119,7 +119,7 @@ export default function GamesFinancePage() {
                 <div style={{ color: '#4ade80', fontSize: '12px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '1px' }}>Net Profit (Company)</div>
                 <FiTrendingUp color="#4ade80" />
               </div>
-              <div style={{ fontSize: '28px', fontWeight: '900', marginTop: '12px', color: 'white' }}>
+              <div style={{ fontSize: '28px', fontWeight: '900', marginTop: '12px', color: 'var(--cmd-text)' }}>
                 {fmt(data.stats?.netProfit)} <span style={{ fontSize: '12px', color: '#888' }}>ETB</span>
               </div>
             </div>
@@ -129,7 +129,7 @@ export default function GamesFinancePage() {
                 <div style={{ color: '#60a5fa', fontSize: '12px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '1px' }}>Total Rounds / Bets</div>
                 <FiList color="#60a5fa" />
               </div>
-              <div style={{ fontSize: '28px', fontWeight: '900', marginTop: '12px', color: 'white' }}>
+              <div style={{ fontSize: '28px', fontWeight: '900', marginTop: '12px', color: 'var(--cmd-text)' }}>
                 {Number(data.stats?.totalCount || 0).toLocaleString()}
               </div>
             </div>
