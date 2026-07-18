@@ -8,6 +8,7 @@ import {
   FiCreditCard, FiPlay, FiInfo, FiChevronDown, FiArrowRight, FiDownload, FiUpload
 } from 'react-icons/fi';
 import api from '@/lib/api';
+import { Chart } from "react-google-charts";
 
 function DashboardContent() {
   const [stats, setStats] = useState<any>(null);
@@ -194,6 +195,25 @@ function DashboardContent() {
 
   const totalBreakdownStake = breakdownData.reduce((acc: number, item: any) => acc + item.totalStake, 0);
   const totalBreakdownServiceFee = breakdownData.reduce((acc: number, item: any) => acc + item.serviceFee, 0);
+
+  const chartData = [
+    ["Category", "Amount"],
+    ["Company Revenue", realCompanyRevenue],
+    ["Agent Revenue", realAgentRevenue],
+    ["Player Winnings", realPlayerWinnings],
+  ];
+
+  const chartOptions = {
+    backgroundColor: "transparent",
+    pieHole: 0.65,
+    is3D: false,
+    legend: { position: "right" as const, textStyle: { color: "rgba(255,255,255,0.75)", fontSize: 10, bold: true } },
+    chartArea: { width: "100%", height: "85%" },
+    colors: ["#d4af37", "#93c5fd", "#fbbf24"],
+    pieSliceBorderColor: "rgba(61,43,31,0.5)",
+    pieSliceText: "none",
+    tooltip: { textStyle: { color: "#3d2b1f" } },
+  };
 
   return (
     <div className="admin-page">
@@ -543,7 +563,22 @@ function DashboardContent() {
             💰 Real Money Accounting — All Time
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', alignItems: 'center' }}>
+            {/* Chart Section */}
+            {(realCompanyRevenue > 0 || realAgentRevenue > 0 || realPlayerWinnings > 0) && (
+              <div style={{ flex: '1 1 250px', minWidth: '250px', maxWidth: '300px', height: '220px' }}>
+                <Chart
+                  chartType="PieChart"
+                  width="100%"
+                  height="100%"
+                  data={chartData}
+                  options={chartOptions}
+                />
+              </div>
+            )}
+
+            {/* Stats Grid Section */}
+            <div style={{ flex: '2 1 450px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '16px' }}>
             {/* Real Gross Sales */}
             <div style={{ background: 'rgba(255,255,255,0.07)', borderRadius: '16px', padding: '18px', border: '1px solid rgba(255,255,255,0.1)' }}>
               <div style={{ fontSize: '10px', fontWeight: '800', color: 'rgba(255,255,255,0.55)', letterSpacing: '1px', marginBottom: '8px', textTransform: 'uppercase' }}>🎟 Real Ticket Sales</div>
@@ -585,9 +620,10 @@ function DashboardContent() {
               <div style={{ fontSize: '22px', fontWeight: '900', color: 'white' }}>{botWinCount.toLocaleString()}</div>
               <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>Games won by house bots</div>
             </div>
+            </div>
           </div>
 
-          <div style={{ marginTop: '16px', padding: '10px 16px', background: 'rgba(255,255,255,0.05)', borderRadius: '10px', fontSize: '11px', color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <div style={{ marginTop: '20px', padding: '10px 16px', background: 'rgba(255,255,255,0.05)', borderRadius: '10px', fontSize: '11px', color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', gap: '6px' }}>
             ✅ All figures are derived from real deposited cash only — synthetic bot credits and bonus ETB are strictly excluded
           </div>
         </div>
