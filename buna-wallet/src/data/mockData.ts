@@ -1,0 +1,113 @@
+import { Transaction } from '../components/TransactionItem';
+
+export const MOCK_USER = {
+  id: 'USR001',
+  name: 'Abebe Girma',
+  phone: '+251912345678',
+  walletId: 'BW-204-7831',
+  balance: 45_320.50,
+  totalAssets: 52_150.00,
+  rewardPoints: 2_340,
+  vipLevel: 'Gold',
+  avatar: null,
+  kycVerified: true,
+};
+
+export const MOCK_TRANSACTIONS: Transaction[] = [
+  {
+    id: 'TX001',
+    type: 'credit',
+    title: 'Salary Deposit',
+    subtitle: 'From Commercial Bank',
+    amount: 12_000,
+    date: 'Today, 09:30 AM',
+    status: 'completed',
+  },
+  {
+    id: 'TX002',
+    type: 'debit',
+    title: 'Supermarket Payment',
+    subtitle: 'Bole Shola Market',
+    amount: 1_250.75,
+    date: 'Today, 08:15 AM',
+    status: 'completed',
+  },
+  {
+    id: 'TX003',
+    type: 'reward',
+    title: 'Cashback Reward',
+    subtitle: 'Weekend Bonus +5%',
+    amount: 250,
+    date: 'Yesterday, 06:00 PM',
+    status: 'completed',
+  },
+  {
+    id: 'TX004',
+    type: 'transfer',
+    title: 'Sent to Marta T.',
+    subtitle: '+251987654321',
+    amount: 3_500,
+    date: 'Jul 20, 2:45 PM',
+    status: 'completed',
+  },
+  {
+    id: 'TX005',
+    type: 'deposit',
+    title: 'Telebirr Top-up',
+    subtitle: 'Via Telebirr',
+    amount: 5_000,
+    date: 'Jul 19, 11:00 AM',
+    status: 'completed',
+  },
+  {
+    id: 'TX006',
+    type: 'withdraw',
+    title: 'ATM Withdrawal',
+    subtitle: 'CBE ATM - Bole',
+    amount: 2_000,
+    date: 'Jul 18, 03:20 PM',
+    status: 'completed',
+  },
+  {
+    id: 'TX007',
+    type: 'credit',
+    title: 'Bingo Winnings',
+    subtitle: 'Buna Bingo Tournament',
+    amount: 1_500,
+    date: 'Jul 17, 08:00 PM',
+    status: 'completed',
+  },
+  {
+    id: 'TX008',
+    type: 'debit',
+    title: 'Electricity Bill',
+    subtitle: 'EEPCO Payment',
+    amount: 450,
+    date: 'Jul 16, 09:00 AM',
+    status: 'completed',
+  },
+];
+
+export const MOCK_PROMOS = [
+  {
+    id: '1',
+    title: 'Earn 10% Cashback',
+    subtitle: 'On all Telebirr deposits this week',
+    gradient: ['#F5B041', '#E67E22'] as [string, string],
+    icon: 'cash',
+  },
+  {
+    id: '2',
+    title: 'Buna Bingo Jackpot',
+    subtitle: 'ETB 50,000 prize pool – Play now!',
+    gradient: ['#7B3CB3', '#5B2C83'] as [string, string],
+    icon: 'trophy',
+  },
+  {
+    id: '3',
+    title: 'Refer & Earn',
+    subtitle: 'Get ETB 100 for every friend you invite',
+    gradient: ['#2ECC71', '#27AE60'] as [string, string],
+    icon: 'people',
+  },
+];
