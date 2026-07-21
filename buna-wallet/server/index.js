@@ -108,7 +108,7 @@ app.get('/api/health', (_req, res) => {
     telerivet: {
       projectId: process.env.TELERIVET_PROJECT_ID || '(not set)',
       phoneId:   process.env.TELERIVET_PHONE_ID   || '(not set)',
-      webhook:   'https://api.bunatechhub.net/webhook/telerivet',
+      webhook:   'https://api.bunatechhub.net/api/telerivet/webhook',
     },
   });
 });
@@ -235,14 +235,14 @@ app.post('/api/otp/verify', otpVerifyLimiter, async (req, res) => {
   }
 });
 
-// ── POST /webhook/telerivet ──────────────────────────────────────────────────
+// ── POST /api/telerivet/webhook ────────────────────────────────────────────────
 // Configured in Telerivet → Developer API → Webhook URL:
-//   https://api.bunatechhub.net/webhook/telerivet
+//   https://api.bunatechhub.net/api/telerivet/webhook
 //
 // Telerivet calls this endpoint for:
 //   - Message status updates (delivered, failed)
 //   - Incoming replies from users
-app.post('/webhook/telerivet', (req, res) => {
+app.post('/api/telerivet/webhook', (req, res) => {
   try {
     const data = req.body;
     
@@ -302,13 +302,13 @@ app.use((err, _req, res, _next) => {
 });
 
 // ─── Start ───────────────────────────────────────────────────────────────────
-const PORT = parseInt(process.env.PORT || '3002');
+const PORT = parseInt(process.env.PORT || '3004');
 app.listen(PORT, () => {
   console.log('\n' +
     '  ☕  Buna Wallet OTP Server\n' +
     `  🚀  Running on http://localhost:${PORT}\n` +
     `  🌍  Production: https://api.bunatechhub.net\n` +
-    `  📡  Telerivet Webhook: https://api.bunatechhub.net/webhook/telerivet\n` +
+    `  📡  Telerivet Webhook: https://api.bunatechhub.net/api/telerivet/webhook\n` +
     `  🆔  Project ID: ${process.env.TELERIVET_PROJECT_ID || '(not set)'}\n`
   );
 });

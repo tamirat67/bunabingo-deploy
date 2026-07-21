@@ -89,7 +89,7 @@ services:
     container_name: buna-wallet-backend
     restart: always
     ports:
-      - "127.0.0.1:3002:3002"   # ⚠️ INTERNAL ONLY — Nginx proxies :443 → localhost:3002
+      - "127.0.0.1:3004:3004"   # ⚠️ INTERNAL ONLY — Nginx proxies :443 → localhost:3004
     env_file:
       - ./buna-wallet/server/.env
     networks:

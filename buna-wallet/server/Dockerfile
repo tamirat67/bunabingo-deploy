@@ -14,8 +14,8 @@ COPY . .
 # Set environment
 ENV NODE_ENV=production
 
-# Expose port (default 3002 for OTP Server)
-EXPOSE 3002
+# Expose port (default 3004 for OTP Server)
+EXPOSE 3004
 
 # Start the server
 CMD ["node", "index.js"]
