@@ -55,29 +55,8 @@ export const WalletScreen: React.FC = () => {
                 ETB {(MOCK_USER.totalAssets - MOCK_USER.balance).toLocaleString('en-ET', { minimumFractionDigits: 2 })}
               </Body>
             </View>
-          </View>
+            </View>
         </LinearGradient>
-
-        {/* Casino Bridge Banner */}
-        <TouchableOpacity 
-          style={styles.bridgeBanner} 
-          activeOpacity={0.8}
-          onPress={() => navigation.navigate('CasinoBridge')}
-        >
-          <LinearGradient
-            colors={['#5B2C83', '#7B3CB3']}
-            style={StyleSheet.absoluteFill}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-          />
-          <View style={styles.bridgeIconBox}>
-             <Ionicons name="game-controller" size={24} color="#fff" />
-          </View>
-          <View style={{ flex: 1 }}>
-             <Body style={styles.bridgeTitle}>Play Games & Bingo</Body>
-             <Caption style={{ color: 'rgba(255,255,255,0.8)' }}>Transfer to Casino Balance</Caption>
-          </View>
-          <Ionicons name="chevron-forward" size={24} color="#fff" />
-        </TouchableOpacity>
 
         {/* Action Buttons Row */}
         <View style={styles.actionsRow}>
@@ -182,9 +161,6 @@ const styles = StyleSheet.create({
   subLabel: { color: 'rgba(255,255,255,0.45)', marginBottom: 4 },
   subAmount: { fontWeight: Typography.weight.bold, fontSize: Typography.size.base },
   cardDivider: { width: 1, height: 32, backgroundColor: 'rgba(255,255,255,0.15)', marginHorizontal: 24 },
-  bridgeBanner: { borderRadius: BorderRadius.xl, overflow: 'hidden', padding: 16, flexDirection: 'row', alignItems: 'center', marginBottom: 24, ...Shadows.purple },
-  bridgeIconBox: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', marginRight: 16 },
-  bridgeTitle: { color: '#fff', fontWeight: 'bold', marginBottom: 2 },
   actionsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 28 },
   actionBtn: { alignItems: 'center', flex: 1 },
   actionIcon: { width: 52, height: 52, borderRadius: BorderRadius.lg, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
