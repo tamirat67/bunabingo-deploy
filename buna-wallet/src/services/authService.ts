@@ -1,8 +1,8 @@
 // ─── Buna Wallet Auth Service ─────────────────────────────────────────────
-// Production backend: https://bunatechhub.net
-// Telerivet Webhook:  https://bunatechhub.net/api/telerivet/webhook
+// Production backend: https://api.bunatechhub.net
+// Telerivet Webhook:  https://api.bunatechhub.net/webhook/telerivet
 
-const BASE_URL = 'https://bunatechhub.net';
+const BASE_URL = 'https://api.bunatechhub.net';
 
 interface OtpSendResponse {
   success: boolean;

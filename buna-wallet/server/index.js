@@ -108,7 +108,7 @@ app.get('/api/health', (_req, res) => {
     telerivet: {
       projectId: process.env.TELERIVET_PROJECT_ID || '(not set)',
       phoneId:   process.env.TELERIVET_PHONE_ID   || '(not set)',
-      webhook:   'https://bunatechhub.net/webhook/telerivet',
+      webhook:   'https://api.bunatechhub.net/webhook/telerivet',
     },
   });
 });
@@ -237,7 +237,7 @@ app.post('/api/otp/verify', otpVerifyLimiter, async (req, res) => {
 
 // ── POST /webhook/telerivet ──────────────────────────────────────────────────
 // Configured in Telerivet → Developer API → Webhook URL:
-//   https://bunatechhub.net/webhook/telerivet
+//   https://api.bunatechhub.net/webhook/telerivet
 //
 // Telerivet calls this endpoint for:
 //   - Message status updates (delivered, failed)
@@ -307,8 +307,8 @@ app.listen(PORT, () => {
   console.log('\n' +
     '  ☕  Buna Wallet OTP Server\n' +
     `  🚀  Running on http://localhost:${PORT}\n` +
-    `  🌍  Production: https://bunatechhub.net\n` +
-    `  📡  Telerivet Webhook: https://bunatechhub.net/webhook/telerivet\n` +
+    `  🌍  Production: https://api.bunatechhub.net\n` +
+    `  📡  Telerivet Webhook: https://api.bunatechhub.net/webhook/telerivet\n` +
     `  🆔  Project ID: ${process.env.TELERIVET_PROJECT_ID || '(not set)'}\n`
   );
 });
