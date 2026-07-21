@@ -32,6 +32,20 @@ async function setup() {
     console.log('✅ app_deposits table ready');
 
     await pool.query(`
+      CREATE TABLE IF NOT EXISTS app_withdrawals (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL REFERENCES users(id),
+        amount DECIMAL(20,4) NOT NULL,
+        payment_method VARCHAR(50) NOT NULL,
+        account_number VARCHAR(100) NOT NULL,
+        status VARCHAR(20) NOT NULL DEFAULT 'pending',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+    console.log('✅ app_withdrawals table ready');
+
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS app_transactions (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         user_id UUID NOT NULL REFERENCES users(id),

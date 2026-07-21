@@ -72,6 +72,8 @@ export const WalletScreen: React.FC = () => {
               activeOpacity={0.75}
               onPress={() => {
                 if (a.label === 'Deposit') navigation.navigate('Deposit');
+                if (a.label === 'Withdraw') navigation.navigate('Withdraw');
+                if (a.label === 'Send') navigation.navigate('Transfer');
               }}
             >
               <View style={[styles.actionIcon, { backgroundColor: a.bg }]}>

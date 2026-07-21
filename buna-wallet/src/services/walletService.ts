@@ -32,3 +32,61 @@ export async function requestDeposit(payload: DepositRequestPayload): Promise<De
 
   return data;
 }
+
+export interface WithdrawalRequestPayload {
+  userId: string;
+  amount: number;
+  paymentMethod: string;
+  accountNumber: string;
+}
+
+export interface WithdrawalResponse {
+  success: boolean;
+  message: string;
+  withdrawalId?: string;
+  newBalance?: number;
+}
+
+export async function requestWithdrawal(payload: WithdrawalRequestPayload): Promise<WithdrawalResponse> {
+  const response = await fetch(`${BASE_URL}/api/wallet/withdraw`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Withdrawal request failed');
+  }
+
+  return data;
+}
+
+export interface TransferRequestPayload {
+  senderId: string;
+  recipientPhone: string;
+  amount: number;
+}
+
+export interface TransferResponse {
+  success: boolean;
+  message: string;
+  newBalance?: number;
+}
+
+export async function requestTransfer(payload: TransferRequestPayload): Promise<TransferResponse> {
+  const response = await fetch(`${BASE_URL}/api/wallet/transfer`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Transfer failed');
+  }
+
+  return data;
+}

@@ -364,6 +364,161 @@ app.post('/api/wallet/deposit', async (req, res) => {
   }
 });
 
+// ── POST /api/wallet/withdraw ──────────────────────────────────────────────
+app.post('/api/wallet/withdraw', async (req, res) => {
+  try {
+    const { userId, amount, paymentMethod, accountNumber } = req.body;
+    if (!userId || !amount || !paymentMethod || !accountNumber) {
+      return res.status(400).json({ success: false, message: 'Missing required fields.' });
+    }
+
+    if (amount <= 0) {
+      return res.status(400).json({ success: false, message: 'Withdrawal amount must be positive.' });
+    }
+
+    // Begin transaction
+    await db.query('BEGIN');
+
+    // Lock and check wallet balance
+    const walletRes = await db.query(
+      `SELECT balance FROM app_wallets WHERE user_id = (SELECT id FROM users WHERE phone = $1 OR id::text = $1) FOR UPDATE`,
+      [userId]
+    );
+
+    if (walletRes.rows.length === 0) {
+      await db.query('ROLLBACK');
+      return res.status(404).json({ success: false, message: 'Wallet not found.' });
+    }
+
+    const currentBalance = parseFloat(walletRes.rows[0].balance);
+    if (currentBalance < amount) {
+      await db.query('ROLLBACK');
+      return res.status(400).json({ success: false, message: 'Insufficient balance.' });
+    }
+
+    // Deduct balance
+    const newBalance = currentBalance - amount;
+    await db.query(
+      `UPDATE app_wallets SET balance = $1, total_withdrawn = total_withdrawn + $2, updated_at = NOW() WHERE user_id = (SELECT id FROM users WHERE phone = $3 OR id::text = $3)`,
+      [newBalance, amount, userId]
+    );
+
+    // Insert pending withdrawal request
+    const withdrawRes = await db.query(
+      `INSERT INTO app_withdrawals (user_id, amount, payment_method, account_number, status)
+       VALUES ((SELECT id FROM users WHERE phone = $1 OR id::text = $1), $2, $3, $4, 'pending') RETURNING id`,
+      [userId, amount, paymentMethod, accountNumber]
+    );
+    const withdrawalId = withdrawRes.rows[0].id;
+
+    // Log transaction
+    await db.query(
+      `INSERT INTO app_transactions (user_id, type, amount, balance_before, balance_after, status, reference_id, description)
+       VALUES ((SELECT id FROM users WHERE phone = $1 OR id::text = $1), 'WITHDRAWAL', $2, $3, $4, 'pending', $5, $6)`,
+      [userId, amount, currentBalance, newBalance, withdrawalId, `Withdrawal to ${paymentMethod}`]
+    );
+
+    await db.query('COMMIT');
+    console.log(`[App Withdrawal] Created pending withdrawal ${withdrawalId} for user ${userId}`);
+
+    res.json({
+      success: true,
+      message: 'Withdrawal request submitted successfully.',
+      withdrawalId,
+      newBalance
+    });
+  } catch (error) {
+    await db.query('ROLLBACK');
+    console.error('[Withdraw Error]', error);
+    res.status(500).json({ success: false, message: 'Failed to create withdrawal request.' });
+  }
+});
+
+// ── POST /api/wallet/transfer ────────────────────────────────────────────────
+app.post('/api/wallet/transfer', async (req, res) => {
+  try {
+    const { senderId, recipientPhone, amount } = req.body;
+    if (!senderId || !recipientPhone || !amount) {
+      return res.status(400).json({ success: false, message: 'Missing required fields.' });
+    }
+
+    if (amount <= 0) {
+      return res.status(400).json({ success: false, message: 'Transfer amount must be positive.' });
+    }
+
+    const normalizedRecipient = normalizePhone(recipientPhone);
+    if (senderId === normalizedRecipient) {
+      return res.status(400).json({ success: false, message: 'Cannot transfer to yourself.' });
+    }
+
+    await db.query('BEGIN');
+
+    // Get Sender
+    const senderRes = await db.query(
+      `SELECT w.balance, u.id FROM app_wallets w JOIN users u ON w.user_id = u.id WHERE u.phone = $1 OR u.id::text = $1 FOR UPDATE`,
+      [senderId]
+    );
+    if (senderRes.rows.length === 0) {
+      await db.query('ROLLBACK');
+      return res.status(404).json({ success: false, message: 'Sender wallet not found.' });
+    }
+    
+    const sender = senderRes.rows[0];
+    const senderBalance = parseFloat(sender.balance);
+    
+    if (senderBalance < amount) {
+      await db.query('ROLLBACK');
+      return res.status(400).json({ success: false, message: 'Insufficient balance for transfer.' });
+    }
+
+    // Get Recipient
+    const recipientRes = await db.query(
+      `SELECT w.balance, u.id FROM app_wallets w JOIN users u ON w.user_id = u.id WHERE u.phone = $1 FOR UPDATE`,
+      [normalizedRecipient]
+    );
+    if (recipientRes.rows.length === 0) {
+      await db.query('ROLLBACK');
+      return res.status(404).json({ success: false, message: 'Recipient not found in Buna Wallet.' });
+    }
+
+    const recipient = recipientRes.rows[0];
+    const recipientBalance = parseFloat(recipient.balance);
+
+    // Execute transfer
+    const newSenderBalance = senderBalance - amount;
+    const newRecipientBalance = recipientBalance + amount;
+
+    await db.query(`UPDATE app_wallets SET balance = $1, updated_at = NOW() WHERE user_id = $2`, [newSenderBalance, sender.id]);
+    await db.query(`UPDATE app_wallets SET balance = $1, updated_at = NOW() WHERE user_id = $2`, [newRecipientBalance, recipient.id]);
+
+    // Log transactions
+    await db.query(
+      `INSERT INTO app_transactions (user_id, type, amount, balance_before, balance_after, status, description)
+       VALUES ($1, 'TRANSFER_OUT', $2, $3, $4, 'completed', $5)`,
+      [sender.id, amount, senderBalance, newSenderBalance, `Sent to ${normalizedRecipient}`]
+    );
+
+    await db.query(
+      `INSERT INTO app_transactions (user_id, type, amount, balance_before, balance_after, status, description)
+       VALUES ($1, 'TRANSFER_IN', $2, $3, $4, 'completed', $5)`,
+      [recipient.id, amount, recipientBalance, newRecipientBalance, `Received from ${senderId}`]
+    );
+
+    await db.query('COMMIT');
+    console.log(`[App Transfer] ${amount} ETB from ${senderId} to ${normalizedRecipient}`);
+
+    res.json({
+      success: true,
+      message: 'Transfer successful.',
+      newBalance: newSenderBalance
+    });
+  } catch (error) {
+    await db.query('ROLLBACK');
+    console.error('[Transfer Error]', error);
+    res.status(500).json({ success: false, message: 'Transfer failed.' });
+  }
+});
+
 // ── POST /api/telerivet/webhook ────────────────────────────────────────────────
 // Configured in Telerivet → Developer API → Webhook URL:
 //   https://api.bunatechhub.net/api/telerivet/webhook

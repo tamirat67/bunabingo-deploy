@@ -16,6 +16,8 @@ import { RewardsScreen } from '../screens/RewardsScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { QRScanScreen } from '../screens/QRScanScreen';
 import { DepositScreen } from '../screens/DepositScreen';
+import { WithdrawScreen } from '../screens/WithdrawScreen';
+import { TransferScreen } from '../screens/TransferScreen';
 import { useAuth } from '../context/AuthContext';
 
 const Tab = createBottomTabNavigator();
@@ -125,6 +127,8 @@ function MainTabs() {
 export type RootStackParamList = {
   MainTabs: undefined;
   Deposit: undefined;
+  Withdraw: undefined;
+  Transfer: undefined;
 };
 const AuthenticatedStack = createNativeStackNavigator<RootStackParamList>();
 
@@ -133,6 +137,8 @@ function AuthenticatedNavigator() {
     <AuthenticatedStack.Navigator screenOptions={{ headerShown: false }}>
       <AuthenticatedStack.Screen name="MainTabs" component={MainTabs} />
       <AuthenticatedStack.Screen name="Deposit" component={DepositScreen} />
+      <AuthenticatedStack.Screen name="Withdraw" component={WithdrawScreen} />
+      <AuthenticatedStack.Screen name="Transfer" component={TransferScreen} />
     </AuthenticatedStack.Navigator>
   );
 }

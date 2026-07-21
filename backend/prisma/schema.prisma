@@ -76,6 +76,7 @@ model User {
   // React Native App Relations
   appWallet            AppWallet?
   appDeposits          AppDeposit[]
+  appWithdrawals       AppWithdrawal[]
   appTransactions      AppTransaction[]
 
   // Self-relation for referrals
@@ -665,6 +666,22 @@ model AppDeposit {
 
   @@index([userId])
   @@map("app_deposits")
+}
+
+model AppWithdrawal {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String   @db.Uuid @map("user_id")
+  amount        Decimal  @db.Decimal(20, 4)
+  paymentMethod String   @map("payment_method")
+  accountNumber String   @map("account_number")
+  status        String   @default("pending")
+  createdAt     DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt     DateTime @default(now()) @db.Timestamptz(6) @map("updated_at")
+
+  user          User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("app_withdrawals")
 }
 
 model AppTransaction {
