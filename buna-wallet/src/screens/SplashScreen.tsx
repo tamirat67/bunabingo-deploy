@@ -72,7 +72,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
         ]}
       >
         <Image 
-          source={require('../../assets/logo.png')} 
+          source={require('../../assets/icon.png')} 
           style={styles.logoImage} 
           resizeMode="contain"
         />

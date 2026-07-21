@@ -73,6 +73,11 @@ model User {
   adminSettlements     AgentSettlement[] @relation("AdminSettlements")
   aviatorBets          AviatorBet[]
 
+  // React Native App Relations
+  appWallet            AppWallet?
+  appDeposits          AppDeposit[]
+  appTransactions      AppTransaction[]
+
   // Self-relation for referrals
   referrer         User?    @relation("UserReferrals", fields: [referredBy], references: [id])
   referrals        User[]   @relation("UserReferrals")
@@ -626,4 +631,57 @@ model ChickenRoadGame {
   @@index([userId])
   @@index([createdAt])
   @@map("chicken_road_games")
+}
+
+// ============================================================
+// React Native Mobile App Wallet Models
+// ============================================================
+
+model AppWallet {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String   @unique @db.Uuid @map("user_id")
+  balance         Decimal  @default(0) @db.Decimal(20, 4)
+  totalDeposited  Decimal  @default(0) @db.Decimal(20, 4) @map("total_deposited")
+  totalWithdrawn  Decimal  @default(0) @db.Decimal(20, 4) @map("total_withdrawn")
+  createdAt       DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt       DateTime @default(now()) @db.Timestamptz(6) @map("updated_at")
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("app_wallets")
+}
+
+model AppDeposit {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String   @db.Uuid @map("user_id")
+  amount      Decimal  @db.Decimal(20, 4)
+  txnId       String   @unique @map("txn_id")
+  receiptUrl  String?  @map("receipt_url")
+  status      String   @default("pending")
+  createdAt   DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt   DateTime @default(now()) @db.Timestamptz(6) @map("updated_at")
+
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("app_deposits")
+}
+
+model AppTransaction {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String   @db.Uuid @map("user_id")
+  type          String
+  amount        Decimal  @db.Decimal(20, 4)
+  balanceBefore Decimal  @db.Decimal(20, 4) @map("balance_before")
+  balanceAfter  Decimal  @db.Decimal(20, 4) @map("balance_after")
+  status        String   @default("completed")
+  referenceId   String?  @map("reference_id")
+  description   String?
+  createdAt     DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  user          User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([referenceId])
+  @@map("app_transactions")
 }

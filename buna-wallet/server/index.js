@@ -3,6 +3,8 @@ const express = require('express');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const fetch = require('node-fetch');
+const db = require('./db'); // Connects to existing Buna Bingo Postgres DB
+const { parseTelebirrSms } = require('./telebirrParser');
 
 const app = express();
 
@@ -94,6 +96,47 @@ async function sendSMSViaTelerivet(phone, message) {
     throw new Error(data.message || `SMS send failed (${response.status})`);
   }
   return data;
+}
+
+// ─── Online Receipt Verification (Security against SMS Spoofing) ────────────
+async function verifyReceiptOnline(transactionId) {
+  const engineHost = process.env.BUNA_ENGINE_HOST || 'https://rexhetmfgnf.bunatech.net.et';
+  const engineKey = process.env.BUNA_ENGINE_KEY || '9f7a2d8e4c6b1a0f9e8d7c6b5a43210fe9';
+  const host = engineHost.replace(/\/$/, '');
+  
+  const scraperUrl = `${host}/validate/${transactionId}`;
+  const altScraperUrl = `${host}/?txnId=${transactionId}`;
+  
+  try {
+    console.log(`[Verify] Checking ${transactionId} via ${scraperUrl}...`);
+    let res = await fetch(scraperUrl, {
+      headers: { 'x-api-key': engineKey },
+      timeout: 5000
+    });
+    
+    if (!res.ok) {
+      console.log(`[Verify] Primary scraper failed, trying alt: ${altScraperUrl}`);
+      res = await fetch(altScraperUrl, { timeout: 5000 });
+    }
+    
+    if (res.ok) {
+      const responseData = await res.json();
+      console.log(`[Verify] Scraper response: ${JSON.stringify(responseData)}`);
+      
+      const isSuccess = responseData?.success === true || responseData?.status === 'success' || responseData?.valid === true;
+      const matchesTxn = responseData?.data?.transactionId === transactionId || 
+                         responseData?.transactionId === transactionId ||
+                         responseData?.txnId === transactionId;
+      
+      if (isSuccess || matchesTxn) {
+        return true; // Verified successfully!
+      }
+    }
+  } catch (err) {
+    console.warn(`[Verify] Engine check failed for ${transactionId}: ${err.message}`);
+  }
+  
+  return false;
 }
 
 // ─── Routes ──────────────────────────────────────────────────────────────────
@@ -219,19 +262,105 @@ app.post('/api/otp/verify', otpVerifyLimiter, async (req, res) => {
     otpStore.delete(normalizedPhone);
     console.log(`[OTP] ✅ Verified: ${normalizedPhone}`);
 
+    // Check if user exists in the Buna Bingo Postgres Database
+    let userId = null;
+    let isNewUser = false;
+    let appWalletBalance = 0;
+
+    // Look up by phone number. Note: Buna Bingo stores it as BigInt (telegram_id) or string (phone/phone_number)
+    // We will check the `phone` or `phone_number` columns.
+    const userResult = await db.query(
+      `SELECT id FROM users WHERE phone = $1 OR phone_number = $1 OR telegram_id::text = $2 LIMIT 1`,
+      [normalizedPhone, normalizedPhone.replace('+', '')]
+    );
+
+    if (userResult.rows.length > 0) {
+      userId = userResult.rows[0].id;
+      isNewUser = false;
+      console.log(`[DB] Existing user found: ${userId}`);
+    } else {
+      // Create new user in Buna Bingo DB so they can also use the bot later!
+      const newUserIdRes = await db.query(
+        `INSERT INTO users (phone, phone_number, telegram_id) VALUES ($1, $1, $2) RETURNING id`,
+        [normalizedPhone, Date.now() + Math.floor(Math.random() * 1000)] // Fake telegram_id for now to avoid unique constraint issues
+      );
+      userId = newUserIdRes.rows[0].id;
+      isNewUser = true;
+      console.log(`[DB] New user created: ${userId}`);
+    }
+
+    // Ensure they have an AppWallet (so we don't mess with Buna Bingo wallets)
+    const walletRes = await db.query(
+      `SELECT balance FROM app_wallets WHERE user_id = $1 LIMIT 1`,
+      [userId]
+    );
+
+    if (walletRes.rows.length > 0) {
+      appWalletBalance = walletRes.rows[0].balance;
+    } else {
+      // Create their React Native wallet
+      await db.query(
+        `INSERT INTO app_wallets (user_id, balance) VALUES ($1, 0.00)`,
+        [userId]
+      );
+      appWalletBalance = 0.00;
+    }
+
     // TODO: replace sessionToken with a proper JWT
-    const sessionToken = Buffer.from(`${normalizedPhone}:${Date.now()}`).toString('base64');
+    const sessionToken = Buffer.from(`${userId}:${Date.now()}`).toString('base64');
 
     res.json({
       success: true,
       message: 'Phone verified successfully.',
       phone: normalizedPhone,
+      userId: userId,
+      balance: appWalletBalance,
       token: sessionToken,
-      isNewUser: false,
+      isNewUser: isNewUser,
     });
   } catch (error) {
     console.error('[OTP Verify Error]', error.message);
     res.status(500).json({ success: false, message: 'Verification failed. Please try again.' });
+  }
+});
+
+// ── POST /api/wallet/deposit ─────────────────────────────────────────────────
+app.post('/api/wallet/deposit', async (req, res) => {
+  try {
+    const { userId, amount, txnId } = req.body;
+    if (!userId || !amount || !txnId) {
+      return res.status(400).json({ success: false, message: 'userId, amount, and txnId are required.' });
+    }
+
+    if (amount <= 0) {
+      return res.status(400).json({ success: false, message: 'Deposit amount must be positive.' });
+    }
+
+    // Verify user exists
+    const userRes = await db.query(`SELECT id FROM users WHERE id = $1`, [userId]);
+    if (userRes.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+
+    // Insert pending deposit
+    await db.query(
+      `INSERT INTO app_deposits (user_id, amount, txn_id, status) VALUES ($1, $2, $3, 'pending')`,
+      [userId, amount, txnId]
+    );
+
+    console.log(`[App Deposit] Created pending deposit ${txnId} for user ${userId}`);
+
+    res.json({
+      success: true,
+      message: 'Deposit request created. Waiting for SMS verification.',
+      txnId
+    });
+  } catch (error) {
+    if (error.code === '23505') { // Unique constraint violation (e.g., duplicate txn_id)
+      return res.status(400).json({ success: false, message: 'This transaction ID has already been submitted.' });
+    }
+    console.error('[Deposit Error]', error);
+    res.status(500).json({ success: false, message: 'Failed to create deposit request.' });
   }
 });
 
@@ -272,10 +401,11 @@ app.post('/api/telerivet/webhook', (req, res) => {
       }
     }
 
-    // Handle incoming replies (e.g. user accidentally replies to OTP SMS)
+    // Handle incoming replies or Telebirr SMS
     if (dir === 'incoming' || event === 'incoming_message') {
       console.log(`[Telerivet] Incoming from ${from}: "${content}"`);
-      // Optionally auto-verify if they reply with a valid OTP code
+      
+      // 1. Check if it's an OTP reply
       const normalized = normalizePhone(from);
       const stored = otpStore.get(normalized);
       const otpCode = content.replace(/\D/g, '').trim();
@@ -283,6 +413,73 @@ app.post('/api/telerivet/webhook', (req, res) => {
       if (stored && otpCode.length === OTP_LENGTH && stored.code === otpCode) {
         otpStore.delete(normalized);
         console.log(`[Telerivet] ✅ Auto-verified via SMS reply: ${normalized}`);
+      }
+
+      // 2. Check if it's a Telebirr Deposit SMS
+      const parsedTelebirr = parseTelebirrSms(content);
+      if (parsedTelebirr && parsedTelebirr.transactionId) {
+        console.log(`[Telebirr Auto-Verify] Detected TxnId: ${parsedTelebirr.transactionId}, Amount: ${parsedTelebirr.amount}`);
+        
+        // Find a pending deposit in the React Native Wallet tables that matches this TxnId
+        const depositRes = await db.query(
+          `SELECT id, user_id, amount FROM app_deposits WHERE txn_id = $1 AND status = 'pending' LIMIT 1`,
+          [parsedTelebirr.transactionId]
+        );
+
+        if (depositRes.rows.length > 0) {
+          const deposit = depositRes.rows[0];
+          
+          // Verify amount matches (with small tolerance if needed)
+          if (Math.abs(parseFloat(deposit.amount) - parsedTelebirr.amount) <= 5) {
+            console.log(`[Telebirr Auto-Verify] Local match found! Calling external Scraper Engine for security verification...`);
+            
+            // SECURITY CHECK: Verify the receipt actually exists on Ethio Telecom via Buna Engine Scraper
+            const isOnlineVerified = await verifyReceiptOnline(parsedTelebirr.transactionId);
+            
+            if (isOnlineVerified) {
+              console.log(`[Telebirr Auto-Verify] Online Verification Passed! Crediting User ${deposit.user_id} Wallet...`);
+              
+              // Execute automated crediting in a transaction
+              try {
+                await db.query('BEGIN');
+                
+                // 1. Mark deposit as approved
+                await db.query(
+                  `UPDATE app_deposits SET status = 'approved', updated_at = NOW() WHERE id = $1`,
+                  [deposit.id]
+                );
+                
+                // 2. Update wallet balance
+                const walletUpdate = await db.query(
+                  `UPDATE app_wallets SET balance = balance + $1, total_deposited = total_deposited + $1, updated_at = NOW() WHERE user_id = $2 RETURNING balance`,
+                  [deposit.amount, deposit.user_id]
+                );
+                
+                const newBalance = walletUpdate.rows[0].balance;
+                
+                // 3. Log transaction
+                await db.query(
+                  `INSERT INTO app_transactions (user_id, type, amount, balance_before, balance_after, status, reference_id, description)
+                   VALUES ($1, 'DEPOSIT', $2, $3, $4, 'completed', $5, 'Automated Telebirr SMS + Online Verification')`,
+                  [deposit.user_id, deposit.amount, newBalance - deposit.amount, newBalance, parsedTelebirr.transactionId]
+                );
+                
+                await db.query('COMMIT');
+                console.log(`[Telebirr Auto-Verify] ✅ Success! User ${deposit.user_id} balance is now ${newBalance} ETB.`);
+              } catch (err) {
+                await db.query('ROLLBACK');
+                console.error(`[Telebirr Auto-Verify] ❌ DB Transaction Failed:`, err);
+              }
+            } else {
+              console.warn(`[Telebirr Auto-Verify] 🚨 ONLINE VERIFICATION FAILED. Receipt ${parsedTelebirr.transactionId} could not be validated with the external engine! Rejecting automated credit.`);
+              // Optional: Mark deposit as failed/flagged
+            }
+          } else {
+            console.warn(`[Telebirr Auto-Verify] Amount mismatch! Expected ${deposit.amount}, got ${parsedTelebirr.amount}`);
+          }
+        } else {
+          console.log(`[Telebirr Auto-Verify] No pending deposit found for TxnId: ${parsedTelebirr.transactionId}`);
+        }
       }
     }
 

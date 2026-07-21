@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { 
   FiPieChart, FiUsers, FiUserCheck, FiDollarSign, 
   FiSettings, FiLogOut, FiMenu, FiX, FiAward,
-  FiActivity, FiShield, FiCreditCard, FiCalendar, FiChevronDown, FiChevronRight, FiTrendingUp, FiGrid, FiFileText
+  FiActivity, FiShield, FiCreditCard, FiCalendar, FiChevronDown, FiChevronRight, FiTrendingUp, FiGrid, FiFileText, FiSmartphone, FiMessageSquare
 } from 'react-icons/fi';
 import api from '@/lib/api';
 import '@/app/admin.css';
@@ -18,7 +18,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [expanded, setExpanded] = useState({ 
     network: pathname.startsWith('/admin/users') || pathname.startsWith('/admin/agents') || pathname.startsWith('/admin/players'), 
     finance: pathname.startsWith('/admin/transactions') || pathname.startsWith('/admin/revenue') || pathname.startsWith('/admin/company-profit'), 
-    system: pathname.startsWith('/admin/audit') || pathname.startsWith('/admin/logs') || pathname.startsWith('/admin/settings') 
+    system: pathname.startsWith('/admin/audit') || pathname.startsWith('/admin/logs') || pathname.startsWith('/admin/settings'),
+    bunaWallet: pathname.startsWith('/admin/buna-wallet')
   });
   const [user, setUser] = useState<any>(null);
   // Ref to track if we've already successfully loaded the user.
@@ -202,6 +203,28 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   <NavLink href="/admin/revenue" icon={<FiTrendingUp />} label="Platform Revenue" />
                   {isAdmin && <NavLink href="/admin/company-profit" icon={<FiDollarSign />} label="Agent Profit & Debt" />}
                   {isAdmin && <NavLink href="/admin/games-finance" icon={<FiActivity />} label="Games Finance" />}
+                </>
+              )}
+              
+              {isAdmin && (
+                <>
+                  {isSidebarOpen ? (
+                    <button 
+                      onClick={() => setExpanded(p => ({...p, bunaWallet: !p.bunaWallet}))}
+                      style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'none', border: 'none', cursor: 'pointer', fontSize: '10px', fontWeight: '800', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '16px', marginBottom: '8px', paddingLeft: '14px', paddingRight: '14px' }}
+                    >
+                      <span style={{ color: '#d4af37' }}>Buna Wallet</span>
+                      {expanded.bunaWallet ? <FiChevronDown size={14} color="#d4af37" /> : <FiChevronRight size={14} color="#d4af37" />}
+                    </button>
+                  ) : <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)', margin: '16px 14px 8px 14px' }} />}
+                  
+                  {(expanded.bunaWallet || !isSidebarOpen) && (
+                    <>
+                      <NavLink href="/admin/buna-wallet" icon={<FiSmartphone />} label="Wallet Overview" />
+                      <NavLink href="/admin/buna-wallet/transactions" icon={<FiDollarSign />} label="Transfers & Refills" />
+                      <NavLink href="/admin/buna-wallet/otp-logs" icon={<FiMessageSquare />} label="OTP SMS Logs" />
+                    </>
+                  )}
                 </>
               )}
               
