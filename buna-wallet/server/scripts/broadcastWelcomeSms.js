@@ -86,9 +86,9 @@ async function broadcastSMS() {
         failCount++;
       }
 
-      // WAIT 2 SECONDS BETWEEN SMS
+      // WAIT 10 SECONDS BETWEEN SMS
       // (Telerivet & EthioTelecom have strict rate limits for mass SMS on standard Android phones)
-      await sleep(2000); 
+      await sleep(10000); 
     }
 
     console.log('🎉 Broadcast Complete!');
