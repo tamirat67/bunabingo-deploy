@@ -90,3 +90,38 @@ export async function requestTransfer(payload: TransferRequestPayload): Promise<
 
   return data;
 }
+
+export interface BridgeRequestPayload {
+  userId: string;
+  amount: number;
+}
+
+export interface BridgeResponse {
+  success: boolean;
+  message: string;
+  newBalance?: number;
+}
+
+export async function transferToCasino(payload: BridgeRequestPayload): Promise<BridgeResponse> {
+  const response = await fetch(`${BASE_URL}/api/wallet/bridge/to-casino`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || 'Transfer to Casino failed');
+  return data;
+}
+
+export async function transferToWallet(payload: BridgeRequestPayload): Promise<BridgeResponse> {
+  const response = await fetch(`${BASE_URL}/api/wallet/bridge/to-wallet`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || 'Transfer to App Wallet failed');
+  return data;
+}

@@ -18,6 +18,7 @@ import { QRScanScreen } from '../screens/QRScanScreen';
 import { DepositScreen } from '../screens/DepositScreen';
 import { WithdrawScreen } from '../screens/WithdrawScreen';
 import { TransferScreen } from '../screens/TransferScreen';
+import { CasinoBridgeScreen } from '../screens/CasinoBridgeScreen';
 import { useAuth } from '../context/AuthContext';
 
 const Tab = createBottomTabNavigator();
@@ -129,6 +130,7 @@ export type RootStackParamList = {
   Deposit: undefined;
   Withdraw: undefined;
   Transfer: undefined;
+  CasinoBridge: undefined;
 };
 const AuthenticatedStack = createNativeStackNavigator<RootStackParamList>();
 
@@ -139,6 +141,7 @@ function AuthenticatedNavigator() {
       <AuthenticatedStack.Screen name="Deposit" component={DepositScreen} />
       <AuthenticatedStack.Screen name="Withdraw" component={WithdrawScreen} />
       <AuthenticatedStack.Screen name="Transfer" component={TransferScreen} />
+      <AuthenticatedStack.Screen name="CasinoBridge" component={CasinoBridgeScreen} />
     </AuthenticatedStack.Navigator>
   );
 }

@@ -519,6 +519,136 @@ app.post('/api/wallet/transfer', async (req, res) => {
   }
 });
 
+// ── POST /api/wallet/bridge/to-casino ────────────────────────────────────────
+app.post('/api/wallet/bridge/to-casino', async (req, res) => {
+  try {
+    const { userId, amount } = req.body; // userId here is phone or ID
+    if (!userId || !amount || amount <= 0) {
+      return res.status(400).json({ success: false, message: 'Invalid amount.' });
+    }
+
+    await db.query('BEGIN');
+
+    // 1. Get User ID (UUID) and lock App Wallet
+    const appWalletRes = await db.query(
+      `SELECT aw.balance, u.id as user_uuid FROM app_wallets aw JOIN users u ON aw.user_id = u.id WHERE u.phone = $1 OR u.id::text = $1 FOR UPDATE`,
+      [userId]
+    );
+
+    if (appWalletRes.rows.length === 0) {
+      await db.query('ROLLBACK');
+      return res.status(404).json({ success: false, message: 'App Wallet not found.' });
+    }
+
+    const { balance: appBalance, user_uuid } = appWalletRes.rows[0];
+    if (parseFloat(appBalance) < amount) {
+      await db.query('ROLLBACK');
+      return res.status(400).json({ success: false, message: 'Insufficient balance in App Wallet.' });
+    }
+
+    // 2. Lock Casino Wallet
+    const casinoWalletRes = await db.query(
+      `SELECT balance FROM wallets WHERE user_id = $1 FOR UPDATE`,
+      [user_uuid]
+    );
+
+    if (casinoWalletRes.rows.length === 0) {
+      await db.query('ROLLBACK');
+      return res.status(404).json({ success: false, message: 'Casino Wallet not found for this user.' });
+    }
+
+    const casinoBalance = parseFloat(casinoWalletRes.rows[0].balance);
+
+    // 3. Move funds
+    const newAppBalance = parseFloat(appBalance) - amount;
+    const newCasinoBalance = casinoBalance + amount;
+
+    await db.query(`UPDATE app_wallets SET balance = $1, updated_at = NOW() WHERE user_id = $2`, [newAppBalance, user_uuid]);
+    await db.query(`UPDATE wallets SET balance = $1, updated_at = NOW() WHERE user_id = $2`, [newCasinoBalance, user_uuid]);
+
+    // 4. Log transactions
+    await db.query(
+      `INSERT INTO app_transactions (user_id, type, amount, balance_before, balance_after, status, description)
+       VALUES ($1, 'BRIDGE_OUT', $2, $3, $4, 'completed', 'Transfer to Casino Games')`,
+      [user_uuid, amount, appBalance, newAppBalance]
+    );
+
+    await db.query('COMMIT');
+    console.log(`[Casino Bridge] ${amount} ETB moved from App Wallet to Casino for user ${user_uuid}`);
+
+    res.json({ success: true, message: 'Transferred to Casino successfully!', newBalance: newAppBalance });
+  } catch (error) {
+    await db.query('ROLLBACK');
+    console.error('[Bridge Error]', error);
+    res.status(500).json({ success: false, message: 'Bridge transfer failed.' });
+  }
+});
+
+// ── POST /api/wallet/bridge/to-wallet ────────────────────────────────────────
+app.post('/api/wallet/bridge/to-wallet', async (req, res) => {
+  try {
+    const { userId, amount } = req.body;
+    if (!userId || !amount || amount <= 0) {
+      return res.status(400).json({ success: false, message: 'Invalid amount.' });
+    }
+
+    await db.query('BEGIN');
+
+    // 1. Get User ID (UUID) and lock App Wallet
+    const appWalletRes = await db.query(
+      `SELECT aw.balance, u.id as user_uuid FROM app_wallets aw JOIN users u ON aw.user_id = u.id WHERE u.phone = $1 OR u.id::text = $1 FOR UPDATE`,
+      [userId]
+    );
+
+    if (appWalletRes.rows.length === 0) {
+      await db.query('ROLLBACK');
+      return res.status(404).json({ success: false, message: 'App Wallet not found.' });
+    }
+
+    const { balance: appBalance, user_uuid } = appWalletRes.rows[0];
+
+    // 2. Lock Casino Wallet
+    const casinoWalletRes = await db.query(
+      `SELECT balance FROM wallets WHERE user_id = $1 FOR UPDATE`,
+      [user_uuid]
+    );
+
+    if (casinoWalletRes.rows.length === 0) {
+      await db.query('ROLLBACK');
+      return res.status(404).json({ success: false, message: 'Casino Wallet not found.' });
+    }
+
+    const casinoBalance = parseFloat(casinoWalletRes.rows[0].balance);
+    if (casinoBalance < amount) {
+      await db.query('ROLLBACK');
+      return res.status(400).json({ success: false, message: 'Insufficient balance in Casino.' });
+    }
+
+    // 3. Move funds
+    const newAppBalance = parseFloat(appBalance) + amount;
+    const newCasinoBalance = casinoBalance - amount;
+
+    await db.query(`UPDATE app_wallets SET balance = $1, updated_at = NOW() WHERE user_id = $2`, [newAppBalance, user_uuid]);
+    await db.query(`UPDATE wallets SET balance = $1, updated_at = NOW() WHERE user_id = $2`, [newCasinoBalance, user_uuid]);
+
+    // 4. Log transactions
+    await db.query(
+      `INSERT INTO app_transactions (user_id, type, amount, balance_before, balance_after, status, description)
+       VALUES ($1, 'BRIDGE_IN', $2, $3, $4, 'completed', 'Withdraw from Casino Games')`,
+      [user_uuid, amount, appBalance, newAppBalance]
+    );
+
+    await db.query('COMMIT');
+    console.log(`[Casino Bridge] ${amount} ETB moved from Casino to App Wallet for user ${user_uuid}`);
+
+    res.json({ success: true, message: 'Transferred to App Wallet successfully!', newBalance: newAppBalance });
+  } catch (error) {
+    await db.query('ROLLBACK');
+    console.error('[Bridge Error]', error);
+    res.status(500).json({ success: false, message: 'Bridge transfer failed.' });
+  }
+});
+
 // ── POST /api/telerivet/webhook ────────────────────────────────────────────────
 // Configured in Telerivet → Developer API → Webhook URL:
 //   https://api.bunatechhub.net/api/telerivet/webhook
