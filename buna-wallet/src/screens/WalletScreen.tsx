@@ -82,10 +82,10 @@ export const WalletScreen: React.FC = () => {
           ))}
         </View>
 
-        {/* Deposit Methods */}
+        {/* Deposit Methods (Horizontal Scroll for many items) */}
         <View style={styles.section}>
           <H3 style={styles.sectionTitle}>Deposit Methods</H3>
-          <View style={styles.methodsGrid}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.methodsGrid}>
             {DEPOSIT_METHODS.map((m, i) => (
               <TouchableOpacity 
                 key={i} 
@@ -93,13 +93,14 @@ export const WalletScreen: React.FC = () => {
                 activeOpacity={0.75}
                 onPress={() => {
                   if (m.name === 'Telebirr') navigation.navigate('Deposit');
+                  // TODO: Handle future integrations
                 }}
               >
                 <Body style={styles.methodIcon}>{m.icon}</Body>
                 <Caption style={styles.methodName}>{m.name}</Caption>
               </TouchableOpacity>
             ))}
-          </View>
+          </ScrollView>
         </View>
 
         {/* Transactions */}
@@ -120,9 +121,13 @@ export const WalletScreen: React.FC = () => {
 
 const DEPOSIT_METHODS = [
   { icon: '📱', name: 'Telebirr' },
-  { icon: '🏦', name: 'CBE Birr' },
-  { icon: '💳', name: 'Bank Transfer' },
-  { icon: '💳', name: 'Visa/MC' },
+  { icon: '🟢', name: 'M-PESA' },
+  { icon: '💳', name: 'SantimPay' },
+  { icon: '💸', name: 'Kacha' },
+  { icon: '💼', name: 'Amole' },
+  { icon: '🇪🇹', name: 'E-birr' },
+  { icon: '🏦', name: 'YaYa Wallet' },
+  { icon: '🪙', name: 'HabeshaCoin' },
 ];
 
 const styles = StyleSheet.create({
@@ -160,12 +165,12 @@ const styles = StyleSheet.create({
   actionLabel: { color: Colors.textSecondary, fontWeight: Typography.weight.medium },
   section: { marginBottom: 28 },
   sectionTitle: { marginBottom: 16 },
-  methodsGrid: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
+  methodsGrid: { flexDirection: 'row', gap: 12, paddingRight: 24 },
   methodCard: {
-    flex: 1, backgroundColor: Colors.card, borderRadius: BorderRadius.lg,
+    width: 90, backgroundColor: Colors.card, borderRadius: BorderRadius.lg,
     alignItems: 'center', paddingVertical: 14,
     borderWidth: 1, borderColor: Colors.border,
   },
-  methodIcon: { fontSize: 24, marginBottom: 6 },
+  methodIcon: { fontSize: 28, marginBottom: 8 },
   methodName: { color: Colors.textSecondary, fontWeight: Typography.weight.medium },
 });
