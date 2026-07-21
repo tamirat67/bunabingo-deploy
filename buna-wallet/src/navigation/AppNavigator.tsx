@@ -15,6 +15,7 @@ import { WalletScreen } from '../screens/WalletScreen';
 import { RewardsScreen } from '../screens/RewardsScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { QRScanScreen } from '../screens/QRScanScreen';
+import { DepositScreen } from '../screens/DepositScreen';
 import { useAuth } from '../context/AuthContext';
 
 const Tab = createBottomTabNavigator();
@@ -120,6 +121,22 @@ function MainTabs() {
   );
 }
 
+// ─── Authenticated Root Stack ───────────────────────────────────────────────────
+export type RootStackParamList = {
+  MainTabs: undefined;
+  Deposit: undefined;
+};
+const AuthenticatedStack = createNativeStackNavigator<RootStackParamList>();
+
+function AuthenticatedNavigator() {
+  return (
+    <AuthenticatedStack.Navigator screenOptions={{ headerShown: false }}>
+      <AuthenticatedStack.Screen name="MainTabs" component={MainTabs} />
+      <AuthenticatedStack.Screen name="Deposit" component={DepositScreen} />
+    </AuthenticatedStack.Navigator>
+  );
+}
+
 // ─── Root Navigator ────────────────────────────────────────────────────────────
 export const AppNavigator: React.FC = () => {
   const { step, goToLogin } = useAuth();
@@ -151,7 +168,7 @@ export const AppNavigator: React.FC = () => {
   // Authenticated — show main app
   return (
     <NavigationContainer>
-      <MainTabs />
+      <AuthenticatedNavigator />
     </NavigationContainer>
   );
 };

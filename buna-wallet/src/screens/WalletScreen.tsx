@@ -1,5 +1,8 @@
 import React from 'react';
 import { View, StyleSheet, ScrollView, StatusBar, TouchableOpacity } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RootStackParamList } from '../navigation/AppNavigator';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, BorderRadius, Spacing, Shadows } from '../theme';
@@ -10,6 +13,8 @@ import { H2, H3, Body, Caption, Label, Amount } from '../components/Typography';
 import { MOCK_USER, MOCK_TRANSACTIONS } from '../data/mockData';
 
 export const WalletScreen: React.FC = () => {
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
@@ -61,7 +66,14 @@ export const WalletScreen: React.FC = () => {
             { icon: 'send', label: 'Send', color: Colors.secondary, bg: 'rgba(245,176,65,0.12)' },
             { icon: 'qr-code', label: 'Pay', color: Colors.accent, bg: 'rgba(91,44,131,0.12)' },
           ].map((a, i) => (
-            <TouchableOpacity key={i} style={styles.actionBtn} activeOpacity={0.75}>
+            <TouchableOpacity 
+              key={i} 
+              style={styles.actionBtn} 
+              activeOpacity={0.75}
+              onPress={() => {
+                if (a.label === 'Deposit') navigation.navigate('Deposit');
+              }}
+            >
               <View style={[styles.actionIcon, { backgroundColor: a.bg }]}>
                 <Ionicons name={a.icon as any} size={22} color={a.color} />
               </View>
@@ -75,7 +87,14 @@ export const WalletScreen: React.FC = () => {
           <H3 style={styles.sectionTitle}>Deposit Methods</H3>
           <View style={styles.methodsGrid}>
             {DEPOSIT_METHODS.map((m, i) => (
-              <TouchableOpacity key={i} style={styles.methodCard} activeOpacity={0.75}>
+              <TouchableOpacity 
+                key={i} 
+                style={styles.methodCard} 
+                activeOpacity={0.75}
+                onPress={() => {
+                  if (m.name === 'Telebirr') navigation.navigate('Deposit');
+                }}
+              >
                 <Body style={styles.methodIcon}>{m.icon}</Body>
                 <Caption style={styles.methodName}>{m.name}</Caption>
               </TouchableOpacity>
