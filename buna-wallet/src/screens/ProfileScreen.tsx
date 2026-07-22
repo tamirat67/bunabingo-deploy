@@ -1,131 +1,226 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView, StatusBar, TouchableOpacity, Alert } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  StatusBar,
+  TouchableOpacity,
+  SafeAreaView,
+  Alert,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Typography, BorderRadius } from '../theme';
-import { H2, H3, Body, Caption, Label } from '../components/Typography';
-import { MOCK_USER } from '../data/mockData';
 import { useAuth } from '../context/AuthContext';
 
-export const ProfileScreen: React.FC = () => {
-  const { user, updateProfileName, logout } = useAuth();
+const GOLD = '#D4AF37';
+const TEXT_DARK = '#1C1C1E';
+const TEXT_MUTED = '#6E6E73';
+const BG = '#F8F8F8';
+const WHITE = '#FFFFFF';
 
-  const userName = user?.name || MOCK_USER.name;
-  const userPhone = user?.phone || MOCK_USER.phone;
-
-  const handleEditName = () => {
-    Alert.prompt(
-      'Edit Profile Name',
-      'Enter your full name:',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Save',
-          onPress: (text?: string) => {
-            if (text && text.trim()) {
-              updateProfileName(text.trim());
-            }
-          },
-        },
-      ],
-      'plain-text',
-      userName
-    );
-  };
-
-  return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-      <LinearGradient colors={['#1A1225', '#0F1115']} style={styles.bgGrad} />
-
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <H2>Profile</H2>
-        </View>
-
-        <View style={styles.profileHeader}>
-          <View style={styles.avatarContainer}>
-            <LinearGradient colors={['#F5B041', '#E67E22']} style={styles.avatar}>
-              <H2 style={styles.avatarText}>{userName.charAt(0).toUpperCase()}</H2>
-            </LinearGradient>
-            <TouchableOpacity style={styles.editAvatarBtn} activeOpacity={0.8} onPress={handleEditName}>
-              <Ionicons name="pencil" size={16} color="#fff" />
-            </TouchableOpacity>
-          </View>
-          <H3 style={styles.name}>{userName}</H3>
-          <Body style={styles.phone} color={Colors.textSecondary}>{userPhone}</Body>
-          <View style={styles.kycBadge}>
-            <Ionicons name="shield-checkmark" size={14} color={Colors.success} />
-            <Caption style={styles.kycText}>Verified Account</Caption>
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Label style={styles.sectionTitle}>Account Settings</Label>
-          <View style={styles.card}>
-            <SettingRow icon="person-outline" title="Edit Personal Information" onPress={handleEditName} />
-            <SettingRow icon="wallet-outline" title="Linked Banks & Cards" />
-            <SettingRow icon="shield-checkmark-outline" title="Security & PIN" />
-            <SettingRow icon="notifications-outline" title="Notifications" />
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Label style={styles.sectionTitle}>Support & About</Label>
-          <View style={styles.card}>
-            <SettingRow icon="help-buoy-outline" title="Help Center" />
-            <SettingRow icon="document-text-outline" title="Terms & Privacy" />
-            <SettingRow icon="information-circle-outline" title="About Buna Wallet" />
-          </View>
-        </View>
-
-        <TouchableOpacity style={styles.logoutBtn} onPress={logout} activeOpacity={0.7}>
-          <Ionicons name="log-out-outline" size={20} color={Colors.danger} />
-          <Body style={styles.logoutText} color={Colors.danger}>Log Out</Body>
-        </TouchableOpacity>
-
-        <View style={{ height: 100 }} />
-      </ScrollView>
-    </View>
-  );
-};
-
-const SettingRow = ({ icon, title, onPress }: { icon: string; title: string; onPress?: () => void }) => (
+const SettingRow = ({
+  icon,
+  title,
+  subtitle,
+  onPress,
+  showDots,
+}: {
+  icon: string;
+  title: string;
+  subtitle?: string;
+  onPress?: () => void;
+  showDots?: boolean;
+}) => (
   <TouchableOpacity style={styles.settingRow} activeOpacity={0.7} onPress={onPress}>
     <View style={styles.settingLeft}>
-      <View style={styles.settingIcon}>
-        <Ionicons name={icon as any} size={20} color={Colors.textSecondary} />
+      <View style={styles.settingIconBox}>
+        <Ionicons name={icon as any} size={20} color={TEXT_DARK} />
       </View>
-      <Body style={styles.settingTitle}>{title}</Body>
+      <View>
+        <Text style={styles.settingTitle}>{title}</Text>
+        {subtitle && <Text style={styles.settingSubtitle}>{subtitle}</Text>}
+      </View>
     </View>
-    <Ionicons name="chevron-forward" size={20} color={Colors.border} />
+    {showDots ? (
+      <Ionicons name="ellipsis-vertical" size={18} color={TEXT_MUTED} />
+    ) : (
+      <View />
+    )}
   </TouchableOpacity>
 );
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  bgGrad: { position: 'absolute', top: 0, left: 0, right: 0, height: 200 },
-  content: { paddingTop: 56, paddingHorizontal: 24 },
-  header: { marginBottom: 24 },
-  profileHeader: { alignItems: 'center', marginBottom: 32 },
-  avatarContainer: { position: 'relative', marginBottom: 16 },
-  avatar: { width: 88, height: 88, borderRadius: 44, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: '#fff', fontSize: 32 },
-  editAvatarBtn: { position: 'absolute', bottom: 0, right: 0, backgroundColor: Colors.cardAlt, width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: Colors.background },
-  name: { marginBottom: 4, fontWeight: Typography.weight.bold, fontSize: Typography.size.xl, color: Colors.textPrimary },
-  phone: { marginBottom: 12 },
-  kycBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(52,199,89,0.1)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: BorderRadius.full, gap: 6 },
-  kycText: { color: Colors.success, fontWeight: Typography.weight.semiBold },
-  section: { marginBottom: 24 },
-  sectionTitle: { marginBottom: 12, marginLeft: 12 },
-  card: { backgroundColor: Colors.card, borderRadius: BorderRadius.xl, borderWidth: 1, borderColor: Colors.border, overflow: 'hidden' },
-  settingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 16, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: Colors.border },
-  settingLeft: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  settingIcon: { width: 36, height: 36, borderRadius: BorderRadius.md, backgroundColor: Colors.background, alignItems: 'center', justifyContent: 'center' },
-  settingTitle: { fontWeight: Typography.weight.medium, color: Colors.textPrimary },
-  logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 16, backgroundColor: 'rgba(255,59,48,0.1)', borderRadius: BorderRadius.lg, borderWidth: 1, borderColor: 'rgba(255,59,48,0.2)', marginTop: 8 },
-  logoutText: { fontWeight: Typography.weight.bold },
-});
+export const ProfileScreen: React.FC = () => {
+  const { user, logout } = useAuth();
 
-// Create H3 to fix undefined H3
-const H3 = ({children, style}: any) => <Body style={[{fontSize: Typography.size.xl, fontWeight: 'bold'}, style]}>{children}</Body>;
+  const userName = user?.name || 'Buna User';
+  const userPhone = user?.phone || '';
+
+  const handleLogout = () => {
+    Alert.alert('Logout', 'Are you sure you want to log out?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Logout', style: 'destructive', onPress: logout },
+    ]);
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={BG} />
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ── HEADER ── */}
+        <View style={styles.topBar}>
+          <Text style={styles.headerTitle}>Profile</Text>
+        </View>
+
+        {/* ── AVATAR + NAME ── */}
+        <View style={styles.profileHeader}>
+          <View style={styles.avatarCircle}>
+            <Ionicons name="person-circle-outline" size={80} color={TEXT_DARK} />
+          </View>
+          <Text style={styles.userName}>{userName}</Text>
+          <Text style={styles.userPhone}>{userPhone}</Text>
+        </View>
+
+        {/* ── DIVIDER ── */}
+        <View style={styles.divider} />
+
+        {/* ── SETTINGS LIST ── */}
+        <View style={styles.settingsList}>
+          <SettingRow
+            icon="language-outline"
+            title="Language"
+            subtitle="en"
+          />
+          <View style={styles.listDivider} />
+          <SettingRow
+            icon="shield-outline"
+            title="Security"
+            subtitle="pin code, fingerprint"
+          />
+          <View style={styles.listDivider} />
+          <SettingRow
+            icon="help-circle-outline"
+            title="Customer Support"
+            subtitle="Contact Us"
+            showDots
+          />
+        </View>
+
+        {/* ── VERSION ── */}
+        <Text style={styles.version}>Version 2.1.4</Text>
+
+        {/* ── LOGOUT ── */}
+        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.8}>
+          <Ionicons name="log-out-outline" size={20} color={TEXT_MUTED} />
+          <Text style={styles.logoutText}>Logout</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: BG,
+  },
+  scrollContent: {
+    paddingBottom: 110,
+  },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 16,
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: TEXT_DARK,
+  },
+  profileHeader: {
+    alignItems: 'center',
+    paddingVertical: 24,
+  },
+  avatarCircle: {
+    marginBottom: 12,
+  },
+  userName: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: GOLD,
+    marginBottom: 4,
+  },
+  userPhone: {
+    fontSize: 14,
+    color: TEXT_MUTED,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#E5E5EA',
+    marginHorizontal: 0,
+    marginBottom: 8,
+  },
+  settingsList: {
+    backgroundColor: WHITE,
+    marginHorizontal: 0,
+    marginBottom: 24,
+  },
+  settingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+  },
+  settingLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  settingIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: BG,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  settingTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: TEXT_DARK,
+    marginBottom: 2,
+  },
+  settingSubtitle: {
+    fontSize: 12,
+    color: TEXT_MUTED,
+  },
+  listDivider: {
+    height: 1,
+    backgroundColor: '#F0F0F2',
+    marginLeft: 70,
+  },
+  version: {
+    textAlign: 'center',
+    fontSize: 13,
+    color: '#C0C0C5',
+    marginBottom: 32,
+  },
+  logoutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 6,
+    marginBottom: 20,
+  },
+  logoutText: {
+    fontSize: 15,
+    color: TEXT_MUTED,
+    fontWeight: '500',
+  },
+});

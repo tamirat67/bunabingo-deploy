@@ -1,17 +1,26 @@
 import React, { useEffect } from 'react';
-import { View, StyleSheet, ScrollView, StatusBar, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  StatusBar,
+  TouchableOpacity,
+  SafeAreaView,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
-import { Colors, Typography, BorderRadius, Spacing, Shadows } from '../theme';
-import { GlassCard } from '../components/GlassCard';
-import { GradientButton } from '../components/GradientButton';
-import { TransactionItem } from '../components/TransactionItem';
-import { H2, H3, Body, Caption, Label, Amount } from '../components/Typography';
-import { MOCK_USER, MOCK_TRANSACTIONS } from '../data/mockData';
 import { useAuth } from '../context/AuthContext';
+
+const GOLD = '#D4AF37';
+const GOLD_DARK = '#B8860B';
+const TEXT_DARK = '#1C1C1E';
+const TEXT_MUTED = '#6E6E73';
+const BG = '#F8F8F8';
+const WHITE = '#FFFFFF';
 
 export const WalletScreen: React.FC = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
@@ -22,190 +31,238 @@ export const WalletScreen: React.FC = () => {
   }, []);
 
   const balance = user?.balance ?? 0;
-  const totalAssets = user?.totalAssets ?? balance;
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-      <LinearGradient colors={['#1A1225', '#0F1115']} style={styles.bgGrad} />
-
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Header */}
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={BG} />
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ── HEADER ── */}
         <View style={styles.topBar}>
-          <H2>My Wallet</H2>
-          <TouchableOpacity style={styles.historyBtn} activeOpacity={0.7} onPress={refreshProfile}>
-            <Ionicons name="refresh-outline" size={20} color={Colors.textSecondary} />
+          <View style={styles.titleRow}>
+            <Text style={styles.titleBlack}>Buna </Text>
+            <Text style={styles.titleGold}>Wallet</Text>
+          </View>
+          <TouchableOpacity onPress={refreshProfile}>
+            <Ionicons name="notifications-outline" size={26} color={TEXT_DARK} />
           </TouchableOpacity>
         </View>
 
-        {/* Balance Card */}
+        {/* ── BALANCE CARD ── */}
         <LinearGradient
-          colors={['#2E1B0F', '#4B2E1F', '#3A2415']}
+          colors={['#D4AF37', '#C59B27', '#A8841A']}
           style={styles.balanceCard}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
         >
-          <View style={styles.cardShine} />
-          <Label style={styles.cardLabel}>Total Assets</Label>
-          <Amount size="xl" style={styles.totalAssets}>
-            ETB {totalAssets.toLocaleString('en-ET', { minimumFractionDigits: 2 })}
-          </Amount>
-          <View style={styles.cardRow}>
-            <View>
-              <Label style={styles.subLabel}>Available</Label>
-              <Body style={styles.subAmount} color={Colors.success}>
-                ETB {balance.toLocaleString('en-ET', { minimumFractionDigits: 2 })}
-              </Body>
-            </View>
-            <View style={styles.cardDivider} />
-            <View>
-              <Label style={styles.subLabel}>In Transit</Label>
-              <Body style={styles.subAmount} color={Colors.warning}>
-                ETB {(totalAssets - balance).toLocaleString('en-ET', { minimumFractionDigits: 2 })}
-              </Body>
-            </View>
+          <Text style={styles.cardSubtitle}>Your stored value</Text>
+          <View style={styles.amountRow}>
+            <Text style={styles.balanceAmount}>
+              {balance.toLocaleString('en-ET', { minimumFractionDigits: 0 })}
+            </Text>
+            <Text style={styles.currency}> BIRR</Text>
           </View>
         </LinearGradient>
 
-        {/* Casino Bridge Banner */}
-        <TouchableOpacity 
-          style={styles.bridgeBanner} 
-          activeOpacity={0.8}
+        {/* ── QUICK ACTIONS ── */}
+        <View style={styles.actionsRow}>
+          {[
+            { icon: 'download-outline', label: 'Deposit', screen: 'Deposit' },
+            { icon: 'arrow-up-outline', label: 'Withdraw', screen: 'Withdraw' },
+            { icon: 'send-outline', label: 'Send', screen: 'Transfer' },
+            { icon: 'qr-code-outline', label: 'Pay', screen: 'MainTabs' },
+          ].map((a, i) => (
+            <TouchableOpacity
+              key={i}
+              style={styles.actionBtn}
+              activeOpacity={0.75}
+              onPress={() => navigation.navigate(a.screen as any)}
+            >
+              <View style={styles.actionIconBox}>
+                <Ionicons name={a.icon as any} size={22} color={TEXT_DARK} />
+              </View>
+              <Text style={styles.actionLabel}>{a.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* ── CASINO BRIDGE ── */}
+        <TouchableOpacity
+          style={styles.bridgeBanner}
+          activeOpacity={0.85}
           onPress={() => navigation.navigate('CasinoBridge')}
         >
           <LinearGradient
             colors={['#5B2C83', '#7B3CB3']}
             style={StyleSheet.absoluteFill}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
           />
           <View style={styles.bridgeIconBox}>
-             <Ionicons name="game-controller" size={24} color="#fff" />
+            <Ionicons name="game-controller" size={24} color="#fff" />
           </View>
           <View style={{ flex: 1 }}>
-             <Body style={styles.bridgeTitle}>Play Games & Bingo</Body>
-             <Caption style={{ color: 'rgba(255,255,255,0.8)' }}>Transfer to Casino Balance</Caption>
+            <Text style={styles.bridgeTitle}>Play Games & Bingo</Text>
+            <Text style={styles.bridgeSub}>Transfer to Casino Balance</Text>
           </View>
-          <Ionicons name="chevron-forward" size={24} color="#fff" />
+          <Ionicons name="chevron-forward" size={22} color="#fff" />
         </TouchableOpacity>
 
-        {/* Action Buttons Row */}
-        <View style={styles.actionsRow}>
-          {[
-            { icon: 'download', label: 'Deposit', color: Colors.success, bg: 'rgba(52,199,89,0.12)' },
-            { icon: 'cash-outline', label: 'Withdraw', color: Colors.info, bg: 'rgba(10,132,255,0.12)' },
-            { icon: 'send', label: 'Send', color: Colors.secondary, bg: 'rgba(245,176,65,0.12)' },
-            { icon: 'qr-code', label: 'Pay', color: Colors.accent, bg: 'rgba(91,44,131,0.12)' },
-          ].map((a, i) => (
-            <TouchableOpacity 
-              key={i} 
-              style={styles.actionBtn} 
-              activeOpacity={0.75}
-              onPress={() => {
-                if (a.label === 'Deposit') navigation.navigate('Deposit');
-                if (a.label === 'Withdraw') navigation.navigate('Withdraw');
-                if (a.label === 'Send') navigation.navigate('Transfer');
-              }}
-            >
-              <View style={[styles.actionIcon, { backgroundColor: a.bg }]}>
-                <Ionicons name={a.icon as any} size={22} color={a.color} />
-              </View>
-              <Caption style={styles.actionLabel}>{a.label}</Caption>
+        {/* ── TRANSFER HISTORY ── */}
+        <View style={styles.section}>
+          <View style={styles.sectionRow}>
+            <Text style={styles.sectionTitle}>Transfer history</Text>
+            <TouchableOpacity onPress={refreshProfile}>
+              <Ionicons name="refresh-outline" size={20} color={TEXT_MUTED} />
             </TouchableOpacity>
-          ))}
-        </View>
+          </View>
 
-        {/* Deposit Methods (Horizontal Scroll for many items) */}
-        <View style={styles.section}>
-          <H3 style={styles.sectionTitle}>Deposit Methods</H3>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.methodsGrid}>
-            {DEPOSIT_METHODS.map((m, i) => (
-              <TouchableOpacity 
-                key={i} 
-                style={styles.methodCard} 
-                activeOpacity={0.75}
-                onPress={() => {
-                  if (m.name === 'Telebirr') navigation.navigate('Deposit');
-                  // TODO: Handle future integrations
-                }}
-              >
-                <Body style={styles.methodIcon}>{m.icon}</Body>
-                <Caption style={styles.methodName}>{m.name}</Caption>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+          {/* Empty state */}
+          <View style={styles.emptyHistory}>
+            <Text style={styles.emptyText}>No transactions yet</Text>
+          </View>
         </View>
-
-        {/* Transactions */}
-        <View style={styles.section}>
-          <H3 style={styles.sectionTitle}>Transaction History</H3>
-          <GlassCard variant="elevated" padding={16}>
-            {MOCK_TRANSACTIONS.slice(0, 6).map((tx) => (
-              <TransactionItem key={tx.id} transaction={tx} onPress={() => {}} />
-            ))}
-          </GlassCard>
-        </View>
-
-        <View style={{ height: 100 }} />
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
-const DEPOSIT_METHODS = [
-  { icon: '📱', name: 'Telebirr' },
-  { icon: '🟢', name: 'M-PESA' },
-  { icon: '💳', name: 'SantimPay' },
-  { icon: '💸', name: 'Kacha' },
-  { icon: '💼', name: 'Amole' },
-  { icon: '🇪🇹', name: 'E-birr' },
-  { icon: '🏦', name: 'YaYa Wallet' },
-  { icon: '🪙', name: 'HabeshaCoin' },
-];
-
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  bgGrad: { position: 'absolute', top: 0, left: 0, right: 0, height: 200 },
-  content: { paddingTop: 56, paddingHorizontal: 24 },
-  topBar: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', marginBottom: 24,
+  container: {
+    flex: 1,
+    backgroundColor: BG,
   },
-  historyBtn: {
-    width: 40, height: 40, borderRadius: 20,
-    backgroundColor: Colors.card, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: Colors.border,
+  scrollContent: {
+    paddingBottom: 110,
+  },
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 16,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  titleBlack: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: TEXT_DARK,
+  },
+  titleGold: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: GOLD,
   },
   balanceCard: {
-    borderRadius: BorderRadius['2xl'], padding: 24,
-    marginBottom: 24, overflow: 'hidden', position: 'relative',
-    ...Shadows.gold,
+    marginHorizontal: 16,
+    borderRadius: 20,
+    padding: 26,
+    marginBottom: 24,
   },
-  cardShine: {
-    position: 'absolute', top: -30, right: -30,
-    width: 100, height: 100, borderRadius: 50,
-    backgroundColor: 'rgba(245,176,65,0.1)',
+  cardSubtitle: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.85)',
+    fontWeight: '500',
+    marginBottom: 20,
   },
-  cardLabel: { color: 'rgba(255,255,255,0.5)', marginBottom: 8 },
-  totalAssets: { color: '#fff', marginBottom: 20 },
-  cardRow: { flexDirection: 'row', alignItems: 'center' },
-  subLabel: { color: 'rgba(255,255,255,0.45)', marginBottom: 4 },
-  subAmount: { fontWeight: Typography.weight.bold, fontSize: Typography.size.base },
-  cardDivider: { width: 1, height: 32, backgroundColor: 'rgba(255,255,255,0.15)', marginHorizontal: 24 },
-  bridgeBanner: { borderRadius: BorderRadius.xl, overflow: 'hidden', padding: 16, flexDirection: 'row', alignItems: 'center', marginBottom: 24, ...Shadows.purple },
-  bridgeIconBox: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', marginRight: 16 },
-  bridgeTitle: { color: '#fff', fontWeight: 'bold', marginBottom: 2 },
-  actionsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 28 },
-  actionBtn: { alignItems: 'center', flex: 1 },
-  actionIcon: { width: 52, height: 52, borderRadius: BorderRadius.lg, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  actionLabel: { color: Colors.textSecondary, fontWeight: Typography.weight.medium },
-  section: { marginBottom: 28 },
-  sectionTitle: { marginBottom: 16 },
-  methodsGrid: { flexDirection: 'row', gap: 12, paddingRight: 24 },
-  methodCard: {
-    width: 90, backgroundColor: Colors.card, borderRadius: BorderRadius.lg,
-    alignItems: 'center', paddingVertical: 14,
-    borderWidth: 1, borderColor: Colors.border,
+  amountRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
   },
-  methodIcon: { fontSize: 28, marginBottom: 8 },
-  methodName: { color: Colors.textSecondary, fontWeight: Typography.weight.medium },
+  balanceAmount: {
+    fontSize: 52,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  currency: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.9)',
+    marginBottom: 8,
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  actionBtn: {
+    alignItems: 'center',
+  },
+  actionIconBox: {
+    width: 52,
+    height: 52,
+    borderRadius: 14,
+    backgroundColor: WHITE,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  actionLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: TEXT_MUTED,
+  },
+  bridgeBanner: {
+    marginHorizontal: 16,
+    borderRadius: 16,
+    overflow: 'hidden',
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  bridgeIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  bridgeTitle: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 15,
+    marginBottom: 2,
+  },
+  bridgeSub: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 12,
+  },
+  section: {
+    paddingHorizontal: 20,
+    marginBottom: 24,
+  },
+  sectionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: TEXT_DARK,
+  },
+  emptyHistory: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyText: {
+    fontSize: 15,
+    color: TEXT_MUTED,
+  },
 });
