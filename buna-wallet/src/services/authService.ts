@@ -74,6 +74,25 @@ export async function verifyOTP(
   return data;
 }
 
+// ── Telegram Native Auth ────────────────────────────────────────────────────
+export interface TelegramPollResponse {
+  success: boolean;
+  status?: 'pending';
+  token?: string;
+  phone?: string;
+  isNewUser?: boolean;
+  message?: string;
+}
+
+export async function pollTelegramAuth(sessionId: string): Promise<TelegramPollResponse> {
+  const response = await fetch(`${BASE_URL}/api/auth/telegram/poll/${sessionId}`);
+  const data: TelegramPollResponse = await response.json();
+  if (!response.ok && !data.success) {
+    throw new Error(data.message || 'Telegram auth failed');
+  }
+  return data;
+}
+
 // ── Health Check ─────────────────────────────────────────────────────────────
 export async function checkServerHealth(): Promise<boolean> {
   try {

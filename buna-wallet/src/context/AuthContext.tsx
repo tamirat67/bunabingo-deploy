@@ -26,6 +26,7 @@ interface AuthContextValue {
   requestOTP: (phone: string) => Promise<void>;
   confirmOTP: (code: string) => Promise<void>;
   resendOTP: () => Promise<void>;
+  startTelegramAuth: () => Promise<string>;
   logout: () => void;
 
   // Status
@@ -105,6 +106,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [pendingPhone]);
 
+  // ── Step 3: Telegram Native Auth ───────────────────────────────────────────
+  const startTelegramAuth = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      // 1. Generate a random session ID
+      const sessionId = 'tg_' + Math.random().toString(36).substring(2, 15);
+      
+      // 2. We don't change 'step' yet. LoginScreen will open the URL and poll.
+      return sessionId;
+    } catch (err: any) {
+      setError(err.message || 'Failed to start Telegram login.');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   // ── Logout ─────────────────────────────────────────────────────────────────
   const logout = useCallback(() => {
     setUser(null);
@@ -123,6 +142,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         requestOTP,
         confirmOTP,
         resendOTP,
+        startTelegramAuth,
         logout,
         isLoading,
         error,

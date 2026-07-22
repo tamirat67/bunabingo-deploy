@@ -44,6 +44,9 @@ const OTP_LENGTH = parseInt(process.env.OTP_LENGTH || '6');
 const OTP_EXPIRY_MS = parseInt(process.env.OTP_EXPIRY_SECONDS || '300') * 1000;
 const MAX_VERIFY_ATTEMPTS = 5;
 
+// Map<sessionId, { status: 'pending' | 'verified', token: string | null, phone: string | null, expiresAt: number }>
+const telegramAuthSessions = new Map();
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function generateOTP() {
@@ -155,6 +158,76 @@ app.get('/api/health', (_req, res) => {
     },
   });
 });
+
+// ── TELEGRAM NATIVE AUTH ─────────────────────────────────────────────────────
+
+// App polls this endpoint to check if the Telegram Bot has verified the session
+app.get('/api/auth/telegram/poll/:sessionId', (req, res) => {
+  const { sessionId } = req.params;
+  const session = telegramAuthSessions.get(sessionId);
+
+  if (!session) {
+    return res.json({ success: true, status: 'pending' });
+  }
+
+  if (Date.now() > session.expiresAt) {
+    telegramAuthSessions.delete(sessionId);
+    return res.status(400).json({ success: false, message: 'Session expired' });
+  }
+
+  if (session.status === 'verified') {
+    // Delete it so it can't be used twice
+    telegramAuthSessions.delete(sessionId);
+    return res.json({
+      success: true,
+      token: session.token,
+      phone: session.phone || 'Telegram User',
+      isNewUser: false // Adjust based on your DB logic later
+    });
+  }
+
+  // Still pending
+  return res.json({ success: true, status: 'pending' });
+});
+
+// Telegram Bot calls this endpoint to inject the token once the user clicks "Start"
+app.post('/api/auth/telegram/verify', express.json(), async (req, res) => {
+  try {
+    const { sessionId, telegramId, username } = req.body;
+    
+    // Security check: You should require a secret header here to ensure only YOUR bot can call this
+    const authHeader = req.headers.authorization;
+    if (authHeader !== `Bearer ${process.env.JWT_SECRET}`) {
+      return res.status(403).json({ success: false, message: 'Forbidden' });
+    }
+
+    let session = telegramAuthSessions.get(sessionId);
+    if (!session) {
+      session = { expiresAt: Date.now() + 5 * 60 * 1000 };
+      telegramAuthSessions.set(sessionId, session);
+    }
+
+    // Usually you'd look up the user in your DB by telegramId here.
+    // For now, we generate a JWT for them.
+    const jwt = require('jsonwebtoken');
+    const token = jwt.sign(
+      { userId: `tg_${telegramId}`, phone: username || 'Telegram User' },
+      process.env.JWT_SECRET || 'fallback_secret',
+      { expiresIn: '30d' }
+    );
+
+    // Update session
+    session.status = 'verified';
+    session.token = token;
+    session.phone = username || 'Telegram User';
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[Telegram Auth Error]', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 
 // ── POST /api/otp/send ───────────────────────────────────────────────────────
 app.post('/api/otp/send', otpSendLimiter, async (req, res) => {

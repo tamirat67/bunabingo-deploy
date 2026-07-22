@@ -10,7 +10,9 @@ import {
   StatusBar,
   Animated,
   Alert,
+  Alert,
   Image,
+  Linking,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,9 +20,10 @@ import { Colors, Typography, BorderRadius, Shadows } from '../theme';
 import { GradientButton } from '../components/GradientButton';
 import { H2, Body, Caption, Label } from '../components/Typography';
 import { useAuth } from '../context/AuthContext';
+import { pollTelegramAuth } from '../services/authService';
 
 export const LoginScreen: React.FC = () => {
-  const { requestOTP, isLoading, error, clearError } = useAuth();
+  const { requestOTP, startTelegramAuth, isLoading, error, clearError } = useAuth();
 
   const [phone, setPhone] = useState('');
   const [focused, setFocused] = useState(false);
@@ -46,6 +49,49 @@ export const LoginScreen: React.FC = () => {
       return;
     }
     await requestOTP(phone);
+  };
+
+  const handleTelegramAuth = async () => {
+    try {
+      const sessionId = await startTelegramAuth();
+      
+      // Open the Telegram Deep Link to Buna Bingo Bot
+      const botUsername = 'BunaBingoBot';
+      const telegramUrl = `https://t.me/${botUsername}?start=auth_${sessionId}`;
+      await Linking.openURL(telegramUrl);
+
+      // Start Polling Loop
+      let attempts = 0;
+      const maxAttempts = 60; // 2 minutes (60 * 2s)
+      
+      const poll = async () => {
+        if (attempts >= maxAttempts) {
+          Alert.alert('Timeout', 'Telegram authentication timed out. Please try again.');
+          return;
+        }
+        
+        try {
+          const res = await pollTelegramAuth(sessionId);
+          if (res.status === 'pending') {
+            attempts++;
+            setTimeout(poll, 2000); // Check again in 2 seconds
+          } else if (res.success && res.token) {
+            Alert.alert('Success', 'Logged in via Telegram successfully!');
+            // Here you'd call confirmOTP or a dedicated finalizeTelegramAuth in AuthContext
+            // For now we just alert, you'd integrate this to set the AuthUser.
+          }
+        } catch (err) {
+          // Keep polling unless it's a hard fail
+          attempts++;
+          setTimeout(poll, 2000);
+        }
+      };
+      
+      poll();
+      
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Failed to open Telegram');
+    }
   };
 
   const isValid = phone.replace(/\D/g, '').length >= 9;
@@ -159,7 +205,11 @@ export const LoginScreen: React.FC = () => {
             </View>
 
             {/* Telegram option */}
-            <TouchableOpacity style={styles.telegramBtn} activeOpacity={0.75}>
+            <TouchableOpacity 
+              style={styles.telegramBtn} 
+              activeOpacity={0.75}
+              onPress={handleTelegramAuth}
+            >
               <Ionicons name="paper-plane" size={20} color="#26A5E4" />
               <Body style={styles.telegramText} color={Colors.textPrimary}>
                 Continue with Telegram
