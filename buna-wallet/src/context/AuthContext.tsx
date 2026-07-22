@@ -19,18 +19,22 @@ export interface AuthUser {
   isNewUser: boolean;
 }
 
-type AuthStep = 'splash' | 'login' | 'otp' | 'authenticated';
+type AuthStep = 'splash' | 'login' | 'otp' | 'pin_setup' | 'pin_login' | 'authenticated';
 
 interface AuthContextValue {
   step: AuthStep;
   user: AuthUser | null;
   pendingPhone: string;
+  hasPin: boolean;
 
   // Actions
   goToLogin: () => void;
+  checkPhone: (phone: string) => Promise<void>;
   requestOTP: (phone: string) => Promise<void>;
   confirmOTP: (code: string) => Promise<void>;
   resendOTP: () => Promise<void>;
+  setupPin: (pin: string) => Promise<void>;
+  verifyPin: (pin: string) => Promise<void>;
   startTelegramAuth: () => Promise<string>;
   refreshProfile: () => Promise<void>;
   updateProfileName: (name: string) => Promise<void>;
@@ -50,6 +54,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [step, setStep] = useState<AuthStep>('splash');
   const [user, setUser] = useState<AuthUser | null>(null);
   const [pendingPhone, setPendingPhone] = useState('');
+  const [hasPin, setHasPin] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -60,7 +65,46 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setError(null);
   }, []);
 
-  // ── Step 1: Send OTP ───────────────────────────────────────────────────────
+  const API_URL = 'http://192.168.1.5:3004'; // Adjust for your local IP or use bunatechhub
+
+  // ── Step 1: Check Phone (PIN or OTP) ───────────────────────────────────────
+  const checkPhone = useCallback(async (phone: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const normalized = normalizePhone(phone);
+      setPendingPhone(normalized);
+      
+      const res = await fetch(`http://127.0.0.1:3004/api/auth/check-phone`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: normalized }),
+      });
+      const data = await res.json();
+      
+      if (!res.ok || !data.success) {
+         // Fallback to OTP if error or API unavailable
+         await requestOTP(normalized);
+         return;
+      }
+      
+      if (data.exists && data.hasPin) {
+        setHasPin(true);
+        setStep('pin_login');
+      } else {
+        setHasPin(false);
+        await requestOTP(normalized);
+      }
+    } catch (err: any) {
+      console.warn('checkPhone failed, falling back to OTP', err);
+      // Fallback
+      await requestOTP(phone);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // ── Step 1b: Send OTP ───────────────────────────────────────────────────────
   const requestOTP = useCallback(async (phone: string) => {
     setIsLoading(true);
     setError(null);
@@ -110,9 +154,73 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         token: result.token || '',
         isNewUser: result.isNewUser ?? false,
       });
-      setStep('authenticated');
+      
+      // Check if they need to setup a PIN
+      if (!result.hasPin) {
+         setStep('pin_setup');
+      } else {
+         setStep('authenticated');
+      }
     } catch (err: any) {
       setError(err.message || 'Incorrect code. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [pendingPhone]);
+
+  // ── Setup PIN ──────────────────────────────────────────────────────────────
+  const setupPin = useCallback(async (pin: string) => {
+    if (!user?.token) return;
+    setIsLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`http://127.0.0.1:3004/api/auth/setup-pin`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: user.token, pin }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to setup PIN');
+      }
+      setHasPin(true);
+      setStep('authenticated');
+    } catch (err: any) {
+      setError(err.message || 'Error setting PIN.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user]);
+
+  // ── Verify PIN (Login) ─────────────────────────────────────────────────────
+  const verifyPin = useCallback(async (pin: string) => {
+    if (!pendingPhone) return;
+    setIsLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`http://127.0.0.1:3004/api/auth/verify-pin`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: pendingPhone, pin }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Incorrect PIN');
+      }
+      
+      setUser({
+        userId: data.userId,
+        phone: data.phone,
+        name: data.name || 'Buna User',
+        walletId: data.walletId,
+        balance: data.balance || 0,
+        totalAssets: data.totalAssets || 0,
+        token: data.token || '',
+        isNewUser: false,
+      });
+      setStep('authenticated');
+    } catch (err: any) {
+      setError(err.message || 'Incorrect PIN.');
     } finally {
       setIsLoading(false);
     }

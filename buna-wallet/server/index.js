@@ -367,12 +367,14 @@ app.post('/api/otp/verify', otpVerifyLimiter, async (req, res) => {
 
     // Ensure they have an AppWallet (so we don't mess with Buna Bingo wallets)
     const walletRes = await db.query(
-      `SELECT balance FROM app_wallets WHERE user_id = $1 LIMIT 1`,
+      `SELECT balance, pin FROM app_wallets WHERE user_id = $1 LIMIT 1`,
       [userId]
     );
 
+    let hasPin = false;
     if (walletRes.rows.length > 0) {
       appWalletBalance = parseFloat(walletRes.rows[0].balance || '0');
+      hasPin = !!walletRes.rows[0].pin;
     } else {
       // Create their React Native wallet
       await db.query(
@@ -931,6 +933,117 @@ app.post('/api/telerivet/webhook', async (req, res) => {
   } catch (err) {
     console.error('[Webhook Error]', err.message);
     res.status(200).json({ success: true }); // Always 200 to prevent Telerivet retries
+  }
+});
+
+const bcrypt = require('bcryptjs');
+
+// ── POST /api/auth/check-phone ──────────────────────────────────────────────────
+app.post('/api/auth/check-phone', async (req, res) => {
+  try {
+    const { phone } = req.body;
+    if (!phone) return res.status(400).json({ success: false, message: 'Phone required' });
+    
+    const normalizedPhone = normalizePhone(phone);
+    
+    const userResult = await db.query(
+      `SELECT id FROM users WHERE phone = $1 OR phone_number = $1 OR telegram_id::text = $2 LIMIT 1`,
+      [normalizedPhone, normalizedPhone.replace('+', '')]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.json({ success: true, exists: false, hasPin: false });
+    }
+
+    const userId = userResult.rows[0].id;
+    const walletRes = await db.query(`SELECT pin FROM app_wallets WHERE user_id = $1`, [userId]);
+    
+    let hasPin = false;
+    if (walletRes.rows.length > 0 && walletRes.rows[0].pin) {
+      hasPin = true;
+    }
+    
+    res.json({ success: true, exists: true, hasPin });
+  } catch (err) {
+    console.error('[Check Phone Error]', err);
+    res.status(500).json({ success: false, message: 'Internal error' });
+  }
+});
+
+// ── POST /api/auth/setup-pin ──────────────────────────────────────────────────
+app.post('/api/auth/setup-pin', async (req, res) => {
+  try {
+    const { token, pin } = req.body;
+    if (!token || !pin) return res.status(400).json({ success: false, message: 'Token and pin required' });
+    
+    const decoded = Buffer.from(token, 'base64').toString('utf8');
+    const userId = decoded.split(':')[0];
+    
+    if (!userId) return res.status(401).json({ success: false, message: 'Invalid token' });
+    
+    const salt = await bcrypt.genSalt(10);
+    const hashedPin = await bcrypt.hash(pin, salt);
+    
+    await db.query(`UPDATE app_wallets SET pin = $1 WHERE user_id = $2`, [hashedPin, userId]);
+    
+    res.json({ success: true, message: 'PIN configured successfully.' });
+  } catch (err) {
+    console.error('[Setup PIN Error]', err);
+    res.status(500).json({ success: false, message: 'Internal error' });
+  }
+});
+
+// ── POST /api/auth/verify-pin ──────────────────────────────────────────────────
+app.post('/api/auth/verify-pin', async (req, res) => {
+  try {
+    const { phone, pin } = req.body;
+    if (!phone || !pin) return res.status(400).json({ success: false, message: 'Phone and pin required' });
+    
+    const normalizedPhone = normalizePhone(phone);
+    
+    const userResult = await db.query(
+      `SELECT id, first_name, last_name FROM users WHERE phone = $1 OR phone_number = $1 OR telegram_id::text = $2 LIMIT 1`,
+      [normalizedPhone, normalizedPhone.replace('+', '')]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    
+    const userObj = userResult.rows[0];
+    const userId = userObj.id;
+    
+    const walletRes = await db.query(`SELECT balance, pin FROM app_wallets WHERE user_id = $1 LIMIT 1`, [userId]);
+    
+    if (walletRes.rows.length === 0 || !walletRes.rows[0].pin) {
+      return res.status(400).json({ success: false, message: 'No PIN set up for this user' });
+    }
+    
+    const isMatch = await bcrypt.compare(pin, walletRes.rows[0].pin);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: 'Incorrect PIN' });
+    }
+    
+    const sessionToken = Buffer.from(`${userId}:${Date.now()}`).toString('base64');
+    const name = (userObj.first_name || userObj.last_name) ? `${userObj.first_name || ''} ${userObj.last_name || ''}`.trim() : 'Buna User';
+    const walletId = `BW-${normalizedPhone.slice(-7)}`;
+    const appWalletBalance = parseFloat(walletRes.rows[0].balance || '0');
+    
+    res.json({
+      success: true,
+      message: 'Logged in successfully.',
+      phone: normalizedPhone,
+      userId: userId,
+      name: name,
+      walletId: walletId,
+      balance: appWalletBalance,
+      totalAssets: appWalletBalance,
+      token: sessionToken,
+      hasPin: true,
+    });
+  } catch (err) {
+    console.error('[Verify PIN Error]', err);
+    res.status(500).json({ success: false, message: 'Internal error' });
   }
 });
 

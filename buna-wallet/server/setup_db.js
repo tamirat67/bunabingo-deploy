@@ -8,12 +8,24 @@ async function initTables() {
       CREATE TABLE IF NOT EXISTS app_wallets (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+        pin VARCHAR(255),
         balance DECIMAL(20,4) NOT NULL DEFAULT 0.0000,
         total_deposited DECIMAL(20,4) NOT NULL DEFAULT 0.0000,
         total_withdrawn DECIMAL(20,4) NOT NULL DEFAULT 0.0000,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
+    `);
+    
+    // Auto-add pin column if it doesn't exist (for existing databases)
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'app_wallets' AND column_name = 'pin') THEN
+          ALTER TABLE app_wallets ADD COLUMN pin VARCHAR(255);
+        END IF;
+      END
+      $$;
     `);
 
     await pool.query(`

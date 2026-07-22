@@ -8,7 +8,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { Colors, Typography, BorderRadius } from '../theme';
 import { SplashScreen } from '../screens/SplashScreen';
-import { LoginScreen } from '../screens/LoginScreen';
+import { BunaOnboardingScreen } from '../screens/BunaOnboardingScreen';
+import { PINScreen } from '../screens/PINScreen';
 import { OTPScreen } from '../screens/OTPScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { WalletScreen } from '../screens/WalletScreen';
@@ -158,7 +159,7 @@ export const AppNavigator: React.FC = () => {
     return (
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false, animation: 'fade' }}>
-          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="Login" component={BunaOnboardingScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     );
@@ -169,6 +170,16 @@ export const AppNavigator: React.FC = () => {
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
           <Stack.Screen name="OTP" component={OTPScreen} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    );
+  }
+
+  if (step === 'pin_setup' || step === 'pin_login') {
+    return (
+      <NavigationContainer>
+        <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+          <Stack.Screen name="PIN" component={PINScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     );
