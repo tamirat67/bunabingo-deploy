@@ -277,25 +277,102 @@ export const BunaOnboardingScreen: React.FC = () => {
           <View style={[styles.onboardingContent, { width }]}>
             <View style={styles.illustrationArea}>
               <View style={styles.graphicBox}>
-                <View style={[styles.phoneFrame, { transform: [{ rotate: '15deg' }], width: 140, height: 240 }]}>
+                <View style={styles.glowCircle} />
+
+                {/* Rotated Phone Frame */}
+                <View style={[styles.phoneFrameCentered, { transform: [{ rotate: '12deg' }], width: 160, height: 320, backgroundColor: '#FFF', borderWidth: 8, borderColor: '#3A2618', borderRadius: 32 }]}>
                   <View style={styles.phoneNotch} />
-                  <View style={styles.merchantCard}><Ionicons name="storefront" size={24} color={TEXT_DARK} /></View>
-                  <View style={[styles.merchantCard, { backgroundColor: GOLD_LIGHT }]}><Ionicons name="storefront" size={24} color={GOLD_DARK} /></View>
-                  <View style={styles.merchantCard}><Ionicons name="storefront" size={24} color={TEXT_DARK} /></View>
+                  
+                  {/* Inner Phone Content */}
+                  <View style={{ alignItems: 'center', marginTop: 10 }}>
+                    <View style={{ width: 16, height: 16, borderRadius: 8, borderWidth: 1, borderColor: TEXT_DARK, alignItems: 'center', justifyContent: 'center', marginBottom: 2 }}>
+                      <Text style={{ fontSize: 10, fontWeight: 'bold', color: TEXT_DARK }}>B</Text>
+                    </View>
+                    <Text style={{ fontSize: 10, fontWeight: '900', color: TEXT_DARK, letterSpacing: 1 }}>BUNA</Text>
+                    <Text style={{ fontSize: 8, fontWeight: '700', color: GOLD, letterSpacing: 1 }}>WALLET</Text>
+                  </View>
+
+                  {/* Dark Balance Card */}
+                  <View style={styles.darkBalanceCard}>
+                    <Text style={styles.darkCardLabel}>Total Balance</Text>
+                    <Text style={styles.darkCardValue}>12,450.00 ETB</Text>
+                    <Text style={[styles.darkCardLabel, { marginTop: 8 }]}>Available Balance</Text>
+                    <Text style={styles.darkCardValueSmall}>12,450.00 ETB</Text>
+                  </View>
+
+                  {/* 4 Square Buttons */}
+                  <View style={styles.innerPhoneGrid}>
+                    <View style={styles.innerPhoneBtn}>
+                      <Ionicons name="send" size={14} color={GOLD} />
+                      <Text style={styles.innerPhoneBtnText}>Pay</Text>
+                    </View>
+                    <View style={styles.innerPhoneBtn}>
+                      <Ionicons name="swap-horizontal" size={14} color={GOLD} />
+                      <Text style={styles.innerPhoneBtnText}>Transfer</Text>
+                    </View>
+                    <View style={styles.innerPhoneBtn}>
+                      <Ionicons name="download-outline" size={14} color={GOLD} />
+                      <Text style={styles.innerPhoneBtnText}>Deposit</Text>
+                    </View>
+                    <View style={styles.innerPhoneBtn}>
+                      <Ionicons name="shield-checkmark" size={14} color={GOLD} />
+                      <Text style={styles.innerPhoneBtnText}>Save</Text>
+                    </View>
+                  </View>
                 </View>
-                <View style={[styles.personStanding, { left: 10 }]}>
-                  <Ionicons name="person-circle-outline" size={60} color={TEXT_DARK} />
+
+                {/* Floating Badges for Slide 3 */}
+                <View style={[styles.badgeContainer, { top: '25%', left: '-5%' }]}>
+                  <View style={[styles.badgeItemWhite, { backgroundColor: GOLD }]}><Ionicons name="wallet" size={24} color="#FFF" /></View>
                 </View>
+                <View style={[styles.badgeContainer, { top: '35%', right: '-5%' }]}>
+                  <View style={[styles.badgeItemWhite, { backgroundColor: GOLD }]}><Ionicons name="cash" size={24} color="#FFF" /></View>
+                </View>
+                <View style={[styles.badgeContainer, { top: '65%', left: '0%' }]}>
+                  <View style={[styles.badgeItemWhite, { backgroundColor: TEXT_DARK }]}><MaterialCommunityIcons name="bank" size={24} color="#FFF" /></View>
+                </View>
+                <View style={[styles.badgeContainer, { top: '75%', right: '0%' }]}>
+                  <View style={[styles.badgeItemWhite, { backgroundColor: TEXT_DARK }]}><Ionicons name="paper-plane" size={24} color="#FFF" /></View>
+                </View>
+
               </View>
             </View>
-            <View style={styles.textArea}>
-              <Text style={styles.titleText}>
-                <Text style={{ color: GOLD }}>Manage </Text>
-                your Business
+
+            <View style={[styles.textArea, { marginTop: 10 }]}>
+              <Text style={[styles.titleText, { paddingHorizontal: 10 }]}>
+                <Text style={{ color: GOLD }}>Pay, Save, Deposit, Transfer </Text>
+                Effortlessly
               </Text>
-              <Text style={styles.descText}>
-                Manage the flow of your business right from your phone by creating an online shop or store
+              <Text style={[styles.descText, { marginTop: 4 }]}>
+                Your money, your way. Make secure payments, save for the future, deposit instantly, and transfer with ease.
               </Text>
+              
+              {/* Bottom Feature Bar */}
+              <View style={styles.featureBarSlide3}>
+                <View style={styles.featureBarItem}>
+                  <View style={styles.featureBarIconBox}><Ionicons name="card-outline" size={20} color={GOLD_DARK} /></View>
+                  <Text style={styles.featureBarTitle}>Pay</Text>
+                  <Text style={styles.featureBarSub}>Bills & Merchants</Text>
+                </View>
+                <View style={styles.featureBarDivider} />
+                <View style={styles.featureBarItem}>
+                  <View style={styles.featureBarIconBox}><Ionicons name="shield-checkmark-outline" size={20} color={GOLD_DARK} /></View>
+                  <Text style={styles.featureBarTitle}>Save</Text>
+                  <Text style={styles.featureBarSub}>For Your Goals</Text>
+                </View>
+                <View style={styles.featureBarDivider} />
+                <View style={styles.featureBarItem}>
+                  <View style={styles.featureBarIconBox}><Ionicons name="download-outline" size={20} color={GOLD_DARK} /></View>
+                  <Text style={styles.featureBarTitle}>Deposit</Text>
+                  <Text style={styles.featureBarSub}>Money Instantly</Text>
+                </View>
+                <View style={styles.featureBarDivider} />
+                <View style={styles.featureBarItem}>
+                  <View style={styles.featureBarIconBox}><Ionicons name="swap-horizontal" size={20} color={GOLD_DARK} /></View>
+                  <Text style={styles.featureBarTitle}>Transfer</Text>
+                  <Text style={styles.featureBarSub}>To Anyone</Text>
+                </View>
+              </View>
             </View>
           </View>
         </ScrollView>
@@ -668,6 +745,106 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     color: TEXT_DARK,
+  },
+
+  // ── Slide 3 Specific Styles ───────────────────────────────────────────────
+  darkBalanceCard: {
+    width: '85%',
+    backgroundColor: '#3A2618',
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 16,
+  },
+  darkCardLabel: {
+    color: '#A09080',
+    fontSize: 8,
+    fontWeight: '500',
+  },
+  darkCardValue: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  darkCardValueSmall: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  innerPhoneGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    width: '85%',
+    marginTop: 12,
+  },
+  innerPhoneBtn: {
+    width: '46%',
+    backgroundColor: '#FAFAFA',
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 1,
+  },
+  innerPhoneBtnText: {
+    fontSize: 8,
+    fontWeight: '700',
+    color: TEXT_DARK,
+    marginTop: 4,
+  },
+  featureBarSlide3: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#F0F0F5',
+    width: '100%',
+    paddingVertical: 14,
+    marginTop: 24,
+    justifyContent: 'space-evenly',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  featureBarItem: {
+    alignItems: 'center',
+    width: '24%',
+  },
+  featureBarIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FFF8E7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  featureBarTitle: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: TEXT_DARK,
+  },
+  featureBarSub: {
+    fontSize: 8,
+    color: TEXT_MUTED,
+    fontWeight: '500',
+    textAlign: 'center',
+    marginTop: 2,
+  },
+  featureBarDivider: {
+    width: 1,
+    height: '60%',
+    backgroundColor: '#E0E0E5',
   },
 
   textArea: {
