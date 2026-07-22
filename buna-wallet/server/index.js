@@ -5,6 +5,7 @@ const rateLimit = require('express-rate-limit');
 const fetch = require('node-fetch');
 const db = require('./db'); // Connects to existing Buna Bingo Postgres DB
 const { parseTelebirrSms } = require('./telebirrParser');
+const { initTables } = require('./setup_db');
 
 const app = express();
 
@@ -858,7 +859,7 @@ app.use((err, _req, res, _next) => {
 
 // ─── Start ───────────────────────────────────────────────────────────────────
 const PORT = parseInt(process.env.PORT || '3004');
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log('\n' +
     '  ☕  Buna Wallet OTP Server\n' +
     `  🚀  Running on http://localhost:${PORT}\n` +
@@ -866,4 +867,5 @@ app.listen(PORT, () => {
     `  📡  Telerivet Webhook: https://api.bunatechhub.net/api/telerivet/webhook\n` +
     `  🆔  Project ID: ${process.env.TELERIVET_PROJECT_ID || '(not set)'}\n`
   );
+  await initTables();
 });

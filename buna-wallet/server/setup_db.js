@@ -1,8 +1,8 @@
 const { pool } = require('./db');
 
-async function setup() {
+async function initTables() {
   try {
-    console.log('Creating React Native Wallet tables...');
+    console.log('[DB Setup] Ensuring React Native Wallet tables exist...');
 
     await pool.query(`
       CREATE TABLE IF NOT EXISTS app_wallets (
@@ -15,7 +15,6 @@ async function setup() {
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
     `);
-    console.log('✅ app_wallets table ready');
 
     await pool.query(`
       CREATE TABLE IF NOT EXISTS app_deposits (
@@ -29,7 +28,6 @@ async function setup() {
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
     `);
-    console.log('✅ app_deposits table ready');
 
     await pool.query(`
       CREATE TABLE IF NOT EXISTS app_withdrawals (
@@ -43,7 +41,6 @@ async function setup() {
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
     `);
-    console.log('✅ app_withdrawals table ready');
 
     await pool.query(`
       CREATE TABLE IF NOT EXISTS app_transactions (
@@ -59,14 +56,15 @@ async function setup() {
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
     `);
-    console.log('✅ app_transactions table ready');
 
-    console.log('🎉 Setup complete!');
+    console.log('[DB Setup] ✅ React Native Wallet tables ready');
   } catch (err) {
-    console.error('❌ Setup failed:', err);
-  } finally {
-    pool.end();
+    console.error('[DB Setup] ❌ Setup failed:', err.message);
   }
 }
 
-setup();
+module.exports = { initTables };
+
+if (require.main === module) {
+  initTables().then(() => pool.end());
+}
