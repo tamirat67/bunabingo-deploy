@@ -40,20 +40,33 @@ const LANGUAGES = [
 export const BunaOnboardingScreen: React.FC = () => {
   const { checkPhone, startTelegramAuth, isLoading } = useAuth();
 
-  // Screen State: 'slide1' | 'slide2' | 'slide3' | 'language' | 'phone'
-  const [screen, setScreen] = useState<'slide1' | 'slide2' | 'slide3' | 'language' | 'phone'>('slide1');
+  // Screen State: 'onboarding' | 'language' | 'phone'
+  const [screen, setScreen] = useState<'onboarding' | 'language' | 'phone'>('onboarding');
   const [selectedLang, setSelectedLang] = useState('en');
   const [phone, setPhone] = useState('');
+  const [activeIndex, setActiveIndex] = useState(0);
+  const scrollRef = useRef<ScrollView>(null);
 
   // ── Onboarding Handlers ───────────────────────────────────────────────────
   const handleNextOnboarding = () => {
-    if (screen === 'slide1') setScreen('slide2');
-    else if (screen === 'slide2') setScreen('slide3');
-    else if (screen === 'slide3') setScreen('language');
+    if (activeIndex < 2) {
+      scrollRef.current?.scrollTo({ x: (activeIndex + 1) * width, animated: true });
+    } else {
+      setScreen('language');
+    }
   };
 
   const handleSkipOnboarding = () => {
     setScreen('language');
+  };
+
+  const handleScroll = (event: any) => {
+    const slideSize = event.nativeEvent.layoutMeasurement.width;
+    const index = event.nativeEvent.contentOffset.x / slideSize;
+    const roundIndex = Math.round(index);
+    if (roundIndex !== activeIndex) {
+      setActiveIndex(roundIndex);
+    }
   };
 
   // ── Phone Formatter & Validation ───────────────────────────────────────────
@@ -112,19 +125,23 @@ export const BunaOnboardingScreen: React.FC = () => {
   };
 
   // ─── RENDER ONBOARDING SLIDES ─────────────────────────────────────────────
-  if (screen === 'slide1' || screen === 'slide2' || screen === 'slide3') {
-    let activeIndex = 0;
-    if (screen === 'slide2') activeIndex = 1;
-    if (screen === 'slide3') activeIndex = 2;
-
+  if (screen === 'onboarding') {
     return (
       <View style={styles.container}>
         <StatusBar barStyle="dark-content" backgroundColor={BG_WHITE} />
 
-        <View style={styles.onboardingContent}>
-          {/* Illustration Area */}
-          <View style={styles.illustrationArea}>
-            {screen === 'slide1' && (
+        <ScrollView
+          ref={scrollRef}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          style={{ flex: 1 }}
+        >
+          {/* Slide 1 */}
+          <View style={[styles.onboardingContent, { width }]}>
+            <View style={styles.illustrationArea}>
               <View style={styles.graphicBox}>
                 <View style={styles.shopBuilding}>
                   <View style={styles.shopAwning} />
@@ -139,116 +156,88 @@ export const BunaOnboardingScreen: React.FC = () => {
                   </View>
                 </View>
               </View>
-            )}
+            </View>
+            <View style={styles.textArea}>
+              <Text style={styles.titleText}>
+                <Text style={{ color: GOLD }}>Pay </Text>
+                at Shops
+              </Text>
+              <Text style={styles.descText}>
+                Pay at shops from your Buna wallet or from your linked bank accounts from 20+ banks via mobile transfers or QR scans.
+              </Text>
+            </View>
+          </View>
 
-            {screen === 'slide2' && (
+          {/* Slide 2 */}
+          <View style={[styles.onboardingContent, { width }]}>
+            <View style={styles.illustrationArea}>
               <View style={styles.graphicBox}>
                 <View style={styles.phoneFrame}>
                   <View style={styles.phoneNotch} />
                   <View style={styles.phoneContentLines} />
-                  {/* Surrounding Service Badges */}
-                  <View style={[styles.badgeItem, { top: 10, left: -25 }]}>
-                    <Ionicons name="cart" size={18} color="#fff" />
-                  </View>
-                  <View style={[styles.badgeItem, { top: 10, right: -25 }]}>
-                    <Ionicons name="flash" size={18} color="#fff" />
-                  </View>
-                  <View style={[styles.badgeItem, { top: 70, left: -25 }]}>
-                    <Ionicons name="water" size={18} color="#fff" />
-                  </View>
-                  <View style={[styles.badgeItem, { top: 70, right: -25 }]}>
-                    <Ionicons name="globe" size={18} color="#fff" />
-                  </View>
-                  <View style={[styles.badgeItem, { top: 130, left: -25 }]}>
-                    <Ionicons name="airplane" size={18} color="#fff" />
-                  </View>
-                  <View style={[styles.badgeItem, { top: 130, right: -25 }]}>
-                    <Ionicons name="car" size={18} color="#fff" />
-                  </View>
+                  <View style={[styles.badgeItem, { top: 10, left: -25 }]}><Ionicons name="cart" size={18} color="#fff" /></View>
+                  <View style={[styles.badgeItem, { top: 10, right: -25 }]}><Ionicons name="flash" size={18} color="#fff" /></View>
+                  <View style={[styles.badgeItem, { top: 70, left: -25 }]}><Ionicons name="water" size={18} color="#fff" /></View>
+                  <View style={[styles.badgeItem, { top: 70, right: -25 }]}><Ionicons name="globe" size={18} color="#fff" /></View>
+                  <View style={[styles.badgeItem, { top: 130, left: -25 }]}><Ionicons name="airplane" size={18} color="#fff" /></View>
+                  <View style={[styles.badgeItem, { top: 130, right: -25 }]}><Ionicons name="car" size={18} color="#fff" /></View>
                 </View>
                 <View style={styles.personStanding}>
                   <Ionicons name="person" size={50} color={TEXT_DARK} />
                 </View>
               </View>
-            )}
+            </View>
+            <View style={styles.textArea}>
+              <Text style={styles.titleText}>
+                <Text style={{ color: GOLD }}>Pay </Text>
+                for Your Bills
+              </Text>
+              <Text style={styles.descText}>
+                Pay for your bills for utilities like water, electric, airlines ticket, transport, internet, entertainment, deliveries etc
+              </Text>
+            </View>
+          </View>
 
-            {screen === 'slide3' && (
+          {/* Slide 3 */}
+          <View style={[styles.onboardingContent, { width }]}>
+            <View style={styles.illustrationArea}>
               <View style={styles.graphicBox}>
                 <View style={[styles.phoneFrame, { transform: [{ rotate: '15deg' }], width: 140, height: 240 }]}>
                   <View style={styles.phoneNotch} />
-                  <View style={styles.merchantCard}>
-                    <Ionicons name="storefront" size={24} color={TEXT_DARK} />
-                  </View>
-                  <View style={[styles.merchantCard, { backgroundColor: GOLD_LIGHT }]}>
-                    <Ionicons name="storefront" size={24} color={GOLD_DARK} />
-                  </View>
-                  <View style={styles.merchantCard}>
-                    <Ionicons name="storefront" size={24} color={TEXT_DARK} />
-                  </View>
+                  <View style={styles.merchantCard}><Ionicons name="storefront" size={24} color={TEXT_DARK} /></View>
+                  <View style={[styles.merchantCard, { backgroundColor: GOLD_LIGHT }]}><Ionicons name="storefront" size={24} color={GOLD_DARK} /></View>
+                  <View style={styles.merchantCard}><Ionicons name="storefront" size={24} color={TEXT_DARK} /></View>
                 </View>
                 <View style={[styles.personStanding, { left: 10 }]}>
                   <Ionicons name="person-circle-outline" size={60} color={TEXT_DARK} />
                 </View>
               </View>
-            )}
-          </View>
-
-          {/* Text Area */}
-          <View style={styles.textArea}>
-            {screen === 'slide1' && (
-              <>
-                <Text style={styles.titleText}>
-                  <Text style={{ color: GOLD }}>Pay </Text>
-                  at Shops
-                </Text>
-                <Text style={styles.descText}>
-                  Pay at shops from your Buna wallet or from your linked bank accounts from 20+ banks via mobile transfers or QR scans.
-                </Text>
-              </>
-            )}
-
-            {screen === 'slide2' && (
-              <>
-                <Text style={styles.titleText}>
-                  <Text style={{ color: GOLD }}>Pay </Text>
-                  for Your Bills
-                </Text>
-                <Text style={styles.descText}>
-                  Pay for your bills for utilities like water, electric, airlines ticket, transport, internet, entertainment, deliveries etc
-                </Text>
-              </>
-            )}
-
-            {screen === 'slide3' && (
-              <>
-                <Text style={styles.titleText}>
-                  <Text style={{ color: GOLD }}>Manage </Text>
-                  your Business
-                </Text>
-                <Text style={styles.descText}>
-                  Manage the flow of your business right from your phone by creating an online shop or store
-                </Text>
-              </>
-            )}
-          </View>
-
-          {/* Bottom Controls */}
-          <View style={styles.bottomBar}>
-            <TouchableOpacity onPress={handleSkipOnboarding} activeOpacity={0.7} style={styles.bottomBtn}>
-              <Text style={styles.skipText}>Skip</Text>
-            </TouchableOpacity>
-
-            {/* Pagination Dots */}
-            <View style={styles.dotsRow}>
-              <View style={[styles.dot, activeIndex === 0 && styles.dotActive]} />
-              <View style={[styles.dot, activeIndex === 1 && styles.dotActive]} />
-              <View style={[styles.dot, activeIndex === 2 && styles.dotActive]} />
             </View>
-
-            <TouchableOpacity onPress={handleNextOnboarding} activeOpacity={0.7} style={styles.bottomBtn}>
-              <Text style={styles.nextText}>Next</Text>
-            </TouchableOpacity>
+            <View style={styles.textArea}>
+              <Text style={styles.titleText}>
+                <Text style={{ color: GOLD }}>Manage </Text>
+                your Business
+              </Text>
+              <Text style={styles.descText}>
+                Manage the flow of your business right from your phone by creating an online shop or store
+              </Text>
+            </View>
           </View>
+        </ScrollView>
+
+        {/* Bottom Controls */}
+        <View style={styles.bottomBar}>
+          <TouchableOpacity onPress={handleSkipOnboarding} activeOpacity={0.7} style={styles.bottomBtn}>
+            <Text style={styles.skipText}>Skip</Text>
+          </TouchableOpacity>
+          <View style={styles.dotsRow}>
+            <View style={[styles.dot, activeIndex === 0 && styles.dotActive]} />
+            <View style={[styles.dot, activeIndex === 1 && styles.dotActive]} />
+            <View style={[styles.dot, activeIndex === 2 && styles.dotActive]} />
+          </View>
+          <TouchableOpacity onPress={handleNextOnboarding} activeOpacity={0.7} style={styles.bottomBtn}>
+            <Text style={styles.nextText}>Next</Text>
+          </TouchableOpacity>
         </View>
       </View>
     );
@@ -258,11 +247,11 @@ export const BunaOnboardingScreen: React.FC = () => {
   if (screen === 'language') {
     return (
       <View style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor={GOLD} />
+        <StatusBar barStyle="dark-content" backgroundColor={BG_WHITE} />
 
-        {/* Gold Header Card with Rounded Corner */}
-        <View style={styles.goldHeaderCard}>
-          <Text style={styles.headerTitle}>Choose Your{'\n'}Language</Text>
+        {/* Premium Light Header Card */}
+        <View style={styles.lightHeaderCard}>
+          <Text style={styles.headerTitleDark}>Choose Your{'\n'}Language</Text>
         </View>
 
         {/* Body Content */}
@@ -308,12 +297,12 @@ export const BunaOnboardingScreen: React.FC = () => {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <StatusBar barStyle="light-content" backgroundColor={GOLD} />
+      <StatusBar barStyle="dark-content" backgroundColor={BG_WHITE} />
 
-      {/* Gold Header Card with Rounded Corner */}
-      <View style={styles.goldHeaderCard}>
-        <Text style={styles.headerTitle}>Enter Your{'\n'}Phone Number</Text>
-        <Text style={styles.headerSubtitle}>
+      {/* Premium Light Header Card */}
+      <View style={styles.lightHeaderCard}>
+        <Text style={styles.headerTitleDark}>Enter Your{'\n'}Phone Number</Text>
+        <Text style={styles.headerSubtitleDark}>
           We will use this to securely log you in.
         </Text>
       </View>
@@ -380,16 +369,17 @@ const styles = StyleSheet.create({
 
   // ── Onboarding Styles ─────────────────────────────────────────────────────
   onboardingContent: {
-    flex: 1,
-    justifyContent: 'space-between',
     paddingTop: 60,
-    paddingBottom: 40,
+    paddingBottom: 20,
     paddingHorizontal: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   illustrationArea: {
     height: height * 0.42,
     alignItems: 'center',
     justifyContent: 'center',
+    width: '100%',
   },
   graphicBox: {
     width: '100%',
@@ -548,22 +538,21 @@ const styles = StyleSheet.create({
   },
 
   // ── Language Screen Styles ────────────────────────────────────────────────
-  goldHeaderCard: {
-    backgroundColor: GOLD,
+  lightHeaderCard: {
+    backgroundColor: BG_WHITE,
     paddingTop: 64,
-    paddingBottom: 36,
+    paddingBottom: 24,
     paddingHorizontal: 28,
-    borderBottomLeftRadius: 55,
   },
-  headerTitle: {
+  headerTitleDark: {
     fontSize: 32,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: TEXT_DARK,
     lineHeight: 38,
   },
-  headerSubtitle: {
+  headerSubtitleDark: {
     fontSize: 15,
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: TEXT_MUTED,
     marginTop: 10,
     lineHeight: 20,
   },

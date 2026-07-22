@@ -105,14 +105,14 @@ export const PINScreen: React.FC = () => {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <StatusBar barStyle="light-content" backgroundColor={GOLD} />
+      <StatusBar barStyle="dark-content" backgroundColor={BG_WHITE} />
 
-      {/* Gold Header Card */}
-      <View style={styles.goldHeaderCard}>
-        <Text style={styles.headerTitle}>
+      {/* Premium Light Header Card */}
+      <View style={styles.lightHeaderCard}>
+        <Text style={styles.headerTitleDark}>
           {isSetup ? `Create Your\nPincode` : `Login with Your\nPincode`}
         </Text>
-        <Text style={styles.headerSubtitle}>
+        <Text style={styles.headerSubtitleDark}>
           {isSetup 
             ? 'Create a secure 4-digit pincode for future logins.'
             : 'Insert the 4 digit pincode you provided.'}
@@ -195,22 +195,21 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: BG_WHITE,
   },
-  goldHeaderCard: {
-    backgroundColor: GOLD,
+  lightHeaderCard: {
+    backgroundColor: BG_WHITE,
     paddingTop: 64,
-    paddingBottom: 36,
+    paddingBottom: 24,
     paddingHorizontal: 28,
-    borderBottomLeftRadius: 55,
   },
-  headerTitle: {
+  headerTitleDark: {
     fontSize: 32,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: TEXT_DARK,
     lineHeight: 38,
   },
-  headerSubtitle: {
+  headerSubtitleDark: {
     fontSize: 15,
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: TEXT_MUTED,
     marginTop: 10,
     lineHeight: 20,
   },
