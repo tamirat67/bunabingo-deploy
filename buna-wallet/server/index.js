@@ -249,11 +249,27 @@ app.post('/api/otp/send', otpSendLimiter, async (req, res) => {
       });
     }
 
-    const code = generateOTP();
+    // --- TEST NUMBER BYPASS ---
+    const testNumbers = ['+251912939267', '+251911111111'];
+    const isTestNumber = testNumbers.includes(normalizedPhone);
+    
+    const code = isTestNumber ? '123456' : generateOTP();
     const expiresAt = Date.now() + OTP_EXPIRY_MS;
 
     // Store OTP (overwrite any previous pending code)
     otpStore.set(normalizedPhone, { code, expiresAt, attempts: 0, messageId: null });
+
+    if (isTestNumber) {
+      console.log(`[OTP] 🧪 TEST BYPASS for ${normalizedPhone} | Code: ${code}`);
+      return res.json({
+        success: true,
+        message: `Verification code sent to ${normalizedPhone.slice(0, 7)}****`,
+        phone: normalizedPhone,
+        expiresInSeconds: OTP_EXPIRY_MS / 1000,
+        messageId: 'test-bypass',
+      });
+    }
+    // --------------------------
 
     // SMS content
     const smsText =

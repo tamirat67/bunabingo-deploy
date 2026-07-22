@@ -2,7 +2,7 @@
 // Production backend: https://api.bunatechhub.net
 // Telerivet Webhook:  https://api.bunatechhub.net/webhook/telerivet
 
-const BASE_URL = 'https://api.bunatechhub.net';
+const BASE_URL = 'http://192.168.1.7:3004';
 
 interface OtpSendResponse {
   success: boolean;

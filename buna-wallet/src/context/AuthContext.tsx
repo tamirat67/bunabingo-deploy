@@ -65,7 +65,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setError(null);
   }, []);
 
-  const API_BASE = 'https://api.bunatechhub.net';
+  const API_BASE = 'http://192.168.1.7:3004';
 
   // ── Step 1: Check Phone (PIN or OTP) ───────────────────────────────────────
   const checkPhone = useCallback(async (phone: string) => {
@@ -233,7 +233,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const query = user.userId
         ? `userId=${encodeURIComponent(user.userId)}`
         : `phone=${encodeURIComponent(user.phone)}`;
-      const res = await fetch(`https://api.bunatechhub.net/api/user/profile?${query}`);
+      const res = await fetch(`${API_BASE}/api/user/profile?${query}`);
       const data = await res.json();
       if (data.success) {
         setUser((prev) =>
@@ -256,7 +256,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // ── Update Profile Name ────────────────────────────────────────────────────
   const updateProfileName = useCallback(async (newName: string) => {
     if (!user?.userId) throw new Error('Not logged in');
-    const res = await fetch(`https://api.bunatechhub.net/api/user/profile`, {
+    const res = await fetch(`${API_BASE}/api/user/profile`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId: user.userId, name: newName }),
