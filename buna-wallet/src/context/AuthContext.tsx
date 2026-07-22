@@ -65,7 +65,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setError(null);
   }, []);
 
-  const API_BASE = 'http://192.168.1.7:3004';
+  const API_BASE = 'https://api.bunatechhub.net';
 
   // ── Step 1: Check Phone (PIN or OTP) ───────────────────────────────────────
   const checkPhone = useCallback(async (phone: string) => {
