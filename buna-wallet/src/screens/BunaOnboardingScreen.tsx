@@ -12,6 +12,7 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -201,11 +202,10 @@ export const BunaOnboardingScreen: React.FC = () => {
           <View style={[styles.onboardingContent, { width }]}>
             {/* Centered Logo for Slide 2 */}
             <View style={styles.centerLogo}>
-              <Ionicons name="cafe-outline" size={32} color={GOLD_DARK} />
-              <View style={styles.logoTextColCentered}>
-                <Text style={styles.logoTextTopCentered}>BUNA</Text>
-                <Text style={styles.logoTextBottomCentered}>WALLET</Text>
-              </View>
+              <Image 
+                source={require('../../assets/icon.png')} 
+                style={{ width: 120, height: 120, resizeMode: 'contain' }} 
+              />
             </View>
 
             <View style={styles.illustrationArea}>
