@@ -11,6 +11,7 @@ import { SplashScreen } from '../screens/SplashScreen';
 import { BunaOnboardingScreen } from '../screens/BunaOnboardingScreen';
 import { PINScreen } from '../screens/PINScreen';
 import { OTPScreen } from '../screens/OTPScreen';
+import { BiometricSetupScreen } from '../screens/BiometricSetupScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { AccountsScreen } from '../screens/AccountsScreen';
 import { WalletScreen } from '../screens/WalletScreen';
@@ -164,6 +165,16 @@ export const AppNavigator: React.FC = () => {
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
           <Stack.Screen name="PIN" component={PINScreen} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    );
+  }
+
+  if (step === 'biometric_setup') {
+    return (
+      <NavigationContainer>
+        <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+          <Stack.Screen name="BiometricSetup" component={BiometricSetupScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     );

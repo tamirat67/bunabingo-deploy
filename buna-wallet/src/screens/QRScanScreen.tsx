@@ -1,3 +1,4 @@
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -7,7 +8,6 @@ import {
   TouchableOpacity,
   Alert,
   Linking,
-  SafeAreaView,
   Animated,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -15,9 +15,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 
-const GOLD = '#D4AF37';
-const TEXT_DARK = '#1C1C1E';
-const TEXT_MUTED = '#6E6E73';
+import { Colors } from '../theme/colors';
+import { Shadows } from '../theme/tokens';
 
 export const QRScanScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -81,10 +80,10 @@ export const QRScanScreen: React.FC = () => {
   if (!permission.granted) {
     return (
       <SafeAreaView style={styles.permContainer}>
-        <StatusBar barStyle="dark-content" backgroundColor="#F8F8F8" />
+        <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
         <View style={styles.permContent}>
           <View style={styles.permIconBox}>
-            <Ionicons name="camera-outline" size={60} color={GOLD} />
+            <Ionicons name="camera-outline" size={60} color={Colors.secondary} />
           </View>
           <Text style={styles.permTitle}>Camera Access Needed</Text>
           <Text style={styles.permSubtitle}>
@@ -202,7 +201,7 @@ const styles = StyleSheet.create({
   // ── Permission screen ──
   permContainer: {
     flex: 1,
-    backgroundColor: '#F8F8F8',
+    backgroundColor: Colors.background,
   },
   permContent: {
     flex: 1,
@@ -222,19 +221,19 @@ const styles = StyleSheet.create({
   permTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: TEXT_DARK,
+    color: Colors.textPrimary,
     textAlign: 'center',
     marginBottom: 14,
   },
   permSubtitle: {
     fontSize: 15,
-    color: TEXT_MUTED,
+    color: Colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 40,
   },
   permBtn: {
-    backgroundColor: GOLD,
+    backgroundColor: Colors.secondary,
     borderRadius: 14,
     paddingVertical: 16,
     paddingHorizontal: 48,
@@ -270,7 +269,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 36,
     height: 36,
-    borderColor: GOLD,
+    borderColor: Colors.secondary,
     borderWidth: 3,
   },
   tl: { top: 0, left: 0, borderRightWidth: 0, borderBottomWidth: 0, borderTopLeftRadius: 10 },
@@ -282,10 +281,10 @@ const styles = StyleSheet.create({
     left: 8,
     right: 8,
     height: 2,
-    backgroundColor: GOLD,
+    backgroundColor: Colors.secondary,
     borderRadius: 1,
     top: '50%',
-    shadowColor: GOLD,
+    shadowColor: Colors.secondary,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.9,
     shadowRadius: 6,

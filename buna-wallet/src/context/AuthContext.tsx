@@ -4,7 +4,11 @@ import React, {
   useState,
   useCallback,
   ReactNode,
+  useEffect,
+  useRef,
 } from 'react';
+import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { sendOTP, verifyOTP, normalizePhone } from '../services/authService';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -19,7 +23,7 @@ export interface AuthUser {
   isNewUser: boolean;
 }
 
-type AuthStep = 'splash' | 'login' | 'otp' | 'pin_setup' | 'pin_login' | 'authenticated';
+type AuthStep = 'splash' | 'login' | 'otp' | 'pin_setup' | 'pin_login' | 'biometric_setup' | 'authenticated';
 
 interface AuthContextValue {
   step: AuthStep;
@@ -35,13 +39,19 @@ interface AuthContextValue {
   resendOTP: () => Promise<void>;
   setupPin: (pin: string) => Promise<void>;
   verifyPin: (pin: string) => Promise<void>;
+  changePin: (currentPin: string, newPin: string) => Promise<void>;
+  enableBiometrics: () => Promise<void>;
+  skipBiometrics: () => void;
+  biometricVerify: () => Promise<void>;
   startTelegramAuth: () => Promise<string>;
   refreshProfile: () => Promise<void>;
   updateProfileName: (name: string) => Promise<void>;
   logout: () => void;
+  switchAccount: () => Promise<void>;
 
   // Status
   isLoading: boolean;
+  isBiometricEnabled: boolean;
   error: string | null;
   clearError: () => void;
 }
@@ -55,13 +65,36 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [user, setUser] = useState<AuthUser | null>(null);
   const [pendingPhone, setPendingPhone] = useState('');
   const [hasPin, setHasPin] = useState(false);
+  const [isBiometricEnabled, setIsBiometricEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const currentPinRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const enabled = await AsyncStorage.getItem('isBiometricEnabled');
+        if (enabled === 'true') {
+          setIsBiometricEnabled(true);
+        }
+      } catch (e) {}
+    })();
+  }, []);
   const [error, setError] = useState<string | null>(null);
 
   const clearError = useCallback(() => setError(null), []);
 
-  const goToLogin = useCallback(() => {
-    setStep('login');
+  const goToLogin = useCallback(async () => {
+    try {
+      const savedPhone = await AsyncStorage.getItem('savedPhone');
+      if (savedPhone) {
+        setPendingPhone(savedPhone);
+        setStep('pin_login');
+      } else {
+        setStep('login');
+      }
+    } catch (e) {
+      setStep('login');
+    }
     setError(null);
   }, []);
 
@@ -159,6 +192,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (!result.hasPin) {
          setStep('pin_setup');
       } else {
+         await AsyncStorage.setItem('savedPhone', result.phone || pendingPhone);
          setStep('authenticated');
       }
     } catch (err: any) {
@@ -183,8 +217,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (!res.ok || !data.success) {
         throw new Error(data.message || 'Failed to setup PIN');
       }
+      currentPinRef.current = pin;
       setHasPin(true);
-      setStep('authenticated');
+      setStep('biometric_setup');
     } catch (err: any) {
       setError(err.message || 'Error setting PIN.');
     } finally {
@@ -225,6 +260,62 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setIsLoading(false);
     }
   }, [pendingPhone]);
+
+  // ── Change PIN (while authenticated) ───────────────────────────────────────────────────
+  const changePin = useCallback(async (currentPin: string, newPin: string) => {
+    if (!user?.token) throw new Error('You must be logged in to change your PIN.');
+    const res = await fetch(`${API_BASE}/api/auth/change-pin`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: user.token, currentPin, newPin }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.message || 'Failed to change PIN.');
+    }
+    // Update SecureStore so biometric login uses the new PIN
+    try {
+      const biometricActive = await AsyncStorage.getItem('isBiometricEnabled');
+      if (biometricActive === 'true') {
+        await SecureStore.setItemAsync('savedPin', newPin);
+      }
+    } catch (_) {}
+  }, [user]);
+
+  // ── Biometrics ─────────────────────────────────────────────────────────────
+  const enableBiometrics = useCallback(async () => {
+    try {
+      if (currentPinRef.current) {
+        await SecureStore.setItemAsync('savedPin', currentPinRef.current);
+        await AsyncStorage.setItem('isBiometricEnabled', 'true');
+        setIsBiometricEnabled(true);
+      }
+      await AsyncStorage.setItem('savedPhone', pendingPhone);
+    } catch (e) {
+      console.error('Failed to enable biometrics', e);
+    }
+    setStep('authenticated');
+  }, []);
+
+  const skipBiometrics = useCallback(async () => {
+    try {
+      await AsyncStorage.setItem('savedPhone', pendingPhone);
+    } catch (e) {}
+    setStep('authenticated');
+  }, [pendingPhone]);
+
+  const biometricVerify = useCallback(async () => {
+    try {
+      const savedPin = await SecureStore.getItemAsync('savedPin');
+      if (savedPin) {
+        await verifyPin(savedPin);
+      } else {
+        throw new Error('No PIN found in secure storage');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Biometric authentication failed');
+    }
+  }, [verifyPin]);
 
   // ── Refresh User Profile & Balance ─────────────────────────────────────────
   const refreshProfile = useCallback(async () => {
@@ -287,11 +378,34 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   // ── Logout ─────────────────────────────────────────────────────────────────
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    setUser(null);
+    setError(null);
+    try {
+      const savedPhone = await AsyncStorage.getItem('savedPhone');
+      if (savedPhone) {
+        setStep('pin_login');
+      } else {
+        setPendingPhone('');
+        setStep('login');
+      }
+    } catch (e) {
+      setPendingPhone('');
+      setStep('login');
+    }
+  }, []);
+
+  const switchAccount = useCallback(async () => {
     setUser(null);
     setPendingPhone('');
-    setStep('login');
     setError(null);
+    try {
+      await AsyncStorage.removeItem('savedPhone');
+      await AsyncStorage.removeItem('isBiometricEnabled');
+      await SecureStore.deleteItemAsync('savedPin');
+      setIsBiometricEnabled(false);
+    } catch (e) {}
+    setStep('login');
   }, []);
 
   return (
@@ -308,11 +422,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         resendOTP,
         setupPin,
         verifyPin,
+        changePin,
+        enableBiometrics,
+        skipBiometrics,
+        biometricVerify,
         startTelegramAuth,
         refreshProfile,
         updateProfileName,
         logout,
+        switchAccount,
         isLoading,
+        isBiometricEnabled,
         error,
         clearError,
       }}

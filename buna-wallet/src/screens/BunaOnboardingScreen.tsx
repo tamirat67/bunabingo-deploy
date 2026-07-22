@@ -14,21 +14,25 @@ import {
   ActivityIndicator,
   Image,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { pollTelegramAuth } from '../services/authService';
 import { Linking } from 'react-native';
 
+import { Colors } from '../theme/colors';
+import { Shadows } from '../theme/tokens';
+
 const { width, height } = Dimensions.get('window');
 
-const GOLD = '#D4AF37';
-const GOLD_DARK = '#B8860B';
-const GOLD_LIGHT = '#F4E0A5';
-const TEXT_DARK = '#1C1C1E';
-const TEXT_MUTED = '#6E6E73';
-const BG_WHITE = '#FFFFFF';
-const BORDER_COLOR = '#E5E5EA';
+const GOLD = Colors.secondary;
+const GOLD_DARK = Colors.primary; // Re-map GOLD_DARK to primary (espresso) for high contrast where previously dark gold was used
+const GOLD_LIGHT = Colors.secondaryLight;
+const TEXT_DARK = Colors.primary;
+const TEXT_MUTED = Colors.textSecondary;
+const BG_WHITE = Colors.background;
+const BORDER_COLOR = Colors.border;
 
 const LANGUAGES = [
   { id: 'en', label: 'English', native: 'English' },
@@ -39,6 +43,7 @@ const LANGUAGES = [
 ];
 
 export const BunaOnboardingScreen: React.FC = () => {
+  const insets = useSafeAreaInsets();
   const { checkPhone, startTelegramAuth, isLoading } = useAuth();
 
   // Screen State: 'onboarding' | 'language' | 'phone'
@@ -128,7 +133,7 @@ export const BunaOnboardingScreen: React.FC = () => {
   // ─── RENDER ONBOARDING SLIDES ─────────────────────────────────────────────
   if (screen === 'onboarding') {
     return (
-      <LinearGradient colors={['#FFFDF7', '#FFFFFF']} style={styles.container}>
+      <LinearGradient colors={['#FFFDF7', '#FFFFFF']} style={[styles.container, { paddingTop: insets.top }]}>
         <StatusBar barStyle="dark-content" backgroundColor="#FFFDF7" />
 
         <ScrollView
@@ -230,32 +235,32 @@ export const BunaOnboardingScreen: React.FC = () => {
                 </View>
 
                 {/* Floating Badges */}
-                <View style={[styles.badgeContainer, { top: '10%', left: '-5%' }]}>
+                <View style={[styles.badgeContainer, { top: '10%', left: '2%' }]}>
                   <View style={styles.badgeItemWhite}><Ionicons name="cart" size={24} color={GOLD} /></View>
                   <Text style={styles.badgeLabel}>Shopping</Text>
                 </View>
                 
-                <View style={[styles.badgeContainer, { top: '10%', right: '-5%' }]}>
+                <View style={[styles.badgeContainer, { top: '10%', right: '2%' }]}>
                   <View style={styles.badgeItemWhite}><Ionicons name="flash" size={24} color={GOLD} /></View>
                   <Text style={styles.badgeLabel}>Electricity</Text>
                 </View>
 
-                <View style={[styles.badgeContainer, { top: '40%', left: '-10%' }]}>
+                <View style={[styles.badgeContainer, { top: '40%', left: '-2%' }]}>
                   <View style={styles.badgeItemWhite}><Ionicons name="water" size={24} color={GOLD} /></View>
                   <Text style={styles.badgeLabel}>Water</Text>
                 </View>
 
-                <View style={[styles.badgeContainer, { top: '40%', right: '-10%' }]}>
+                <View style={[styles.badgeContainer, { top: '40%', right: '-2%' }]}>
                   <View style={styles.badgeItemWhite}><Ionicons name="globe-outline" size={24} color={GOLD} /></View>
                   <Text style={styles.badgeLabel}>Internet</Text>
                 </View>
 
-                <View style={[styles.badgeContainer, { top: '70%', left: '-5%' }]}>
+                <View style={[styles.badgeContainer, { top: '70%', left: '2%' }]}>
                   <View style={styles.badgeItemWhite}><Ionicons name="airplane" size={24} color={GOLD} /></View>
                   <Text style={styles.badgeLabel}>Airlines</Text>
                 </View>
 
-                <View style={[styles.badgeContainer, { top: '70%', right: '-5%' }]}>
+                <View style={[styles.badgeContainer, { top: '70%', right: '2%' }]}>
                   <View style={styles.badgeItemWhite}><Ionicons name="bus" size={24} color={GOLD} /></View>
                   <Text style={styles.badgeLabel}>Transport</Text>
                 </View>
@@ -322,16 +327,16 @@ export const BunaOnboardingScreen: React.FC = () => {
                 </View>
 
                 {/* Floating Badges for Slide 3 */}
-                <View style={[styles.badgeContainer, { top: '25%', left: '-5%' }]}>
+                <View style={[styles.badgeContainer, { top: '25%', left: '2%' }]}>
                   <View style={[styles.badgeItemWhite, { backgroundColor: GOLD }]}><Ionicons name="wallet" size={24} color="#FFF" /></View>
                 </View>
-                <View style={[styles.badgeContainer, { top: '35%', right: '-5%' }]}>
+                <View style={[styles.badgeContainer, { top: '35%', right: '2%' }]}>
                   <View style={[styles.badgeItemWhite, { backgroundColor: GOLD }]}><Ionicons name="cash" size={24} color="#FFF" /></View>
                 </View>
-                <View style={[styles.badgeContainer, { top: '65%', left: '0%' }]}>
+                <View style={[styles.badgeContainer, { top: '65%', left: '5%' }]}>
                   <View style={[styles.badgeItemWhite, { backgroundColor: TEXT_DARK }]}><MaterialCommunityIcons name="bank" size={24} color="#FFF" /></View>
                 </View>
-                <View style={[styles.badgeContainer, { top: '75%', right: '0%' }]}>
+                <View style={[styles.badgeContainer, { top: '75%', right: '5%' }]}>
                   <View style={[styles.badgeItemWhite, { backgroundColor: TEXT_DARK }]}><Ionicons name="paper-plane" size={24} color="#FFF" /></View>
                 </View>
 
@@ -399,7 +404,7 @@ export const BunaOnboardingScreen: React.FC = () => {
   // ─── RENDER LANGUAGE SELECTION SCREEN ─────────────────────────────────────
   if (screen === 'language') {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { paddingTop: insets.top }]}>
         <StatusBar barStyle="dark-content" backgroundColor={BG_WHITE} />
 
         {/* Premium Light Header Card */}
@@ -447,7 +452,7 @@ export const BunaOnboardingScreen: React.FC = () => {
   // ─── RENDER PHONE NUMBER ENTRY SCREEN ─────────────────────────────────────
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { paddingTop: insets.top }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <StatusBar barStyle="dark-content" backgroundColor={BG_WHITE} />

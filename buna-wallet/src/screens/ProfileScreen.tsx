@@ -1,3 +1,4 @@
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -6,21 +7,19 @@ import {
   ScrollView,
   StatusBar,
   TouchableOpacity,
-  SafeAreaView,
   Alert,
   TextInput,
   Modal,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 
-const GOLD = '#D4AF37';
-const GOLD_DARK = '#B8860B';
-const TEXT_DARK = '#1C1C1E';
-const TEXT_MUTED = '#6E6E73';
-const BG = '#F8F8F8';
-const WHITE = '#FFFFFF';
+import { Colors } from '../theme/colors';
+import { Shadows } from '../theme/tokens';
+import { BunaModal } from '../components/BunaModal';
+import { ChangePinModal } from '../components/ChangePinModal';
 
 // ─── Setting Row ──────────────────────────────────────────────────────────────
 const SettingRow = ({
@@ -39,7 +38,7 @@ const SettingRow = ({
   <TouchableOpacity style={styles.settingRow} activeOpacity={0.7} onPress={onPress}>
     <View style={styles.settingLeft}>
       <View style={styles.settingIconBox}>
-        <Ionicons name={icon as any} size={20} color={TEXT_DARK} />
+        <Ionicons name={icon as any} size={20} color={Colors.primary} />
       </View>
       <View>
         <Text style={styles.settingTitle}>{title}</Text>
@@ -62,6 +61,14 @@ export const ProfileScreen: React.FC = () => {
   const [editName, setEditName] = useState('');
   const [saving, setSaving] = useState(false);
 
+  // BunaModal states
+  const [logoutModalVisible, setLogoutModalVisible] = useState(false);
+  const [successModal, setSuccessModal] = useState({ visible: false, message: '' });
+  const [errorModal, setErrorModal] = useState({ visible: false, message: '' });
+
+  // Change PIN state
+  const [changePinVisible, setChangePinVisible] = useState(false);
+
   // Load fresh profile on mount
   useEffect(() => {
     refreshProfile();
@@ -82,16 +89,16 @@ export const ProfileScreen: React.FC = () => {
   const handleSaveName = async () => {
     const trimmed = editName.trim();
     if (!trimmed) {
-      Alert.alert('Validation', 'Name cannot be empty.');
+      setErrorModal({ visible: true, message: 'Name cannot be empty.' });
       return;
     }
     setSaving(true);
     try {
       await updateProfileName(trimmed);
       setEditModalVisible(false);
-      Alert.alert('Success', 'Your name has been updated.');
+      setSuccessModal({ visible: true, message: 'Your profile name has been updated!' });
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to update name.');
+      setErrorModal({ visible: true, message: err.message || 'Failed to update name.' });
     } finally {
       setSaving(false);
     }
@@ -99,10 +106,7 @@ export const ProfileScreen: React.FC = () => {
 
   // ── Logout ────────────────────────────────────────────────────────────────
   const handleLogout = () => {
-    Alert.alert('Logout', 'Are you sure you want to log out?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Logout', style: 'destructive', onPress: logout },
-    ]);
+    setLogoutModalVisible(true);
   };
 
   // ── Refresh ────────────────────────────────────────────────────────────────
@@ -113,30 +117,34 @@ export const ProfileScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={BG} />
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
         {/* ── HEADER ── */}
         <View style={styles.topBar}>
           <View style={styles.topLeft}>
-            <Ionicons name="chevron-back" size={22} color={TEXT_DARK} />
+            <Ionicons name="chevron-back" size={22} color={Colors.textPrimary} />
             <Text style={styles.headerTitle}>Profile</Text>
           </View>
           <TouchableOpacity onPress={handleRefresh} disabled={isLoading}>
             {isLoading ? (
-              <ActivityIndicator size="small" color={GOLD} />
+              <ActivityIndicator size="small" color={Colors.secondary} />
             ) : (
-              <Ionicons name="refresh-outline" size={22} color={TEXT_MUTED} />
+              <Ionicons name="refresh-outline" size={22} color={Colors.textSecondary} />
             )}
           </TouchableOpacity>
         </View>
 
         {/* ── AVATAR + NAME ── */}
         <View style={styles.profileHeader}>
-          {/* Avatar with initial */}
+          {/* Buna Wallet Logo + user avatar ring */}
           <TouchableOpacity style={styles.avatarCircle} onPress={handleOpenEdit} activeOpacity={0.8}>
-            <Text style={styles.avatarInitial}>{userInitial}</Text>
+            <Image
+              source={require('../../assets/icon.png')}
+              style={styles.avatarLogo}
+              resizeMode="contain"
+            />
             <View style={styles.editBadge}>
               <Ionicons name="pencil" size={12} color="#fff" />
             </View>
@@ -177,7 +185,8 @@ export const ProfileScreen: React.FC = () => {
           <SettingRow
             icon="shield-checkmark-outline"
             title="Security"
-            subtitle="PIN code, fingerprint"
+            subtitle="Change PIN code"
+            onPress={() => setChangePinVisible(true)}
             showChevron
           />
           <View style={styles.listDivider} />
@@ -248,13 +257,55 @@ export const ProfileScreen: React.FC = () => {
           </View>
         </View>
       </Modal>
+
+      {/* ── Logout Confirm Modal ── */}
+      <BunaModal
+        visible={logoutModalVisible}
+        variant="confirm"
+        title="Log Out?"
+        message="You will need to enter your PIN or verify again to log back in."
+        primaryLabel="Log Out"
+        secondaryLabel="Stay"
+        onPrimary={() => { setLogoutModalVisible(false); logout(); }}
+        onSecondary={() => setLogoutModalVisible(false)}
+        onClose={() => setLogoutModalVisible(false)}
+      />
+
+      {/* ── Success Modal ── */}
+      <BunaModal
+        visible={successModal.visible}
+        variant="success"
+        title="Updated!"
+        message={successModal.message}
+        primaryLabel="Great"
+        onPrimary={() => setSuccessModal({ visible: false, message: '' })}
+        onClose={() => setSuccessModal({ visible: false, message: '' })}
+      />
+
+      {/* ── Error Modal ── */}
+      <BunaModal
+        visible={errorModal.visible}
+        variant="error"
+        title="Something went wrong"
+        message={errorModal.message}
+        primaryLabel="Got it"
+        onPrimary={() => setErrorModal({ visible: false, message: '' })}
+        onClose={() => setErrorModal({ visible: false, message: '' })}
+      />
+
+      {/* ── Change PIN Modal ── */}
+      <ChangePinModal
+        visible={changePinVisible}
+        onClose={() => setChangePinVisible(false)}
+        onSuccess={() => setSuccessModal({ visible: true, message: 'Your PIN has been successfully changed.' })}
+      />
     </SafeAreaView>
   );
 };
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: BG },
+  container: { flex: 1, backgroundColor: Colors.background },
   scrollContent: { paddingBottom: 110 },
 
   // Header
@@ -267,21 +318,28 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   topLeft: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  headerTitle: { fontSize: 22, fontWeight: '700', color: TEXT_DARK },
+  headerTitle: { fontSize: 22, fontWeight: '700', color: Colors.textPrimary },
 
   // Profile Header
   profileHeader: { alignItems: 'center', paddingVertical: 24, paddingHorizontal: 20 },
   avatarCircle: {
-    width: 86,
-    height: 86,
-    borderRadius: 43,
-    backgroundColor: '#E8D9A0',
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    borderWidth: 2.5,
+    borderColor: Colors.secondary,
+    backgroundColor: Colors.backgroundAlt,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 14,
     position: 'relative',
+    ...(Shadows.card as any),
   },
-  avatarInitial: { fontSize: 36, fontWeight: '800', color: GOLD_DARK },
+  avatarLogo: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+  },
   editBadge: {
     position: 'absolute',
     bottom: 2,
@@ -289,34 +347,30 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: GOLD,
+    backgroundColor: Colors.secondary,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: WHITE,
+    borderColor: Colors.backgroundAlt,
   },
-  userName: { fontSize: 18, fontWeight: '700', color: GOLD, marginBottom: 4 },
-  userPhone: { fontSize: 14, color: TEXT_MUTED, marginBottom: 16 },
+  userName: { fontSize: 18, fontWeight: '700', color: Colors.primary, marginBottom: 4 },
+  userPhone: { fontSize: 14, color: Colors.textSecondary, marginBottom: 16 },
   balanceBadge: {
-    backgroundColor: WHITE,
+    backgroundColor: Colors.backgroundAlt,
     borderRadius: 14,
     paddingVertical: 12,
     paddingHorizontal: 28,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07,
-    shadowRadius: 8,
-    elevation: 3,
+    ...(Shadows.card as any),
   },
-  balanceBadgeLabel: { fontSize: 12, color: TEXT_MUTED, marginBottom: 4 },
-  balanceBadgeAmount: { fontSize: 18, fontWeight: '800', color: TEXT_DARK },
+  balanceBadgeLabel: { fontSize: 12, color: Colors.textSecondary, marginBottom: 4 },
+  balanceBadgeAmount: { fontSize: 18, fontWeight: '800', color: Colors.textPrimary },
 
   // Divider
-  divider: { height: 1, backgroundColor: '#E5E5EA', marginBottom: 8 },
+  divider: { height: 1, backgroundColor: Colors.border, marginBottom: 8 },
 
   // Settings
-  settingsList: { backgroundColor: WHITE, marginBottom: 24 },
+  settingsList: { backgroundColor: Colors.backgroundAlt, marginBottom: 24, ...(Shadows.sm as any), borderRadius: 16, marginHorizontal: 16, overflow: 'hidden' },
   settingRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -327,11 +381,11 @@ const styles = StyleSheet.create({
   settingLeft: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   settingIconBox: {
     width: 36, height: 36, borderRadius: 10,
-    backgroundColor: BG, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: Colors.background, alignItems: 'center', justifyContent: 'center',
   },
-  settingTitle: { fontSize: 15, fontWeight: '600', color: TEXT_DARK, marginBottom: 2 },
-  settingSubtitle: { fontSize: 12, color: TEXT_MUTED },
-  listDivider: { height: 1, backgroundColor: '#F0F0F2', marginLeft: 70 },
+  settingTitle: { fontSize: 15, fontWeight: '600', color: Colors.textPrimary, marginBottom: 2 },
+  settingSubtitle: { fontSize: 12, color: Colors.textSecondary },
+  listDivider: { height: 1, backgroundColor: Colors.borderLight, marginLeft: 70 },
 
   // Version
   version: { textAlign: 'center', fontSize: 13, color: '#C0C0C5', marginBottom: 32 },
@@ -350,47 +404,47 @@ const styles = StyleSheet.create({
   // Modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: 'rgba(30,20,15,0.6)', // Espresso tint
     justifyContent: 'flex-end',
   },
   modalCard: {
-    backgroundColor: WHITE,
+    backgroundColor: Colors.backgroundAlt,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     padding: 28,
     paddingBottom: 40,
   },
-  modalTitle: { fontSize: 20, fontWeight: '700', color: TEXT_DARK, marginBottom: 6 },
-  modalSubtitle: { fontSize: 14, color: TEXT_MUTED, marginBottom: 24, lineHeight: 20 },
+  modalTitle: { fontSize: 20, fontWeight: '700', color: Colors.primary, marginBottom: 6 },
+  modalSubtitle: { fontSize: 14, color: Colors.textSecondary, marginBottom: 24, lineHeight: 20 },
   modalInput: {
     borderWidth: 1.5,
-    borderColor: GOLD,
+    borderColor: Colors.borderActive,
     borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
-    color: TEXT_DARK,
+    color: Colors.textPrimary,
     marginBottom: 24,
-    backgroundColor: '#FAFAF8',
+    backgroundColor: Colors.background,
   },
   modalBtns: { flexDirection: 'row', gap: 12 },
   modalCancelBtn: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: 14,
-    backgroundColor: BG,
+    backgroundColor: Colors.background,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E0E0E5',
+    borderColor: Colors.border,
   },
-  modalCancelText: { fontSize: 15, fontWeight: '600', color: TEXT_MUTED },
+  modalCancelText: { fontSize: 15, fontWeight: '600', color: Colors.textSecondary },
   modalSaveBtn: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: 14,
-    backgroundColor: GOLD,
+    backgroundColor: Colors.primary,
     alignItems: 'center',
   },
-  modalSaveBtnDisabled: { backgroundColor: '#E8D9A0' },
-  modalSaveText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  modalSaveBtnDisabled: { backgroundColor: Colors.primaryDark, opacity: 0.5 },
+  modalSaveText: { fontSize: 15, fontWeight: '700', color: Colors.secondaryLight },
 });

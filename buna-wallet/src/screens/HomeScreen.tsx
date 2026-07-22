@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -6,43 +7,148 @@ import {
   ScrollView,
   StatusBar,
   TouchableOpacity,
-  SafeAreaView,
   Dimensions,
+  Image,
+  FlatList,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
+  Animated,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { useNavigation } from '@react-navigation/native';
+import { Colors } from '../theme/colors';
+import { Shadows } from '../theme/tokens';
 
 const { width } = Dimensions.get('window');
-const GOLD = '#D4AF37';
-const GOLD_LIGHT = '#F0D060';
-const GOLD_DARK = '#B8860B';
-const TEXT_DARK = '#1C1C1E';
-const TEXT_MUTED = '#6E6E73';
-const BG = '#F8F8F8';
-const WHITE = '#FFFFFF';
+const BANNER_WIDTH = width - 32;
 
-const SERVICES = [
-  { icon: 'school-outline', label: 'School Pay', color: '#4A90D9' },
-  { icon: 'phone-portrait-outline', label: 'Airtime', color: '#E74C3C' },
-  { icon: 'receipt-outline', label: 'Pay Bills', color: '#27AE60' },
-  { icon: 'heart-outline', label: 'Donation', color: '#D4AF37' },
+// ─── Service Definitions ──────────────────────────────────────────────────────
+const SERVICES_ROW1 = [
+  { key: 'transfer', icon: 'swap-horizontal-outline', label: 'Transfer', isNew: true, lib: 'ion' },
+  { key: 'airtime', icon: 'phone-portrait-outline', label: 'Airtime', isNew: false, lib: 'ion' },
+  { key: 'payment', icon: 'card-outline', label: 'Payment', isNew: false, lib: 'ion' },
+  { key: 'withdrawal', icon: 'cash-outline', label: 'Withdrawal', isNew: false, lib: 'ion' },
 ];
 
+const SERVICES_ROW2 = [
+  { key: 'voucher', icon: 'ticket-outline', label: 'Voucher', isNew: false, lib: 'ion' },
+  { key: 'insurance', icon: 'umbrella-outline', label: 'Insurance', isNew: false, lib: 'mci' },
+  { key: 'fuel', icon: 'speedometer-outline', label: 'Fuel', isNew: false, lib: 'ion' },
+  { key: 'all', icon: 'grid-outline', label: 'All Services', isNew: false, lib: 'ion' },
+];
+
+const SERVICES_ROW3 = [
+  { key: 'saving', icon: 'save-outline', label: 'Saving', isNew: false, lib: 'ion' },
+  { key: 'finance', icon: 'trending-up-outline', label: 'Financial Services', isNew: false, lib: 'ion' },
+];
+
+// ─── Promotional Banners ──────────────────────────────────────────────────────
+const BANNERS = [
+  {
+    id: 'b1',
+    image: require('../../assets/banners/banner1.png'),
+  },
+  {
+    id: 'b2',
+    image: require('../../assets/banners/banner2.png'),
+  },
+  {
+    id: 'b3',
+    image: require('../../assets/banners/banner3.png'),
+  },
+  {
+    id: 'b4',
+    image: require('../../assets/banners/banner4.png'),
+  },
+  {
+    id: 'b5',
+    image: require('../../assets/banners/banner5.png'),
+  },
+];
+
+// ─── Greeting Helper ──────────────────────────────────────────────────────────
+const getGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
+};
+
+// ─── Service Icon Component ───────────────────────────────────────────────────
+const ServiceIcon = ({ icon, lib }: { icon: string; lib: string }) => {
+  if (lib === 'mci') {
+    return <MaterialCommunityIcons name={icon as any} size={26} color={Colors.secondary} />;
+  }
+  return <Ionicons name={icon as any} size={26} color={Colors.secondary} />;
+};
+
+// ─── Service Card Component ───────────────────────────────────────────────────
+const ServiceCard = ({
+  svc,
+  wide = false,
+  onPress,
+}: {
+  svc: { key: string; icon: string; label: string; isNew: boolean; lib: string };
+  wide?: boolean;
+  onPress?: () => void;
+}) => (
+  <TouchableOpacity
+    style={[styles.serviceCard, wide && styles.serviceCardWide]}
+    activeOpacity={0.75}
+    onPress={onPress}
+  >
+    {svc.isNew && (
+      <View style={styles.newBadge}>
+        <Text style={styles.newBadgeText}>NEW</Text>
+      </View>
+    )}
+    <View style={styles.serviceIconBox}>
+      <ServiceIcon icon={svc.icon} lib={svc.lib} />
+    </View>
+    <Text style={styles.serviceLabel} numberOfLines={1}>
+      {svc.label}
+    </Text>
+  </TouchableOpacity>
+);
+
+// ─── Main Screen ──────────────────────────────────────────────────────────────
 export const HomeScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
-  const { user, refreshProfile, logout } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const nav = navigation || useNavigation<any>();
 
-  const [balanceHidden, setBalanceHidden] = useState(true);
+  const [balanceHidden, setBalanceHidden] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [activeBanner, setActiveBanner] = useState(0);
+  const bannerRef = useRef<FlatList>(null);
+  const autoScrollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const userName = user?.name ? user.name.split(' ')[0] : 'User';
+  const balance = user?.balance ?? 0;
 
   useEffect(() => {
     refreshProfile();
   }, []);
 
-  const userName = user?.name ? user.name.split(' ')[0] : 'User';
-  const balance = user?.balance ?? 0;
+  // Auto-scroll banners
+  useEffect(() => {
+    autoScrollTimer.current = setInterval(() => {
+      setActiveBanner((prev) => {
+        const next = (prev + 1) % BANNERS.length;
+        bannerRef.current?.scrollToIndex({ index: next, animated: true });
+        return next;
+      });
+    }, 3500);
+    return () => {
+      if (autoScrollTimer.current) clearInterval(autoScrollTimer.current);
+    };
+  }, []);
+
+  const handleBannerScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const index = Math.round(e.nativeEvent.contentOffset.x / BANNER_WIDTH);
+    if (index !== activeBanner) setActiveBanner(index);
+  };
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -50,82 +156,190 @@ export const HomeScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
     setRefreshing(false);
   };
 
+  const handleServicePress = (key: string) => {
+    if (key === 'transfer') nav.navigate('Transfer');
+    else if (key === 'all') nav.navigate('Wallet');
+  };
+
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={BG} />
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
         {/* ── TOP BAR ── */}
         <View style={styles.topBar}>
-          <TouchableOpacity style={styles.avatarBtn} activeOpacity={0.7}>
-            <Ionicons name="person-circle-outline" size={42} color={TEXT_DARK} />
+          <View style={styles.topBarLeft}>
+            <Image
+              source={require('../../assets/icon.png')}
+              style={styles.bunaLogoImg}
+              resizeMode="contain"
+            />
+            <View>
+              <Text style={styles.greetingSmall}>{getGreeting()},</Text>
+              <Text style={styles.greetingName}>{userName} 👋</Text>
+            </View>
+          </View>
+          <TouchableOpacity
+            style={styles.notifBtn}
+            activeOpacity={0.7}
+            onPress={() => nav.navigate('Profile')}
+          >
+            <Ionicons name="notifications-outline" size={22} color={Colors.primary} />
+            <View style={styles.notifDot} />
           </TouchableOpacity>
-          <Text style={styles.greetingText}>
-            Hello <Text style={styles.greetingName}>{userName}</Text>
-          </Text>
         </View>
 
         {/* ── BALANCE CARD ── */}
         <LinearGradient
-          colors={['#D4AF37', '#C59B27', '#A8841A']}
-          style={styles.balanceCard}
+          colors={Colors.espressoGradient as any}
+          style={[styles.balanceCard, Shadows.espresso as any]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
         >
+          {/* Decorative Circles */}
+          <View style={styles.decorCircle1} />
+          <View style={styles.decorCircle2} />
+
           <View style={styles.balanceCardTop}>
-            <Text style={styles.balanceLabel}>Balance</Text>
+            <View style={styles.balanceCardTopLeft}>
+              <Image
+                source={require('../../assets/icon.png')}
+                style={styles.cardLogoImg}
+                resizeMode="contain"
+              />
+              <Text style={styles.balanceLabel}>Wallet Balance</Text>
+            </View>
             <TouchableOpacity onPress={() => setBalanceHidden(!balanceHidden)}>
               <Ionicons
                 name={balanceHidden ? 'eye-off-outline' : 'eye-outline'}
                 size={22}
-                color="rgba(255,255,255,0.85)"
+                color={Colors.secondary}
               />
             </TouchableOpacity>
           </View>
 
           <View style={styles.balanceAmountRow}>
             {balanceHidden ? (
-              <Text style={styles.balanceMasked}>- - -</Text>
+              <Text style={styles.balanceMasked}>••••••</Text>
             ) : (
               <Text style={styles.balanceAmount}>
                 {balance.toLocaleString('en-ET', { minimumFractionDigits: 2 })}
               </Text>
             )}
-            <Text style={styles.balanceCurrency}> Birr</Text>
+            <Text style={styles.balanceCurrency}> ETB</Text>
+          </View>
 
-            <TouchableOpacity onPress={handleRefresh} style={styles.refreshBtn}>
-              <Ionicons
-                name="refresh-outline"
-                size={18}
-                color="rgba(255,255,255,0.85)"
-              />
+          <View style={styles.balanceCardBottom}>
+            <TouchableOpacity style={styles.balanceActionBtn} activeOpacity={0.8}
+              onPress={() => nav.navigate('Transfer')}>
+              <Ionicons name="arrow-up-outline" size={16} color={Colors.secondary} />
+              <Text style={styles.balanceActionText}>Send</Text>
+            </TouchableOpacity>
+            <View style={styles.balanceSeparator} />
+            <TouchableOpacity style={styles.balanceActionBtn} activeOpacity={0.8}>
+              <Ionicons name="arrow-down-outline" size={16} color={Colors.secondary} />
+              <Text style={styles.balanceActionText}>Receive</Text>
+            </TouchableOpacity>
+            <View style={styles.balanceSeparator} />
+            <TouchableOpacity style={styles.balanceActionBtn} activeOpacity={0.8} onPress={handleRefresh}>
+              <Ionicons name="refresh-outline" size={16} color={Colors.secondary} />
+              <Text style={styles.balanceActionText}>Refresh</Text>
             </TouchableOpacity>
           </View>
         </LinearGradient>
 
-        {/* ── LINKED ACCOUNTS ── */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Linked accounts</Text>
-          <View style={styles.linkedRow}>
-            <Text style={styles.noLinked}>No linked accounts. Link here</Text>
-            <TouchableOpacity style={styles.addAccountBtn} activeOpacity={0.8}>
-              <Ionicons name="add" size={22} color={TEXT_DARK} />
+        {/* ── SERVICES SECTION ── */}
+        <View style={styles.servicesSection}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Services</Text>
+            <TouchableOpacity activeOpacity={0.7}>
+              <Text style={styles.seeAllText}>See all</Text>
             </TouchableOpacity>
+          </View>
+
+          {/* Row 1: Transfer · Airtime · Payment · Withdrawal */}
+          <View style={styles.serviceRow}>
+            {SERVICES_ROW1.map((svc) => (
+              <ServiceCard key={svc.key} svc={svc} onPress={() => handleServicePress(svc.key)} />
+            ))}
+          </View>
+
+          {/* Row 2: Voucher · Insurance · Fuel · All Services */}
+          <View style={styles.serviceRow}>
+            {SERVICES_ROW2.map((svc) => (
+              <ServiceCard key={svc.key} svc={svc} onPress={() => handleServicePress(svc.key)} />
+            ))}
+          </View>
+
+          {/* Row 3: Saving · Financial Services (2-col wide) */}
+          <View style={styles.serviceRowWide}>
+            {SERVICES_ROW3.map((svc) => (
+              <ServiceCard key={svc.key} svc={svc} wide onPress={() => handleServicePress(svc.key)} />
+            ))}
+          </View>
+
+          {/* Expand chevron */}
+          <TouchableOpacity style={styles.chevronBtn} activeOpacity={0.7}>
+            <Ionicons name="chevron-down" size={20} color={Colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+
+        {/* ── PROMOTIONAL BANNERS ── */}
+        <View style={styles.bannersSection}>
+          <Text style={styles.sectionTitle}>Promotions</Text>
+          <FlatList
+            ref={bannerRef}
+            data={BANNERS}
+            keyExtractor={(item) => item.id}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            snapToInterval={BANNER_WIDTH + 12}
+            decelerationRate="fast"
+            contentContainerStyle={styles.bannerList}
+            onScroll={handleBannerScroll}
+            scrollEventThrottle={16}
+            renderItem={({ item }) => (
+              <TouchableOpacity activeOpacity={0.9} style={styles.bannerCard}>
+                <Image
+                  source={item.image}
+                  style={styles.bannerImage}
+                  resizeMode="cover"
+                />
+              </TouchableOpacity>
+            )}
+          />
+
+          {/* Dot Indicators */}
+          <View style={styles.dotsRow}>
+            {BANNERS.map((_, i) => (
+              <TouchableOpacity
+                key={i}
+                onPress={() => {
+                  bannerRef.current?.scrollToIndex({ index: i, animated: true });
+                  setActiveBanner(i);
+                }}
+              >
+                <View
+                  style={[
+                    styles.dot,
+                    i === activeBanner ? styles.dotActive : styles.dotInactive,
+                  ]}
+                />
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
 
-        {/* ── SERVICES ── */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Services</Text>
-          <View style={styles.servicesGrid}>
-            {SERVICES.map((svc, i) => (
-              <TouchableOpacity key={i} style={styles.serviceCard} activeOpacity={0.8}>
-                <Ionicons name={svc.icon as any} size={28} color={svc.color} />
-                <Text style={styles.serviceLabel}>{svc.label}</Text>
-              </TouchableOpacity>
-            ))}
+        {/* ── QUICK TRANSACTIONS ── */}
+        <View style={styles.quickSection}>
+          <Text style={styles.sectionTitle}>Recent Activity</Text>
+          <View style={[styles.emptyCard, Shadows.card as any]}>
+            <Ionicons name="receipt-outline" size={32} color={Colors.border} />
+            <Text style={styles.emptyText}>No recent transactions</Text>
+            <Text style={styles.emptySubText}>Your recent activity will appear here</Text>
           </View>
         </View>
       </ScrollView>
@@ -133,131 +347,324 @@ export const HomeScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
   );
 };
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
+const CARD_SIZE = (width - 40 - 36) / 4; // 4 cols with padding & gaps
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BG,
+    backgroundColor: Colors.background,
   },
   scrollContent: {
-    paddingBottom: 110,
+    paddingBottom: 120,
   },
+
+  // ── Top Bar ──
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingTop: 12,
-    paddingBottom: 16,
+    paddingBottom: 14,
   },
-  avatarBtn: {
-    marginRight: 12,
+  topBarLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
-  greetingText: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: TEXT_DARK,
+  bunaLogoImg: {
+    width: 46,
+    height: 46,
+    borderRadius: 10,
+  },
+  greetingSmall: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    fontWeight: '500',
   },
   greetingName: {
+    fontSize: 17,
     fontWeight: '700',
-    color: TEXT_DARK,
+    color: Colors.primary,
   },
+  notifBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: Colors.backgroundAlt,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...(Shadows.sm as any),
+  },
+  notifDot: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: Colors.danger,
+    borderWidth: 1,
+    borderColor: Colors.backgroundAlt,
+  },
+
+  // ── Balance Card ──
   balanceCard: {
     marginHorizontal: 16,
-    borderRadius: 20,
+    borderRadius: 24,
     padding: 22,
-    marginBottom: 28,
-    minHeight: 140,
+    marginBottom: 20,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  decorCircle1: {
+    position: 'absolute',
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: 'rgba(212,175,55,0.07)',
+    top: -60,
+    right: -40,
+  },
+  decorCircle2: {
+    position: 'absolute',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(212,175,55,0.05)',
+    bottom: -40,
+    left: 20,
   },
   balanceCardTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 8,
+  },
+  balanceCardTopLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  cardLogoImg: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
   },
   balanceLabel: {
-    fontSize: 16,
-    color: 'rgba(255,255,255,0.85)',
-    fontWeight: '600',
+    fontSize: 13,
+    color: Colors.secondaryLight,
+    fontWeight: '500',
+    letterSpacing: 0.5,
   },
   balanceAmountRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
+    marginBottom: 22,
   },
   balanceMasked: {
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: '700',
-    color: '#fff',
-    letterSpacing: 4,
+    color: Colors.secondary,
+    letterSpacing: 6,
   },
   balanceAmount: {
-    fontSize: 34,
+    fontSize: 36,
     fontWeight: '800',
-    color: '#fff',
+    color: Colors.secondary,
+    letterSpacing: -0.5,
   },
   balanceCurrency: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
-    color: 'rgba(255,255,255,0.85)',
-    marginBottom: 4,
+    color: Colors.secondaryLight,
+    marginBottom: 6,
     marginLeft: 4,
+  },
+  balanceCardBottom: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(212,175,55,0.15)',
+    borderRadius: 14,
+    padding: 10,
+    alignItems: 'center',
+    justifyContent: 'space-around',
+  },
+  balanceActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     flex: 1,
+    justifyContent: 'center',
+    paddingVertical: 4,
   },
-  refreshBtn: {
-    marginBottom: 4,
-    marginLeft: 8,
+  balanceActionText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.secondary,
   },
-  section: {
-    paddingHorizontal: 20,
-    marginBottom: 28,
+  balanceSeparator: {
+    width: 1,
+    height: 20,
+    backgroundColor: 'rgba(212,175,55,0.3)',
+  },
+
+  // ── Services ──
+  servicesSection: {
+    backgroundColor: Colors.backgroundAlt,
+    marginHorizontal: 16,
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 20,
+    ...(Shadows.card as any),
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
-    color: TEXT_DARK,
-    marginBottom: 16,
+    color: Colors.primary,
   },
-  linkedRow: {
+  seeAllText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.secondary,
+  },
+
+  serviceRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    marginBottom: 4,
   },
-  noLinked: {
-    fontSize: 14,
-    color: TEXT_MUTED,
+  serviceRowWide: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 4,
+    marginBottom: 4,
   },
-  addAccountBtn: {
+
+  serviceCard: {
+    width: CARD_SIZE,
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 4,
+    borderRadius: 14,
+    backgroundColor: Colors.background,
+    position: 'relative',
+  },
+  serviceCardWide: {
+    flex: 1,
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+  },
+  serviceIconBox: {
     width: 44,
     height: 44,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    borderColor: '#D0D0D5',
+    borderRadius: 12,
+    backgroundColor: 'rgba(212,175,55,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: WHITE,
-  },
-  servicesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  serviceCard: {
-    width: (width - 52) / 2,
-    backgroundColor: WHITE,
-    borderRadius: 16,
-    paddingVertical: 22,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
+    marginBottom: 6,
   },
   serviceLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+    textAlign: 'center',
+  },
+  newBadge: {
+    position: 'absolute',
+    top: 6,
+    right: 4,
+    backgroundColor: Colors.secondary,
+    borderRadius: 6,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    zIndex: 2,
+  },
+  newBadgeText: {
+    fontSize: 8,
+    fontWeight: '800',
+    color: Colors.primary,
+    letterSpacing: 0.5,
+  },
+  chevronBtn: {
+    alignItems: 'center',
+    paddingTop: 8,
+    paddingBottom: 2,
+  },
+
+  // ── Promo Banners ──
+  bannersSection: {
+    paddingHorizontal: 16,
+    marginBottom: 20,
+  },
+  bannerList: {
+    paddingRight: 16,
+    gap: 12,
+    marginTop: 12,
+    paddingBottom: 4,
+  },
+  bannerCard: {
+    width: BANNER_WIDTH,
+    height: 160,
+    borderRadius: 18,
+    overflow: 'hidden',
+    ...(Shadows.card as any),
+  },
+  bannerImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 18,
+  },
+  dotsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 12,
+  },
+  dot: {
+    height: 6,
+    borderRadius: 3,
+  },
+  dotActive: {
+    width: 22,
+    backgroundColor: Colors.primary,
+  },
+  dotInactive: {
+    width: 6,
+    backgroundColor: Colors.border,
+  },
+
+  // ── Recent Activity ──
+  quickSection: {
+    paddingHorizontal: 16,
+    marginBottom: 20,
+  },
+  emptyCard: {
+    backgroundColor: Colors.backgroundAlt,
+    borderRadius: 16,
+    padding: 28,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  emptyText: {
     fontSize: 15,
     fontWeight: '600',
-    color: TEXT_DARK,
+    color: Colors.textPrimary,
+    marginTop: 10,
+    marginBottom: 4,
+  },
+  emptySubText: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    textAlign: 'center',
   },
 });

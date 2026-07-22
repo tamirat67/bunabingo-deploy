@@ -1,3 +1,4 @@
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useEffect } from 'react';
 import {
   View,
@@ -6,8 +7,7 @@ import {
   ScrollView,
   StatusBar,
   TouchableOpacity,
-  SafeAreaView,
-} from 'react-native';
+  } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -15,12 +15,8 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useAuth } from '../context/AuthContext';
 
-const GOLD = '#D4AF37';
-const GOLD_DARK = '#B8860B';
-const TEXT_DARK = '#1C1C1E';
-const TEXT_MUTED = '#6E6E73';
-const BG = '#F8F8F8';
-const WHITE = '#FFFFFF';
+import { Colors } from '../theme/colors';
+import { Shadows } from '../theme/tokens';
 
 export const WalletScreen: React.FC = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
@@ -34,7 +30,7 @@ export const WalletScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={BG} />
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -46,14 +42,14 @@ export const WalletScreen: React.FC = () => {
             <Text style={styles.titleGold}>Wallet</Text>
           </View>
           <TouchableOpacity onPress={refreshProfile}>
-            <Ionicons name="notifications-outline" size={26} color={TEXT_DARK} />
+            <Ionicons name="notifications-outline" size={26} color={Colors.primary} />
           </TouchableOpacity>
         </View>
 
         {/* ── BALANCE CARD ── */}
         <LinearGradient
-          colors={['#D4AF37', '#C59B27', '#A8841A']}
-          style={styles.balanceCard}
+          colors={Colors.espressoGradient}
+          style={[styles.balanceCard, Shadows.espresso as any]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
         >
@@ -80,8 +76,8 @@ export const WalletScreen: React.FC = () => {
               activeOpacity={0.75}
               onPress={() => navigation.navigate(a.screen as any)}
             >
-              <View style={styles.actionIconBox}>
-                <Ionicons name={a.icon as any} size={22} color={TEXT_DARK} />
+              <View style={[styles.actionIconBox, Shadows.sm as any]}>
+                <Ionicons name={a.icon as any} size={22} color={Colors.primary} />
               </View>
               <Text style={styles.actionLabel}>{a.label}</Text>
             </TouchableOpacity>
@@ -114,13 +110,13 @@ export const WalletScreen: React.FC = () => {
         <View style={styles.section}>
           <View style={styles.sectionRow}>
             <Text style={styles.sectionTitle}>Transfer history</Text>
-            <TouchableOpacity onPress={refreshProfile}>
-              <Ionicons name="refresh-outline" size={20} color={TEXT_MUTED} />
+            <TouchableOpacity>
+              <Ionicons name="refresh-outline" size={20} color={Colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
           {/* Empty state */}
-          <View style={styles.emptyHistory}>
+          <View style={styles.emptyState}>
             <Text style={styles.emptyText}>No transactions yet</Text>
           </View>
         </View>
@@ -132,7 +128,7 @@ export const WalletScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BG,
+    backgroundColor: Colors.background,
   },
   scrollContent: {
     paddingBottom: 110,
@@ -152,12 +148,12 @@ const styles = StyleSheet.create({
   titleBlack: {
     fontSize: 22,
     fontWeight: '700',
-    color: TEXT_DARK,
+    color: Colors.textPrimary,
   },
   titleGold: {
     fontSize: 22,
     fontWeight: '700',
-    color: GOLD,
+    color: Colors.secondary,
   },
   balanceCard: {
     marginHorizontal: 16,
@@ -167,7 +163,7 @@ const styles = StyleSheet.create({
   },
   cardSubtitle: {
     fontSize: 16,
-    color: 'rgba(255,255,255,0.85)',
+    color: Colors.secondaryLight,
     fontWeight: '500',
     marginBottom: 20,
   },
@@ -178,12 +174,12 @@ const styles = StyleSheet.create({
   balanceAmount: {
     fontSize: 52,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: Colors.secondary,
   },
   currency: {
     fontSize: 18,
     fontWeight: '700',
-    color: 'rgba(255,255,255,0.9)',
+    color: Colors.secondaryLight,
     marginBottom: 8,
   },
   actionsRow: {
@@ -199,20 +195,15 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 14,
-    backgroundColor: WHITE,
+    backgroundColor: Colors.backgroundAlt,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07,
-    shadowRadius: 6,
-    elevation: 2,
   },
   actionLabel: {
     fontSize: 12,
     fontWeight: '500',
-    color: TEXT_MUTED,
+    color: Colors.textSecondary,
   },
   bridgeBanner: {
     marginHorizontal: 16,
@@ -253,16 +244,16 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: '700',
-    color: TEXT_DARK,
+    color: Colors.primary,
   },
-  emptyHistory: {
+  emptyState: {
+    marginTop: 40,
     alignItems: 'center',
-    paddingVertical: 40,
   },
   emptyText: {
     fontSize: 15,
-    color: TEXT_MUTED,
+    color: Colors.textSecondary,
   },
 });

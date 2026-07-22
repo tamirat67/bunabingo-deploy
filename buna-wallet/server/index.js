@@ -1009,6 +1009,61 @@ app.post('/api/auth/setup-pin', async (req, res) => {
   }
 });
 
+// ── POST /api/auth/change-pin ─────────────────────────────────────────────────
+// Body: { token, currentPin, newPin }
+// Verifies currentPin against stored hash, then saves hashed newPin
+app.post('/api/auth/change-pin', async (req, res) => {
+  try {
+    const { token, currentPin, newPin } = req.body;
+    if (!token || !currentPin || !newPin) {
+      return res.status(400).json({ success: false, message: 'token, currentPin and newPin are required' });
+    }
+
+    // Decode token → userId
+    let userId;
+    try {
+      const decoded = Buffer.from(token, 'base64').toString('utf8');
+      userId = decoded.split(':')[0];
+    } catch (_) {}
+    if (!userId) return res.status(401).json({ success: false, message: 'Invalid or expired session' });
+
+    // Validate new PIN length
+    if (!/^\d{4}$/.test(newPin)) {
+      return res.status(400).json({ success: false, message: 'New PIN must be exactly 4 digits' });
+    }
+
+    // Ensure current and new are different
+    if (currentPin === newPin) {
+      return res.status(400).json({ success: false, message: 'New PIN must be different from your current PIN' });
+    }
+
+    // Fetch stored hashed PIN
+    const walletRes = await db.query(
+      `SELECT pin FROM app_wallets WHERE user_id = $1 LIMIT 1`,
+      [userId]
+    );
+    if (walletRes.rows.length === 0 || !walletRes.rows[0].pin) {
+      return res.status(400).json({ success: false, message: 'No PIN found for this account' });
+    }
+
+    // Verify current PIN
+    const isMatch = await bcrypt.compare(currentPin, walletRes.rows[0].pin);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: 'Your current PIN is incorrect' });
+    }
+
+    // Hash and save the new PIN
+    const salt = await bcrypt.genSalt(10);
+    const hashedNew = await bcrypt.hash(newPin, salt);
+    await db.query(`UPDATE app_wallets SET pin = $1 WHERE user_id = $2`, [hashedNew, userId]);
+
+    res.json({ success: true, message: 'PIN changed successfully.' });
+  } catch (err) {
+    console.error('[Change PIN Error]', err);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
+
 // ── POST /api/auth/verify-pin ──────────────────────────────────────────────────
 app.post('/api/auth/verify-pin', async (req, res) => {
   try {

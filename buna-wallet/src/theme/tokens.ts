@@ -67,32 +67,46 @@ export const BorderRadius = {
 
 export const Shadows = {
   sm: {
-    shadowColor: '#000',
+    shadowColor: '#4A2C1B', // Espresso tint
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.08,
     shadowRadius: 4,
     elevation: 2,
   },
   md: {
-    shadowColor: '#000',
+    shadowColor: '#4A2C1B',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.12,
     shadowRadius: 10,
-    elevation: 5,
+    elevation: 4,
   },
   lg: {
-    shadowColor: '#000',
+    shadowColor: '#4A2C1B',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.15,
     shadowRadius: 20,
-    elevation: 10,
+    elevation: 8,
+  },
+  card: {
+    shadowColor: '#3E2723',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 5,
   },
   gold: {
-    shadowColor: '#F5B041',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
+    shadowColor: '#D4AF37',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 14,
     elevation: 6,
+  },
+  espresso: {
+    shadowColor: '#2E180A',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 24,
+    elevation: 10,
   },
   purple: {
     shadowColor: '#5B2C83',

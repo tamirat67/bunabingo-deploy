@@ -1,19 +1,18 @@
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, StatusBar, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 
-const GOLD = '#D4AF37';
-const TEXT_DARK = '#1C1C1E';
-const TEXT_MUTED = '#6E6E73';
-const BG_WHITE = '#FFFFFF';
+import { Colors } from '../theme/colors';
+import { Shadows } from '../theme/tokens';
 
 export const AccountsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={BG_WHITE} />
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
 
       {/* Header */}
       <View style={styles.header}>
@@ -22,7 +21,7 @@ export const AccountsScreen: React.FC = () => {
           <Text style={styles.headerTitleGold}>Accounts</Text>
         </View>
         <TouchableOpacity style={styles.addBtn} activeOpacity={0.7}>
-          <Ionicons name="add" size={28} color={TEXT_DARK} />
+          <Ionicons name="add" size={28} color={Colors.primary} />
         </TouchableOpacity>
       </View>
 
@@ -37,8 +36,8 @@ export const AccountsScreen: React.FC = () => {
           No linked accounts yet. Link now{'\n'}and they will appear here.
         </Text>
 
-        <TouchableOpacity style={styles.linkBtn} activeOpacity={0.85}>
-          <Ionicons name="add" size={20} color="#FFF" style={styles.linkBtnIcon} />
+        <TouchableOpacity style={[styles.linkBtn, Shadows.gold as any]} activeOpacity={0.85}>
+          <Ionicons name="add" size={20} color={Colors.textInverse} style={styles.linkBtnIcon} />
           <Text style={styles.linkBtnText}>Link Now</Text>
         </TouchableOpacity>
       </View>
@@ -49,7 +48,7 @@ export const AccountsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BG_WHITE,
+    backgroundColor: Colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -66,12 +65,12 @@ const styles = StyleSheet.create({
   headerTitleBlack: {
     fontSize: 22,
     fontWeight: '700',
-    color: TEXT_DARK,
+    color: Colors.textPrimary,
   },
   headerTitleGold: {
     fontSize: 22,
     fontWeight: '700',
-    color: GOLD,
+    color: Colors.secondary,
   },
   addBtn: {
     padding: 4,
@@ -87,14 +86,14 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: TEXT_MUTED,
+    color: Colors.textSecondary,
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 40,
   },
   linkBtn: {
     flexDirection: 'row',
-    backgroundColor: '#D0A841',
+    backgroundColor: Colors.secondary,
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 32,

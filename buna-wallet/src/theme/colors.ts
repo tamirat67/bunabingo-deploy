@@ -1,8 +1,11 @@
 export const Colors = {
   // Brand
-  primary: '#4B2E1F',       // Coffee Brown
-  secondary: '#F5B041',     // Gold
-  accent: '#5B2C83',        // Deep Purple
+  primary: '#3E2723',       // Dark Espresso Coffee
+  primaryDark: '#2E180A',   // Deep Espresso
+  secondary: '#D4AF37',     // Buna Gold
+  secondaryLight: '#F4E0A5',// Soft Light Gold
+  secondaryDark: '#B8860B', // Dark Gold
+  accent: '#5B2C83',        // Deep Purple (for Bingo/Games)
   
   // Semantic
   success: '#34C759',
@@ -11,31 +14,29 @@ export const Colors = {
   info: '#0A84FF',
 
   // Background
-  background: '#0F1115',
-  card: '#1B1E24',
-  cardAlt: '#252932',
-  overlay: 'rgba(15, 17, 21, 0.85)',
+  background: '#F8F9FA',    // Clean Light Mode Background
+  backgroundAlt: '#FFFFFF', // Pure White for cards
+  darkBackground: '#1A1A1A',// For dark overlays
 
   // Text
-  textPrimary: '#FFFFFF',
-  textSecondary: '#C8CDD4',
-  textMuted: '#7A8090',
-  textDanger: '#FF3B30',
+  textPrimary: '#1C1C1E',   // Almost black for high readability
+  textSecondary: '#6E6E73', // Muted dark text
+  textInverse: '#FFFFFF',   // White text on dark espresso/gold cards
+  textGold: '#D4AF37',      // Gold text on dark espresso
 
-  // Gold Gradient stops
-  goldGradient: ['#F5B041', '#E67E22', '#D4A017'],
-  brownGradient: ['#6B3E2A', '#4B2E1F', '#2E1B0F'],
+  // Gradients
+  goldGradient: ['#D4AF37', '#C59B27', '#A8841A'],
+  espressoGradient: ['#4A2C1B', '#3E2723', '#2E180A'],
   purpleGradient: ['#7B3CB3', '#5B2C83', '#3D1B5A'],
-  darkGradient: ['#1B1E24', '#0F1115'],
+  whiteGradient: ['#FFFFFF', '#F8F9FA'],
 
   // Borders & Dividers
-  border: 'rgba(200, 205, 212, 0.08)',
-  borderActive: 'rgba(245, 176, 65, 0.4)',
+  border: '#E5E5EA',
+  borderLight: '#F0F0F0',
+  borderActive: '#D4AF37',
 
-  // Glass
-  glassBg: 'rgba(27, 30, 36, 0.7)',
-  glassStroke: 'rgba(255, 255, 255, 0.06)',
-  
-  // Transparent
+  // Glass / Transparent
+  glassBg: 'rgba(255, 255, 255, 0.7)',
+  overlay: 'rgba(30, 20, 15, 0.85)', // Espresso tinted overlay
   transparent: 'transparent',
 };

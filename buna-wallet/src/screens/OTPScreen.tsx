@@ -1,3 +1,4 @@
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
@@ -11,16 +12,15 @@ import {
   Animated,
   Alert,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 
+import { Colors } from '../theme/colors';
+import { Shadows } from '../theme/tokens';
+
 const OTP_LENGTH = 6;
-const GOLD = '#D4AF37';
-const GOLD_DARK = '#B8860B';
-const TEXT_DARK = '#1C1C1E';
-const TEXT_MUTED = '#6E6E73';
-const BG_WHITE = '#FFFFFF';
 
 export const OTPScreen: React.FC = () => {
   const { pendingPhone, confirmOTP, resendOTP, isLoading, error, clearError } = useAuth();
@@ -87,14 +87,19 @@ export const OTPScreen: React.FC = () => {
   };
 
   return (
-    <KeyboardAvoidingView
+    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.primary }}><KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <StatusBar barStyle="light-content" backgroundColor={GOLD} />
+      <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
 
       {/* Gold Header Card */}
       <View style={styles.goldHeaderCard}>
+        <Image
+          source={require('../../assets/icon.png')}
+          style={styles.headerLogo}
+          resizeMode="contain"
+        />
         <Text style={styles.headerTitle}>Verify Your{'\n'}Phone Number</Text>
         <Text style={styles.headerSubtitle}>
           We sent a verification code to the phone number you provided.
@@ -143,36 +148,41 @@ export const OTPScreen: React.FC = () => {
 
         {isLoading && (
           <View style={styles.loadingWrapper}>
-            <ActivityIndicator size="large" color={GOLD} />
+            <ActivityIndicator size="large" color={Colors.primary} />
           </View>
         )}
 
       </View>
-    </KeyboardAvoidingView>
+    </KeyboardAvoidingView></SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BG_WHITE,
+    backgroundColor: Colors.background,
   },
   goldHeaderCard: {
-    backgroundColor: GOLD,
-    paddingTop: 64,
+    backgroundColor: Colors.primary,
+    paddingTop: 44,
     paddingBottom: 36,
     paddingHorizontal: 28,
     borderBottomLeftRadius: 55,
   },
+  headerLogo: {
+    width: 68,
+    height: 68,
+    marginBottom: 14,
+  },
   headerTitle: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: '800',
-    color: '#FFFFFF',
-    lineHeight: 38,
+    color: Colors.secondary,
+    lineHeight: 34,
   },
   headerSubtitle: {
     fontSize: 15,
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: Colors.secondaryLight,
     marginTop: 10,
     lineHeight: 20,
     paddingRight: 20,
@@ -187,12 +197,12 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 15,
-    color: TEXT_MUTED,
+    color: Colors.textSecondary,
     marginBottom: 14,
   },
   phoneBold: {
     fontWeight: '700',
-    color: TEXT_DARK,
+    color: Colors.primary,
   },
   resendRow: {
     flexDirection: 'row',
@@ -200,12 +210,12 @@ const styles = StyleSheet.create({
   },
   resendText: {
     fontSize: 15,
-    color: TEXT_MUTED,
+    color: Colors.textSecondary,
   },
   resendLink: {
     fontSize: 15,
     fontWeight: '700',
-    color: GOLD_DARK,
+    color: Colors.secondaryDark,
   },
   boxesContainer: {
     flexDirection: 'row',
@@ -216,16 +226,17 @@ const styles = StyleSheet.create({
   digitBox: {
     width: 44,
     height: 48,
-    borderWidth: 1,
-    borderColor: '#D0D0D5',
+    borderWidth: 1.5,
+    borderColor: Colors.border,
     borderRadius: 10,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.backgroundAlt,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
+    ...(Shadows.sm as any),
   },
   digitBoxFilled: {
-    borderColor: GOLD,
+    borderColor: Colors.secondary,
   },
   hiddenInput: {
     position: 'absolute',
@@ -236,7 +247,7 @@ const styles = StyleSheet.create({
   },
   digitText: {
     fontSize: 20,
-    color: TEXT_DARK,
+    color: Colors.primary,
     fontWeight: '700',
     marginTop: 6, // alignment for asterisk
   },
