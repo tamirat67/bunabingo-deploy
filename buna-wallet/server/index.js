@@ -656,7 +656,7 @@ app.post('/api/wallet/bridge/to-wallet', async (req, res) => {
 // Telerivet calls this endpoint for:
 //   - Message status updates (delivered, failed)
 //   - Incoming replies from users
-app.post('/api/telerivet/webhook', (req, res) => {
+app.post('/api/telerivet/webhook', async (req, res) => {
   try {
     const data = req.body;
     
