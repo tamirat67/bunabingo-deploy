@@ -26,7 +26,7 @@ export async function handleStart(ctx: Context) {
           },
           body: JSON.stringify({ sessionId, telegramId, username })
         });
-        const data = await res.json();
+        const data = await res.json() as any;
         
         if (data.success) {
           await ctx.reply("✅ You are successfully logged into Buna Wallet!\n\nPlease return to the Wallet App to continue.");
