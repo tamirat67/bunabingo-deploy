@@ -255,20 +255,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // ── Update Profile Name ────────────────────────────────────────────────────
   const updateProfileName = useCallback(async (newName: string) => {
-    if (!user?.userId) return;
-    try {
-      const res = await fetch(`https://api.bunatechhub.net/api/user/profile`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.userId, name: newName }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setUser((prev) => (prev ? { ...prev, name: newName } : null));
-      }
-    } catch (err) {
-      console.error('Failed to update profile name:', err);
+    if (!user?.userId) throw new Error('Not logged in');
+    const res = await fetch(`https://api.bunatechhub.net/api/user/profile`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: user.userId, name: newName }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.message || 'Failed to update profile');
     }
+    setUser((prev) => (prev ? { ...prev, name: newName } : null));
   }, [user]);
 
   // ── Step 3: Telegram Native Auth ───────────────────────────────────────────
