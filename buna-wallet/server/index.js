@@ -500,6 +500,46 @@ app.put('/api/user/profile', async (req, res) => {
   }
 });
 
+// ── GET /api/users/search ───────────────────────────────────────────────────
+app.get('/api/users/search', async (req, res) => {
+  try {
+    const { q } = req.query;
+    
+    if (!q || q.trim().length < 2) {
+      return res.json({ success: true, users: [] });
+    }
+
+    const searchTerm = `%${q.trim()}%`;
+    const searchNormalizedPhone = `%${q.trim().replace(/\D/g, '')}%`;
+
+    const userResult = await db.query(
+      `SELECT id, first_name, last_name, username, phone 
+       FROM users 
+       WHERE first_name ILIKE $1 
+          OR last_name ILIKE $1 
+          OR username ILIKE $1 
+          OR phone LIKE $2
+          OR phone_number LIKE $2
+       LIMIT 10`,
+      [searchTerm, searchNormalizedPhone]
+    );
+
+    const users = userResult.rows.map(u => ({
+      id: u.id,
+      name: (u.first_name || u.last_name) ? `${u.first_name || ''} ${u.last_name || ''}`.trim() : 'Buna User',
+      username: u.username || '',
+      phone: u.phone || '',
+      walletId: `BW-${(u.phone || '').slice(-7)}`
+    }));
+
+    res.json({ success: true, users });
+  } catch (error) {
+    console.error('[User Search Error]', error);
+    res.status(500).json({ success: false, message: 'Failed to search users.' });
+  }
+});
+
+
 // ── POST /api/wallet/deposit ─────────────────────────────────────────────────
 app.post('/api/wallet/deposit', async (req, res) => {
   try {

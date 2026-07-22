@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, ScrollView, StatusBar, TouchableOpacity, TextInput, Alert, Text } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,6 +21,43 @@ export const TransferScreen: React.FC = () => {
   const [amount, setAmount] = useState('');
   const [recipientPhone, setRecipientPhone] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // User Search Suggestion State
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const searchTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  const fetchSuggestions = async (query: string) => {
+    if (!query || query.length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+    try {
+      const res = await fetch(`https://api.bunatechhub.net/api/users/search?q=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      if (data.success) {
+        setSuggestions(data.users);
+        setShowSuggestions(data.users.length > 0);
+      }
+    } catch (e) {
+      console.warn('Search error:', e);
+    }
+  };
+
+  const handlePhoneChange = (text: string) => {
+    setRecipientPhone(text);
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    
+    searchTimeout.current = setTimeout(() => {
+      fetchSuggestions(text);
+    }, 300);
+  };
+
+  const handleSelectSuggestion = (u: any) => {
+    setRecipientPhone(u.phone);
+    setShowSuggestions(false);
+  };
 
   const handleSubmit = async () => {
     if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
@@ -97,12 +134,37 @@ export const TransferScreen: React.FC = () => {
                 style={styles.input}
                 placeholder="e.g. 0911234567"
                 placeholderTextColor="rgba(255,255,255,0.3)"
-                keyboardType="phone-pad"
+                keyboardType="default" // allow text for username search
                 value={recipientPhone}
-                onChangeText={setRecipientPhone}
+                onChangeText={handlePhoneChange}
+                onFocus={() => {
+                  if (suggestions.length > 0) setShowSuggestions(true);
+                }}
               />
             </View>
           </GlassCard>
+
+          {/* Suggestions Dropdown */}
+          {showSuggestions && suggestions.length > 0 && (
+            <View style={styles.suggestionsContainer}>
+              {suggestions.map((u) => (
+                <TouchableOpacity
+                  key={u.id}
+                  style={styles.suggestionItem}
+                  onPress={() => handleSelectSuggestion(u)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.suggestionAvatar}>
+                    <Text style={styles.suggestionAvatarText}>{u.name.charAt(0)}</Text>
+                  </View>
+                  <View>
+                    <Text style={styles.suggestionName}>{u.name}</Text>
+                    <Text style={styles.suggestionPhone}>{u.phone}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
 
           <Label style={styles.inputLabel}>Amount to Send (ETB)</Label>
           <GlassCard style={styles.inputContainer}>
@@ -170,5 +232,47 @@ const styles = StyleSheet.create({
   input: {
     flex: 1, color: '#fff', fontSize: 18, paddingVertical: 14,
     fontFamily: Typography.primary,
+  },
+  suggestionsContainer: {
+    backgroundColor: 'rgba(30, 30, 40, 0.95)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    marginTop: -12,
+    marginBottom: 20,
+    overflow: 'hidden',
+    paddingVertical: 4,
+  },
+  suggestionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
+  },
+  suggestionAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.secondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  suggestionAvatarText: {
+    color: '#1A1225',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  suggestionName: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  suggestionPhone: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 13,
+    marginTop: 2,
   },
 });
