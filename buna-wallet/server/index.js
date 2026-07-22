@@ -250,7 +250,7 @@ app.post('/api/otp/send', otpSendLimiter, async (req, res) => {
     }
 
     // --- TEST NUMBER BYPASS ---
-    const testNumbers = ['+251912939267', '+251911111111'];
+    const testNumbers = ['+251912939267'];
     const isTestNumber = testNumbers.includes(normalizedPhone);
     
     const code = isTestNumber ? '123456' : generateOTP();
