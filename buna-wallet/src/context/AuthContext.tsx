@@ -8,8 +8,13 @@ import React, {
 import { sendOTP, verifyOTP, normalizePhone } from '../services/authService';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-interface AuthUser {
+export interface AuthUser {
+  userId?: string;
   phone: string;
+  name: string;
+  walletId: string;
+  balance: number;
+  totalAssets: number;
   token: string;
   isNewUser: boolean;
 }
@@ -27,6 +32,8 @@ interface AuthContextValue {
   confirmOTP: (code: string) => Promise<void>;
   resendOTP: () => Promise<void>;
   startTelegramAuth: () => Promise<string>;
+  refreshProfile: () => Promise<void>;
+  updateProfileName: (name: string) => Promise<void>;
   logout: () => void;
 
   // Status
@@ -92,9 +99,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsLoading(true);
     setError(null);
     try {
-      const result = await verifyOTP(pendingPhone, code);
+      const result: any = await verifyOTP(pendingPhone, code);
       setUser({
+        userId: result.userId,
         phone: result.phone || pendingPhone,
+        name: result.name || 'Buna User',
+        walletId: result.walletId || `BW-${(result.phone || pendingPhone).slice(-7)}`,
+        balance: typeof result.balance === 'number' ? result.balance : parseFloat(result.balance || '0'),
+        totalAssets: typeof result.totalAssets === 'number' ? result.totalAssets : parseFloat(result.totalAssets || '0'),
         token: result.token || '',
         isNewUser: result.isNewUser ?? false,
       });
@@ -105,6 +117,51 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setIsLoading(false);
     }
   }, [pendingPhone]);
+
+  // ── Refresh User Profile & Balance ─────────────────────────────────────────
+  const refreshProfile = useCallback(async () => {
+    if (!user) return;
+    try {
+      const query = user.userId
+        ? `userId=${encodeURIComponent(user.userId)}`
+        : `phone=${encodeURIComponent(user.phone)}`;
+      const res = await fetch(`https://api.bunatechhub.net/api/user/profile?${query}`);
+      const data = await res.json();
+      if (data.success) {
+        setUser((prev) =>
+          prev
+            ? {
+                ...prev,
+                name: data.name || prev.name,
+                walletId: data.walletId || prev.walletId,
+                balance: typeof data.balance === 'number' ? data.balance : parseFloat(data.balance || '0'),
+                totalAssets: typeof data.totalAssets === 'number' ? data.totalAssets : parseFloat(data.totalAssets || '0'),
+              }
+            : null
+        );
+      }
+    } catch (err) {
+      console.error('Failed to refresh profile:', err);
+    }
+  }, [user]);
+
+  // ── Update Profile Name ────────────────────────────────────────────────────
+  const updateProfileName = useCallback(async (newName: string) => {
+    if (!user?.userId) return;
+    try {
+      const res = await fetch(`https://api.bunatechhub.net/api/user/profile`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.userId, name: newName }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setUser((prev) => (prev ? { ...prev, name: newName } : null));
+      }
+    } catch (err) {
+      console.error('Failed to update profile name:', err);
+    }
+  }, [user]);
 
   // ── Step 3: Telegram Native Auth ───────────────────────────────────────────
   const startTelegramAuth = useCallback(async () => {
@@ -143,6 +200,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         confirmOTP,
         resendOTP,
         startTelegramAuth,
+        refreshProfile,
+        updateProfileName,
         logout,
         isLoading,
         error,

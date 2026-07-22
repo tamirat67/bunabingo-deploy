@@ -1,14 +1,37 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView, StatusBar, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView, StatusBar, TouchableOpacity, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, BorderRadius } from '../theme';
-import { H2, Body, Caption, Label } from '../components/Typography';
+import { H2, H3, Body, Caption, Label } from '../components/Typography';
 import { MOCK_USER } from '../data/mockData';
 import { useAuth } from '../context/AuthContext';
 
 export const ProfileScreen: React.FC = () => {
-  const { logout } = useAuth();
+  const { user, updateProfileName, logout } = useAuth();
+
+  const userName = user?.name || MOCK_USER.name;
+  const userPhone = user?.phone || MOCK_USER.phone;
+
+  const handleEditName = () => {
+    Alert.prompt(
+      'Edit Profile Name',
+      'Enter your full name:',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Save',
+          onPress: (text?: string) => {
+            if (text && text.trim()) {
+              updateProfileName(text.trim());
+            }
+          },
+        },
+      ],
+      'plain-text',
+      userName
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -23,14 +46,14 @@ export const ProfileScreen: React.FC = () => {
         <View style={styles.profileHeader}>
           <View style={styles.avatarContainer}>
             <LinearGradient colors={['#F5B041', '#E67E22']} style={styles.avatar}>
-              <H2 style={styles.avatarText}>{MOCK_USER.name.charAt(0)}</H2>
+              <H2 style={styles.avatarText}>{userName.charAt(0).toUpperCase()}</H2>
             </LinearGradient>
-            <TouchableOpacity style={styles.editAvatarBtn} activeOpacity={0.8}>
-              <Ionicons name="camera" size={16} color="#fff" />
+            <TouchableOpacity style={styles.editAvatarBtn} activeOpacity={0.8} onPress={handleEditName}>
+              <Ionicons name="pencil" size={16} color="#fff" />
             </TouchableOpacity>
           </View>
-          <H3 style={styles.name}>{MOCK_USER.name}</H3>
-          <Body style={styles.phone} color={Colors.textSecondary}>{MOCK_USER.phone}</Body>
+          <H3 style={styles.name}>{userName}</H3>
+          <Body style={styles.phone} color={Colors.textSecondary}>{userPhone}</Body>
           <View style={styles.kycBadge}>
             <Ionicons name="shield-checkmark" size={14} color={Colors.success} />
             <Caption style={styles.kycText}>Verified Account</Caption>
@@ -40,7 +63,7 @@ export const ProfileScreen: React.FC = () => {
         <View style={styles.section}>
           <Label style={styles.sectionTitle}>Account Settings</Label>
           <View style={styles.card}>
-            <SettingRow icon="person-outline" title="Personal Information" />
+            <SettingRow icon="person-outline" title="Edit Personal Information" onPress={handleEditName} />
             <SettingRow icon="wallet-outline" title="Linked Banks & Cards" />
             <SettingRow icon="shield-checkmark-outline" title="Security & PIN" />
             <SettingRow icon="notifications-outline" title="Notifications" />
@@ -67,8 +90,8 @@ export const ProfileScreen: React.FC = () => {
   );
 };
 
-const SettingRow = ({ icon, title }: { icon: string; title: string }) => (
-  <TouchableOpacity style={styles.settingRow} activeOpacity={0.7}>
+const SettingRow = ({ icon, title, onPress }: { icon: string; title: string; onPress?: () => void }) => (
+  <TouchableOpacity style={styles.settingRow} activeOpacity={0.7} onPress={onPress}>
     <View style={styles.settingLeft}>
       <View style={styles.settingIcon}>
         <Ionicons name={icon as any} size={20} color={Colors.textSecondary} />

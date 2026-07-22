@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -16,6 +16,7 @@ import { QuickActionsRow } from '../components/QuickActions';
 import { TransactionItem } from '../components/TransactionItem';
 import { H1, H2, H3, Body, Caption, Label, Amount } from '../components/Typography';
 import { MOCK_USER, MOCK_TRANSACTIONS, MOCK_PROMOS } from '../data/mockData';
+import { useAuth } from '../context/AuthContext';
 
 const { width } = Dimensions.get('window');
 
@@ -28,14 +29,23 @@ const QUICK_ACTIONS = [
 ];
 
 export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+  const { user, refreshProfile } = useAuth();
   const [balanceHidden, setBalanceHidden] = useState(false);
   const [activePromo, setActivePromo] = useState(0);
 
   const promoRef = useRef<FlatList>(null);
 
+  useEffect(() => {
+    refreshProfile();
+  }, []);
+
+  const userName = user?.name || MOCK_USER.name;
+  const userBalance = user?.balance ?? 0;
+  const walletId = user?.walletId || MOCK_USER.walletId;
+
   const displayBalance = balanceHidden
     ? '••••••'
-    : `ETB ${MOCK_USER.balance.toLocaleString('en-ET', { minimumFractionDigits: 2 })}`;
+    : `ETB ${userBalance.toLocaleString('en-ET', { minimumFractionDigits: 2 })}`;
 
   return (
     <View style={styles.container}>
@@ -58,16 +68,16 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         <View style={styles.topBar}>
           <View>
             <Caption color={Colors.textMuted}>Good morning 👋</Caption>
-            <H3 style={styles.userName}>{MOCK_USER.name.split(' ')[0]}</H3>
+            <H3 style={styles.userName}>{userName.split(' ')[0]}</H3>
           </View>
           <View style={styles.topBarRight}>
             <TouchableOpacity style={styles.iconBtn} activeOpacity={0.7}>
               <Ionicons name="notifications-outline" size={22} color={Colors.textSecondary} />
               <View style={styles.notifDot} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.avatarBtn} activeOpacity={0.7}>
+            <TouchableOpacity style={styles.avatarBtn} activeOpacity={0.7} onPress={() => navigation.navigate('Profile')}>
               <LinearGradient colors={['#F5B041', '#E67E22']} style={styles.avatar}>
-                <Body style={styles.avatarLetter}>{MOCK_USER.name.charAt(0)}</Body>
+                <Body style={styles.avatarLetter}>{userName.charAt(0).toUpperCase()}</Body>
               </LinearGradient>
             </TouchableOpacity>
           </View>
@@ -113,7 +123,7 @@ export const HomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           <View style={styles.cardDetails}>
             <View>
               <Caption color="rgba(255,255,255,0.5)">Wallet ID</Caption>
-              <Body style={styles.walletId}>{MOCK_USER.walletId}</Body>
+              <Body style={styles.walletId}>{walletId}</Body>
             </View>
             <View style={styles.pointsPill}>
               <Ionicons name="star-outline" size={14} color={Colors.secondary} />

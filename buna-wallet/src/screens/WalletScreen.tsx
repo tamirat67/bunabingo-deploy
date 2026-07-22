@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, StyleSheet, ScrollView, StatusBar, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -11,9 +11,18 @@ import { GradientButton } from '../components/GradientButton';
 import { TransactionItem } from '../components/TransactionItem';
 import { H2, H3, Body, Caption, Label, Amount } from '../components/Typography';
 import { MOCK_USER, MOCK_TRANSACTIONS } from '../data/mockData';
+import { useAuth } from '../context/AuthContext';
 
 export const WalletScreen: React.FC = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+  const { user, refreshProfile } = useAuth();
+
+  useEffect(() => {
+    refreshProfile();
+  }, []);
+
+  const balance = user?.balance ?? 0;
+  const totalAssets = user?.totalAssets ?? balance;
 
   return (
     <View style={styles.container}>
@@ -24,8 +33,8 @@ export const WalletScreen: React.FC = () => {
         {/* Header */}
         <View style={styles.topBar}>
           <H2>My Wallet</H2>
-          <TouchableOpacity style={styles.historyBtn} activeOpacity={0.7}>
-            <Ionicons name="time-outline" size={20} color={Colors.textSecondary} />
+          <TouchableOpacity style={styles.historyBtn} activeOpacity={0.7} onPress={refreshProfile}>
+            <Ionicons name="refresh-outline" size={20} color={Colors.textSecondary} />
           </TouchableOpacity>
         </View>
 
@@ -39,20 +48,20 @@ export const WalletScreen: React.FC = () => {
           <View style={styles.cardShine} />
           <Label style={styles.cardLabel}>Total Assets</Label>
           <Amount size="xl" style={styles.totalAssets}>
-            ETB {MOCK_USER.totalAssets.toLocaleString('en-ET', { minimumFractionDigits: 2 })}
+            ETB {totalAssets.toLocaleString('en-ET', { minimumFractionDigits: 2 })}
           </Amount>
           <View style={styles.cardRow}>
             <View>
               <Label style={styles.subLabel}>Available</Label>
               <Body style={styles.subAmount} color={Colors.success}>
-                ETB {MOCK_USER.balance.toLocaleString('en-ET', { minimumFractionDigits: 2 })}
+                ETB {balance.toLocaleString('en-ET', { minimumFractionDigits: 2 })}
               </Body>
             </View>
             <View style={styles.cardDivider} />
             <View>
               <Label style={styles.subLabel}>In Transit</Label>
               <Body style={styles.subAmount} color={Colors.warning}>
-                ETB {(MOCK_USER.totalAssets - MOCK_USER.balance).toLocaleString('en-ET', { minimumFractionDigits: 2 })}
+                ETB {(totalAssets - balance).toLocaleString('en-ET', { minimumFractionDigits: 2 })}
               </Body>
             </View>
           </View>

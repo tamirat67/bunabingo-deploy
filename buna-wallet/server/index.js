@@ -340,25 +340,27 @@ app.post('/api/otp/verify', otpVerifyLimiter, async (req, res) => {
     let userId = null;
     let isNewUser = false;
     let appWalletBalance = 0;
+    let userObj = null;
 
     // Look up by phone number. Note: Buna Bingo stores it as BigInt (telegram_id) or string (phone/phone_number)
-    // We will check the `phone` or `phone_number` columns.
     const userResult = await db.query(
-      `SELECT id FROM users WHERE phone = $1 OR phone_number = $1 OR telegram_id::text = $2 LIMIT 1`,
+      `SELECT id, first_name, last_name, username, phone FROM users WHERE phone = $1 OR phone_number = $1 OR telegram_id::text = $2 LIMIT 1`,
       [normalizedPhone, normalizedPhone.replace('+', '')]
     );
 
     if (userResult.rows.length > 0) {
-      userId = userResult.rows[0].id;
+      userObj = userResult.rows[0];
+      userId = userObj.id;
       isNewUser = false;
       console.log(`[DB] Existing user found: ${userId}`);
     } else {
       // Create new user in Buna Bingo DB so they can also use the bot later!
       const newUserIdRes = await db.query(
-        `INSERT INTO users (phone, phone_number, telegram_id) VALUES ($1, $1, $2) RETURNING id`,
-        [normalizedPhone, Date.now() + Math.floor(Math.random() * 1000)] // Fake telegram_id for now to avoid unique constraint issues
+        `INSERT INTO users (phone, phone_number, first_name, last_name, telegram_id) VALUES ($1, $1, $2, $3, $4) RETURNING id, first_name, last_name, phone`,
+        [normalizedPhone, 'Buna', 'User', Date.now() + Math.floor(Math.random() * 1000)]
       );
-      userId = newUserIdRes.rows[0].id;
+      userObj = newUserIdRes.rows[0];
+      userId = userObj.id;
       isNewUser = true;
       console.log(`[DB] New user created: ${userId}`);
     }
@@ -370,7 +372,7 @@ app.post('/api/otp/verify', otpVerifyLimiter, async (req, res) => {
     );
 
     if (walletRes.rows.length > 0) {
-      appWalletBalance = walletRes.rows[0].balance;
+      appWalletBalance = parseFloat(walletRes.rows[0].balance || '0');
     } else {
       // Create their React Native wallet
       await db.query(
@@ -380,21 +382,103 @@ app.post('/api/otp/verify', otpVerifyLimiter, async (req, res) => {
       appWalletBalance = 0.00;
     }
 
-    // TODO: replace sessionToken with a proper JWT
     const sessionToken = Buffer.from(`${userId}:${Date.now()}`).toString('base64');
+    const name = (userObj && (userObj.first_name || userObj.last_name))
+      ? `${userObj.first_name || ''} ${userObj.last_name || ''}`.trim()
+      : 'Buna User';
+    const walletId = `BW-${normalizedPhone.slice(-7)}`;
 
     res.json({
       success: true,
       message: 'Phone verified successfully.',
       phone: normalizedPhone,
       userId: userId,
+      name: name,
+      walletId: walletId,
       balance: appWalletBalance,
+      totalAssets: appWalletBalance,
       token: sessionToken,
       isNewUser: isNewUser,
     });
   } catch (error) {
-    console.error('[OTP Verify Error]', error.message);
+    console.error('[OTP Verify Error]', error);
     res.status(500).json({ success: false, message: 'Verification failed. Please try again.' });
+  }
+});
+
+// ── GET /api/user/profile ───────────────────────────────────────────────────
+app.get('/api/user/profile', async (req, res) => {
+  try {
+    const { phone, userId } = req.query;
+
+    if (!phone && !userId) {
+      return res.status(400).json({ success: false, message: 'Phone or userId is required.' });
+    }
+
+    let queryText = 'SELECT id, first_name, last_name, username, phone FROM users WHERE id = $1 LIMIT 1';
+    let queryParams = [userId];
+
+    if (phone) {
+      const normalizedPhone = normalizePhone(phone);
+      queryText = 'SELECT id, first_name, last_name, username, phone FROM users WHERE phone = $1 OR phone_number = $1 LIMIT 1';
+      queryParams = [normalizedPhone];
+    }
+
+    const userResult = await db.query(queryText, queryParams);
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+
+    const userObj = userResult.rows[0];
+    const uId = userObj.id;
+
+    const walletRes = await db.query(
+      `SELECT balance FROM app_wallets WHERE user_id = $1 LIMIT 1`,
+      [uId]
+    );
+
+    const balance = walletRes.rows.length > 0 ? parseFloat(walletRes.rows[0].balance || '0') : 0.00;
+    const name = (userObj.first_name || userObj.last_name)
+      ? `${userObj.first_name || ''} ${userObj.last_name || ''}`.trim()
+      : 'Buna User';
+    const walletId = `BW-${(userObj.phone || '').slice(-7)}`;
+
+    res.json({
+      success: true,
+      userId: uId,
+      phone: userObj.phone,
+      name: name,
+      walletId: walletId,
+      balance: balance,
+      totalAssets: balance,
+    });
+  } catch (error) {
+    console.error('[Profile Fetch Error]', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch profile.' });
+  }
+});
+
+// ── PUT /api/user/profile ───────────────────────────────────────────────────
+app.put('/api/user/profile', async (req, res) => {
+  try {
+    const { userId, name } = req.body;
+    if (!userId || !name) {
+      return res.status(400).json({ success: false, message: 'userId and name are required.' });
+    }
+
+    const parts = name.trim().split(/\s+/);
+    const firstName = parts[0] || '';
+    const lastName = parts.slice(1).join(' ') || '';
+
+    await db.query(
+      `UPDATE users SET first_name = $1, last_name = $2 WHERE id = $3`,
+      [firstName, lastName, userId]
+    );
+
+    res.json({ success: true, message: 'Profile updated successfully.', name });
+  } catch (error) {
+    console.error('[Profile Update Error]', error);
+    res.status(500).json({ success: false, message: 'Failed to update profile.' });
   }
 });
 
