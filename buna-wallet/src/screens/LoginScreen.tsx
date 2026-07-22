@@ -10,7 +10,6 @@ import {
   StatusBar,
   Animated,
   Alert,
-  Alert,
   Image,
   Linking,
 } from 'react-native';
