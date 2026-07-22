@@ -65,7 +65,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setError(null);
   }, []);
 
-  const API_URL = 'http://192.168.1.5:3004'; // Adjust for your local IP or use bunatechhub
+  const API_BASE = 'https://api.bunatechhub.net';
 
   // ── Step 1: Check Phone (PIN or OTP) ───────────────────────────────────────
   const checkPhone = useCallback(async (phone: string) => {
@@ -75,7 +75,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const normalized = normalizePhone(phone);
       setPendingPhone(normalized);
       
-      const res = await fetch(`http://127.0.0.1:3004/api/auth/check-phone`, {
+      const res = await fetch(`${API_BASE}/api/auth/check-phone`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: normalized }),
@@ -174,7 +174,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch(`http://127.0.0.1:3004/api/auth/setup-pin`, {
+      const res = await fetch(`${API_BASE}/api/auth/setup-pin`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: user.token, pin }),
@@ -198,7 +198,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch(`http://127.0.0.1:3004/api/auth/verify-pin`, {
+      const res = await fetch(`${API_BASE}/api/auth/verify-pin`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: pendingPhone, pin }),
@@ -303,10 +303,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         step,
         user,
         pendingPhone,
+        hasPin,
         goToLogin,
+        checkPhone,
         requestOTP,
         confirmOTP,
         resendOTP,
+        setupPin,
+        verifyPin,
         startTelegramAuth,
         refreshProfile,
         updateProfileName,
