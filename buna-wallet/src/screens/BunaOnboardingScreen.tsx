@@ -199,23 +199,69 @@ export const BunaOnboardingScreen: React.FC = () => {
 
           {/* Slide 2 */}
           <View style={[styles.onboardingContent, { width }]}>
+            {/* Centered Logo for Slide 2 */}
+            <View style={styles.centerLogo}>
+              <Ionicons name="cafe-outline" size={32} color={GOLD_DARK} />
+              <View style={styles.logoTextColCentered}>
+                <Text style={styles.logoTextTopCentered}>BUNA</Text>
+                <Text style={styles.logoTextBottomCentered}>WALLET</Text>
+              </View>
+            </View>
+
             <View style={styles.illustrationArea}>
               <View style={styles.graphicBox}>
-                <View style={styles.phoneFrame}>
+                {/* Circular glowing background */}
+                <View style={styles.glowCircle} />
+                
+                <View style={styles.phoneFrameCentered}>
                   <View style={styles.phoneNotch} />
-                  <View style={styles.phoneContentLines} />
-                  <View style={[styles.badgeItem, { top: 10, left: -25 }]}><Ionicons name="cart" size={18} color="#fff" /></View>
-                  <View style={[styles.badgeItem, { top: 10, right: -25 }]}><Ionicons name="flash" size={18} color="#fff" /></View>
-                  <View style={[styles.badgeItem, { top: 70, left: -25 }]}><Ionicons name="water" size={18} color="#fff" /></View>
-                  <View style={[styles.badgeItem, { top: 70, right: -25 }]}><Ionicons name="globe" size={18} color="#fff" /></View>
-                  <View style={[styles.badgeItem, { top: 130, left: -25 }]}><Ionicons name="airplane" size={18} color="#fff" /></View>
-                  <View style={[styles.badgeItem, { top: 130, right: -25 }]}><Ionicons name="car" size={18} color="#fff" /></View>
+                  <Text style={styles.phoneTextSlide2}>Pay Your Bills</Text>
+                  <View style={styles.receiptBox}>
+                    <View style={styles.receiptIconCircle}>
+                      <Ionicons name="flash" size={16} color="#FFF" />
+                    </View>
+                    <View style={styles.receiptLine} />
+                    <View style={styles.receiptLine} />
+                    <View style={[styles.receiptLine, { width: 30 }]} />
+                  </View>
+                  <View style={styles.phoneBottomCheck}>
+                    <Ionicons name="checkmark-circle" size={32} color={GOLD} />
+                  </View>
                 </View>
-                <View style={styles.personStanding}>
-                  <Ionicons name="person" size={50} color={TEXT_DARK} />
+
+                {/* Floating Badges */}
+                <View style={[styles.badgeContainer, { top: '10%', left: '-5%' }]}>
+                  <View style={styles.badgeItemWhite}><Ionicons name="cart" size={24} color={GOLD} /></View>
+                  <Text style={styles.badgeLabel}>Shopping</Text>
+                </View>
+                
+                <View style={[styles.badgeContainer, { top: '10%', right: '-5%' }]}>
+                  <View style={styles.badgeItemWhite}><Ionicons name="flash" size={24} color={GOLD} /></View>
+                  <Text style={styles.badgeLabel}>Electricity</Text>
+                </View>
+
+                <View style={[styles.badgeContainer, { top: '40%', left: '-10%' }]}>
+                  <View style={styles.badgeItemWhite}><Ionicons name="water" size={24} color={GOLD} /></View>
+                  <Text style={styles.badgeLabel}>Water</Text>
+                </View>
+
+                <View style={[styles.badgeContainer, { top: '40%', right: '-10%' }]}>
+                  <View style={styles.badgeItemWhite}><Ionicons name="globe-outline" size={24} color={GOLD} /></View>
+                  <Text style={styles.badgeLabel}>Internet</Text>
+                </View>
+
+                <View style={[styles.badgeContainer, { top: '70%', left: '-5%' }]}>
+                  <View style={styles.badgeItemWhite}><Ionicons name="airplane" size={24} color={GOLD} /></View>
+                  <Text style={styles.badgeLabel}>Airlines</Text>
+                </View>
+
+                <View style={[styles.badgeContainer, { top: '70%', right: '-5%' }]}>
+                  <View style={styles.badgeItemWhite}><Ionicons name="bus" size={24} color={GOLD} /></View>
+                  <Text style={styles.badgeLabel}>Transport</Text>
                 </View>
               </View>
             </View>
+
             <View style={styles.textArea}>
               <Text style={styles.titleText}>
                 <Text style={{ color: GOLD }}>Pay </Text>
@@ -507,6 +553,121 @@ const styles = StyleSheet.create({
     marginTop: 14,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+
+  // ── Slide 2 Specific Styles ───────────────────────────────────────────────
+  centerLogo: {
+    alignItems: 'center',
+    marginBottom: 20,
+    marginTop: -20,
+  },
+  logoTextColCentered: {
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  logoTextTopCentered: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: TEXT_DARK,
+    lineHeight: 22,
+    letterSpacing: 1.5,
+  },
+  logoTextBottomCentered: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: GOLD,
+    lineHeight: 16,
+    letterSpacing: 2,
+  },
+  glowCircle: {
+    position: 'absolute',
+    width: 320,
+    height: 320,
+    borderRadius: 160,
+    backgroundColor: 'rgba(229, 193, 88, 0.1)',
+  },
+  phoneFrameCentered: {
+    width: 150,
+    height: 300,
+    borderWidth: 4,
+    borderColor: TEXT_DARK,
+    borderRadius: 28,
+    backgroundColor: '#FAFAFA',
+    alignItems: 'center',
+    paddingTop: 16,
+    position: 'relative',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  phoneTextSlide2: {
+    marginTop: 30,
+    fontSize: 15,
+    fontWeight: '700',
+    color: TEXT_DARK,
+  },
+  receiptBox: {
+    marginTop: 20,
+    width: 86,
+    height: 110,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#EAEAEA',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
+    alignItems: 'center',
+    paddingTop: 14,
+  },
+  receiptIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: GOLD,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  receiptLine: {
+    width: 50,
+    height: 4,
+    backgroundColor: '#F0F0F5',
+    marginBottom: 8,
+    borderRadius: 2,
+  },
+  phoneBottomCheck: {
+    position: 'absolute',
+    bottom: 24,
+    width: '100%',
+    alignItems: 'center',
+  },
+  badgeContainer: {
+    position: 'absolute',
+    alignItems: 'center',
+    zIndex: 2,
+  },
+  badgeItemWhite: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+  },
+  badgeLabel: {
+    marginTop: 6,
+    fontSize: 10,
+    fontWeight: '700',
+    color: TEXT_DARK,
   },
 
   textArea: {
