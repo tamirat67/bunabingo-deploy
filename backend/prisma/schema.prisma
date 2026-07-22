@@ -641,6 +641,7 @@ model ChickenRoadGame {
 model AppWallet {
   id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId          String   @unique @db.Uuid @map("user_id")
+  pin             String?  @db.VarChar(255)
   balance         Decimal  @default(0) @db.Decimal(20, 4)
   totalDeposited  Decimal  @default(0) @db.Decimal(20, 4) @map("total_deposited")
   totalWithdrawn  Decimal  @default(0) @db.Decimal(20, 4) @map("total_withdrawn")
