@@ -127,8 +127,8 @@ export const BunaOnboardingScreen: React.FC = () => {
   // ─── RENDER ONBOARDING SLIDES ─────────────────────────────────────────────
   if (screen === 'onboarding') {
     return (
-      <View style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor={BG_WHITE} />
+      <LinearGradient colors={['#FFFDF7', '#FFFFFF']} style={styles.container}>
+        <StatusBar barStyle="dark-content" backgroundColor="#FFFDF7" />
 
         <ScrollView
           ref={scrollRef}
@@ -141,6 +141,14 @@ export const BunaOnboardingScreen: React.FC = () => {
         >
           {/* Slide 1 */}
           <View style={[styles.onboardingContent, { width }]}>
+            <View style={styles.topRightLogo}>
+              <Ionicons name="wallet-outline" size={26} color={TEXT_DARK} />
+              <View style={styles.logoTextCol}>
+                <Text style={styles.logoTextTop}>Buna</Text>
+                <Text style={styles.logoTextBottom}>Wallet</Text>
+              </View>
+            </View>
+
             <View style={styles.illustrationArea}>
               <View style={styles.graphicBox}>
                 <View style={styles.shopBuilding}>
@@ -152,19 +160,40 @@ export const BunaOnboardingScreen: React.FC = () => {
                 <View style={styles.personWalking}>
                   <Ionicons name="person" size={54} color={TEXT_DARK} />
                   <View style={styles.phoneInHand}>
-                    <Ionicons name="phone-portrait-sharp" size={20} color={GOLD} />
+                    <Ionicons name="qr-code-outline" size={20} color={GOLD} />
                   </View>
                 </View>
               </View>
             </View>
+            
             <View style={styles.textArea}>
               <Text style={styles.titleText}>
-                <Text style={{ color: GOLD }}>Pay </Text>
-                at Shops
+                <Text style={{ color: GOLD }}>Pay </Text>at Shops
               </Text>
+              <View style={styles.titleUnderline} />
               <Text style={styles.descText}>
                 Pay at shops from your Buna wallet or from your linked bank accounts from 20+ banks via mobile transfers or QR scans.
               </Text>
+
+              {/* Features Grid */}
+              <View style={styles.featuresGrid}>
+                <View style={styles.featureCard}>
+                  <Ionicons name="card-outline" size={26} color={TEXT_DARK} />
+                  <Text style={styles.featureText}>Easy{'\n'}Payments</Text>
+                </View>
+                <View style={styles.featureCard}>
+                  <Ionicons name="shield-checkmark-outline" size={26} color={GOLD_DARK} />
+                  <Text style={styles.featureText}>Secure{'\n'}& Safe</Text>
+                </View>
+                <View style={styles.featureCard}>
+                  <MaterialCommunityIcons name="bank-outline" size={26} color={TEXT_DARK} />
+                  <Text style={styles.featureText}>20+ Banks{'\n'}Connected</Text>
+                </View>
+                <View style={styles.featureCard}>
+                  <Ionicons name="qr-code-outline" size={26} color={TEXT_DARK} />
+                  <Text style={styles.featureText}>QR & Mobile{'\n'}Transfers</Text>
+                </View>
+              </View>
             </View>
           </View>
 
@@ -235,11 +264,12 @@ export const BunaOnboardingScreen: React.FC = () => {
             <View style={[styles.dot, activeIndex === 1 && styles.dotActive]} />
             <View style={[styles.dot, activeIndex === 2 && styles.dotActive]} />
           </View>
-          <TouchableOpacity onPress={handleNextOnboarding} activeOpacity={0.7} style={styles.bottomBtn}>
-            <Text style={styles.nextText}>Next</Text>
+          <TouchableOpacity onPress={handleNextOnboarding} activeOpacity={0.8} style={styles.nextPillBtn}>
+            <Text style={styles.nextPillText}>Next</Text>
+            <Ionicons name="chevron-forward" size={16} color={TEXT_DARK} />
           </TouchableOpacity>
         </View>
-      </View>
+      </LinearGradient>
     );
   }
 
@@ -481,42 +511,117 @@ const styles = StyleSheet.create({
 
   textArea: {
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 0,
+    width: '100%',
   },
   titleText: {
-    fontSize: 28,
-    fontWeight: '800',
+    fontSize: 32,
+    fontWeight: '900',
     color: TEXT_DARK,
     textAlign: 'center',
-    marginBottom: 14,
+    marginBottom: 8,
+  },
+  titleUnderline: {
+    width: 48,
+    height: 3,
+    backgroundColor: GOLD,
+    borderRadius: 2,
+    marginBottom: 16,
+  },
+  topRightLogo: {
+    position: 'absolute',
+    top: 20,
+    right: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  logoTextCol: {
+    marginLeft: 6,
+    justifyContent: 'center',
+  },
+  logoTextTop: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: TEXT_DARK,
+    lineHeight: 14,
+  },
+  logoTextBottom: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: GOLD,
+    lineHeight: 14,
   },
   descText: {
-    fontSize: 15,
+    fontSize: 14,
     color: TEXT_MUTED,
     textAlign: 'center',
     lineHeight: 22,
-    paddingHorizontal: 8,
+    paddingHorizontal: 12,
+  },
+  featuresGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginTop: 28,
+  },
+  featureCard: {
+    width: '23%',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#F0F0F5',
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  featureText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: TEXT_DARK,
+    textAlign: 'center',
+    marginTop: 8,
+    lineHeight: 14,
   },
 
   bottomBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 8,
+    paddingHorizontal: 16,
+    paddingBottom: Platform.OS === 'ios' ? 10 : 20,
   },
   bottomBtn: {
     paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingHorizontal: 10,
+    minWidth: 80,
   },
   skipText: {
     fontSize: 16,
     fontWeight: '600',
-    color: TEXT_DARK,
+    color: TEXT_MUTED,
   },
-  nextText: {
+  nextPillBtn: {
+    flexDirection: 'row',
+    backgroundColor: GOLD,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 80,
+  },
+  nextPillText: {
     fontSize: 16,
     fontWeight: '700',
     color: TEXT_DARK,
+    marginRight: 4,
   },
 
   dotsRow: {
