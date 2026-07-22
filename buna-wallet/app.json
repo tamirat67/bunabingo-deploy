@@ -6,6 +6,15 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/c84f276d-0ded-4c90-8d6f-bd420c186008",
+      "enabled": true,
+      "fallbackToCacheTimeout": 0,
+      "channel": "production"
+    },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
