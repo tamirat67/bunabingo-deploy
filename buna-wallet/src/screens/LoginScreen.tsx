@@ -55,7 +55,7 @@ export const LoginScreen: React.FC = () => {
       const sessionId = await startTelegramAuth();
       
       // Open the Telegram Deep Link to Buna Bingo Bot
-      const botUsername = 'BunaBingoBot';
+      const botUsername = 'buna_bingobot';
       const telegramUrl = `https://t.me/${botUsername}?start=auth_${sessionId}`;
       await Linking.openURL(telegramUrl);
 
