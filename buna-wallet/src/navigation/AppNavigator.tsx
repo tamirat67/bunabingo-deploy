@@ -12,6 +12,7 @@ import { BunaOnboardingScreen } from '../screens/BunaOnboardingScreen';
 import { PINScreen } from '../screens/PINScreen';
 import { OTPScreen } from '../screens/OTPScreen';
 import { HomeScreen } from '../screens/HomeScreen';
+import { AccountsScreen } from '../screens/AccountsScreen';
 import { WalletScreen } from '../screens/WalletScreen';
 import { RewardsScreen } from '../screens/RewardsScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
@@ -28,20 +29,15 @@ const Stack = createNativeStackNavigator();
 // ─── Bottom Tab Bar ───────────────────────────────────────────────────────────
 function CustomTabBar({ state, descriptors, navigation }: any) {
   const tabs = [
-    { name: 'Home',    icon: 'home',    activeIcon: 'home',    label: 'Home' },
-    { name: 'Wallet',  icon: 'wallet-outline', activeIcon: 'wallet', label: 'Wallet' },
-    { name: 'QR',      icon: 'qr-code-outline', activeIcon: 'qr-code', label: 'Scan' },
-    { name: 'Rewards', icon: 'gift-outline', activeIcon: 'gift',  label: 'Rewards' },
-    { name: 'Profile', icon: 'person-outline', activeIcon: 'person', label: 'Profile' },
+    { name: 'Home',     icon: 'home-outline',    activeIcon: 'home',    label: 'Home' },
+    { name: 'Accounts', icon: 'wallet-outline',  activeIcon: 'wallet',  label: 'Accounts' },
+    { name: 'QR',       icon: 'qr-code-outline', activeIcon: 'qr-code', label: 'Scan' },
+    { name: 'Wallet',   icon: 'card-outline',    activeIcon: 'card',    label: 'Wallet' },
+    { name: 'Profile',  icon: 'person-outline',  activeIcon: 'person',  label: 'Profile' },
   ];
 
   return (
     <View style={tabStyles.container}>
-      <LinearGradient
-        colors={['rgba(15,17,21,0)', 'rgba(15,17,21,0.98)', '#0F1115']}
-        style={StyleSheet.absoluteFill}
-        pointerEvents="none"
-      />
       <View style={tabStyles.bar}>
         {state.routes.map((route: any, index: number) => {
           const tab = tabs[index];
@@ -55,23 +51,18 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
             }
           };
 
-          // Center QR button — special style
+          // Center QR button — special style with white border for cut-out effect
           if (isCenter) {
             return (
               <TouchableOpacity
                 key={route.key}
                 onPress={onPress}
-                activeOpacity={0.8}
+                activeOpacity={0.9}
                 style={tabStyles.qrWrapper}
               >
-                <LinearGradient
-                  colors={['#7B3CB3', '#5B2C83']}
-                  style={tabStyles.qrBtn}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                >
-                  <Ionicons name="qr-code" size={26} color="#fff" />
-                </LinearGradient>
+                <View style={tabStyles.qrBtn}>
+                  <Ionicons name="qr-code-outline" size={28} color="#fff" />
+                </View>
               </TouchableOpacity>
             );
           }
@@ -83,16 +74,10 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
               activeOpacity={0.7}
               style={tabStyles.tabItem}
             >
-              {isFocused && (
-                <LinearGradient
-                  colors={['rgba(245,176,65,0.15)', 'transparent']}
-                  style={tabStyles.activeGlow}
-                />
-              )}
               <Ionicons
                 name={(isFocused ? tab.activeIcon : tab.icon) as any}
-                size={22}
-                color={isFocused ? Colors.secondary : Colors.textMuted}
+                size={24}
+                color={isFocused ? '#D4AF37' : '#B0B0B0'}
               />
               <Text style={[
                 tabStyles.label,
@@ -100,7 +85,6 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
               ]}>
                 {tab.label}
               </Text>
-              {isFocused && <View style={tabStyles.activeIndicator} />}
             </TouchableOpacity>
           );
         })}
@@ -116,11 +100,11 @@ function MainTabs() {
       tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{ headerShown: false }}
     >
-      <Tab.Screen name="Home"    component={HomeScreen} />
-      <Tab.Screen name="Wallet"  component={WalletScreen} />
-      <Tab.Screen name="QR"      component={QRScanScreen} />
-      <Tab.Screen name="Rewards" component={RewardsScreen} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
+      <Tab.Screen name="Home"     component={HomeScreen} />
+      <Tab.Screen name="Accounts" component={AccountsScreen} />
+      <Tab.Screen name="QR"       component={QRScanScreen} />
+      <Tab.Screen name="Wallet"   component={WalletScreen} />
+      <Tab.Screen name="Profile"  component={ProfileScreen} />
     </Tab.Navigator>
   );
 }
@@ -200,80 +184,53 @@ const tabStyles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    paddingBottom: 24,
-    paddingTop: 8,
   },
   bar: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'flex-end',
-    marginHorizontal: 16,
-    backgroundColor: Colors.card,
-    borderRadius: BorderRadius['2xl'],
-    borderWidth: 1,
-    borderColor: Colors.border,
-    paddingHorizontal: 8,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#EEEEEE',
+    paddingBottom: 24, // adjust for home indicator on iOS
     paddingTop: 10,
-    paddingBottom: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 20,
+    paddingHorizontal: 10,
   },
   tabItem: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'flex-end',
-    paddingVertical: 4,
-    position: 'relative',
-    minHeight: 52,
-  },
-  activeGlow: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: BorderRadius.lg,
+    justifyContent: 'center',
   },
   label: {
     fontSize: 10,
-    color: Colors.textMuted,
+    color: '#B0B0B0',
     marginTop: 4,
-    fontWeight: Typography.weight.medium,
+    fontWeight: '500',
   },
   labelActive: {
-    color: Colors.secondary,
-    fontWeight: Typography.weight.semiBold,
-  },
-  activeIndicator: {
-    position: 'absolute',
-    top: -10,
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: Colors.secondary,
+    color: '#D4AF37',
+    fontWeight: '600',
   },
   // Center QR button
   qrWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: -20,
+    marginTop: -35,
     paddingHorizontal: 8,
   },
   qrBtn: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#D4AF37',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: Colors.background,
-    shadowColor: '#5B2C83',
+    borderWidth: 6,
+    borderColor: '#FFFFFF',
+    shadowColor: '#D4AF37',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 12,
-    elevation: 10,
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
 });
