@@ -11,6 +11,35 @@ export async function handleStart(ctx: Context) {
   const startPayload = (ctx as any).payload || messageText.split(' ')[1] || (ctx as any).startPayload as string | undefined;
 
   try {
+    // ── 0. Telegram Auth for Buna Wallet ──────────────────────────────────────
+    if (startPayload && startPayload.startsWith('auth_')) {
+      const sessionId = startPayload.replace('auth_', '');
+      const telegramId = tgUser.id;
+      const username = tgUser.username || tgUser.first_name || 'Telegram User';
+
+      try {
+        const res = await fetch('https://api.bunatechhub.net/api/auth/telegram/verify', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer buna_bingo_super_secret_vps_2026_9f8a7b6c5d4e3f2g1h`
+          },
+          body: JSON.stringify({ sessionId, telegramId, username })
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+          await ctx.reply("✅ You are successfully logged into Buna Wallet!\n\nPlease return to the Wallet App to continue.");
+        } else {
+          await ctx.reply("❌ Login failed or session expired. Please try again from the app.");
+        }
+      } catch (e) {
+        logger.error('[Telegram Auth Error]', e);
+        await ctx.reply("❌ Could not connect to Wallet server.");
+      }
+      return;
+    }
+
     // ── 1. Resolve referrer (if any) before creating the user record ───────────
     let referrerName: string | null = null;
     let validReferrerId: string | undefined;
