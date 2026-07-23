@@ -116,7 +116,8 @@ const ServiceCard = ({
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export const HomeScreen: React.FC<{ navigation?: any }> = ({ navigation }) => {
   const { user, refreshProfile } = useAuth();
-  const nav = navigation || useNavigation<any>();
+  const fallbackNav = useNavigation<any>();
+  const nav = navigation ?? fallbackNav;
 
   const [balanceHidden, setBalanceHidden] = useState(false);
   const [refreshing, setRefreshing] = useState(false);

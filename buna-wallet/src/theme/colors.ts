@@ -17,10 +17,13 @@ export const Colors = {
   background: '#F8F9FA',    // Clean Light Mode Background
   backgroundAlt: '#FFFFFF', // Pure White for cards
   darkBackground: '#1A1A1A',// For dark overlays
+  card: '#FFFFFF',          // Card surface (elevated variant)
+  cardAlt: '#F2F2F7',       // Subtle card surface (flat variant)
 
   // Text
   textPrimary: '#1C1C1E',   // Almost black for high readability
   textSecondary: '#6E6E73', // Muted dark text
+  textMuted: '#AEAEB2',     // Dimmed/disabled text
   textInverse: '#FFFFFF',   // White text on dark espresso/gold cards
   textGold: '#D4AF37',      // Gold text on dark espresso
 
@@ -37,6 +40,7 @@ export const Colors = {
 
   // Glass / Transparent
   glassBg: 'rgba(255, 255, 255, 0.7)',
+  glassStroke: 'rgba(255, 255, 255, 0.35)',
   overlay: 'rgba(30, 20, 15, 0.85)', // Espresso tinted overlay
   transparent: 'transparent',
 };
