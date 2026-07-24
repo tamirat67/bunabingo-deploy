@@ -9,10 +9,10 @@ import { H2, Body, Caption, Label } from '../components/Typography';
 import { requestDeposit } from '../services/walletService';
 import { useAuth } from '../context/AuthContext';
 import { useNavigation } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
-type DepositScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Deposit'>;
+type DepositScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Deposit'>;
 
 export const DepositScreen: React.FC = () => {
   const { user } = useAuth();
@@ -65,7 +65,7 @@ export const DepositScreen: React.FC = () => {
         {/* Header */}
         <View style={styles.topBar}>
           <TouchableOpacity style={styles.backBtn} activeOpacity={0.7} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color={Colors.text} />
+            <Ionicons name="arrow-back" size={24} color={Colors.textInverse} />
           </TouchableOpacity>
           <H2>Telebirr Deposit</H2>
           <View style={{ width: 40 }} /> {/* Spacer */}
@@ -197,6 +197,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    fontFamily: Typography.primary,
+    fontFamily: Typography.fontFamily.regular,
   },
 });

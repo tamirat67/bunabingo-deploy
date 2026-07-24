@@ -11,7 +11,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useAuth } from '../context/AuthContext';
 
@@ -19,7 +19,7 @@ import { Colors } from '../theme/colors';
 import { Shadows } from '../theme/tokens';
 
 export const WalletScreen: React.FC = () => {
-  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user, refreshProfile } = useAuth();
 
   useEffect(() => {
@@ -48,7 +48,7 @@ export const WalletScreen: React.FC = () => {
 
         {/* ── BALANCE CARD ── */}
         <LinearGradient
-          colors={Colors.espressoGradient}
+          colors={Colors.espressoGradient as any}
           style={[styles.balanceCard, Shadows.espresso as any]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}

@@ -323,8 +323,8 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.2)',
   },
   actionIconActive: {
-    backgroundColor: GOLD,
-    borderColor: GOLD,
+    backgroundColor: Colors.secondary,
+    borderColor: Colors.secondary,
   },
   actionLabel: {
     color: 'rgba(255,255,255,0.75)',

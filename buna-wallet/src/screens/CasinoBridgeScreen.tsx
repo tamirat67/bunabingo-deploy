@@ -9,11 +9,11 @@ import { H2, Body, Caption, Label, H3 } from '../components/Typography';
 import { transferToCasino, transferToWallet } from '../services/walletService';
 import { useAuth } from '../context/AuthContext';
 import { useNavigation } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { MOCK_USER } from '../data/mockData';
 
-type CasinoBridgeNavigationProp = StackNavigationProp<RootStackParamList, 'CasinoBridge'>;
+type CasinoBridgeNavigationProp = NativeStackNavigationProp<RootStackParamList, 'CasinoBridge'>;
 
 export const CasinoBridgeScreen: React.FC = () => {
   const { user } = useAuth();
@@ -57,7 +57,7 @@ export const CasinoBridgeScreen: React.FC = () => {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.topBar}>
           <TouchableOpacity style={styles.backBtn} activeOpacity={0.7} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color={Colors.text} />
+            <Ionicons name="arrow-back" size={24} color={Colors.textInverse} />
           </TouchableOpacity>
           <H2>Casino Bridge</H2>
           <View style={{ width: 40 }} />
@@ -138,6 +138,6 @@ const styles = StyleSheet.create({
   formSection: { marginBottom: 10 },
   inputLabel: { marginBottom: 12, marginLeft: 4, color: 'rgba(255,255,255,0.6)' },
   inputContainer: { padding: 4, marginBottom: 20 },
-  input: { color: '#fff', fontSize: 18, paddingHorizontal: 16, paddingVertical: 14, fontFamily: Typography.primary },
+  input: { color: '#fff', fontSize: 18, paddingHorizontal: 16, paddingVertical: 14, fontFamily: Typography.fontFamily.regular },
   disclaimer: { textAlign: 'center', color: Colors.textMuted, marginTop: 24, fontSize: 13 },
 });

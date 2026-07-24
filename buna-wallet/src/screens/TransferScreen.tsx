@@ -9,10 +9,10 @@ import { H2, Body, Caption, Label } from '../components/Typography';
 import { requestTransfer } from '../services/walletService';
 import { useAuth } from '../context/AuthContext';
 import { useNavigation } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
-type TransferScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Transfer'>;
+type TransferScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Transfer'>;
 
 export const TransferScreen: React.FC = () => {
   const { user } = useAuth();
@@ -102,7 +102,7 @@ export const TransferScreen: React.FC = () => {
         {/* Header */}
         <View style={styles.topBar}>
           <TouchableOpacity style={styles.backBtn} activeOpacity={0.7} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color={Colors.text} />
+            <Ionicons name="arrow-back" size={24} color={Colors.textInverse} />
           </TouchableOpacity>
           <H2>Send Money</H2>
           <View style={{ width: 40 }} />
@@ -231,7 +231,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1, color: '#fff', fontSize: 18, paddingVertical: 14,
-    fontFamily: Typography.primary,
+    fontFamily: Typography.fontFamily.medium,
   },
   suggestionsContainer: {
     backgroundColor: 'rgba(30, 30, 40, 0.95)',

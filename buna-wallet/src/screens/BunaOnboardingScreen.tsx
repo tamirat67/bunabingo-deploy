@@ -1052,6 +1052,11 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 20,
   },
+  nextText: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: GOLD,
+  },
 
   // ── Phone Input Screen Styles ─────────────────────────────────────────────
   phoneBody: {

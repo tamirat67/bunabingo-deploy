@@ -9,10 +9,10 @@ import { H2, Body, Caption, Label } from '../components/Typography';
 import { requestWithdrawal } from '../services/walletService';
 import { useAuth } from '../context/AuthContext';
 import { useNavigation } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
-type WithdrawScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Withdraw'>;
+type WithdrawScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Withdraw'>;
 
 const PAYMENT_METHODS = [
   { id: 'telebirr', name: 'Telebirr', icon: '📱' },
@@ -74,7 +74,7 @@ export const WithdrawScreen: React.FC = () => {
         {/* Header */}
         <View style={styles.topBar}>
           <TouchableOpacity style={styles.backBtn} activeOpacity={0.7} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color={Colors.text} />
+            <Ionicons name="arrow-back" size={24} color={Colors.textInverse} />
           </TouchableOpacity>
           <H2>Withdraw Funds</H2>
           <View style={{ width: 40 }} />
@@ -96,8 +96,7 @@ export const WithdrawScreen: React.FC = () => {
                   {isSelected && (
                     <LinearGradient
                       colors={['rgba(245,176,65,0.15)', 'transparent']}
-                      style={StyleSheet.absoluteFill}
-                      borderRadius={BorderRadius.lg}
+                      style={[StyleSheet.absoluteFill, { borderRadius: BorderRadius.lg }]}
                     />
                   )}
                   <Text style={styles.methodIcon}>{method.icon}</Text>
@@ -196,7 +195,7 @@ const styles = StyleSheet.create({
   inputContainer: { padding: 4, marginBottom: 20 },
   input: {
     color: '#fff', fontSize: 18, paddingHorizontal: 16, paddingVertical: 14,
-    fontFamily: Typography.primary,
+    fontFamily: Typography.fontFamily.medium,
   },
   disclaimer: {
     textAlign: 'center', color: Colors.textMuted, marginTop: 24, fontSize: 13,

@@ -166,7 +166,7 @@ export const PINScreen: React.FC = () => {
                 ]}
               >
                 <TextInput
-                  ref={(el) => (inputRefs.current[index] = el)}
+                  ref={(el) => { inputRefs.current[index] = el; }}
                   style={styles.hiddenInput}
                   keyboardType="number-pad"
                   maxLength={1}
